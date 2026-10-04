@@ -1137,6 +1137,28 @@ html[dir=rtl] .of-chip{padding:10px 10px 10px 16px}
 .of-chip .of-tm em{font-style:normal;font-family:var(--body);font-weight:500;font-size:11.5px;color:var(--silver)}
 .of-chip .of-c-go{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--blue);font-size:15px}
 @media (max-width:520px){.of-chip{gap:10px}.of-chip .of-c-badge{width:44px;height:44px;font-size:13px}.of-chip .of-c-main{font-size:13.5px}.of-chip .of-c-go{display:none}}
+@media (max-width:520px){
+.of-ov{align-items:end;padding:0 12px calc(12px + env(safe-area-inset-bottom,0px))}
+.of-box{width:min(360px,100%)}
+.of-in{padding:18px 16px 14px;border-radius:22px}
+.of-card{border-radius:23px}
+.of-tag{font-size:10px;padding:4px 10px}
+.of-t{margin:10px 0 2px;font-size:15.5px;line-height:1.4}
+.of-s{display:none}
+.of-price{margin:10px 0 2px;gap:10px}
+.of-now{font-size:40px}
+.of-was{font-size:18px}
+.of-off{font-size:11px;padding:4px 7px}
+.of-cd{gap:6px;margin:10px 0 2px}
+.of-cd div{padding:8px 2px 6px;border-radius:11px}
+.of-cd b{font-size:19px}
+.of-cd span{font-size:10.5px;margin-top:3px}
+.of-cta{margin-top:12px;padding:12px;font-size:15px;border-radius:13px}
+.of-note{margin-top:8px;font-size:11.5px}
+.of-x{top:8px;width:30px;height:30px;font-size:17px}
+}
+@media (max-height:620px){.of-s,.of-note{display:none}.of-now{font-size:38px}}
+html[dir=rtl] .of-tag{font-family:var(--body);letter-spacing:0;font-size:12px}
 </style>
 <div class="of-ov" id="ofOv" role="dialog" aria-modal="true" aria-labelledby="ofT" hidden>
   <div class="of-box">
