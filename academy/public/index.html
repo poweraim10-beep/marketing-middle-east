@@ -144,6 +144,12 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
 .cert-badge svg{width:20px;height:20px;fill:#facc15}
 .cert-badge svg .ck{fill:none;stroke:#0B1020;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 @media (max-width:860px){.course .inst{grid-template-columns:1fr;text-align:center}.inst-ph{width:min(200px,62%);margin:0 auto}.inst-body{align-items:center}.inst-stats{justify-content:center;width:100%;gap:8px}.inst-stats div{flex:1 1 0;min-width:0;padding:9px 6px}.inst-stats b{text-align:center;font-size:17px}.inst-stats span{font-size:11px}}
+.drop{display:flex;align-items:center;justify-content:center;min-height:86px;padding:16px;border:2px dashed var(--line-2);border-radius:14px;background:rgba(6,10,22,.5);color:var(--silver);text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.drop:hover,.drop.over{border-color:var(--cyan);background:rgba(34,211,238,.06)}
+.drop.has{border-style:solid;border-color:rgba(34,197,94,.6);color:#bbf7d0}
+.upbar{position:relative;height:34px;border-radius:10px;overflow:hidden;background:rgba(11,16,32,.9);border:1px solid var(--line-2);margin-top:8px}
+.upbar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--grad);transition:width .3s}
+.upbar span{position:relative;display:block;text-align:center;line-height:34px;font-size:13.5px;color:#fff}
 /* ===== app views ===== */
 .app{padding-top:clamp(36px,6vw,70px);padding-bottom:90px;min-height:70vh}
 .navauth{display:flex;gap:8px;align-items:center}
@@ -624,6 +630,27 @@ function viewEnrolled(courseId){
   });
 }
 
+function fmtSize(n){n=Number(n)||0;return n>=1073741824?(n/1073741824).toFixed(2)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
+function uploadVideo(lessonId,file,onProg){
+  var CH=20*1024*1024,total=Math.max(1,Math.ceil(file.size/CH)),done=0,parts=[],up;
+  if(file.size>5*1024*1024*1024)return Promise.reject(new Error('الملف أكبر من 5GB'));
+  return api('/admin/upload/start',{method:'POST',body:{lesson_id:lessonId,filename:file.name,type:file.type,size:file.size}}).then(function(s){
+    up=s;var next=1;
+    function putPart(n,tries){
+      var blob=file.slice((n-1)*CH,Math.min(n*CH,file.size));
+      return fetch('/api/admin/upload/part?key='+encodeURIComponent(up.key)+'&uploadId='+encodeURIComponent(up.uploadId)+'&part='+n,{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/octet-stream'},body:blob})
+        .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'فشل رفع جزء');return d})})
+        .catch(function(e){if(tries<3)return new Promise(function(res){setTimeout(res,1500*(tries+1))}).then(function(){return putPart(n,tries+1)});throw e});
+    }
+    function worker(){if(next>total)return Promise.resolve();var n=next++;return putPart(n,0).then(function(d){parts.push(d);done++;onProg&&onProg(Math.round(done/total*100));return worker()})}
+    onProg&&onProg(0);
+    return Promise.all([worker(),worker(),worker()]);
+  }).then(function(){
+    parts.sort(function(a,b){return a.partNumber-b.partNumber});
+    return api('/admin/upload/complete',{method:'POST',body:{key:up.key,uploadId:up.uploadId,parts:parts,lesson_id:lessonId}});
+  }).catch(function(e){if(up)api('/admin/upload/abort',{method:'POST',body:{key:up.key,uploadId:up.uploadId}}).catch(function(){});throw e});
+}
+window.addEventListener('beforeunload',function(e){var b=document.getElementById('upBar');if(b&&!b.hidden&&/جاري/.test(b.textContent)){e.preventDefault();e.returnValue=''}});
 function embedHtml(url){
   url=String(url||'').trim();var m;
   if(!url)return '<div class="ph">الفيديو لهذا الدرس قريبًا.</div>';
@@ -657,7 +684,7 @@ function viewCourse(courseId,params){
     var u=state.user||{};
     app.innerHTML=head+
       '<div class="player"><div>'+
-        '<div class="screen">'+embedHtml(lesson.video_url)+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span></div>'+
+        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
       '</div><div>'+
@@ -897,19 +924,30 @@ function admLessons(){
           '<button class="btn btn-p" type="submit">حفظ</button></form></div>'+
         '<div class="card2"><h3 id="lfTitle">إضافة درس جديد</h3><form id="lessonForm"><input type="hidden" name="lid">'+
           '<div class="field"><label>عنوان الدرس</label><input name="title" required></div>'+
-          '<div class="field"><label>رابط الفيديو</label><input name="video_url" dir="ltr" placeholder="Bunny / YouTube (غير مدرج) / Vimeo / Google Drive"><span class="hint">الرابط ما بيظهر إلا للطلاب المفعّلين.</span></div>'+
+          '<div class="field upf"><label>🎬 فيديو الدرس — ارفعه من جهازك</label><label class="drop" id="dropZ"><input type="file" name="vfile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.m4v,.webm" hidden><span id="dropT">اضغط لاختيار ملف الفيديو (MP4) أو اسحبه هون</span></label><div class="upbar" id="upBar" hidden><i></i><span>0%</span></div><span class="hint">الفيديو بينحفظ على سيرفر الأكاديمية، وما بيقدر يشوفه إلا الطالب المفعّل.</span></div>'+
+          '<details class="field"><summary style="cursor:pointer;color:var(--mute);font-size:13.5px">أو استخدم رابط خارجي بدل الرفع</summary><input name="video_url" dir="ltr" style="margin-top:8px" placeholder="YouTube (غير مدرج) / Vimeo / Bunny / Google Drive"></details>'+
           '<div class="grid2"><div class="field"><label>الترتيب</label><input name="sort" type="number" value="'+(ls.length+1)+'"></div><div class="field"><label>المدة بالدقائق</label><input name="minutes" type="number" min="0"></div></div>'+
           '<div class="field"><label>ملاحظات / روابط مواد الدرس</label><textarea name="notes" rows="3"></textarea></div>'+
           '<div style="display:flex;gap:8px"><button class="btn btn-p" type="submit">حفظ الدرس</button><button class="btn btn-g" type="reset" id="lfReset">جديد</button></div></form></div>'+
         '<h3 style="color:#fff;margin:6px 0 12px">الدروس ('+ls.length+')</h3>'+
-        (ls.length?'<div class="list">'+ls.map(function(l){return '<div class="row"><div><h3>'+l.sort+'. '+esc(l.title)+'</h3><div class="muted" dir="ltr" style="text-align:right;word-break:break-all">'+esc(l.video_url||'— بدون فيديو —')+'</div></div><div class="acts"><a class="btn btn-g btn-s" href="#/course/'+esc(c.id)+'?l='+l.id+'">معاينة</a><button class="btn btn-g btn-s" data-edit="'+l.id+'">تعديل</button><button class="btn btn-no btn-s" data-del="'+l.id+'">حذف</button></div></div>'}).join('')+'</div>':'<div class="empty">ما في دروس لسا. ضيف أول درس من الفورم فوق.</div>');
+        (ls.length?'<div class="list">'+ls.map(function(l){return '<div class="row"><div><h3>'+l.sort+'. '+esc(l.title)+'</h3><div class="muted" style="word-break:break-all">'+(l.has_video?'<span class="badge approved">🎬 فيديو مرفوع'+(l.video_size?' · '+fmtSize(l.video_size):'')+'</span>':(l.video_url?'<span dir="ltr">'+esc(l.video_url)+'</span>':'<span class="badge pending">بدون فيديو</span>'))+'</div></div><div class="acts">'+(l.has_video?'<button class="btn btn-no btn-s" data-delv="'+l.id+'">حذف الفيديو</button>':'')+'<a class="btn btn-g btn-s" href="#/course/'+esc(c.id)+'?l='+l.id+'">معاينة</a><button class="btn btn-g btn-s" data-edit="'+l.id+'">تعديل</button><button class="btn btn-no btn-s" data-del="'+l.id+'">حذف</button></div></div>'}).join('')+'</div>':'<div class="empty">ما في دروس لسا. ضيف أول درس من الفورم فوق.</div>');
       $$('[data-c]',box).forEach(function(b){b.addEventListener('click',function(){lessonCourse=b.getAttribute('data-c');admLessons()})});
       $('#courseForm').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
         api('/admin/courses/'+c.id,{method:'POST',body:{title:f.title.value,description:f.description.value,price:f.price.value,old_price:f.old_price.value,published:f.published.checked}}).then(function(){toast('تم الحفظ ✔')},function(e){toast(e.message)})});
       var lf=$('#lessonForm'),E=lf.elements;
       lf.addEventListener('submit',function(ev){ev.preventDefault();
         var id=E.lid.value,b={course_id:c.id,title:E.title.value,video_url:E.video_url.value,sort:E.sort.value,minutes:E.minutes.value,notes:E.notes.value};
-        api('/admin/lessons'+(id?'/'+id:''),{method:'POST',body:b}).then(function(){toast('تم حفظ الدرس ✔');admLessons()},function(e){toast(e.message)})});
+        var file=E.vfile.files[0],sb=$('button[type=submit]',lf);sb.disabled=true;
+        api('/admin/lessons'+(id?'/'+id:''),{method:'POST',body:b}).then(function(r){
+          if(!file){toast('تم حفظ الدرس ✔');admLessons();return}
+          return uploadVideo(r.id,file,function(p){var bar=$('#upBar');bar.hidden=false;$('i',bar).style.width=p+'%';$('span',bar).textContent=p<100?'جاري الرفع… '+p+'% — لا تسكّر الصفحة':'جاري المعالجة…'}).then(function(){toast('تم رفع الفيديو وحفظ الدرس ✔');admLessons()});
+        }).catch(function(e){toast(e.message);sb.disabled=false;var bar=$('#upBar');if(bar)$('span',bar).textContent='فشل الرفع: '+e.message});});
+      var dz=$('#dropZ'),dt=$('#dropT');
+      E.vfile.addEventListener('change',function(){var f=E.vfile.files[0];dt.textContent=f?('✔ '+f.name+' · '+fmtSize(f.size)):'اضغط لاختيار ملف الفيديو (MP4) أو اسحبه هون';dz.classList.toggle('has',!!f)});
+      ['dragover','dragenter'].forEach(function(n){dz.addEventListener(n,function(e){e.preventDefault();dz.classList.add('over')})});
+      ['dragleave','drop'].forEach(function(n){dz.addEventListener(n,function(e){e.preventDefault();dz.classList.remove('over')})});
+      dz.addEventListener('drop',function(e){if(e.dataTransfer.files.length){E.vfile.files=e.dataTransfer.files;E.vfile.dispatchEvent(new Event('change'))}});
+      $$('[data-delv]',box).forEach(function(b){b.addEventListener('click',function(){if(!confirm('حذف الفيديو من هذا الدرس؟'))return;api('/admin/lessons/'+b.getAttribute('data-delv')+'/video',{method:'DELETE'}).then(function(){toast('تم حذف الفيديو');admLessons()},function(e){toast(e.message)})})});
       $('#lfReset').addEventListener('click',function(){$('#lfTitle').textContent='إضافة درس جديد';setTimeout(function(){E.lid.value='';E.sort.value=ls.length+1},0)});
       $$('[data-edit]',box).forEach(function(b){b.addEventListener('click',function(){
         var l=ls.filter(function(x){return String(x.id)===b.getAttribute('data-edit')})[0];

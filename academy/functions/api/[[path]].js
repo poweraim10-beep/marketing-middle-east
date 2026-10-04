@@ -152,9 +152,14 @@ async function getCourse(env, user, id) {
   }
   const access = isAdmin || status === 'approved';
   const { results } = await env.DB.prepare(
-    'SELECT id, title, minutes, sort, video_url, notes FROM lessons WHERE course_id = ? ORDER BY sort, id'
+    'SELECT id, title, minutes, sort, video_url, notes, video_key, video_size FROM lessons WHERE course_id = ? ORDER BY sort, id'
   ).bind(id).all();
-  const lessons = results.map((l) => (access ? l : { id: l.id, title: l.title, minutes: l.minutes, sort: l.sort }));
+  const lessons = results.map((l) => {
+    const has_video = !!l.video_key;
+    if (!access) return { id: l.id, title: l.title, minutes: l.minutes, sort: l.sort, has_video };
+    const { video_key, ...rest } = l;
+    return { ...rest, has_video, video_size: isAdmin ? l.video_size : undefined };
+  });
   let done = [];
   if (user && access) {
     const p = await env.DB.prepare(
@@ -319,11 +324,14 @@ async function adminSaveLesson(env, req, id) {
   } else {
     const course = await env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(clean(b.course_id, 60)).first();
     if (!course) return err('الدورة غير موجودة', 404);
-    await env.DB.prepare('INSERT INTO lessons (title, video_url, notes, sort, minutes, course_id) VALUES (?, ?, ?, ?, ?, ?)').bind(...vals, course.id).run();
+    const r = await env.DB.prepare('INSERT INTO lessons (title, video_url, notes, sort, minutes, course_id) VALUES (?, ?, ?, ?, ?, ?)').bind(...vals, course.id).run();
+    return json({ ok: true, id: r.meta.last_row_id });
   }
-  return json({ ok: true });
+  return json({ ok: true, id });
 }
 async function adminDeleteLesson(env, id) {
+  const l = await env.DB.prepare('SELECT video_key FROM lessons WHERE id = ?').bind(id).first();
+  if (l && l.video_key && env.VIDEOS) { try { await env.VIDEOS.delete(l.video_key); } catch (e) {} }
   await env.DB.prepare('DELETE FROM progress WHERE lesson_id = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM lessons WHERE id = ?').bind(id).run();
   return json({ ok: true });
@@ -335,6 +343,85 @@ async function adminSaveCourse(env, req, id) {
   return json({ ok: true });
 }
 
+// ---------- videos (R2) ----------
+const noR2 = () => err('تخزين الفيديو غير مفعّل بعد (R2)', 503);
+async function uploadStart(env, req) {
+  if (!env.VIDEOS) return noR2();
+  const b = await body(req);
+  const lesson = await env.DB.prepare('SELECT id FROM lessons WHERE id = ?').bind(Number(b.lesson_id) || 0).first();
+  if (!lesson) return err('الدرس غير موجود', 404);
+  const type = /^video\//.test(String(b.type || '')) ? String(b.type) : 'video/mp4';
+  const ext = (String(b.filename || '').match(/\.(mp4|m4v|mov|webm|mkv)$/i) || [, 'mp4'])[1].toLowerCase();
+  const key = `lessons/${lesson.id}/${randomHex(8)}.${ext}`;
+  const mpu = await env.VIDEOS.createMultipartUpload(key, { httpMetadata: { contentType: type } });
+  return json({ key: mpu.key, uploadId: mpu.uploadId });
+}
+async function uploadPart(env, req, url) {
+  if (!env.VIDEOS) return noR2();
+  const key = url.searchParams.get('key'), uploadId = url.searchParams.get('uploadId'), n = Number(url.searchParams.get('part'));
+  if (!key || !key.startsWith('lessons/') || !uploadId || !(n >= 1 && n <= 10000)) return err('طلب غير صحيح');
+  const mpu = env.VIDEOS.resumeMultipartUpload(key, uploadId);
+  const part = await mpu.uploadPart(n, await req.arrayBuffer());
+  return json({ partNumber: part.partNumber, etag: part.etag });
+}
+async function uploadComplete(env, req) {
+  if (!env.VIDEOS) return noR2();
+  const b = await body(req);
+  if (!b.key || !String(b.key).startsWith('lessons/') || !b.uploadId || !Array.isArray(b.parts)) return err('طلب غير صحيح');
+  const lesson = await env.DB.prepare('SELECT id, video_key FROM lessons WHERE id = ?').bind(Number(b.lesson_id) || 0).first();
+  if (!lesson) return err('الدرس غير موجود', 404);
+  const mpu = env.VIDEOS.resumeMultipartUpload(b.key, b.uploadId);
+  const obj = await mpu.complete(b.parts.map((p) => ({ partNumber: Number(p.partNumber), etag: String(p.etag) })));
+  if (lesson.video_key && lesson.video_key !== b.key) { try { await env.VIDEOS.delete(lesson.video_key); } catch (e) {} }
+  await env.DB.prepare('UPDATE lessons SET video_key = ?, video_size = ?, video_type = ? WHERE id = ?')
+    .bind(b.key, obj.size, (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4', lesson.id).run();
+  return json({ ok: true, size: obj.size });
+}
+async function uploadAbort(env, req) {
+  if (!env.VIDEOS) return noR2();
+  const b = await body(req);
+  try { await env.VIDEOS.resumeMultipartUpload(b.key, b.uploadId).abort(); } catch (e) {}
+  return json({ ok: true });
+}
+async function deleteLessonVideo(env, id) {
+  const l = await env.DB.prepare('SELECT video_key FROM lessons WHERE id = ?').bind(id).first();
+  if (l && l.video_key && env.VIDEOS) { try { await env.VIDEOS.delete(l.video_key); } catch (e) {} }
+  await env.DB.prepare('UPDATE lessons SET video_key = NULL, video_size = NULL, video_type = NULL WHERE id = ?').bind(id).run();
+  return json({ ok: true });
+}
+async function streamVideo(env, req, user, id) {
+  if (!user) return err('سجّل دخول أولًا', 401);
+  if (!env.VIDEOS) return noR2();
+  const l = await env.DB.prepare('SELECT course_id, video_key, video_type FROM lessons WHERE id = ?').bind(id).first();
+  if (!l || !l.video_key) return err('الفيديو غير موجود', 404);
+  if (user.role !== 'admin') {
+    const e = await env.DB.prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'").bind(user.id, l.course_id).first();
+    if (!e) return err('غير مسموح', 403);
+  }
+  const obj = await env.VIDEOS.get(l.video_key, { range: req.headers, onlyIf: req.headers });
+  if (!obj) return err('الفيديو غير موجود', 404);
+  const h = new Headers();
+  obj.writeHttpMetadata(h);
+  h.set('content-type', l.video_type || h.get('content-type') || 'video/mp4');
+  h.set('etag', obj.httpEtag);
+  h.set('accept-ranges', 'bytes');
+  h.set('cache-control', 'private, no-store');
+  h.set('content-disposition', 'inline');
+  h.set('x-content-type-options', 'nosniff');
+  if (!('body' in obj) || !obj.body) return new Response(null, { status: 304, headers: h });
+  if (req.headers.get('range') && obj.range) {
+    const size = obj.size;
+    let start, end;
+    if ('suffix' in obj.range) { start = size - obj.range.suffix; end = size - 1; }
+    else { start = obj.range.offset || 0; end = obj.range.length != null ? start + obj.range.length - 1 : size - 1; }
+    h.set('content-range', `bytes ${start}-${end}/${size}`);
+    h.set('content-length', String(end - start + 1));
+    return new Response(obj.body, { status: 206, headers: h });
+  }
+  h.set('content-length', String(obj.size));
+  return new Response(obj.body, { status: 200, headers: h });
+}
+
 // ---------- router ----------
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
@@ -344,11 +431,12 @@ export async function onRequest({ request, env }) {
   if (!env.DB) return err('قاعدة البيانات غير مربوطة', 500);
 
   // CSRF guard: state-changing requests must be JSON from our own origin
-  if (method !== 'GET') {
+  if (method !== 'GET' && method !== 'HEAD') {
     const ct = request.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) return err('Bad request', 415);
     const origin = request.headers.get('origin');
     if (origin && new URL(origin).host !== url.host) return err('Forbidden', 403);
+    const isPart = path === '/admin/upload/part' && method === 'PUT';
+    if (isPart ? !origin : !ct.includes('application/json')) return err('Bad request', 415);
   }
 
   try {
@@ -361,6 +449,7 @@ export async function onRequest({ request, env }) {
 
     let m;
     if ((m = path.match(/^\/course\/([\w-]+)$/)) && method === 'GET') return await getCourse(env, user, m[1]);
+    if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]));
 
     if (!user) return err('سجّل دخول أولًا', 401);
     if (path === '/me' && method === 'GET') return await me(env, user);
@@ -384,6 +473,11 @@ export async function onRequest({ request, env }) {
       }
       if ((m = path.match(/^\/admin\/users\/(\d+)\/password$/)) && method === 'POST') return await adminResetPassword(env, request, Number(m[1]));
       if ((m = path.match(/^\/admin\/users\/(\d+)\/enroll$/)) && method === 'POST') return await adminEnrollUser(env, request, Number(m[1]));
+      if (path === '/admin/upload/start' && method === 'POST') return await uploadStart(env, request);
+      if (path === '/admin/upload/part' && method === 'PUT') return await uploadPart(env, request, url);
+      if (path === '/admin/upload/complete' && method === 'POST') return await uploadComplete(env, request);
+      if (path === '/admin/upload/abort' && method === 'POST') return await uploadAbort(env, request);
+      if ((m = path.match(/^\/admin\/lessons\/(\d+)\/video$/)) && method === 'DELETE') return await deleteLessonVideo(env, Number(m[1]));
       if (path === '/admin/lessons' && method === 'POST') return await adminSaveLesson(env, request, null);
       if ((m = path.match(/^\/admin\/lessons\/(\d+)$/))) {
         if (method === 'POST') return await adminSaveLesson(env, request, Number(m[1]));
