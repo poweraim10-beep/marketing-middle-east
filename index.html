@@ -82,6 +82,10 @@ html[dir=rtl] .en{text-align:right}
 .btn .arr{width:18px;height:1.5px;background:currentColor;position:relative}
 .btn .arr::after{content:"";position:absolute;inset-inline-end:0;top:-3.5px;width:8px;height:8px;border-top:1.5px solid currentColor;border-inline-end:1.5px solid currentColor;transform:rotate(45deg)}
 html[dir=rtl] .btn .arr::after{transform:rotate(-45deg)}
+html[dir=rtl] .btn{font-family:var(--body);letter-spacing:0;font-weight:600;font-size:15px}
+html[dir=rtl] .nav .btn{font-size:13.5px}
+html[dir=rtl] .verbs{font-family:var(--body);letter-spacing:0;font-size:clamp(15px,1.8vw,18px);gap:6px 22px}
+html[dir=rtl] .kicker{font-family:var(--body);letter-spacing:0;font-size:13.5px}
 .nav .btn{padding:11px 18px;font-size:11px}
 
 /* ---------- HERO ---------- */
@@ -658,7 +662,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
       <button type="button" id="l-ar" aria-pressed="true">AR</button>
       <button type="button" id="l-en" aria-pressed="false">EN</button>
     </div>
-    <a class="btn btn-p mag" href="#start">START A PROJECT</a>
+    <a class="btn btn-p mag" href="#start"><span data-en="START A PROJECT">ابدأ مشروعك</span></a>
     <button class="menu-btn" id="menuBtn" type="button" aria-label="Menu" aria-expanded="false"><i></i></button>
   </div>
 </nav>
@@ -672,7 +676,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
   <a href="https://academy.marketingmiddleeast.com" style="color:var(--cyan)">أكاديمية التدريب والتطوير</a>
   <a href="#insights">INSIGHTS</a>
   <a href="#about">ABOUT · LEADERSHIP</a>
-  <a href="#start">START A PROJECT</a>
+  <a href="#start"><span data-en="START A PROJECT">ابدأ مشروعك</span></a>
   <a href="https://www.instagram.com/marketingmiddleeast.co/" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:14px;color:var(--cyan);border:0">INSTAGRAM · @marketingmiddleeast.co</a>
   <a href="https://www.facebook.com/profile.php?id=61594286327681" target="_blank" rel="noopener" style="font-family:var(--mono);font-size:14px;color:var(--cyan);border:0;padding-top:0">FACEBOOK · Marketing Middle East</a>
   <span style="font-family:var(--mono);font-size:13px;color:var(--silver);user-select:all;overflow-wrap:anywhere">info@marketingmiddleeast.com</span>
@@ -693,12 +697,12 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
       <span class="en">THE ARAB GROWTH PLATFORM</span>
       <span class="ar" lang="ar">منصة النمو والتسويق في العالم العربي</span>
     </p>
-    <div class="verbs en rise" id="verbs" style="animation-delay:.9s">
-      <span>BUILD.</span><span>CREATE.</span><span>GROW.</span><span>AUTOMATE.</span><span>SCALE.</span>
+    <div class="verbs rise" id="verbs" style="animation-delay:.9s">
+      <span data-en="BUILD.">نبني.</span><span data-en="CREATE.">نبدع.</span><span data-en="GROW.">ننمو.</span><span data-en="AUTOMATE.">نؤتمت.</span><span data-en="SCALE.">نتوسّع.</span>
     </div>
     <div class="cta-row rise" style="animation-delay:1.05s">
-      <a class="btn btn-p mag" href="#start">START A PROJECT <i class="arr"></i></a>
-      <a class="btn btn-g mag" href="#capabilities">EXPLORE OUR CAPABILITIES</a>
+      <a class="btn btn-p mag" href="#start"><span data-en="START A PROJECT">ابدأ مشروعك</span> <i class="arr"></i></a>
+      <a class="btn btn-g mag" href="#capabilities"><span data-en="EXPLORE OUR CAPABILITIES">اكتشف خدماتنا</span></a>
     </div>
   </div>
   <div class="scroll-cue mono"><i></i>SCROLL</div>
@@ -1057,7 +1061,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
       <div class="fld w"><label for="f-msg" data-en="Your goal in one or two lines">هدفك في سطر أو سطرين</label><textarea id="f-msg"></textarea></div>
       <div class="brief-foot">
         <small data-en="We turn your answers into a brief you send us on WhatsApp.">نحوّل إجاباتك إلى ملخص مشروع ترسله لنا عبر واتساب.</small>
-        <button class="btn btn-p mag" type="submit">START A PROJECT <i class="arr"></i></button>
+        <button class="btn btn-p mag" type="submit"><span data-en="START A PROJECT">ابدأ مشروعك</span> <i class="arr"></i></button>
       </div>
       <div class="out" id="out" hidden>
         <pre id="outText"></pre>
