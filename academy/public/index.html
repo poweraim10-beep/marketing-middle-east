@@ -240,7 +240,7 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
     <p class="gloss">أكاديمية التدريب والتطوير</p>
     <p class="lead">دورات أونلاين مسجّلة تتعلمها من بيتك وعلى وقتك، من نفس الفريق اللي بيشتغل على حملات العلامات التجارية في الشرق الأوسط. من الصفر للاحتراف، وبتطبيق عملي.</p>
     <div class="ctas">
-      <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز مقعدك بسعر الإطلاق</a>
+      <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز مقعدك بسعر الإطلاق <bdi dir="ltr">$70</bdi></a>
       <a class="btn btn-g" href="#course">شوف تفاصيل الدورة</a>
     </div>
   </div>
@@ -276,14 +276,14 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
       <aside class="side">
         <span class="mono" style="color:var(--mute)">LAUNCH OFFER</span>
         <div class="price"><span class="now">$70</span><span class="was">$100</span></div>
-        <div class="offer">سعر الإطلاق لأول <b>50 مشترك</b> فقط، وبعدها بيرجع السعر لـ $100.</div>
+        <div class="offer" id="acOffer">⏳ العرض ينتهي خلال <b id="acCd">—</b><br>وبعدها بيرجع السعر لـ <bdi dir="ltr">$100</bdi>.</div>
         <ul class="meta">
           <li><span>طريقة التعلم</span><b>أونلاين مسجّل</b></li>
           <li><span>الوقت</span><b>على راحتك</b></li>
           <li><span>المستوى</span><b>من الصفر</b></li>
           <li><span>عند الإتمام</span><b>شهادة من MME</b></li>
         </ul>
-        <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز بسعر $70</a>
+        <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز بسعر <bdi dir="ltr">$70</bdi></a>
       </aside>
     </article>
 
@@ -328,9 +328,9 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
 
 <section class="cta">
   <div class="wrap">
-    <span class="mono" style="color:var(--cyan)">LIMITED · FIRST 50 ONLY</span>
+    <span class="mono" style="color:var(--cyan)">LIMITED-TIME OFFER · $70</span>
     <h2 style="margin-top:14px"><span class="metal">START</span> <span class="blue">LEARNING</span></h2>
-    <p>المقاعد بسعر الإطلاق محدودة. احجز مقعدك الآن.</p>
+    <p>سعر الإطلاق <bdi dir="ltr">$70</bdi> بدل <bdi dir="ltr">$100</bdi> لفترة محدودة. احجز مقعدك الآن.</p>
     <div class="ctas">
       <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">سجّل بالدورة الآن</a>
       <a class="btn btn-g" href="mailto:info@marketingmiddleeast.com">info@marketingmiddleeast.com</a>
@@ -697,6 +697,12 @@ route();
 if(parseHash().name==='home')loadMe();
 })();
 
+</script>
+<script>
+(function(){var END=Date.parse('2026-10-14T16:00:00Z'),el=document.getElementById('acCd'),box=document.getElementById('acOffer');if(!el)return;
+var p=function(n){return (n<10?'0':'')+n};
+function t(){var ms=END-Date.now();if(ms<=0){box.innerHTML='انتهى عرض الإطلاق.';clearInterval(i);return}var s=Math.floor(ms/1000),d=Math.floor(s/86400);el.innerHTML=(d?d+' يوم و ':'')+'<span dir="ltr">'+p(Math.floor(s%86400/3600))+':'+p(Math.floor(s%3600/60))+':'+p(s%60)+'</span>'}
+t();var i=setInterval(t,1000)})();
 </script>
 </body>
 </html>

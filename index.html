@@ -1072,6 +1072,86 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
 </section>
 </main>
 
+<!-- ===== LIMITED OFFER (course discount) ===== -->
+<style>
+.of-ov{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:rgba(3,6,14,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .35s}
+.of-ov.on{opacity:1;pointer-events:auto}
+.of-box{position:relative;width:min(460px,100%);transform:translateY(18px) scale(.97);transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.of-ov.on .of-box{transform:none}
+.of-card{display:block;text-decoration:none;color:inherit;border-radius:26px;padding:1.5px;background:linear-gradient(140deg,#22D3EE,#2563EB 45%,rgba(148,163,184,.25));box-shadow:0 40px 90px -30px rgba(37,99,235,.9)}
+.of-in{border-radius:25px;padding:30px 26px 24px;text-align:center;background:radial-gradient(80% 60% at 50% 0%,rgba(37,99,235,.35),transparent 70%),#070C1A}
+.of-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(34,211,238,.45);color:#22D3EE;font-family:var(--mono);font-size:11px;letter-spacing:.14em}
+.of-tag i{width:7px;height:7px;border-radius:50%;background:#22D3EE;box-shadow:0 0 10px #22D3EE;animation:blink 1.4s infinite}
+.of-t{margin:14px 0 4px;color:#fff;font-size:clamp(19px,4.6vw,23px);font-weight:600;line-height:1.45}
+.of-s{margin:0;color:var(--mute);font-size:14px}
+.of-price{display:flex;justify-content:center;align-items:baseline;gap:14px;margin:18px 0 6px;direction:ltr}
+.of-now{font-family:var(--display);font-weight:700;font-size:58px;line-height:1;background:linear-gradient(180deg,#fff,#9fb3d1);-webkit-background-clip:text;background-clip:text;color:transparent}
+.of-was{font-family:var(--display);font-size:24px;color:var(--mute);text-decoration:line-through}
+.of-off{font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:#04130a;background:#22D3EE;padding:5px 9px;border-radius:8px;align-self:center}
+.of-cd{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0 6px}
+.of-cd div{padding:12px 4px 9px;border-radius:14px;border:1px solid var(--line-2);background:rgba(11,16,32,.85)}
+.of-cd b{display:block;font-family:var(--display);font-weight:700;font-size:26px;line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+.of-cd span{display:block;margin-top:6px;font-size:11.5px;color:var(--mute)}
+.of-cta{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:18px;padding:16px;border-radius:16px;background:var(--blue);color:#fff;font-weight:600;font-size:16.5px;box-shadow:0 16px 40px -14px rgba(37,99,235,1);transition:transform .2s}
+.of-card:hover .of-cta{transform:translateY(-2px)}
+.of-note{margin:12px 0 0;font-size:12.5px;color:var(--mute)}
+.of-x{position:absolute;top:12px;inset-inline-end:12px;z-index:2;width:36px;height:36px;border-radius:50%;border:1px solid var(--line-2);background:rgba(6,10,22,.8);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.of-x:hover{border-color:#22D3EE}
+.of-chip{position:fixed;z-index:39;inset-inline-start:max(16px,env(safe-area-inset-left,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));display:none;align-items:center;gap:10px;padding:9px 14px 9px 10px;border-radius:999px;border:1px solid rgba(34,211,238,.5);background:rgba(7,12,26,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font:inherit;font-size:13.5px;cursor:pointer;box-shadow:0 14px 36px -12px rgba(37,99,235,.9)}
+.of-chip.on{display:inline-flex;animation:rise .6s both}
+.of-chip .pz{font-family:var(--display);font-weight:700;font-size:13px;background:var(--blue);padding:5px 9px;border-radius:999px}
+.of-chip .of-tm{font-family:var(--mono);font-size:12px;color:#22D3EE;direction:ltr;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.of-chip .lb{display:none}}
+</style>
+<div class="of-ov" id="ofOv" role="dialog" aria-modal="true" aria-labelledby="ofT" hidden>
+  <div class="of-box">
+    <button type="button" class="of-x" id="ofX" aria-label="إغلاق">×</button>
+    <a class="of-card" href="https://academy.marketingmiddleeast.com/#course" target="_blank" rel="noopener" id="ofGo">
+      <div class="of-in">
+        <span class="of-tag"><i></i><span data-en="LIMITED-TIME OFFER">عرض لفترة محدودة</span></span>
+        <p class="of-t" id="ofT"><span data-en="AI Ad Video Production — From Zero to Pro">دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي — من الصفر للاحتراف</span></p>
+        <p class="of-s"><span data-en="MME Training &amp; Development Academy">أكاديمية MME للتدريب والتطوير</span></p>
+        <div class="of-price"><span class="of-now">$70</span><span class="of-was">$100</span><span class="of-off">-30%</span></div>
+        <div class="of-cd" aria-live="off">
+          <div><b id="ofD">00</b><span data-en="Days">يوم</span></div>
+          <div><b id="ofH">00</b><span data-en="Hours">ساعة</span></div>
+          <div><b id="ofM">00</b><span data-en="Min">دقيقة</span></div>
+          <div><b id="ofS">00</b><span data-en="Sec">ثانية</span></div>
+        </div>
+        <span class="of-cta"><span data-en="Book your seat for $70">احجز مقعدك بـ <bdi dir="ltr">$70</bdi></span></span>
+        <p class="of-note"><span data-en="After the timer ends, the price goes back to $100.">بعد انتهاء العداد يرجع السعر لـ <bdi dir="ltr">$100</bdi>.</span></p>
+      </div>
+    </a>
+  </div>
+</div>
+<button type="button" class="of-chip" id="ofChip" aria-label="عرض الدورة"><span class="pz">$70</span><span class="lb" data-en="Course offer">عرض الدورة</span><span class="of-tm" id="ofChipT">--</span></button>
+<script>
+(function(){
+  var END=Date.parse('2026-10-14T16:00:00Z'); // 10 days: ends 14 Oct 2026, 19:00 Gaza time
+  var ov=document.getElementById('ofOv'),chip=document.getElementById('ofChip');
+  if(!ov||Date.now()>=END){if(ov)ov.remove();if(chip)chip.remove();return}
+  var p=function(n){return (n<10?'0':'')+n};
+  var els={d:document.getElementById('ofD'),h:document.getElementById('ofH'),m:document.getElementById('ofM'),s:document.getElementById('ofS'),c:document.getElementById('ofChipT')};
+  function tick(){
+    var ms=END-Date.now();
+    if(ms<=0){close();ov.remove();chip.remove();clearInterval(iv);return}
+    var s=Math.floor(ms/1000),d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;
+    els.d.textContent=p(d);els.h.textContent=p(h);els.m.textContent=p(m);els.s.textContent=p(x);
+    els.c.textContent=(d?d+'d ':'')+p(h)+':'+p(m)+':'+p(x);
+  }
+  function open(){ov.hidden=false;requestAnimationFrame(function(){ov.classList.add('on')});chip.classList.remove('on')}
+  function close(){ov.classList.remove('on');setTimeout(function(){ov.hidden=true},350);chip.classList.add('on');try{sessionStorage.setItem('mme-offer-seen','1')}catch(e){}}
+  tick();var iv=setInterval(tick,1000);
+  document.getElementById('ofX').addEventListener('click',close);
+  document.getElementById('ofGo').addEventListener('click',function(){setTimeout(close,50)});
+  ov.addEventListener('click',function(e){if(e.target===ov)close()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!ov.hidden)close()});
+  chip.addEventListener('click',open);
+  var seen=false;try{seen=sessionStorage.getItem('mme-offer-seen')==='1'}catch(e){}
+  if(seen)chip.classList.add('on');else setTimeout(open,2500);
+})();
+</script>
+<!-- ===== /LIMITED OFFER ===== -->
 <a class="wa-fab" title="واتساب فلسطين – غزة" href="https://wa.me/970567686774" target="_blank" rel="noopener" aria-label="WhatsApp Palestine, Gaza +970 56 768 6774"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 1.8a7.2 7.2 0 1 1-3.7 13.4l-.3-.2-2.7.7.7-2.6-.2-.3A7.2 7.2 0 0 1 12 4.8zm-3 3.4c-.2 0-.5 0-.7.3-.2.3-.9.9-.9 2.2s.9 2.5 1 2.7c.1.2 1.8 2.8 4.4 3.8 2.2.9 2.6.7 3.1.6.5 0 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.5-.3l-1.7-.8c-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1-.3-.1-1.1-.4-2-1.2-.8-.7-1.3-1.5-1.4-1.8-.1-.2 0-.4.1-.5l.4-.5.3-.4c.1-.2 0-.3 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4H9z"/></svg></a>
 <footer>
   <div class="wrap">
