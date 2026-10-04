@@ -802,7 +802,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
         <p class="ah-en en">TRAINING &amp; DEVELOPMENT ACADEMY</p>
         <p class="lead" data-en="Our online learning platform: video courses, downloadable materials, progress tracking and certificates, all inside the Marketing Middle East website.">منصة التعلّم الخاصة بنا: دورات فيديو، ومواد قابلة للتحميل، ومتابعة للتقدّم، وشهادات إتمام، كلها داخل موقع MARKETING MIDDLE EAST.</p>
         <div class="ah-cta">
-          <a class="btn btn-p mag acad-enter" id="acadEnter" href="#academy" aria-disabled="true"><span data-en="Enter the Academy">ادخل الأكاديمية</span><span class="soon" data-en="SOON">قريبًا</span></a>
+          <a class="btn btn-p mag acad-enter" id="acadEnter" href="https://academy.marketingmiddleeast.com" target="_blank" rel="noopener"><span data-en="Enter the Academy">ادخل الأكاديمية</span></a>
           <a class="btn btn-g mag" id="acadNotify" href="https://wa.me/970567686774" target="_blank" rel="noopener"><span data-en="Notify me at launch">أبلغني عند الإطلاق</span></a>
         </div>
         <p class="note-soon" id="acadNote" hidden data-en="The course platform opens soon on this website. Register your interest and we'll message you on launch day.">منصة الدورات تُفتح قريبًا على هذا الموقع. سجّل اهتمامك ونرسل لك يوم الإطلاق.</p>
@@ -1414,7 +1414,7 @@ let saved='ar';try{saved=localStorage.getItem('mme-lang')||'ar'}catch(e){}
 setLang(saved==='en'?'en':'ar');
 
 $('#emCopy').addEventListener('click',()=>{const b=$('#emCopy');const ok=()=>{b.textContent=LANG==='en'?'Copied':'تم النسخ'};const sel=()=>{const r=document.createRange();r.selectNodeContents($('#emText'));const g=getSelection();g.removeAllRanges();g.addRange(r)};try{navigator.clipboard.writeText('info@marketingmiddleeast.com').then(ok).catch(sel)}catch(e){sel()}});
-$('#acadEnter').addEventListener('click',e=>{e.preventDefault();const n=$('#acadNote');n.hidden=false;n.animate&&n.animate([{opacity:0},{opacity:1}],{duration:300})});
+
 $('#acadNotify').href='https://wa.me/970567686774?text='+encodeURIComponent('مرحبًا، أرغب أن تبلغوني عند إطلاق أكاديمية التدريب والتطوير من MARKETING MIDDLE EAST');
 /* ================= BRIEF ================= */
 $('#brief').addEventListener('submit',e=>{

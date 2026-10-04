@@ -6,7 +6,7 @@
 | الملف | الوصف |
 |---|---|
 | `index.html` | الموقع الأساسي. ملف واحد يحتوي على كل التصميم والصور والشعارات. |
-| `academy/index.html` | أكاديمية التدريب والتطوير. نسخة مرجعية للمرحلة الثانية، لم تُربط بقاعدة بيانات بعد. |
+| `academy/index.html` | صفحة أكاديمية التدريب والتطوير، تُنشر على `academy.marketingmiddleeast.com`. |
 
 ## التقنيات
 HTML5 و CSS3 و JavaScript بدون مكتبات، مع Canvas 2D لخرائط الشبكة و Google Fonts (Unbounded، Readex Pro، IBM Plex Mono).
@@ -17,6 +17,13 @@ HTML5 و CSS3 و JavaScript بدون مكتبات، مع Canvas 2D لخرائط 
 - Output directory: `/`
 
 أي تعديل يُرفع على الفرع `main` ينزل على الموقع تلقائيًا.
+
+### الدومين الفرعي للأكاديمية
+مشروع Pages ثانٍ من نفس المستودع:
+- Project name: `mme-academy`
+- Root directory: `academy`
+- Build command: فارغ، Output directory: `/`
+- Custom domain: `academy.marketingmiddleeast.com`
 
 ## الأكاديمية (المرحلة الثانية)
 - حسابات الطلاب وقاعدة البيانات: Supabase
