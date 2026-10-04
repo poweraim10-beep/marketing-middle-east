@@ -1,0 +1,287 @@
+// MME Academy API — Cloudflare Pages Function backed by D1 (binding: DB)
+// Routes live under /api/*
+
+const SESSION_COOKIE = 'mme_s';
+const SESSION_DAYS = 30;
+const PBKDF2_ITER = 100000;
+
+// ---------- helpers ----------
+const json = (data, status = 200, headers = {}) =>
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers },
+  });
+const err = (msg, status = 400) => json({ error: msg }, status);
+const now = () => Math.floor(Date.now() / 1000);
+
+const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+const randomHex = (n) => hex(crypto.getRandomValues(new Uint8Array(n)));
+
+async function hashPassword(password, saltHex) {
+  const salt = new Uint8Array(saltHex.match(/../g).map((h) => parseInt(h, 16)));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PBKDF2_ITER }, key, 256);
+  return b64(bits);
+}
+async function sha256(s) {
+  return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
+}
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let r = 0;
+  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return r === 0;
+}
+function getCookie(req, name) {
+  const c = req.headers.get('cookie') || '';
+  const m = c.match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)'));
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function sessionCookie(token, maxAge) {
+  return `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+}
+async function body(req) {
+  try { return await req.json(); } catch { return {}; }
+}
+const clean = (s, max = 200) => String(s ?? '').trim().slice(0, max);
+const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role };
+
+async function currentUser(env, req) {
+  const token = getCookie(req, SESSION_COOKIE);
+  if (!token) return null;
+  const th = await sha256(token);
+  return env.DB.prepare(
+    'SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ?'
+  ).bind(th, now()).first();
+}
+async function createSession(env, userId) {
+  const token = randomHex(32);
+  await env.DB.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)')
+    .bind(await sha256(token), userId, now() + SESSION_DAYS * 86400).run();
+  // opportunistic cleanup
+  await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now()).run();
+  return token;
+}
+
+// ---------- handlers ----------
+async function register(env, req) {
+  const b = await body(req);
+  const name = clean(b.name, 80), email = clean(b.email, 120).toLowerCase(), phone = clean(b.phone, 30);
+  const password = String(b.password || '');
+  if (name.length < 2) return err('اكتب اسمك الكامل');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('البريد الإلكتروني غير صحيح');
+  if (phone.replace(/\D/g, '').length < 8) return err('اكتب رقم واتساب صحيح مع مقدمة الدولة');
+  if (password.length < 6) return err('كلمة المرور لازم تكون 6 أحرف على الأقل');
+  const exists = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
+  if (exists) return err('هذا البريد مسجّل مسبقًا، سجّل دخول بدلًا من ذلك', 409);
+  const salt = randomHex(16);
+  const pass_hash = await hashPassword(password, salt);
+  const r = await env.DB.prepare(
+    'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).bind(name, email, phone, pass_hash, salt, 'student', now()).run();
+  const id = r.meta.last_row_id;
+  const token = await createSession(env, id);
+  return json({ user: { id, name, email, phone, role: 'student' } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+}
+
+async function login(env, req) {
+  const b = await body(req);
+  const email = clean(b.email, 120).toLowerCase();
+  const password = String(b.password || '');
+  const u = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+  if (!u) return err('البريد أو كلمة المرور غير صحيحة', 401);
+  const h = await hashPassword(password, u.salt);
+  if (!timingSafeEqual(h, u.pass_hash)) return err('البريد أو كلمة المرور غير صحيحة', 401);
+  const token = await createSession(env, u.id);
+  return json({ user: publicUser(u) }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+}
+
+async function logout(env, req) {
+  const token = getCookie(req, SESSION_COOKIE);
+  if (token) await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(await sha256(token)).run();
+  return json({ ok: true }, 200, { 'set-cookie': sessionCookie('', 0) });
+}
+
+async function me(env, user) {
+  const { results } = await env.DB.prepare(
+    `SELECT e.id, e.course_id, e.status, e.created_at, e.decided_at, c.title, c.price
+     FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ? ORDER BY e.created_at DESC`
+  ).bind(user.id).all();
+  return json({ user: publicUser(user), enrollments: results });
+}
+
+async function listCourses(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT c.id, c.title, c.title_en, c.description, c.price, c.old_price,
+       (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
+     FROM courses c WHERE c.published = 1 ORDER BY c.sort`
+  ).all();
+  return json({ courses: results });
+}
+
+async function enroll(env, req, user) {
+  const b = await body(req);
+  const course = await env.DB.prepare('SELECT * FROM courses WHERE id = ? AND published = 1').bind(clean(b.course_id, 60)).first();
+  if (!course) return err('الدورة غير موجودة', 404);
+  let e = await env.DB.prepare('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?').bind(user.id, course.id).first();
+  if (!e) {
+    await env.DB.prepare('INSERT INTO enrollments (user_id, course_id, status, created_at) VALUES (?, ?, ?, ?)')
+      .bind(user.id, course.id, 'pending', now()).run();
+    e = await env.DB.prepare('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?').bind(user.id, course.id).first();
+  } else if (e.status === 'rejected') {
+    await env.DB.prepare("UPDATE enrollments SET status = 'pending', decided_at = NULL, created_at = ? WHERE id = ?").bind(now(), e.id).run();
+    e.status = 'pending';
+  }
+  return json({ enrollment: { id: e.id, status: e.status, course_id: course.id, title: course.title, price: course.price } });
+}
+
+async function getCourse(env, user, id) {
+  const course = await env.DB.prepare('SELECT * FROM courses WHERE id = ?').bind(id).first();
+  if (!course) return err('الدورة غير موجودة', 404);
+  const isAdmin = user && user.role === 'admin';
+  let status = null;
+  if (user) {
+    const e = await env.DB.prepare('SELECT status FROM enrollments WHERE user_id = ? AND course_id = ?').bind(user.id, id).first();
+    status = e ? e.status : null;
+  }
+  const access = isAdmin || status === 'approved';
+  const { results } = await env.DB.prepare(
+    'SELECT id, title, minutes, sort, video_url, notes FROM lessons WHERE course_id = ? ORDER BY sort, id'
+  ).bind(id).all();
+  const lessons = results.map((l) => (access ? l : { id: l.id, title: l.title, minutes: l.minutes, sort: l.sort }));
+  let done = [];
+  if (user && access) {
+    const p = await env.DB.prepare(
+      'SELECT p.lesson_id FROM progress p JOIN lessons l ON l.id = p.lesson_id WHERE p.user_id = ? AND l.course_id = ?'
+    ).bind(user.id, id).all();
+    done = p.results.map((r) => r.lesson_id);
+  }
+  return json({ course, status, access, lessons, done });
+}
+
+async function markProgress(env, req, user) {
+  const b = await body(req);
+  const lesson = await env.DB.prepare('SELECT course_id FROM lessons WHERE id = ?').bind(Number(b.lesson_id) || 0).first();
+  if (!lesson) return err('الدرس غير موجود', 404);
+  const e = await env.DB.prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'").bind(user.id, lesson.course_id).first();
+  if (!e && user.role !== 'admin') return err('غير مسموح', 403);
+  if (b.done === false) {
+    await env.DB.prepare('DELETE FROM progress WHERE user_id = ? AND lesson_id = ?').bind(user.id, Number(b.lesson_id)).run();
+  } else {
+    await env.DB.prepare('INSERT OR IGNORE INTO progress (user_id, lesson_id, done_at) VALUES (?, ?, ?)').bind(user.id, Number(b.lesson_id), now()).run();
+  }
+  return json({ ok: true });
+}
+
+// ---------- admin ----------
+async function adminEnrollments(env, url) {
+  const status = url.searchParams.get('status');
+  let sql = `SELECT e.id, e.status, e.created_at, e.decided_at, e.course_id, c.title, c.price,
+               u.id AS user_id, u.name, u.email, u.phone
+             FROM enrollments e JOIN users u ON u.id = e.user_id JOIN courses c ON c.id = e.course_id`;
+  const args = [];
+  if (status) { sql += ' WHERE e.status = ?'; args.push(status); }
+  sql += " ORDER BY CASE e.status WHEN 'pending' THEN 0 ELSE 1 END, e.created_at DESC LIMIT 500";
+  const { results } = await env.DB.prepare(sql).bind(...args).all();
+  return json({ enrollments: results });
+}
+async function adminDecide(env, req, id) {
+  const b = await body(req);
+  if (!['approved', 'rejected', 'pending'].includes(b.status)) return err('حالة غير صحيحة');
+  await env.DB.prepare('UPDATE enrollments SET status = ?, decided_at = ? WHERE id = ?').bind(b.status, now(), id).run();
+  return json({ ok: true });
+}
+async function adminUsers(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at,
+       (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS active
+     FROM users u ORDER BY u.created_at DESC LIMIT 1000`
+  ).all();
+  return json({ users: results });
+}
+async function adminResetPassword(env, req, id) {
+  const b = await body(req);
+  const password = String(b.password || '');
+  if (password.length < 6) return err('كلمة المرور لازم تكون 6 أحرف على الأقل');
+  const salt = randomHex(16);
+  await env.DB.prepare('UPDATE users SET pass_hash = ?, salt = ? WHERE id = ?').bind(await hashPassword(password, salt), salt, id).run();
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+  return json({ ok: true });
+}
+async function adminSaveLesson(env, req, id) {
+  const b = await body(req);
+  const title = clean(b.title, 200);
+  if (!title) return err('اكتب عنوان الدرس');
+  const vals = [title, clean(b.video_url, 1000) || null, clean(b.notes, 4000) || null, Number(b.sort) || 0, Number(b.minutes) || null];
+  if (id) {
+    await env.DB.prepare('UPDATE lessons SET title = ?, video_url = ?, notes = ?, sort = ?, minutes = ? WHERE id = ?').bind(...vals, id).run();
+  } else {
+    const course = await env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(clean(b.course_id, 60)).first();
+    if (!course) return err('الدورة غير موجودة', 404);
+    await env.DB.prepare('INSERT INTO lessons (title, video_url, notes, sort, minutes, course_id) VALUES (?, ?, ?, ?, ?, ?)').bind(...vals, course.id).run();
+  }
+  return json({ ok: true });
+}
+async function adminDeleteLesson(env, id) {
+  await env.DB.prepare('DELETE FROM progress WHERE lesson_id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM lessons WHERE id = ?').bind(id).run();
+  return json({ ok: true });
+}
+async function adminSaveCourse(env, req, id) {
+  const b = await body(req);
+  await env.DB.prepare('UPDATE courses SET title = ?, description = ?, price = ?, old_price = ?, published = ? WHERE id = ?')
+    .bind(clean(b.title, 200), clean(b.description, 4000), Number(b.price) || 0, b.old_price ? Number(b.old_price) : null, b.published ? 1 : 0, id).run();
+  return json({ ok: true });
+}
+
+// ---------- router ----------
+export async function onRequest({ request, env }) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/^\/api/, '').replace(/\/+$/, '') || '/';
+  const method = request.method;
+
+  if (!env.DB) return err('قاعدة البيانات غير مربوطة', 500);
+
+  // CSRF guard: state-changing requests must be JSON from our own origin
+  if (method !== 'GET') {
+    const ct = request.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) return err('Bad request', 415);
+    const origin = request.headers.get('origin');
+    if (origin && new URL(origin).host !== url.host) return err('Forbidden', 403);
+  }
+
+  try {
+    if (path === '/register' && method === 'POST') return await register(env, request);
+    if (path === '/login' && method === 'POST') return await login(env, request);
+    if (path === '/logout' && method === 'POST') return await logout(env, request);
+    if (path === '/courses' && method === 'GET') return await listCourses(env);
+
+    const user = await currentUser(env, request);
+
+    let m;
+    if ((m = path.match(/^\/course\/([\w-]+)$/)) && method === 'GET') return await getCourse(env, user, m[1]);
+
+    if (!user) return err('سجّل دخول أولًا', 401);
+    if (path === '/me' && method === 'GET') return await me(env, user);
+    if (path === '/enroll' && method === 'POST') return await enroll(env, request, user);
+    if (path === '/progress' && method === 'POST') return await markProgress(env, request, user);
+
+    if (path.startsWith('/admin')) {
+      if (user.role !== 'admin') return err('هذه الصفحة للإدارة فقط', 403);
+      if (path === '/admin/enrollments' && method === 'GET') return await adminEnrollments(env, url);
+      if ((m = path.match(/^\/admin\/enrollments\/(\d+)$/)) && method === 'POST') return await adminDecide(env, request, Number(m[1]));
+      if (path === '/admin/users' && method === 'GET') return await adminUsers(env);
+      if ((m = path.match(/^\/admin\/users\/(\d+)\/password$/)) && method === 'POST') return await adminResetPassword(env, request, Number(m[1]));
+      if (path === '/admin/lessons' && method === 'POST') return await adminSaveLesson(env, request, null);
+      if ((m = path.match(/^\/admin\/lessons\/(\d+)$/))) {
+        if (method === 'POST') return await adminSaveLesson(env, request, Number(m[1]));
+        if (method === 'DELETE') return await adminDeleteLesson(env, Number(m[1]));
+      }
+      if ((m = path.match(/^\/admin\/courses\/([\w-]+)$/)) && method === 'POST') return await adminSaveCourse(env, request, m[1]);
+    }
+    return err('Not found', 404);
+  } catch (e) {
+    return err('خطأ في السيرفر، حاول مرة ثانية', 500);
+  }
+}

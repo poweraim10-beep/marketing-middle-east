@@ -21,7 +21,7 @@ HTML5 و CSS3 و JavaScript بدون مكتبات، مع Canvas 2D لخرائط 
 ### الدومين الفرعي للأكاديمية
 مشروع Pages ثانٍ من نفس المستودع:
 - Project name: `mme-academy`
-- Root directory: `academy`
+- Root directory: `academy` (إلزامي: فيه wrangler.toml وربط قاعدة البيانات D1 والـ API)
 - Build command: فارغ، Output directory: `/`
 - Custom domain: `academy.marketingmiddleeast.com`
 
@@ -29,3 +29,10 @@ HTML5 و CSS3 و JavaScript بدون مكتبات، مع Canvas 2D لخرائط 
 - حسابات الطلاب وقاعدة البيانات: Supabase
 - حماية الفيديو: Bunny Stream
 - الدفع: Stripe أو PayTabs
+
+## نظام الأكاديمية (academy/)
+- `academy/public/index.html`: واجهة الأكاديمية (الصفحة التعريفية، الحسابات، الدورة، لوحة التحكم).
+- `academy/functions/api/[[path]].js`: الـ API (تسجيل/دخول، طلبات التسجيل، الدروس، الإدارة).
+- `academy/wrangler.toml`: ربط قاعدة بيانات D1 `mme-academy`.
+- التدفق: إنشاء حساب ← تقديم طلب ← الدفع عبر واتساب ← قبول الطلب من لوحة التحكم ← تفتح الدورة للطالب.
+- لوحة التحكم: `https://academy.marketingmiddleeast.com/#/admin` (لحسابات role = admin فقط).

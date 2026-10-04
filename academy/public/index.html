@@ -119,6 +119,94 @@ footer{border-top:1px solid var(--line);padding:28px 0}
 footer .wrap{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;font-size:14px;color:var(--mute)}
 footer a:hover{color:#fff}
 footer .links{display:flex;gap:18px;flex-wrap:wrap}
+
+/* ===== app views ===== */
+.app{padding-top:clamp(36px,6vw,70px);padding-bottom:90px;min-height:70vh}
+.navauth{display:flex;gap:8px;align-items:center}
+.navauth .btn{padding:10px 16px;font-size:14.5px}
+.panel{max-width:460px;margin:0 auto;padding:clamp(24px,4vw,38px);border:1px solid var(--line-2);border-radius:24px;background:linear-gradient(160deg,rgba(37,99,235,.12),rgba(11,16,32,.92) 50%)}
+.panel h1,.pagehead h1{font-size:clamp(24px,3.4vw,32px);color:#fff;margin:0 0 4px;font-weight:600;line-height:1.3}
+.panel .sub{margin:0 0 24px;color:var(--mute);font-size:15px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:14px;color:var(--silver)}
+.field input,.field textarea,.field select{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(6,10,22,.7);color:#fff;font:inherit;font-size:16px;outline:none;transition:border-color .2s}
+.field input:focus,.field textarea:focus{border-color:var(--cyan)}
+.field input[dir=ltr]{text-align:left}
+.field .hint{font-size:12.5px;color:var(--mute)}
+.formerr{display:none;margin:0 0 14px;padding:11px 14px;border-radius:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#fecaca;font-size:14.5px}
+.formerr.on{display:block}
+.btn.full{width:100%;justify-content:center}
+.btn[disabled]{opacity:.6;pointer-events:none}
+.switch{margin:18px 0 0;text-align:center;font-size:14.5px;color:var(--mute)}
+.switch a{color:var(--cyan)}
+.pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+.pagehead p{margin:0;color:var(--mute)}
+.list{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 20px;border:1px solid var(--line);border-radius:18px;background:rgba(11,16,32,.75)}
+.row h3{margin:0;color:#fff;font-size:17px;font-weight:600;line-height:1.45}
+.row .muted{color:var(--mute);font-size:14px}
+.row .acts{display:flex;gap:8px;flex-wrap:wrap}
+.row .acts .btn{padding:9px 14px;font-size:14px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;font-size:12.5px;border:1px solid var(--line-2);color:var(--silver);white-space:nowrap}
+.badge.pending{border-color:rgba(250,204,21,.5);color:#fde68a;background:rgba(250,204,21,.08)}
+.badge.approved{border-color:rgba(34,197,94,.55);color:#bbf7d0;background:rgba(34,197,94,.08)}
+.badge.rejected{border-color:rgba(239,68,68,.5);color:#fecaca;background:rgba(239,68,68,.08)}
+.empty{padding:34px;text-align:center;border:1px dashed var(--line-2);border-radius:18px;color:var(--mute)}
+.success{max-width:620px;margin:0 auto;text-align:center}
+.success .ic{width:74px;height:74px;margin:0 auto 18px;border-radius:50%;display:grid;place-items:center;background:var(--grad);box-shadow:0 0 50px rgba(34,211,238,.45)}
+.success .ic svg{width:36px;height:36px;fill:none;stroke:#fff;stroke-width:2.4}
+.success h1{color:#fff;font-size:clamp(24px,3.6vw,34px);margin:0 0 10px;line-height:1.3}
+.success p{color:var(--silver);margin:0 0 8px}
+.ordbox{margin:22px 0;padding:18px;border:1px solid var(--line-2);border-radius:18px;background:rgba(11,16,32,.75);text-align:right}
+.ordbox div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed var(--line)}
+.ordbox div:last-child{border-bottom:0}
+.ordbox b{color:#fff;font-weight:500}
+.btn-wa{background:#22c55e;color:#04130a;font-weight:600;box-shadow:0 14px 40px -14px rgba(34,197,94,.9)}
+.btn-wa:hover{transform:translateY(-2px)}
+.stepsline{display:flex;flex-direction:column;gap:10px;margin:20px auto 0;max-width:460px;text-align:right}
+.stepsline span{display:flex;gap:10px;align-items:center;color:var(--silver);font-size:14.5px}
+.stepsline i{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;border:1px solid var(--line-2)}
+.stepsline .ok i{background:var(--blue);border-color:var(--blue);color:#fff}
+/* course player */
+.player{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.screen{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line-2)}
+.screen iframe,.screen video{position:absolute;inset:0;width:100%;height:100%;border:0}
+.screen .wm{position:absolute;top:12px;left:12px;z-index:2;pointer-events:none;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.06em;direction:ltr}
+.screen .ph{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--mute)}
+.lessonmeta{margin-top:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.lessonmeta h2{margin:0;color:#fff;font-size:20px;font-weight:600}
+.notes{margin-top:12px;color:var(--text);white-space:pre-wrap;font-size:15px}
+.lessons{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:rgba(11,16,32,.75)}
+.lessons .lh{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;color:#fff;font-weight:500}
+.lessons button{display:flex;width:100%;gap:10px;align-items:center;padding:13px 16px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--silver);font:inherit;font-size:14.5px;text-align:right;cursor:pointer}
+.lessons button:last-child{border-bottom:0}
+.lessons button:hover{background:rgba(37,99,235,.08)}
+.lessons button.on{background:rgba(37,99,235,.16);color:#fff}
+.lessons button .ck{flex:none;width:20px;height:20px;border-radius:50%;border:1px solid var(--line-2);display:grid;place-items:center;font-size:11px}
+.lessons button.done .ck{background:#22c55e;border-color:#22c55e;color:#04130a}
+.lessons button .t{flex:1}
+.lessons button .mn{font-family:var(--mono);font-size:11px;color:var(--mute)}
+.prog{height:6px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:8px}
+.prog i{display:block;height:100%;background:var(--grad)}
+.locked{padding:30px;border:1px solid var(--line-2);border-radius:20px;text-align:center;background:rgba(11,16,32,.75)}
+@media (max-width:900px){.player{grid-template-columns:1fr}}
+/* admin */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.tabs button{padding:9px 16px;border-radius:999px;border:1px solid var(--line-2);background:none;color:var(--silver);font:inherit;font-size:14.5px;cursor:pointer}
+.tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.tabs .cnt{display:inline-block;min-width:20px;margin-inline-start:6px;padding:0 6px;border-radius:999px;background:#facc15;color:#000;font-size:12px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.filters button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--mute);font:inherit;font-size:13px;cursor:pointer}
+.filters button.on{color:#fff;border-color:var(--cyan)}
+.btn-s{padding:8px 13px!important;font-size:13.5px!important;border-radius:10px!important}
+.btn-ok{background:#22c55e;color:#04130a}
+.btn-no{border:1px solid rgba(239,68,68,.5);color:#fecaca;background:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:640px){.grid2{grid-template-columns:1fr}}
+.card2{padding:22px;border:1px solid var(--line-2);border-radius:18px;background:rgba(11,16,32,.75);margin-bottom:16px}
+.card2 h3{margin:0 0 14px;color:#fff;font-size:17px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:99;padding:12px 18px;border-radius:12px;background:#0f172a;border:1px solid var(--line-2);color:#fff;font-size:14.5px;box-shadow:0 20px 40px -10px rgba(0,0,0,.6)}
+.loading{padding:60px;text-align:center;color:var(--mute)}
 </style>
 </head>
 <body>
@@ -133,19 +221,20 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
       <a class="small" href="#course">الدورات</a>
       <a class="small" href="#how">كيف تعمل</a>
       <a class="small" href="https://marketingmiddleeast.com">الموقع الرئيسي</a>
-      <a class="btn btn-p" style="padding:10px 18px;font-size:15px" href="#" data-wa="أريد التسجيل في أكاديمية MME">سجّل الآن</a>
+      <span class="navauth" id="navAuth"></span>
     </div>
   </div>
 </nav>
 
+<main id="v-home">
 <header class="hero">
   <div class="wrap">
-    <span class="pill mono"><i class="dot"></i>ENROLLMENT OPENING SOON</span>
+    <span class="pill mono"><i class="dot"></i>ENROLLMENT NOW OPEN</span>
     <h1><span class="metal">MME</span> <span class="blue">ACADEMY</span></h1>
     <p class="gloss">أكاديمية التدريب والتطوير</p>
     <p class="lead">دورات أونلاين مسجّلة تتعلمها من بيتك وعلى وقتك، من نفس الفريق اللي بيشتغل على حملات العلامات التجارية في الشرق الأوسط. من الصفر للاحتراف، وبتطبيق عملي.</p>
     <div class="ctas">
-      <a class="btn btn-p" href="#" data-wa="أريد حجز مقعد في دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي (عرض أول 50 مشترك)">احجز مقعدك بسعر الإطلاق</a>
+      <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز مقعدك بسعر الإطلاق</a>
       <a class="btn btn-g" href="#course">شوف تفاصيل الدورة</a>
     </div>
   </div>
@@ -188,7 +277,7 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
           <li><span>المستوى</span><b>من الصفر</b></li>
           <li><span>عند الإتمام</span><b>شهادة من MME</b></li>
         </ul>
-        <a class="btn btn-p" href="#" data-wa="أريد حجز مقعد في دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي بسعر الإطلاق $70">احجز بسعر $70</a>
+        <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز بسعر $70</a>
       </aside>
     </article>
 
@@ -223,9 +312,9 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
       <p class="ar">كيف تبدأ</p>
     </div>
     <div class="steps">
-      <div class="step"><div class="n blue">01</div><h4>سجّل اهتمامك</h4><p>ابعتلنا على واتساب واحجز مقعدك بسعر الإطلاق.</p></div>
-      <div class="step"><div class="n blue">02</div><h4>أكّد اشتراكك</h4><p>بنرتب معك الدفع وبنفعّل حسابك في الأكاديمية.</p></div>
-      <div class="step"><div class="n blue">03</div><h4>تعلّم على وقتك</h4><p>دروس مسجّلة ومواد مرفقة، من أي جهاز وبأي وقت.</p></div>
+      <div class="step"><div class="n blue">01</div><h4>أنشئ حسابك</h4><p>سجّل بحسابك وقدّم طلب التسجيل بالدورة بضغطة زر.</p></div>
+      <div class="step"><div class="n blue">02</div><h4>ادفع عبر واتساب</h4><p>بنحوّلك على واتساب برقم طلبك عشان تكمل الدفع.</p></div>
+      <div class="step"><div class="n blue">03</div><h4>بنفعّلك الدورة</h4><p>بعد تأكيد الدفع بتنفتح الدورة في حسابك، وبتتعلم على وقتك.</p></div>
       <div class="step"><div class="n blue">04</div><h4>استلم شهادتك</h4><p>بعد ما تخلص الدروس بتاخد شهادة إتمام من MME.</p></div>
     </div>
   </div>
@@ -237,11 +326,14 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
     <h2 style="margin-top:14px"><span class="metal">START</span> <span class="blue">LEARNING</span></h2>
     <p>المقاعد بسعر الإطلاق محدودة. احجز مقعدك الآن.</p>
     <div class="ctas">
-      <a class="btn btn-p" href="#" data-wa="أريد التسجيل في أكاديمية MME">سجّل عبر واتساب</a>
+      <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">سجّل بالدورة الآن</a>
       <a class="btn btn-g" href="mailto:info@marketingmiddleeast.com">info@marketingmiddleeast.com</a>
     </div>
   </div>
 </section>
+
+</main>
+<main id="v-app" class="wrap app" hidden></main>
 
 <footer>
   <div class="wrap">
@@ -264,6 +356,338 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
   });
   document.getElementById('yr').textContent=new Date().getFullYear();
 })();
+</script>
+<script>
+(function(){
+'use strict';
+var WA='970567686774';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var home=$('#v-home'),app=$('#v-app');
+var state={user:null,loaded:false};
+
+function api(path,opts){
+  opts=opts||{};
+  var init={method:opts.method||'GET',credentials:'same-origin',headers:{}};
+  if(opts.body!==undefined||init.method!=='GET'){init.headers['content-type']='application/json';init.body=JSON.stringify(opts.body||{})}
+  return fetch('/api'+path,init).then(function(r){
+    return r.json().catch(function(){return {}}).then(function(d){
+      if(!r.ok){var e=new Error(d.error||'حدث خطأ، حاول مرة ثانية');e.status=r.status;throw e}
+      return d;
+    });
+  },function(){throw new Error('تعذّر الاتصال، تأكد من الإنترنت وحاول مرة ثانية')});
+}
+function toast(msg){var t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove()},2600)}
+function waLink(text){return 'https://wa.me/'+WA+'?text='+encodeURIComponent(text)}
+function fmtDate(s){try{return new Date(s*1000).toLocaleDateString('ar',{year:'numeric',month:'short',day:'numeric'})}catch(e){return ''}}
+var STATUS={pending:'بانتظار الدفع والتأكيد',approved:'مفعّل',rejected:'مرفوض'};
+function badge(s){return '<span class="badge '+esc(s)+'">'+esc(STATUS[s]||s)+'</span>'}
+function go(h){if(location.hash===h)route();else location.hash=h}
+function parseHash(){
+  var h=location.hash||'';
+  if(h.indexOf('#/')!==0)return {name:'home',anchor:h};
+  var q=h.slice(2).split('?'),parts=q[0].split('/'),params={};
+  (q[1]||'').split('&').forEach(function(kv){if(!kv)return;var p=kv.split('=');params[decodeURIComponent(p[0])]=decodeURIComponent(p[1]||'')});
+  return {name:parts[0]||'home',arg:parts[1],params:params};
+}
+
+// ---------- nav ----------
+function renderNav(){
+  var n=$('#navAuth');if(!n)return;
+  if(state.user){
+    n.innerHTML=(state.user.role==='admin'?'<a class="btn btn-g" href="#/admin">لوحة التحكم</a>':'')+
+      '<a class="btn btn-p" href="#/my">حسابي</a>';
+  }else{
+    n.innerHTML='<a class="btn btn-g" href="#/login">دخول</a><a class="btn btn-p" href="#/register">إنشاء حساب</a>';
+  }
+}
+function loadMe(){
+  return api('/me').then(function(d){state.user=d.user;state.enrollments=d.enrollments;return d},function(){state.user=null;state.enrollments=[];return null})
+    .then(function(d){state.loaded=true;renderNav();return d});
+}
+
+// ---------- enroll flow ----------
+function startEnroll(courseId){
+  if(!state.user){go('#/register?enroll='+encodeURIComponent(courseId));return}
+  app.hidden=false;home.hidden=true;window.scrollTo(0,0);
+  app.innerHTML='<div class="loading">جاري تقديم الطلب…</div>';
+  api('/enroll',{method:'POST',body:{course_id:courseId}}).then(function(d){
+    var e=d.enrollment;
+    if(e.status==='approved'){go('#/course/'+e.course_id);return}
+    go('#/enrolled/'+e.course_id);
+  },function(err){app.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+document.addEventListener('click',function(ev){
+  var a=ev.target.closest('[data-enroll]');
+  if(a){ev.preventDefault();startEnroll(a.getAttribute('data-enroll'))}
+});
+
+// ---------- views ----------
+function viewAuth(mode,params){
+  var reg=mode==='register',next=params.enroll?'?enroll='+encodeURIComponent(params.enroll):'';
+  app.innerHTML=
+  '<div class="panel">'+
+   '<h1>'+(reg?'إنشاء حساب جديد':'تسجيل الدخول')+'</h1>'+
+   '<p class="sub">'+(params.enroll?'سجّل '+(reg?'حسابك':'دخولك')+' عشان تكمل طلب التسجيل بالدورة.':(reg?'حساب واحد لكل دوراتك في أكاديمية MME.':'أهلًا فيك من جديد.'))+'</p>'+
+   '<div class="formerr" id="ferr"></div>'+
+   '<form id="authForm" novalidate>'+
+    (reg?'<div class="field"><label for="fName">الاسم الكامل</label><input id="fName" name="name" autocomplete="name" required></div>':'')+
+    '<div class="field"><label for="fEmail">البريد الإلكتروني</label><input id="fEmail" name="email" type="email" dir="ltr" autocomplete="email" required></div>'+
+    (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><input id="fPhone" name="phone" type="tel" dir="ltr" placeholder="+970 59 000 0000" autocomplete="tel" required><span class="hint">مع مقدمة الدولة، عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
+    '<div class="field"><label for="fPass">كلمة المرور</label><input id="fPass" name="password" type="password" dir="ltr" autocomplete="'+(reg?'new-password':'current-password')+'" minlength="6" required>'+(reg?'<span class="hint">6 أحرف على الأقل.</span>':'')+'</div>'+
+    '<button class="btn btn-p full" type="submit">'+(reg?'إنشاء الحساب':'دخول')+'</button>'+
+   '</form>'+
+   '<p class="switch">'+(reg?'عندك حساب؟ <a href="#/login'+next+'">سجّل دخول</a>':'ما عندك حساب؟ <a href="#/register'+next+'">أنشئ حساب جديد</a>')+'</p>'+
+   (reg?'':'<p class="switch">نسيت كلمة المرور؟ <a href="'+waLink('نسيت كلمة المرور لحسابي في أكاديمية MME، بريدي: ')+'" target="_blank" rel="noopener">تواصل معنا على واتساب</a></p>')+
+  '</div>';
+  var f=$('#authForm'),errb=$('#ferr');
+  f.addEventListener('submit',function(ev){
+    ev.preventDefault();errb.classList.remove('on');
+    var data={};$$('input',f).forEach(function(i){data[i.name]=i.value});
+    var btn=$('button[type=submit]',f);btn.disabled=true;
+    api(reg?'/register':'/login',{method:'POST',body:data}).then(function(d){
+      state.user=d.user;renderNav();
+      return loadMe().then(function(){
+        if(params.enroll)startEnroll(params.enroll);
+        else go(state.user.role==='admin'?'#/admin':'#/my');
+      });
+    },function(err){errb.textContent=err.message;errb.classList.add('on');btn.disabled=false});
+  });
+  var first=$('input',f);if(first)first.focus();
+}
+
+function needLogin(){go('#/login');}
+
+function viewMy(){
+  if(!state.user)return needLogin();
+  app.innerHTML='<div class="loading">جاري التحميل…</div>';
+  Promise.all([loadMe(),api('/courses')]).then(function(r){
+    var ens=state.enrollments||[],courses=r[1].courses||[];
+    var mine={};ens.forEach(function(e){mine[e.course_id]=e});
+    var html='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">MY ACCOUNT</span><h1>أهلًا '+esc(state.user.name)+'</h1><p>'+esc(state.user.email)+'</p></div>'+
+      '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
+    html+='<h2 style="color:#fff;font-size:19px;margin:0 0 12px">دوراتي</h2>';
+    if(!ens.length)html+='<div class="empty">لسا ما سجّلت بأي دورة.</div>';
+    else html+='<div class="list">'+ens.map(function(e){
+      var acts='';
+      if(e.status==='approved')acts='<a class="btn btn-p" href="#/course/'+esc(e.course_id)+'">ادخل الدورة</a>';
+      else if(e.status==='pending')acts='<a class="btn btn-wa" target="_blank" rel="noopener" href="'+payLink(e)+'">ادفع عبر واتساب</a>';
+      else acts='<button class="btn btn-g" data-enroll="'+esc(e.course_id)+'">قدّم الطلب من جديد</button>';
+      return '<div class="row"><div><h3>'+esc(e.title)+'</h3><div class="muted">طلب رقم #'+e.id+' · '+fmtDate(e.created_at)+' · $'+e.price+'</div></div><div class="acts">'+badge(e.status)+acts+'</div></div>';
+    }).join('')+'</div>';
+    var others=courses.filter(function(c){return !mine[c.id]});
+    if(others.length){
+      html+='<h2 style="color:#fff;font-size:19px;margin:30px 0 12px">دورات متاحة</h2><div class="list">'+others.map(function(c){
+        return '<div class="row"><div><h3>'+esc(c.title)+'</h3><div class="muted">$'+c.price+(c.old_price?' <s>$'+c.old_price+'</s>':'')+'</div></div><div class="acts"><button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة</button></div></div>';
+      }).join('')+'</div>';
+    }
+    app.innerHTML=html;
+    $('#logoutBtn').addEventListener('click',logout);
+  },function(err){app.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+function payLink(e){
+  var u=state.user||{};
+  return waLink('مرحبًا MME 👋\nأنا '+u.name+'، قدّمت طلب رقم #'+e.id+' للتسجيل في دورة:\n'+e.title+'\nالسعر: $'+e.price+'\nبريدي في الأكاديمية: '+u.email+'\nبدي أكمل الدفع.');
+}
+function logout(){api('/logout',{method:'POST'}).then(function(){state.user=null;state.enrollments=[];renderNav();go('#')},function(){state.user=null;renderNav();go('#')})}
+
+function viewEnrolled(courseId){
+  if(!state.user)return needLogin();
+  app.innerHTML='<div class="loading">جاري التحميل…</div>';
+  loadMe().then(function(){
+    var e=(state.enrollments||[]).filter(function(x){return x.course_id===courseId})[0];
+    if(!e){go('#/my');return}
+    if(e.status==='approved'){go('#/course/'+courseId);return}
+    app.innerHTML='<div class="success">'+
+      '<div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'+
+      '<h1>تم استلام طلبك ✔</h1>'+
+      '<p>الخطوة الجاية: ادفع رسوم الدورة عبر واتساب، وبعد ما نأكد الدفع بنفعّلك الدورة على حسابك.</p>'+
+      '<div class="ordbox"><div><span>رقم الطلب</span><b>#'+e.id+'</b></div><div><span>الدورة</span><b>'+esc(e.title)+'</b></div><div><span>المبلغ</span><b>$'+e.price+'</b></div><div><span>الحالة</span>'+badge(e.status)+'</div></div>'+
+      '<a class="btn btn-wa full" style="font-size:17px;padding:16px" target="_blank" rel="noopener" href="'+payLink(e)+'">أكمل الدفع عبر واتساب</a>'+
+      '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>ادفع عبر واتساب</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
+    '</div>';
+  });
+}
+
+function embedHtml(url){
+  url=String(url||'').trim();var m;
+  if(!url)return '<div class="ph">الفيديو لهذا الدرس قريبًا.</div>';
+  if((m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([\w-]{6,})/)))url='https://www.youtube-nocookie.com/embed/'+m[1]+'?rel=0&modestbranding=1';
+  else if((m=url.match(/vimeo\.com\/(?:video\/)?(\d+)/)))url='https://player.vimeo.com/video/'+m[1];
+  else if((m=url.match(/drive\.google\.com\/file\/d\/([\w-]+)/)))url='https://drive.google.com/file/d/'+m[1]+'/preview';
+  else if(/mediadelivery\.net\/play\//.test(url))url=url.replace('/play/','/embed/');
+  if(/\.(mp4|webm|m3u8)(\?|$)/i.test(url))return '<video src="'+esc(url)+'" controls controlsList="nodownload" disablePictureInPicture oncontextmenu="return false" playsinline></video>';
+  return '<iframe src="'+esc(url)+'" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>';
+}
+
+function viewCourse(courseId,params){
+  app.innerHTML='<div class="loading">جاري التحميل…</div>';
+  api('/course/'+encodeURIComponent(courseId)).then(function(d){
+    var c=d.course,ls=d.lessons||[];
+    var head='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">COURSE</span><h1>'+esc(c.title)+'</h1><p>'+ls.length+' درس</p></div></div>';
+    if(!d.access){
+      var cta;
+      if(!state.user)cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
+      else if(d.status==='pending')cta='<p>طلبك قيد المراجعة. بعد ما نأكد الدفع بتفتحلك الدورة هون.</p><a class="btn btn-wa" href="#/enrolled/'+esc(c.id)+'">تفاصيل الطلب والدفع</a>';
+      else cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
+      app.innerHTML=head+'<div class="locked"><p style="color:#fff;font-size:18px;margin:0 0 6px">🔒 هاي الدورة مقفلة</p><p style="color:var(--mute);margin:0 0 18px">بتنفتح بعد تفعيل اشتراكك.</p>'+cta+'</div>'+
+        (ls.length?'<div class="lessons" style="margin-top:20px"><div class="lh"><span>محتوى الدورة</span><span>'+ls.length+'</span></div>'+ls.map(function(l,i){return '<button disabled><span class="ck">'+(i+1)+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+l.minutes+'m</span>':'')+'</button>'}).join('')+'</div>':'');
+      return;
+    }
+    if(!ls.length){app.innerHTML=head+'<div class="empty">تم تفعيل اشتراكك ✔ — الدروس رح تنزل هون قريبًا.</div>';return}
+    var done={};(d.done||[]).forEach(function(id){done[id]=1});
+    var cur=Number(params.l)||((ls.filter(function(l){return !done[l.id]})[0]||ls[0]).id);
+    var lesson=ls.filter(function(l){return l.id===cur})[0]||ls[0];
+    var pct=Math.round(Object.keys(done).length/ls.length*100);
+    var u=state.user||{};
+    app.innerHTML=head+
+      '<div class="player"><div>'+
+        '<div class="screen">'+embedHtml(lesson.video_url)+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span></div>'+
+        '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
+        (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
+      '</div><div>'+
+        '<div class="lessons"><div class="lh"><span>محتوى الدورة</span><span>'+pct+'%</span></div>'+
+        '<div style="padding:0 16px 12px;border-bottom:1px solid var(--line)"><div class="prog"><i style="width:'+pct+'%"></i></div></div>'+
+        ls.map(function(l,i){return '<button data-l="'+l.id+'" class="'+(l.id===lesson.id?'on ':'')+(done[l.id]?'done':'')+'"><span class="ck">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+l.minutes+'m</span>':'')+'</button>'}).join('')+
+        '</div>'+
+      '</div></div>';
+    $$('.lessons [data-l]').forEach(function(b){b.addEventListener('click',function(){go('#/course/'+c.id+'?l='+b.getAttribute('data-l'))})});
+    $('#doneBtn').addEventListener('click',function(){
+      api('/progress',{method:'POST',body:{lesson_id:lesson.id,done:!done[lesson.id]}}).then(function(){
+        if(!done[lesson.id]){var i=ls.indexOf(lesson),nx=ls[i+1];if(nx){go('#/course/'+c.id+'?l='+nx.id);return}}
+        route();
+      },function(e){toast(e.message)});
+    });
+  },function(err){app.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+
+// ---------- admin ----------
+var adminTab='orders',orderFilter='pending',lessonCourse=null;
+function viewAdmin(){
+  if(!state.user)return needLogin();
+  if(state.user.role!=='admin'){app.innerHTML='<div class="empty">هاي الصفحة للإدارة فقط.</div>';return}
+  app.innerHTML='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">ADMIN</span><h1>لوحة التحكم</h1><p>إدارة الطلبات والطلاب والدروس</p></div><button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>'+
+    '<div class="tabs"><button data-t="orders">الطلبات<span class="cnt" id="pendCnt" hidden></span></button><button data-t="students">الطلاب</button><button data-t="lessons">الدورات والدروس</button></div><div id="adm"></div>';
+  $('#logoutBtn').addEventListener('click',logout);
+  $$('.tabs button').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-t')===adminTab);b.addEventListener('click',function(){adminTab=b.getAttribute('data-t');viewAdmin()})});
+  api('/admin/enrollments?status=pending').then(function(d){var n=d.enrollments.length,el=$('#pendCnt');if(el&&n){el.hidden=false;el.textContent=n}});
+  ({orders:admOrders,students:admStudents,lessons:admLessons})[adminTab]();
+}
+function admOrders(){
+  var box=$('#adm');
+  box.innerHTML='<div class="filters">'+[['pending','بانتظار التأكيد'],['approved','مفعّلة'],['rejected','مرفوضة'],['','الكل']].map(function(f){return '<button data-f="'+f[0]+'" class="'+(orderFilter===f[0]?'on':'')+'">'+f[1]+'</button>'}).join('')+'</div><div id="ordList" class="loading">جاري التحميل…</div>';
+  $$('.filters button',box).forEach(function(b){b.addEventListener('click',function(){orderFilter=b.getAttribute('data-f');admOrders()})});
+  api('/admin/enrollments'+(orderFilter?'?status='+orderFilter:'')).then(function(d){
+    var L=$('#ordList');L.className='list';
+    if(!d.enrollments.length){L.innerHTML='<div class="empty">ما في طلبات هون.</div>';return}
+    L.innerHTML=d.enrollments.map(function(e){
+      var phone=String(e.phone||'').replace(/[^\d]/g,'');
+      var msg=e.status==='approved'?'':'مرحبًا '+e.name+'، معك أكاديمية MME بخصوص طلبك رقم #'+e.id+' لدورة '+e.title+' ($'+e.price+').';
+      return '<div class="row"><div><h3>#'+e.id+' · '+esc(e.name)+'</h3><div class="muted">'+esc(e.title)+' · $'+e.price+'</div><div class="muted" dir="ltr" style="text-align:right">'+esc(e.email)+' · '+esc(e.phone)+'</div><div class="muted">'+fmtDate(e.created_at)+'</div></div>'+
+        '<div class="acts">'+badge(e.status)+
+        (phone?'<a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/'+phone+(msg?'?text='+encodeURIComponent(msg):'')+'">واتساب</a>':'')+
+        (e.status!=='approved'?'<button class="btn btn-ok btn-s" data-dec="approved" data-id="'+e.id+'">قبول وتفعيل</button>':'')+
+        (e.status==='pending'?'<button class="btn btn-no btn-s" data-dec="rejected" data-id="'+e.id+'">رفض</button>':'')+
+        (e.status==='approved'?'<button class="btn btn-no btn-s" data-dec="pending" data-id="'+e.id+'">إلغاء التفعيل</button>':'')+
+        '</div></div>';
+    }).join('');
+    $$('[data-dec]',L).forEach(function(b){b.addEventListener('click',function(){
+      var st=b.getAttribute('data-dec');
+      if(st!=='approved'&&!confirm('متأكد؟'))return;
+      b.disabled=true;
+      api('/admin/enrollments/'+b.getAttribute('data-id'),{method:'POST',body:{status:st}}).then(function(){toast(st==='approved'?'تم تفعيل الدورة للطالب ✔':'تم التحديث');viewAdmin()},function(e){toast(e.message);b.disabled=false});
+    })});
+  },function(err){$('#ordList').innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+function admStudents(){
+  var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
+  api('/admin/users').then(function(d){
+    if(!d.users.length){box.innerHTML='<div class="empty">ما في طلاب لسا.</div>';return}
+    box.innerHTML='<p class="muted" style="color:var(--mute);margin:0 0 12px">'+d.users.length+' حساب</p><div class="list">'+d.users.map(function(u){
+      var phone=String(u.phone||'').replace(/[^\d]/g,'');
+      return '<div class="row"><div><h3>'+esc(u.name)+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+'</h3><div class="muted" dir="ltr" style="text-align:right">'+esc(u.email)+' · '+esc(u.phone)+'</div><div class="muted">انضم '+fmtDate(u.created_at)+' · دورات مفعّلة: '+u.active+'</div></div>'+
+        '<div class="acts">'+(phone?'<a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/'+phone+'">واتساب</a>':'')+'<button class="btn btn-g btn-s" data-pw="'+u.id+'">تغيير كلمة المرور</button></div></div>';
+    }).join('')+'</div>';
+    $$('[data-pw]',box).forEach(function(b){b.addEventListener('click',function(){
+      var p=prompt('اكتب كلمة مرور جديدة للطالب (6 أحرف على الأقل):');if(!p)return;
+      api('/admin/users/'+b.getAttribute('data-pw')+'/password',{method:'POST',body:{password:p}}).then(function(){toast('تم تغيير كلمة المرور ✔ ابعتها للطالب')},function(e){toast(e.message)});
+    })});
+  },function(err){box.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+function admLessons(){
+  var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
+  api('/courses').then(function(cd){
+    var courses=cd.courses||[];
+    if(!courses.length){box.innerHTML='<div class="empty">ما في دورات.</div>';return}
+    lessonCourse=lessonCourse||courses[0].id;
+    return api('/course/'+lessonCourse).then(function(d){
+      var c=d.course,ls=d.lessons||[];
+      box.innerHTML=
+        (courses.length>1?'<div class="filters">'+courses.map(function(x){return '<button data-c="'+esc(x.id)+'" class="'+(x.id===lessonCourse?'on':'')+'">'+esc(x.title)+'</button>'}).join('')+'</div>':'')+
+        '<div class="card2"><h3>بيانات الدورة</h3><form id="courseForm">'+
+          '<div class="field"><label>اسم الدورة</label><input name="title" value="'+esc(c.title)+'"></div>'+
+          '<div class="field"><label>الوصف</label><textarea name="description" rows="3">'+esc(c.description||'')+'</textarea></div>'+
+          '<div class="grid2"><div class="field"><label>السعر ($)</label><input name="price" type="number" min="0" value="'+c.price+'"></div><div class="field"><label>السعر قبل الخصم ($) — اختياري</label><input name="old_price" type="number" min="0" value="'+(c.old_price||'')+'"></div></div>'+
+          '<label style="display:flex;gap:8px;align-items:center;margin-bottom:14px;color:var(--silver)"><input type="checkbox" name="published" '+(c.published?'checked':'')+'> الدورة ظاهرة للطلاب</label>'+
+          '<button class="btn btn-p" type="submit">حفظ</button></form></div>'+
+        '<div class="card2"><h3 id="lfTitle">إضافة درس جديد</h3><form id="lessonForm"><input type="hidden" name="lid">'+
+          '<div class="field"><label>عنوان الدرس</label><input name="title" required></div>'+
+          '<div class="field"><label>رابط الفيديو</label><input name="video_url" dir="ltr" placeholder="Bunny / YouTube (غير مدرج) / Vimeo / Google Drive"><span class="hint">الرابط ما بيظهر إلا للطلاب المفعّلين.</span></div>'+
+          '<div class="grid2"><div class="field"><label>الترتيب</label><input name="sort" type="number" value="'+(ls.length+1)+'"></div><div class="field"><label>المدة بالدقائق</label><input name="minutes" type="number" min="0"></div></div>'+
+          '<div class="field"><label>ملاحظات / روابط مواد الدرس</label><textarea name="notes" rows="3"></textarea></div>'+
+          '<div style="display:flex;gap:8px"><button class="btn btn-p" type="submit">حفظ الدرس</button><button class="btn btn-g" type="reset" id="lfReset">جديد</button></div></form></div>'+
+        '<h3 style="color:#fff;margin:6px 0 12px">الدروس ('+ls.length+')</h3>'+
+        (ls.length?'<div class="list">'+ls.map(function(l){return '<div class="row"><div><h3>'+l.sort+'. '+esc(l.title)+'</h3><div class="muted" dir="ltr" style="text-align:right;word-break:break-all">'+esc(l.video_url||'— بدون فيديو —')+'</div></div><div class="acts"><a class="btn btn-g btn-s" href="#/course/'+esc(c.id)+'?l='+l.id+'">معاينة</a><button class="btn btn-g btn-s" data-edit="'+l.id+'">تعديل</button><button class="btn btn-no btn-s" data-del="'+l.id+'">حذف</button></div></div>'}).join('')+'</div>':'<div class="empty">ما في دروس لسا. ضيف أول درس من الفورم فوق.</div>');
+      $$('[data-c]',box).forEach(function(b){b.addEventListener('click',function(){lessonCourse=b.getAttribute('data-c');admLessons()})});
+      $('#courseForm').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
+        api('/admin/courses/'+c.id,{method:'POST',body:{title:f.title.value,description:f.description.value,price:f.price.value,old_price:f.old_price.value,published:f.published.checked}}).then(function(){toast('تم الحفظ ✔')},function(e){toast(e.message)})});
+      var lf=$('#lessonForm'),E=lf.elements;
+      lf.addEventListener('submit',function(ev){ev.preventDefault();
+        var id=E.lid.value,b={course_id:c.id,title:E.title.value,video_url:E.video_url.value,sort:E.sort.value,minutes:E.minutes.value,notes:E.notes.value};
+        api('/admin/lessons'+(id?'/'+id:''),{method:'POST',body:b}).then(function(){toast('تم حفظ الدرس ✔');admLessons()},function(e){toast(e.message)})});
+      $('#lfReset').addEventListener('click',function(){$('#lfTitle').textContent='إضافة درس جديد';setTimeout(function(){E.lid.value='';E.sort.value=ls.length+1},0)});
+      $$('[data-edit]',box).forEach(function(b){b.addEventListener('click',function(){
+        var l=ls.filter(function(x){return String(x.id)===b.getAttribute('data-edit')})[0];
+        E.lid.value=l.id;E.title.value=l.title;E.video_url.value=l.video_url||'';E.sort.value=l.sort;E.minutes.value=l.minutes||'';E.notes.value=l.notes||'';
+        $('#lfTitle').textContent='تعديل: '+l.title;lf.scrollIntoView({behavior:'smooth',block:'center'});
+      })});
+      $$('[data-del]',box).forEach(function(b){b.addEventListener('click',function(){
+        if(!confirm('حذف الدرس نهائيًا؟'))return;
+        api('/admin/lessons/'+b.getAttribute('data-del'),{method:'DELETE'}).then(function(){toast('تم الحذف');admLessons()},function(e){toast(e.message)});
+      })});
+    });
+  }).catch(function(err){box.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+
+// ---------- router ----------
+function route(){
+  var r=parseHash();
+  if(r.name==='home'){
+    app.hidden=true;home.hidden=false;
+    if(r.anchor&&r.anchor.length>1){var t=document.getElementById(r.anchor.slice(1));if(t)t.scrollIntoView()}
+    return;
+  }
+  home.hidden=true;app.hidden=false;window.scrollTo(0,0);
+  var run=function(){
+    switch(r.name){
+      case 'login':if(state.user&&!r.params.enroll)return go('#/my');return viewAuth('login',r.params);
+      case 'register':if(state.user)return r.params.enroll?startEnroll(r.params.enroll):go('#/my');return viewAuth('register',r.params);
+      case 'my':return viewMy();
+      case 'enrolled':return viewEnrolled(r.arg);
+      case 'course':return viewCourse(r.arg,r.params);
+      case 'admin':return viewAdmin();
+      default:go('#');
+    }
+  };
+  if(!state.loaded){app.innerHTML='<div class="loading">جاري التحميل…</div>';loadMe().then(run)}else run();
+}
+window.addEventListener('hashchange',route);
+renderNav();
+route();
+if(parseHash().name==='home')loadMe();
+})();
+
 </script>
 </body>
 </html>
