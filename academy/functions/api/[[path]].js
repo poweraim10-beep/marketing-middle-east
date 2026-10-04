@@ -4,6 +4,8 @@
 const SESSION_COOKIE = 'mme_s';
 const SESSION_DAYS = 30;
 const PBKDF2_ITER = 100000;
+const OWNER_EMAIL = 'power.ai.m10@gmail.com'; // the only admin account
+const roleFor = (email) => (String(email || '').toLowerCase() === OWNER_EMAIL ? 'admin' : 'student');
 
 // ---------- helpers ----------
 const json = (data, status = 200, headers = {}) =>
@@ -45,15 +47,17 @@ async function body(req) {
   try { return await req.json(); } catch { return {}; }
 }
 const clean = (s, max = 200) => String(s ?? '').trim().slice(0, max);
-const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role };
+const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, phone: u.phone, role: roleFor(u.email) };
 
 async function currentUser(env, req) {
   const token = getCookie(req, SESSION_COOKIE);
   if (!token) return null;
   const th = await sha256(token);
-  return env.DB.prepare(
+  const u = await env.DB.prepare(
     'SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ?'
   ).bind(th, now()).first();
+  if (u) u.role = roleFor(u.email);
+  return u;
 }
 async function createSession(env, userId) {
   const token = randomHex(32);
@@ -79,10 +83,10 @@ async function register(env, req) {
   const pass_hash = await hashPassword(password, salt);
   const r = await env.DB.prepare(
     'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(name, email, phone, pass_hash, salt, 'student', now(), now()).run();
+  ).bind(name, email, phone, pass_hash, salt, roleFor(email), now(), now()).run();
   const id = r.meta.last_row_id;
   const token = await createSession(env, id);
-  return json({ user: { id, name, email, phone, role: 'student' } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+  return json({ user: { id, name, email, phone, role: roleFor(email) } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
 
 async function login(env, req) {
@@ -259,9 +263,9 @@ async function adminUpdateUser(env, req, id, me) {
   const name = b.name !== undefined ? clean(b.name, 80) : u.name;
   const email = b.email !== undefined ? clean(b.email, 120).toLowerCase() : u.email;
   const phone = b.phone !== undefined ? clean(b.phone, 30) : u.phone;
-  let role = b.role !== undefined ? b.role : u.role;
-  if (!['student', 'admin'].includes(role)) return err('صلاحية غير صحيحة');
-  if (id === me.id && role !== 'admin') return err('ما بتقدر تشيل صلاحية الأدمن عن حسابك');
+  if (roleFor(u.email) === 'admin' && email !== u.email) return err('ما بتقدر تغيّر إيميل حساب الإدارة');
+  if (roleFor(email) === 'admin' && roleFor(u.email) !== 'admin') return err('هذا الإيميل محجوز لحساب الإدارة');
+  const role = roleFor(email);
   if (name.length < 2) return err('الاسم قصير');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('البريد الإلكتروني غير صحيح');
   if (email !== u.email) {

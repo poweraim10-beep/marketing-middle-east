@@ -847,7 +847,7 @@ function admStudent(id){
           '<div class="field"><label>الإيميل</label><input name="email" dir="ltr" value="'+esc(u.email)+'"></div>'+
           '<div class="field"><label>واتساب</label><input name="phone" dir="ltr" value="'+esc(u.phone)+'"></div>'+
           '<div class="field"><label>ملاحظات خاصة (ما بيشوفها الطالب)</label><textarea name="admin_note" rows="3">'+esc(u.admin_note||'')+'</textarea></div>'+
-          '<label class="chk"><input type="checkbox" name="admin" '+(u.role==='admin'?'checked':'')+(isMe?' disabled':'')+'> صلاحية أدمن (دخول لوحة التحكم)</label>'+
+          
           '<button class="btn btn-p" type="submit">حفظ التعديلات</button></form></div>'+
         '<div class="card2 danger"><h3>إجراءات</h3><div class="acts"><button class="btn btn-g btn-s" id="pwBtn">تعيين كلمة مرور جديدة</button>'+(isMe?'':'<button class="btn btn-no btn-s" id="delU">حذف الحساب</button>')+'</div></div>'+
       '</div></div>';
@@ -864,7 +864,7 @@ function admStudent(id){
     var enF=$('#enF');if(enF)enF.addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
       api('/admin/users/'+id+'/enroll',{method:'POST',body:{course_id:f.course_id.value,paid:f.paid.value,note:f.note.value,status:'approved'}}).then(function(){toast('تم تفعيل الدورة ✔');reload()},function(e){toast(e.message)})});
     $('#uF').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
-      api('/admin/users/'+id,{method:'POST',body:{name:f.name.value,email:f.email.value,phone:f.phone.value,admin_note:f.admin_note.value,role:f.admin.checked?'admin':'student'}}).then(function(){toast('تم الحفظ ✔');reload()},function(e){toast(e.message)})});
+      api('/admin/users/'+id,{method:'POST',body:{name:f.name.value,email:f.email.value,phone:f.phone.value,admin_note:f.admin_note.value}}).then(function(){toast('تم الحفظ ✔');reload()},function(e){toast(e.message)})});
     $('#pwBtn').addEventListener('click',function(){
       modal('<h3>كلمة مرور جديدة</h3><p class="mdl-sub">بعد الحفظ بيطلع الطالب من كل أجهزته، وبتبعتله الكلمة الجديدة على واتساب.</p><form id="pF"><div class="field"><input name="pw" dir="ltr" minlength="6" value="'+Math.random().toString(36).slice(2,10)+'"></div><button class="btn btn-p full" type="submit">حفظ</button></form>',function(ov,close){
         $('#pF',ov).addEventListener('submit',function(ev){ev.preventDefault();var pw=ev.target.elements.pw.value;
