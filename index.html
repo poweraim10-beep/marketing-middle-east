@@ -546,6 +546,7 @@ html[dir=rtl] .ins::after{--o:right}
 html[dir=rtl] .cert-badge{padding:6px 6px 6px 14px}
 .cert-badge::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.65) 50%,transparent 70%);transform:translateX(-120%);animation:cbshine 3.6s ease-in-out infinite}
 @keyframes cbshine{55%,100%{transform:translateX(120%)}}
+.cert-badge bdi{white-space:nowrap}
 .cert-badge .cb-ic{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#0B1020}
 .cert-badge svg{width:20px;height:20px;fill:#facc15}
 .cert-badge svg .ck{fill:none;stroke:#0B1020;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -760,7 +761,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
       <figcaption>
         <span class="mono pt-tag">OFFICIAL REPRESENTATIVE · PALESTINE</span>
         <span class="pt-name" lang="ar">د. محمود أيمن نصرالله</span>
-        <span class="cert-badge"><span class="cb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path class="ck" d="M8.3 12.3l2.5 2.5 4.9-5"/></svg></span><span data-en="Internationally Certified Trainer · Marketing Middle East">مدرّب معتمد دوليًا لشركة ماركتنج الشرق الأوسط</span></span>
+        <span class="cert-badge"><span class="cb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path class="ck" d="M8.3 12.3l2.5 2.5 4.9-5"/></svg></span><span data-en="Internationally Certified Trainer · Marketing Middle East">مدرّب معتمد دوليًا لشركة <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span></span>
         <span class="pt-cap" lang="ar">مؤسس شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</span>
       </figcaption>
     </figure>
@@ -1002,7 +1003,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
         <div class="ld-body">
           <span class="mono" style="color:var(--cyan)">PALESTINE REPRESENTATIVE</span>
           <h3 class="ld-name" lang="ar">د. محمود أيمن نصرالله</h3>
-          <span class="cert-badge"><span class="cb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path class="ck" d="M8.3 12.3l2.5 2.5 4.9-5"/></svg></span><span data-en="Internationally Certified Trainer · Marketing Middle East">مدرّب معتمد دوليًا لشركة ماركتنج الشرق الأوسط</span></span>
+          <span class="cert-badge"><span class="cb-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 1.8 3-.2.9 2.9 2.5 1.7-1 2.8 1 2.8-2.5 1.7-.9 2.9-3-.2L12 22l-2.4-1.8-3 .2-.9-2.9-2.5-1.7 1-2.8-1-2.8 2.5-1.7.9-2.9 3 .2z"/><path class="ck" d="M8.3 12.3l2.5 2.5 4.9-5"/></svg></span><span data-en="Internationally Certified Trainer · Marketing Middle East">مدرّب معتمد دوليًا لشركة <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span></span>
           <p class="ld-role" data-en="Founder of Abu Omar Al-Ghazawi Advertising &amp; Digital Marketing, the official representative of Marketing Middle East in Palestine">مؤسس شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي، المندوب المعتمد لـ MARKETING MIDDLE EAST في فلسطين</p>
         </div>
       </article>
