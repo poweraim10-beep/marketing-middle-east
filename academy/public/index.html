@@ -132,6 +132,12 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
 .field input,.field textarea,.field select{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(6,10,22,.7);color:#fff;font:inherit;font-size:16px;outline:none;transition:border-color .2s}
 .field input:focus,.field textarea:focus{border-color:var(--cyan)}
 .field input[dir=ltr]{text-align:left}
+.phonerow{display:flex;gap:8px;direction:ltr}
+.phonerow select{flex:0 0 auto;width:auto;max-width:48%;padding:13px 10px;border-radius:12px;border:1px solid var(--line-2);background:rgba(6,10,22,.7);color:#fff;font:inherit;font-size:15px;outline:none}
+.phonerow select:focus{border-color:var(--cyan)}
+.phonerow select option{background:#0B1020;color:#fff}
+.phonerow input{flex:1;min-width:0}
+.phonerow select{order:-1}
 .field .hint{font-size:12.5px;color:var(--mute)}
 .formerr{display:none;margin:0 0 14px;padding:11px 14px;border-radius:12px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#fecaca;font-size:14.5px}
 .formerr.on{display:block}
@@ -381,6 +387,7 @@ function api(path,opts){
 function toast(msg){var t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove()},2600)}
 function waLink(text){return 'https://wa.me/'+WA+'?text='+encodeURIComponent(text)}
 function fmtDate(s){try{return new Date(s*1000).toLocaleDateString('ar',{year:'numeric',month:'short',day:'numeric'})}catch(e){return ''}}
+var CODES=[['فلسطين','970'],['فلسطين','972'],['الأردن','962'],['السعودية','966'],['الإمارات','971'],['قطر','974'],['الكويت','965'],['عُمان','968'],['البحرين','973'],['مصر','20'],['العراق','964'],['سوريا','963'],['لبنان','961'],['اليمن','967'],['ليبيا','218'],['تونس','216'],['الجزائر','213'],['المغرب','212'],['السودان','249'],['موريتانيا','222'],['الصومال','252'],['جيبوتي','253'],['جزر القمر','269']];
 var STATUS={pending:'بانتظار الدفع والتأكيد',approved:'مفعّل',rejected:'مرفوض'};
 function badge(s){return '<span class="badge '+esc(s)+'">'+esc(STATUS[s]||s)+'</span>'}
 function go(h){if(location.hash===h)route();else location.hash=h}
@@ -434,7 +441,7 @@ function viewAuth(mode,params){
    '<form id="authForm" novalidate>'+
     (reg?'<div class="field"><label for="fName">الاسم الكامل</label><input id="fName" name="name" autocomplete="name" required></div>':'')+
     '<div class="field"><label for="fEmail">البريد الإلكتروني</label><input id="fEmail" name="email" type="email" dir="ltr" autocomplete="email" required></div>'+
-    (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><input id="fPhone" name="phone" type="tel" dir="ltr" placeholder="+970 59 000 0000" autocomplete="tel" required><span class="hint">مع مقدمة الدولة، عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
+    (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><div class="phonerow"><input id="fPhone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="59 000 0000" autocomplete="tel-national" required><select id="fCode" name="code" dir="rtl" aria-label="مقدمة الدولة">'+CODES.map(function(c){return '<option value="'+c[1]+'">'+c[0]+' (+'+c[1]+')</option>'}).join('')+'<option value="">دولة أخرى</option></select></div><span class="hint" id="phHint">بدون صفر البداية. عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
     '<div class="field"><label for="fPass">كلمة المرور</label><input id="fPass" name="password" type="password" dir="ltr" autocomplete="'+(reg?'new-password':'current-password')+'" minlength="6" required>'+(reg?'<span class="hint">6 أحرف على الأقل.</span>':'')+'</div>'+
     '<button class="btn btn-p full" type="submit">'+(reg?'إنشاء الحساب':'دخول')+'</button>'+
    '</form>'+
@@ -444,7 +451,8 @@ function viewAuth(mode,params){
   var f=$('#authForm'),errb=$('#ferr');
   f.addEventListener('submit',function(ev){
     ev.preventDefault();errb.classList.remove('on');
-    var data={};$$('input',f).forEach(function(i){data[i.name]=i.value});
+    var data={};$$('input,select',f).forEach(function(i){data[i.name]=i.value});
+    if(reg){var dg=String(data.phone||'').replace(/[^\d+]/g,'');if(data.code){dg=dg.replace(/^\+?0*/,'');if(dg.indexOf(data.code)===0&&dg.length>9)dg=dg.slice(data.code.length);data.phone='+'+data.code+dg}else{data.phone=dg.charAt(0)==='+'?dg:'+'+dg.replace(/^0+/,'')}delete data.code}
     var btn=$('button[type=submit]',f);btn.disabled=true;
     api(reg?'/register':'/login',{method:'POST',body:data}).then(function(d){
       state.user=d.user;renderNav();
@@ -454,6 +462,7 @@ function viewAuth(mode,params){
       });
     },function(err){errb.textContent=err.message;errb.classList.add('on');btn.disabled=false});
   });
+  var fc=$('#fCode');if(fc)fc.addEventListener('change',function(){var o=!fc.value;$('#fPhone').placeholder=o?'+XXX 000 000 000':'59 000 0000';$('#phHint').textContent=o?'اكتب الرقم كامل مع مقدمة الدولة، مثل +44…':'بدون صفر البداية. عشان نتواصل معك لتأكيد الدفع.'});
   var first=$('input',f);if(first)first.focus();
 }
 
