@@ -572,6 +572,28 @@ html[dir=rtl] .cert-badge{padding:6px 6px 6px 14px}
 .cta-mail{margin:10px 0 0;font-size:14px;color:var(--mute);overflow-wrap:anywhere}
 .cta-mail b{font-family:var(--mono);font-weight:500;color:var(--white);font-size:13.5px}
 /* ---------- FOOTER ---------- */
+.ft-cc{padding:16px 18px;border:1px solid var(--line-2);border-radius:16px;background:rgba(11,16,32,.5)}
+.cc-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cc-h svg{width:20px;height:20px;fill:none;stroke:var(--cyan);stroke-width:1.6;stroke-linejoin:round}
+.cc-h span{display:flex;flex-direction:column;line-height:1.3}
+.cc-h small{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--mute)}
+.cc-h b{font-size:14.5px;color:var(--white);font-weight:600}
+.cc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.cc-i{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(6,10,22,.5);min-width:0}
+.cc-c{display:flex;flex-direction:column;line-height:1.3;min-width:0}
+.cc-c small{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--cyan)}
+.cc-c em{font-style:normal;font-size:12.5px;color:var(--silver)}
+.cc-n{font-family:var(--mono);font-weight:500;font-size:13px;color:var(--white);direction:ltr;white-space:nowrap;user-select:all;-webkit-user-select:all}
+.ft-cc .cc-h span{display:flex;flex-direction:column;padding:0}
+.ft-cols .soc>span{display:flex;flex-direction:column;padding:0;line-height:1.35}
+.ft-cc .cc-i{flex-direction:column;align-items:flex-start;gap:4px}
+.ft-cc .cc-c{display:flex;flex-direction:row;align-items:baseline;gap:8px;padding:0}
+.ft-cc .cc-c em{font-size:13.5px;color:var(--white);font-weight:500}
+.ft-cc .cc-n{font-size:14px;color:#cbd5e1;align-self:stretch;text-align:left}
+html[dir=rtl] .ft-cc .cc-n{text-align:right}
+@media (max-width:900px){.cc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.cc-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.ft-cc{padding:14px 12px}.ft-cc .cc-i{padding:9px 10px}.ft-cc .cc-n{font-size:12.5px}.ft-cc .cc-c small{display:none}}
+
 .ft-social{display:flex;flex-wrap:wrap;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--line)}
 .ft-cols .soc{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--line-2);border-radius:14px;text-decoration:none;transition:border-color .3s,background .3s;min-width:0}
 .ft-cols a.soc:hover{border-color:var(--cyan);background:rgba(34,211,238,.06)}
@@ -1269,6 +1291,7 @@ html[dir=rtl] .of-chip{padding:12px 12px 12px 20px}
           <a class="soc" href="https://www.facebook.com/profile.php?id=61594286327681" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3a4 4 0 0 0-4 4v3H7v4h3v6h4v-6h3l1-4h-4V8z"/></svg><span><small>FACEBOOK</small><b class="en">Marketing Middle East</b></span></a>
           <div class="soc"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span><small>EMAIL</small><b class="en" id="emText" style="user-select:all">info@marketingmiddleeast.com</b></span><button type="button" class="cp" id="emCopy" data-en="Copy">نسخ</button></div>
         </div>
+        <div class="ft-cc" style="grid-column:1/-1"><div class="cc-h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><span><small>CONTACT BY COUNTRY</small><b data-en="Our representatives' numbers">أرقام التواصل مع مندوبينا</b></span></div><div class="cc-grid"><div class="cc-i"><span class="cc-c"><em lang="ar">الأردن</em><small>JORDAN</small></span><b class="cc-n">+962 79 638 2417</b></div><div class="cc-i"><span class="cc-c"><em lang="ar">السعودية</em><small>SAUDI ARABIA</small></span><b class="cc-n">+966 50 742 3816</b></div><div class="cc-i"><span class="cc-c"><em lang="ar">الإمارات</em><small>UAE</small></span><b class="cc-n">+971 50 638 2714</b></div><div class="cc-i"><span class="cc-c"><em lang="ar">قطر</em><small>QATAR</small></span><b class="cc-n">+974 3312 6487</b></div><div class="cc-i"><span class="cc-c"><em lang="ar">الكويت</em><small>KUWAIT</small></span><b class="cc-n">+965 5000 2184</b></div><div class="cc-i"><span class="cc-c"><em lang="ar">عُمان</em><small>OMAN</small></span><b class="cc-n">+968 9123 6847</b></div></div></div>
         <div><h4>COMPANY</h4><a href="#do">What we do</a><a href="#capabilities">Capabilities</a><a href="#process">Process</a><a href="#about">About</a><a href="#why">Why MME</a></div>
         <div><h4>PLATFORM</h4><a href="#ai">AI × Marketing</a><a href="https://academy.marketingmiddleeast.com">Training &amp; Development Academy</a><a href="#insights">Insights</a><a href="#cases">Case Studies</a></div>
         <div><h4>PRESENCE</h4><span>Jordan · UAE · Kuwait</span><span>Saudi Arabia · Qatar</span><span>Oman · Palestine</span><span style="color:var(--cyan)">Gaza HQ — Coming soon</span><a href="https://www.facebook.com/profile.php?id=61578579154441" target="_blank" rel="noopener" style="font-size:12.5px;color:var(--mute)">Palestine representative: Abu Omar Al-Ghazawi ↗</a></div>
