@@ -150,6 +150,12 @@ footer .links{display:flex;gap:18px;flex-wrap:wrap}
 .upbar{position:relative;height:34px;border-radius:10px;overflow:hidden;background:rgba(11,16,32,.9);border:1px solid var(--line-2);margin-top:8px}
 .upbar i{position:absolute;inset:0 auto 0 0;width:0;background:var(--grad);transition:width .3s}
 .upbar span{position:relative;display:block;text-align:center;line-height:34px;font-size:13.5px;color:#fff}
+.biz-badge{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:10px;width:fit-content;max-width:100%;margin:2px 0 14px;padding:8px 18px 8px 8px;border-radius:999px;background:linear-gradient(100deg,#f97316 0%,#facc15 30%,#22D3EE 68%,#a855f7 100%);color:#0B1020;font-weight:800;font-size:clamp(14px,1.7vw,16.5px);line-height:1.35;box-shadow:0 12px 32px -12px rgba(249,115,22,.85),0 0 0 1px rgba(255,255,255,.35) inset}
+html[dir=rtl] .biz-badge{padding:8px 8px 8px 18px}
+.biz-badge::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);transform:translateX(-120%);animation:bzshine 3.4s ease-in-out infinite}
+@keyframes bzshine{55%,100%{transform:translateX(120%)}}
+.biz-badge .bz-ic{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#0B1020;font-size:16px}
+@media (max-width:520px){.biz-badge{border-radius:18px}}
 /* ===== app views ===== */
 .app{padding-top:clamp(36px,6vw,70px);padding-bottom:90px;min-height:70vh}
 .navauth{display:flex;gap:8px;align-items:center}
@@ -358,6 +364,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
           <span class="tag">ONLINE · RECORDED</span>
           <span class="tag">ZERO → PRO</span>
         </div>
+        <span class="biz-badge"><span class="bz-ic" aria-hidden="true">🚀</span><span>ابنِ البزنس الخاص بك من الصفر إلى الاحتراف</span></span>
         <h3>صناعة الفيديو الإعلاني بالذكاء الاصطناعي — من الصفر للاحتراف</h3>
         <div class="en">AI AD VIDEO PRODUCTION — FROM ZERO TO PRO</div>
         <p style="margin:0;color:var(--silver)">بتتعلم تعمل إعلانات فيديو كاملة باستخدام أدوات الذكاء الاصطناعي، من الفكرة لحد الفيديو الجاهز للنشر، وكيف تحوّل هالمهارة لشغل ودخل.</p>
