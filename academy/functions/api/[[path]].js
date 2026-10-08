@@ -422,6 +422,23 @@ async function streamVideo(env, req, user, id) {
   return new Response(obj.body, { status: 200, headers: h });
 }
 
+// ---------- settings (payment methods) ----------
+const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'pay_note'];
+async function getSettings(env) {
+  const { results } = await env.DB.prepare('SELECT key, value FROM settings').all();
+  const s = {};
+  results.forEach((r) => { if (PAY_KEYS.includes(r.key)) s[r.key] = r.value; });
+  return json({ settings: s });
+}
+async function saveSettings(env, req) {
+  const b = await body(req);
+  for (const k of PAY_KEYS) {
+    if (b[k] === undefined) continue;
+    await env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(k, clean(b[k], 300)).run();
+  }
+  return json({ ok: true });
+}
+
 // ---------- router ----------
 export async function onRequest({ request, env }) {
   const url = new URL(request.url);
@@ -444,6 +461,7 @@ export async function onRequest({ request, env }) {
     if (path === '/login' && method === 'POST') return await login(env, request);
     if (path === '/logout' && method === 'POST') return await logout(env, request);
     if (path === '/courses' && method === 'GET') return await listCourses(env);
+    if (path === '/settings' && method === 'GET') return await getSettings(env);
 
     const user = await currentUser(env, request);
 
@@ -459,6 +477,7 @@ export async function onRequest({ request, env }) {
     if (path.startsWith('/admin')) {
       if (user.role !== 'admin') return err('هذه الصفحة للإدارة فقط', 403);
       if (path === '/admin/stats' && method === 'GET') return await adminStats(env);
+      if (path === '/admin/settings' && method === 'POST') return await saveSettings(env, request);
       if (path === '/admin/enrollments' && method === 'GET') return await adminEnrollments(env, url);
       if ((m = path.match(/^\/admin\/enrollments\/(\d+)$/))) {
         if (method === 'POST') return await adminDecide(env, request, Number(m[1]));

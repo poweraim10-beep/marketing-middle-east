@@ -199,6 +199,37 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .cert-meta{font-family:var(--mono);font-size:clamp(7px,.85vw,9.5px);color:#64748b;direction:ltr;letter-spacing:.06em}
 @media (max-width:620px){.cert{aspect-ratio:auto}.cert-in{gap:7px;padding:18px 14px 16px}.cert-sig b[dir=ltr]{font-size:8px;white-space:nowrap}.cert-name{font-size:22px}.cert-for{font-size:10.5px}}
 @media (max-width:860px){.cert-box{grid-template-columns:1fr}.cert-stage{order:-1}.cert{transform:none!important}}
+.vstack{margin-top:22px;border-radius:26px;border:1px solid var(--line-2);overflow:hidden;background:linear-gradient(180deg,rgba(37,99,235,.12),rgba(8,13,28,.9) 40%)}
+.vs-top{text-align:center;padding:30px 20px 24px;border-bottom:1px solid var(--line)}
+.vs-total{font-size:clamp(24px,3.6vw,38px);font-weight:700;color:#fff}
+.vs-total s{color:#f87171;text-decoration-thickness:3px;margin-inline-start:6px;font-family:var(--display)}
+.vs-now{margin-top:6px;font-size:clamp(24px,3.6vw,38px);font-weight:700;color:#fff}
+.vs-now b{font-family:var(--display);font-size:1.25em;color:#4ade80;margin-inline-start:6px}
+.vs-cd{display:inline-block;margin-top:12px;padding:6px 14px;border-radius:999px;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.45);color:#fde047;font-weight:600;font-size:14.5px}
+.vs-get,.vs-pay{padding:24px clamp(18px,3vw,36px)}
+.vs-get{border-bottom:1px solid var(--line)}
+.vs-get h3,.vs-pay h3{margin:0 0 16px;text-align:center;color:#fff;font-size:clamp(19px,2.4vw,24px);font-weight:700}
+.vs-pay h3 b{color:#4ade80;font-family:var(--display)}
+.vs-get ul{list-style:none;margin:0 auto;padding:0;max-width:680px;display:flex;flex-direction:column;gap:10px}
+.vs-get li{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;background:rgba(6,10,22,.55);border:1px solid var(--line);font-size:16px;font-weight:500;color:#E2E8F0}
+.vs-get li i{font-style:normal;font-size:20px;flex:none}
+.vs-get li span{flex:1}
+.vs-get li bdi{white-space:nowrap}
+.vs-get li s{flex:none;color:#f87171;font-family:var(--display);font-weight:700;text-decoration-thickness:2px}
+.paybox{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;max-width:760px;margin:0 auto}
+.pm{padding:18px;border-radius:18px;background:#fff;color:#0B1020;display:flex;flex-direction:column;gap:6px}
+.pm-h{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px}
+.pm-h i{font-style:normal;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:20px}
+.pm.bank .pm-h i{background:#dcfce7}.pm.palpay .pm-h i{background:#ede9fe}
+.pm-row{display:flex;justify-content:space-between;gap:10px;font-size:14.5px;border-top:1px dashed #e2e8f0;padding-top:6px}
+.pm-row span{color:#64748b}
+.pm-row b{direction:ltr;text-align:left;font-family:var(--mono);font-size:14px;user-select:all;-webkit-user-select:all;word-break:break-all}
+.pm-row b.ar{direction:rtl;font-family:inherit;text-align:right}
+.pm-copy{align-self:flex-start;margin-top:4px;padding:6px 12px;border-radius:9px;border:1px solid #cbd5e1;background:#f8fafc;color:#0B1020;font:inherit;font-size:13px;cursor:pointer}
+.vs-note{margin:16px auto 0;max-width:620px;text-align:center;color:#cbd5e1;font-size:15px;line-height:1.8}
+.vs-ctas{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.pay-empty{grid-column:1/-1;text-align:center;color:var(--mute);padding:14px;border:1px dashed var(--line-2);border-radius:14px}
+@media (max-width:640px){.paybox{grid-template-columns:1fr}}
 /* ===== app views ===== */
 .app{padding-top:clamp(36px,6vw,70px);padding-bottom:90px;min-height:70vh}
 .navauth{display:flex;gap:8px;align-items:center}
@@ -447,6 +478,27 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
         </div>
       </div>
     </article>
+    <div class="vstack">
+      <div class="vs-top">
+        <div class="vs-total">القيمة الكلية: <s dir="ltr">$150</s></div>
+        <div class="vs-now">ولكن الآن بـ <b dir="ltr">$70</b></div>
+        <span class="vs-cd">⏳ العرض لفترة محدودة</span>
+      </div>
+      <div class="vs-get">
+        <h3>ما الذي ستحصل عليه عند الاشتراك</h3>
+        <ul>
+          <li><i>✅</i><span>دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي — من الصفر للاحتراف</span><s dir="ltr">$100</s></li>
+          <li><i>🎁</i><span>دليل أدوات الذكاء الاصطناعي (PDF)</span><s dir="ltr">$25</s></li>
+          <li><i>🎁</i><span>شهادة معتمدة من <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span><s dir="ltr">$25</s></li>
+        </ul>
+      </div>
+      <div class="vs-pay">
+        <h3>👇 خيارات الدفع — السعر <b dir="ltr">$70</b> 👇</h3>
+        <div class="paybox" data-paybox></div>
+        <p class="vs-note">بعد التحويل، أرسل صورة الإيصال مع رقم طلبك على واتساب، ونفعّل لك الدورة فورًا.</p>
+        <div class="vs-ctas"><a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">سجّل واحجز مقعدك</a><a class="btn btn-wa" href="#" data-wa="أريد الاشتراك في دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي، وهذا إيصال التحويل:">تواصل عبر واتساب</a></div>
+      </div>
+    </div>
   <div class="cert-wrap">
     <div class="cert-box">
       <div class="cert-copy">
@@ -606,6 +658,22 @@ function loadMe(){
     .then(function(d){state.loaded=true;renderNav();return d});
 }
 
+
+// ---------- payment methods ----------
+var PAY=null;
+function loadPay(){if(PAY)return Promise.resolve(PAY);return api('/settings').then(function(d){PAY=d.settings||{};return PAY},function(){PAY={};return PAY})}
+function payHtml(s){
+  var row=function(l,v,ar){return v?'<div class="pm-row"><span>'+l+'</span><b'+(ar?' class="ar"':'')+'>'+esc(v)+'</b></div>':''};
+  var h='';
+  if(s.bank_account||s.bank_iban)h+='<div class="pm bank"><div class="pm-h"><i>🏦</i>'+esc(s.bank_name||'بنك فلسطين')+'</div>'+row('اسم صاحب الحساب',s.bank_holder,1)+row('رقم الحساب',s.bank_account)+row('IBAN',s.bank_iban)+(s.bank_account||s.bank_iban?'<button class="pm-copy" data-copy="'+esc(s.bank_iban||s.bank_account)+'">نسخ رقم الحساب</button>':'')+'</div>';
+  if(s.palpay_number)h+='<div class="pm palpay"><div class="pm-h"><i>📱</i>جوال باي / PalPay</div>'+row('الاسم',s.palpay_holder,1)+row('الرقم',s.palpay_number)+'<button class="pm-copy" data-copy="'+esc(s.palpay_number)+'">نسخ الرقم</button></div>';
+  if(!h)h='<div class="pay-empty">تفاصيل الدفع بتوصلك على واتساب بعد تقديم طلبك.</div>';
+  if(s.pay_note)h+='<div class="pay-empty" style="border-style:solid;color:#cbd5e1">'+esc(s.pay_note)+'</div>';
+  return h;
+}
+function renderPayboxes(root){loadPay().then(function(s){$$('[data-paybox]',root).forEach(function(b){b.innerHTML=payHtml(s)})})}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-copy]');if(!b)return;var v=b.getAttribute('data-copy');(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){toast('تم النسخ ✔')},function(){toast(v)})});
+
 // ---------- enroll flow ----------
 function startEnroll(courseId){
   if(!state.user){go('#/register?enroll='+encodeURIComponent(courseId));return}
@@ -705,9 +773,10 @@ function viewEnrolled(courseId){
       '<h1>تم استلام طلبك ✔</h1>'+
       '<p>الخطوة الجاية: ادفع رسوم الدورة عبر واتساب، وبعد ما نأكد الدفع بنفعّلك الدورة على حسابك.</p>'+
       '<div class="ordbox"><div><span>رقم الطلب</span><b>#'+e.id+'</b></div><div><span>الدورة</span><b>'+esc(e.title)+'</b></div><div><span>المبلغ</span><b>$'+e.price+'</b></div><div><span>الحالة</span>'+badge(e.status)+'</div></div>'+
-      '<a class="btn btn-wa full" style="font-size:17px;padding:16px" target="_blank" rel="noopener" href="'+payLink(e)+'">أكمل الدفع عبر واتساب</a>'+
+      '<h3 style="color:#fff;margin:18px 0 12px;font-size:19px">👇 حوّل المبلغ على أحد الحسابات 👇</h3><div class="paybox" data-paybox style="text-align:right"></div>'+'<p class="vs-note">بعد التحويل اضغط الزر وأرسل صورة الإيصال، ونفعّل لك الدورة.</p>'+'<a class="btn btn-wa full" style="font-size:17px;padding:16px;margin-top:12px" target="_blank" rel="noopener" href="'+payLink(e)+'">أرسل الإيصال عبر واتساب</a>'+
       '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>ادفع عبر واتساب</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
     '</div>';
+    renderPayboxes(app);
   });
 }
 
@@ -819,13 +888,13 @@ function viewAdmin(params){
   if(params.t)adminTab=params.t;
   app.innerHTML='<div class="adm-head"><div><span class="mono" style="color:var(--cyan)">ADMIN · MME ACADEMY</span><h1>لوحة التحكم</h1></div>'+
     '<div class="acts"><a class="btn btn-g btn-s" href="#/my">حسابي</a><button class="btn btn-g btn-s" id="logoutBtn">خروج</button></div></div>'+
-    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['lessons','الدورات والدروس']].map(function(x){
+    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['lessons','الدورات والدروس'],['pay','طرق الدفع']].map(function(x){
       return '<button data-t="'+x[0]+'" class="'+(adminTab===x[0]&&!params.u?'on':'')+'">'+x[1]+(x[0]==='orders'?'<span class="cnt" id="pendCnt" hidden></span>':'')+'</button>'}).join('')+'</div><div id="adm"></div>';
   $('#logoutBtn').addEventListener('click',logout);
   $$('.tabs button').forEach(function(b){b.addEventListener('click',function(){adminTab=b.getAttribute('data-t');go('#/admin?t='+adminTab)})});
   api('/admin/enrollments?status=pending').then(function(d){var n=d.enrollments.length,el=$('#pendCnt');if(el&&n){el.hidden=false;el.textContent=n}});
   if(params.u)return admStudent(Number(params.u));
-  ({overview:admOverview,orders:admOrders,students:admStudents,lessons:admLessons})[adminTab]();
+  ({overview:admOverview,orders:admOrders,students:admStudents,lessons:admLessons,pay:admPay})[adminTab]();
 }
 
 function admOverview(){
@@ -1043,6 +1112,26 @@ function admLessons(){
   }).catch(function(err){box.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
 }
 
+
+function admPay(){
+  var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
+  PAY=null;
+  loadPay().then(function(s){
+    var f=function(n,l,ph,ltr){return '<div class="field"><label>'+l+'</label><input name="'+n+'" value="'+esc(s[n]||'')+'" placeholder="'+(ph||'')+'"'+(ltr?' dir="ltr"':'')+'></div>'};
+    box.innerHTML='<div class="card2"><h3>🏦 التحويل البنكي</h3><form id="payF">'+
+      '<div class="grid2">'+f('bank_name','اسم البنك','بنك فلسطين')+f('bank_holder','اسم صاحب الحساب','')+'</div>'+
+      '<div class="grid2">'+f('bank_account','رقم الحساب','',1)+f('bank_iban','IBAN (اختياري)','PS..',1)+'</div>'+
+      '<h3 style="margin-top:10px">📱 جوال باي / PalPay</h3>'+
+      '<div class="grid2">'+f('palpay_number','رقم المحفظة','059xxxxxxx',1)+f('palpay_holder','الاسم','')+'</div>'+
+      f('pay_note','ملاحظة تظهر تحت طرق الدفع (اختياري)','مثال: للدفع من خارج فلسطين تواصل معنا على واتساب')+
+      '<button class="btn btn-p" type="submit">حفظ</button></form></div>'+
+      '<div class="card2"><h3>معاينة كما يراها الطالب</h3><div class="paybox" data-paybox></div></div>';
+    renderPayboxes(box);
+    $('#payF').addEventListener('submit',function(ev){ev.preventDefault();var E=ev.target.elements,b={};['bank_name','bank_holder','bank_account','bank_iban','palpay_number','palpay_holder','pay_note'].forEach(function(k){b[k]=E[k].value});
+      api('/admin/settings',{method:'POST',body:b}).then(function(){toast('تم الحفظ ✔');PAY=null;renderPayboxes(document)},function(e){toast(e.message)})});
+  },function(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
+}
+
 // ---------- router ----------
 function route(){
   var r=parseHash();
@@ -1067,6 +1156,7 @@ function route(){
 }
 window.addEventListener('hashchange',route);
 renderNav();
+renderPayboxes(document);
 route();
 if(parseHash().name==='home')loadMe();
 })();
