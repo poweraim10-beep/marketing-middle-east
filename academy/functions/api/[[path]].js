@@ -423,7 +423,7 @@ async function streamVideo(env, req, user, id) {
 }
 
 // ---------- settings (payment methods) ----------
-const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'pay_note'];
+const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'jawwal_number', 'jawwal_holder', 'pay_note'];
 async function getSettings(env) {
   const { results } = await env.DB.prepare('SELECT key, value FROM settings').all();
   const s = {};
