@@ -36,3 +36,4 @@ HTML5 و CSS3 و JavaScript بدون مكتبات، مع Canvas 2D لخرائط 
 - `academy/wrangler.toml`: ربط قاعدة بيانات D1 `mme-academy`.
 - التدفق: إنشاء حساب ← تقديم طلب ← الدفع عبر واتساب ← قبول الطلب من لوحة التحكم ← تفتح الدورة للطالب.
 - لوحة التحكم: `https://academy.marketingmiddleeast.com/#/admin` (لحسابات role = admin فقط).
+- هدية التسجيل: «شنطة أدوات الطالب» في `academy/public/gift/student-kit.pdf`. بتظهر رسالة «مبروك» بعد إنشاء الحساب، وزر تحميل دائم بصفحة «حسابي». التحميل محمي بـ `academy/functions/gift/[[path]].js` (لازم الطالب يكون مسجّل دخول). لتحديث الشنطة، استبدل ملف الـ PDF بنفس الاسم.
