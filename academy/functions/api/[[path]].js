@@ -49,6 +49,43 @@ async function body(req) {
 const clean = (s, max = 200) => String(s ?? '').trim().slice(0, max);
 const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, phone: u.phone, role: roleFor(u.email) };
 
+// ---------- referrals ----------
+const REF_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const DEFAULT_REF_PCT = 25;
+function newRefCode() {
+  const b = crypto.getRandomValues(new Uint8Array(6));
+  return [...b].map((x) => REF_ALPHA[x % REF_ALPHA.length]).join('');
+}
+async function ensureRefCode(env, user) {
+  if (user.ref_code) return user.ref_code;
+  for (let i = 0; i < 6; i++) {
+    const code = newRefCode();
+    try {
+      const r = await env.DB.prepare('UPDATE users SET ref_code = ? WHERE id = ? AND ref_code IS NULL').bind(code, user.id).run();
+      if (r.meta.changes) { user.ref_code = code; return code; }
+      const u = await env.DB.prepare('SELECT ref_code FROM users WHERE id = ?').bind(user.id).first();
+      if (u && u.ref_code) { user.ref_code = u.ref_code; return u.ref_code; }
+    } catch (e) { /* code collision, retry */ }
+  }
+  return null;
+}
+async function refPct(env) {
+  const r = await env.DB.prepare("SELECT value FROM settings WHERE key = 'ref_pct'").first();
+  const v = r ? Number(r.value) : NaN;
+  return Number.isFinite(v) && v >= 0 && v <= 100 ? v : DEFAULT_REF_PCT;
+}
+// a referral counts once the invited friend has at least one approved (paid) enrollment
+async function refStats(env, userId) {
+  const r = await env.DB.prepare(`SELECT
+      (SELECT COUNT(*) FROM users WHERE referred_by = ?) AS registered,
+      (SELECT COUNT(*) FROM users u WHERE u.referred_by = ? AND EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved')) AS paid`
+  ).bind(userId, userId).first();
+  const pct = await refPct(env);
+  const discount = Math.min(100, (r.paid || 0) * pct);
+  return { registered: r.registered || 0, paid: r.paid || 0, pct, discount };
+}
+const priceAfter = (price, discount) => Math.max(0, Math.round(Number(price || 0) * (100 - discount)) / 100);
+
 async function currentUser(env, req) {
   const token = getCookie(req, SESSION_COOKIE);
   if (!token) return null;
@@ -81,10 +118,17 @@ async function register(env, req) {
   if (exists) return err('هذا البريد مسجّل مسبقًا، سجّل دخول بدلًا من ذلك', 409);
   const salt = randomHex(16);
   const pass_hash = await hashPassword(password, salt);
+  let referredBy = null;
+  const refCode = clean(b.ref, 20).toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (refCode) {
+    const ref = await env.DB.prepare('SELECT id FROM users WHERE ref_code = ?').bind(refCode).first();
+    if (ref) referredBy = ref.id;
+  }
   const r = await env.DB.prepare(
-    'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(name, email, phone, pass_hash, salt, roleFor(email), now(), now()).run();
+    'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at, last_login, referred_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(name, email, phone, pass_hash, salt, roleFor(email), now(), now(), referredBy).run();
   const id = r.meta.last_row_id;
+  await ensureRefCode(env, { id });
   const token = await createSession(env, id);
   return json({ user: { id, name, email, phone, role: roleFor(email) } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
@@ -113,7 +157,18 @@ async function me(env, user) {
     `SELECT e.id, e.course_id, e.status, e.created_at, e.decided_at, c.title, c.price
      FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ? ORDER BY e.created_at DESC`
   ).bind(user.id).all();
-  return json({ user: publicUser(user), enrollments: results });
+  const code = await ensureRefCode(env, user);
+  const rs = await refStats(env, user.id);
+  const friends = await env.DB.prepare(
+    `SELECT u.name, u.created_at, EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS paid
+     FROM users u WHERE u.referred_by = ? ORDER BY u.created_at DESC LIMIT 50`
+  ).bind(user.id).all();
+  const enrollments = results.map((e) => ({ ...e, final_price: e.status === 'pending' ? priceAfter(e.price, rs.discount) : e.price }));
+  return json({
+    user: publicUser(user),
+    enrollments,
+    referral: { code, ...rs, friends: friends.results.map((f) => ({ name: String(f.name || '').trim().split(/\s+/)[0], created_at: f.created_at, paid: !!f.paid })) },
+  });
 }
 
 async function listCourses(env) {
@@ -210,20 +265,26 @@ async function adminStats(env) {
 async function adminEnrollments(env, url) {
   const status = url.searchParams.get('status');
   let sql = `SELECT e.id, e.status, e.created_at, e.decided_at, e.note, e.paid, e.course_id, c.title, c.price,
-               u.id AS user_id, u.name, u.email, u.phone
+               u.id AS user_id, u.name, u.email, u.phone,
+               (SELECT COUNT(*) FROM users r WHERE r.referred_by = u.id AND EXISTS (SELECT 1 FROM enrollments x WHERE x.user_id = r.id AND x.status = 'approved')) AS ref_paid,
+               (SELECT name FROM users r WHERE r.id = u.referred_by) AS referrer
              FROM enrollments e JOIN users u ON u.id = e.user_id JOIN courses c ON c.id = e.course_id`;
   const args = [];
   if (status) { sql += ' WHERE e.status = ?'; args.push(status); }
   sql += " ORDER BY CASE e.status WHEN 'pending' THEN 0 ELSE 1 END, e.created_at DESC LIMIT 1000";
   const { results } = await env.DB.prepare(sql).bind(...args).all();
-  return json({ enrollments: results });
+  const pct = await refPct(env);
+  results.forEach((e) => { e.ref_discount = Math.min(100, e.ref_paid * pct); e.final_price = priceAfter(e.price, e.ref_discount); });
+  return json({ enrollments: results, ref_pct: pct });
 }
 async function adminDecide(env, req, id) {
   const b = await body(req);
   if (!['approved', 'rejected', 'pending'].includes(b.status)) return err('حالة غير صحيحة');
   const e = await env.DB.prepare('SELECT e.*, c.price FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.id = ?').bind(id).first();
   if (!e) return err('الطلب غير موجود', 404);
-  const paid = b.status === 'approved' ? (b.paid !== undefined && b.paid !== '' ? Number(b.paid) || 0 : (e.paid ?? e.price)) : e.paid;
+  let def = e.paid ?? e.price;
+  if (b.status === 'approved' && e.paid == null) def = priceAfter(e.price, (await refStats(env, e.user_id)).discount);
+  const paid = b.status === 'approved' ? (b.paid !== undefined && b.paid !== '' ? Number(b.paid) || 0 : def) : e.paid;
   const note = b.note !== undefined ? clean(b.note, 500) || null : e.note;
   await env.DB.prepare('UPDATE enrollments SET status = ?, decided_at = ?, paid = ?, note = ? WHERE id = ?').bind(b.status, now(), paid, note, id).run();
   return json({ ok: true });
@@ -245,21 +306,29 @@ async function adminUsers(env) {
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'pending') AS pending,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'rejected') AS rejected,
        (SELECT COALESCE(SUM(COALESCE(e.paid, c.price)),0) FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = u.id AND e.status = 'approved') AS paid,
-       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id) AS done
+       (SELECT COUNT(*) FROM progress p WHERE p.user_id = u.id) AS done,
+       (SELECT COUNT(*) FROM users r WHERE r.referred_by = u.id) AS refs,
+       (SELECT COUNT(*) FROM users r WHERE r.referred_by = u.id AND EXISTS (SELECT 1 FROM enrollments x WHERE x.user_id = r.id AND x.status = 'approved')) AS ref_paid
      FROM users u ORDER BY u.created_at DESC LIMIT 5000`
   ).all();
   return json({ users: results });
 }
 async function adminUser(env, id) {
-  const u = await env.DB.prepare('SELECT id, name, email, phone, role, created_at, last_login, admin_note FROM users WHERE id = ?').bind(id).first();
+  const u = await env.DB.prepare('SELECT id, name, email, phone, role, created_at, last_login, admin_note, ref_code, referred_by FROM users WHERE id = ?').bind(id).first();
   if (!u) return err('المستخدم غير موجود', 404);
+  const referrer = u.referred_by ? await env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(u.referred_by).first() : null;
+  const refs = await env.DB.prepare(
+    `SELECT u.id, u.name, u.created_at, EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS paid
+     FROM users u WHERE u.referred_by = ? ORDER BY u.created_at DESC`
+  ).bind(id).all();
+  const referral = { ...(await refStats(env, id)), code: u.ref_code, referrer, friends: refs.results };
   const { results } = await env.DB.prepare(
     `SELECT e.id, e.course_id, e.status, e.created_at, e.decided_at, e.note, e.paid, c.title, c.price,
        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons,
        (SELECT COUNT(*) FROM progress p JOIN lessons l ON l.id = p.lesson_id WHERE p.user_id = e.user_id AND l.course_id = c.id) AS done
      FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ? ORDER BY e.created_at DESC`
   ).bind(id).all();
-  return json({ user: u, enrollments: results });
+  return json({ user: u, enrollments: results, referral });
 }
 async function adminUpdateUser(env, req, id, me) {
   const b = await body(req);
@@ -286,6 +355,7 @@ async function adminDeleteUser(env, id, me) {
   await env.DB.prepare('DELETE FROM progress WHERE user_id = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM enrollments WHERE user_id = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+  await env.DB.prepare('UPDATE users SET referred_by = NULL WHERE referred_by = ?').bind(id).run();
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
@@ -423,7 +493,7 @@ async function streamVideo(env, req, user, id) {
 }
 
 // ---------- settings (payment methods) ----------
-const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'jawwal_number', 'jawwal_holder', 'pay_note'];
+const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'jawwal_number', 'jawwal_holder', 'pay_note', 'ref_pct'];
 async function getSettings(env) {
   const { results } = await env.DB.prepare('SELECT key, value FROM settings').all();
   const s = {};
@@ -432,6 +502,11 @@ async function getSettings(env) {
 }
 async function saveSettings(env, req) {
   const b = await body(req);
+  if (b.ref_pct !== undefined) {
+    const v = Number(b.ref_pct);
+    if (!Number.isFinite(v) || v < 0 || v > 100) return err('نسبة الخصم لازم تكون بين 0 و 100');
+    b.ref_pct = String(v);
+  }
   for (const k of PAY_KEYS) {
     if (b[k] === undefined) continue;
     await env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(k, clean(b[k], 300)).run();
