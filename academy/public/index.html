@@ -396,8 +396,26 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .mdl-box{position:relative;width:min(440px,100%);padding:26px;border-radius:20px;border:1px solid var(--line-2);background:#0B1020;box-shadow:0 30px 80px -20px rgba(0,0,0,.8)}
 .mdl-box h3{margin:0 0 4px;color:#fff;font-size:19px}
 .mdl-sub{margin:0 0 16px;color:var(--mute);font-size:14px}
-.giftbox{text-align:center}.giftbox .gi{font-size:54px;line-height:1;margin:6px 0 12px}.giftbox h3{font-size:22px!important}.giftbox p{color:var(--mute);font-size:14.5px;line-height:1.8;margin:8px 0 18px}.giftbox ul{list-style:none;padding:0;margin:0 0 18px;display:grid;gap:6px;text-align:right;font-size:14px;color:#dfe6f2}.giftbox ul li:before{content:"✓ ";color:var(--cyan)}
-.giftrow{border-color:rgba(34,211,238,.45)!important;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(34,211,238,.06))!important;margin-bottom:26px}.giftrow h3{display:flex;align-items:center;gap:8px}
+.mdl-box:has(.giftbox){border:1px solid transparent;background:linear-gradient(#0A0F22,#0A0F22) padding-box,linear-gradient(135deg,#FBBF24,#22D3EE 35%,#3B82F6 65%,#A855F7) border-box;box-shadow:0 30px 90px -20px rgba(37,99,235,.55),0 0 0 1px rgba(255,255,255,.03);overflow:hidden}
+.giftbox{position:relative;text-align:center}
+.giftbox:before{content:"";position:absolute;inset:-26px -26px auto;height:190px;background:radial-gradient(60% 80% at 50% 0%,rgba(59,130,246,.45),transparent 70%),radial-gradient(40% 60% at 85% 10%,rgba(168,85,247,.35),transparent 70%),radial-gradient(40% 60% at 15% 10%,rgba(34,211,238,.3),transparent 70%);pointer-events:none}
+.giftbox>*{position:relative}
+.giftbox .gi{width:92px;height:92px;margin:4px auto 16px;border-radius:50%;display:grid;place-items:center;font-size:46px;line-height:1;background:radial-gradient(circle at 30% 25%,#FDE68A,#F59E0B 55%,#B45309);box-shadow:0 0 0 6px rgba(251,191,36,.15),0 0 50px rgba(251,191,36,.55);animation:gpop .7s cubic-bezier(.2,1.6,.4,1) both,gglow 2.4s ease-in-out .7s infinite}
+@keyframes gpop{from{transform:scale(.3) rotate(-18deg);opacity:0}to{transform:none;opacity:1}}
+@keyframes gglow{50%{box-shadow:0 0 0 10px rgba(251,191,36,.08),0 0 70px rgba(251,191,36,.75)}}
+.giftbox .gk{display:inline-block;font-size:12px;letter-spacing:.14em;color:#FDE68A;border:1px solid rgba(253,230,138,.45);border-radius:999px;padding:3px 12px;margin-bottom:10px;font-family:var(--mono)}
+.giftbox h3{font-size:23px!important;line-height:1.45;background:linear-gradient(90deg,#fff,#BFDBFE 45%,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.giftbox p{color:var(--mute);font-size:14.5px;line-height:1.8;margin:8px 0 16px}
+.giftbox ul{list-style:none;padding:0;margin:0 0 20px;display:grid;gap:8px;text-align:right}
+.giftbox ul li{display:flex;align-items:center;gap:10px;font-size:14px;color:#E5EAF3;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06)}
+.giftbox ul li i{flex:0 0 26px;height:26px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:14px}
+.giftbox ul li:nth-child(1) i{background:rgba(167,139,250,.18);color:#C4B5FD}.giftbox ul li:nth-child(2) i{background:rgba(34,211,238,.16);color:#67E8F9}.giftbox ul li:nth-child(3) i{background:rgba(52,211,153,.16);color:#6EE7B7}.giftbox ul li:nth-child(4) i{background:rgba(251,191,36,.16);color:#FCD34D}
+.btn-gift{background:linear-gradient(90deg,#2563EB,#22D3EE);color:#fff;border:0;font-weight:600;box-shadow:0 14px 40px -12px rgba(34,211,238,.8)}
+.btn-gift:hover{filter:brightness(1.08)}
+.giftbox .cf{position:absolute;width:7px;height:7px;border-radius:2px;top:-10px;animation:cf 2.6s ease-in forwards}
+@keyframes cf{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(520px) rotate(540deg);opacity:0}}
+.giftrow{position:relative;border:1px solid transparent!important;background:linear-gradient(135deg,#0D1530,#0A1024) padding-box,linear-gradient(135deg,#FBBF24,#22D3EE 40%,#3B82F6 70%,#A855F7) border-box!important;margin-bottom:26px;box-shadow:0 20px 50px -24px rgba(37,99,235,.7)}
+.giftrow h3{display:flex;align-items:center;gap:10px}.giftrow h3 b{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,#FDE68A,#F59E0B 60%,#B45309);box-shadow:0 0 24px rgba(251,191,36,.45);font-size:18px}
 .mdl-x{position:absolute;top:12px;inset-inline-end:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line-2);background:none;color:#fff;font-size:18px;cursor:pointer}
 .loading{padding:60px;text-align:center;color:var(--mute)}
 </style>
@@ -876,14 +894,16 @@ function ago(s){if(!s)return '—';var d=Math.floor((Date.now()/1000-s)/86400);i
 function money(n){return '$'+(Number(n)||0).toLocaleString('en-US')}
 var GIFT_URL='/gift/student-kit.pdf';
 function giftModal(){
-  modal('<div class="giftbox"><div class="gi">🎁</div><h3>مبروك! حصلت على شنطة أدوات الطالب</h3>'+
+  var cols=['#FBBF24','#22D3EE','#3B82F6','#A855F7','#F472B6','#34D399'],cf='';
+  for(var i=0;i<26;i++)cf+='<span class="cf" style="right:'+(Math.random()*100)+'%;background:'+cols[i%6]+';animation-delay:'+(Math.random()*0.9).toFixed(2)+'s;animation-duration:'+(2+Math.random()*1.6).toFixed(2)+'s"></span>';
+  modal('<div class="giftbox">'+cf+'<div class="gi">🎁</div><span class="gk">GIFT · MME ACADEMY</span><h3>مبروك! حصلت على شنطة أدوات الطالب</h3>'+
     '<p>هدية من أكاديمية MME لكل طالب جديد: كل اللي بتحتاجه مع كل زبون، من أول رسالة لحد التقرير الشهري.</p>'+
-    '<ul><li>مكتبة برومبتات جاهزة للصور والفيديو والصوت</li><li>نموذج بريف واتفاق عمل مع الزبون</li><li>قائمة فحص قبل التسليم</li><li>قوالب رسائل وجدول نشر وتقرير شهري</li></ul>'+
-    '<a class="btn btn-p full" href="'+GIFT_URL+'" download>حمّل الشنطة (PDF)</a>'+
+    '<ul><li><i>✦</i>مكتبة برومبتات جاهزة للصور والفيديو والصوت</li><li><i>✎</i>نموذج بريف واتفاق عمل مع الزبون</li><li><i>✓</i>قائمة فحص قبل التسليم</li><li><i>✉</i>قوالب رسائل وجدول نشر وتقرير شهري</li></ul>'+
+    '<a class="btn btn-gift full" href="'+GIFT_URL+'" download>حمّل الشنطة (PDF)</a>'+
     '<p style="margin:12px 0 0;font-size:13px">بتلاقيها دايماً بصفحة «حسابي».</p></div>');
 }
 function giftRow(){
-  return '<div class="row giftrow"><div><h3>🎁 شنطة أدوات الطالب</h3><div class="muted">هديتك من أكاديمية MME: برومبتات، بريف، اتفاق عمل، قوالب رسائل وجدول نشر.</div></div><div class="acts"><a class="btn btn-p" href="'+GIFT_URL+'" download>حمّل PDF</a></div></div>';
+  return '<div class="row giftrow"><div><h3><b>🎁</b>شنطة أدوات الطالب</h3><div class="muted">هديتك من أكاديمية MME: برومبتات، بريف، اتفاق عمل، قوالب رسائل وجدول نشر.</div></div><div class="acts"><a class="btn btn-gift" href="'+GIFT_URL+'" download>حمّل PDF</a></div></div>';
 }
 function modal(html,onMount){
   var ov=document.createElement('div');ov.className='mdl';ov.innerHTML='<div class="mdl-box" role="dialog" aria-modal="true"><button class="mdl-x" aria-label="إغلاق">×</button>'+html+'</div>';
