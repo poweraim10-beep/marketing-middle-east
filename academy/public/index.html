@@ -296,6 +296,18 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .screen{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line-2)}
 .screen iframe,.screen video{position:absolute;inset:0;width:100%;height:100%;border:0}
 .screen .wm{position:absolute;top:12px;left:12px;z-index:2;pointer-events:none;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.06em;direction:ltr}
+.screen .wm-move{position:absolute;z-index:3;pointer-events:none;font-family:var(--mono);font-size:clamp(11px,1.6vw,15px);font-weight:600;color:rgba(255,255,255,.42);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:nowrap;direction:ltr;transition:top 1.2s ease,left 1.2s ease;user-select:none}
+.screen .fsbtn{position:absolute;top:10px;right:10px;z-index:4;width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(4,10,24,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.screen .fsbtn:hover{background:rgba(4,10,24,.8)}
+.screen:fullscreen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
+.screen:-webkit-full-screen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
+.screen.pseudo-fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
+.protect-note{display:flex;gap:10px;align-items:flex-start;margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(234,179,8,.35);background:rgba(234,179,8,.08);color:var(--silver);font-size:13.5px;line-height:1.7}
+.protect-note b{color:#fff}
+.terms h2{color:#fff;font-size:18px;margin:26px 0 8px}.terms p,.terms li{color:var(--silver);line-height:1.9;font-size:15px}.terms ol{padding-inline-start:22px}
+.logins{width:100%;border-collapse:collapse;font-size:13px}.logins td{padding:7px 4px;border-top:1px solid var(--line);color:var(--silver);vertical-align:top}.logins td.ltr{direction:ltr;text-align:left}
+.badge.susp{background:rgba(239,68,68,.15);color:#fca5a5;border-color:rgba(239,68,68,.4)}
+.alert-red{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fecaca;font-size:13.5px}
 .screen .ph{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--mute)}
 .lessonmeta{margin-top:16px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
 .lessonmeta h2{margin:0;color:#fff;font-size:20px;font-weight:600}
@@ -735,6 +747,7 @@ function viewAuth(mode,params){
     '<div class="field"><label for="fEmail">البريد الإلكتروني</label><input id="fEmail" name="email" type="email" dir="ltr" autocomplete="email" required></div>'+
     (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><div class="phonerow"><input id="fPhone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="59 000 0000" autocomplete="tel-national" required><select id="fCode" name="code" dir="rtl" aria-label="مقدمة الدولة">'+CODES.map(function(c){return '<option value="'+c[1]+'">'+c[0]+' (+'+c[1]+')</option>'}).join('')+'<option value="">دولة أخرى</option></select></div><span class="hint" id="phHint">بدون صفر البداية. عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
     '<div class="field"><label for="fPass">كلمة المرور</label><input id="fPass" name="password" type="password" dir="ltr" autocomplete="'+(reg?'new-password':'current-password')+'" minlength="6" required>'+(reg?'<span class="hint">6 أحرف على الأقل.</span>':'')+'</div>'+
+    (reg?'<label class="chk"><input type="checkbox" id="fTerms" name="terms"> <span>أوافق على <a href="#/terms" target="_blank">شروط الاشتراك وحماية المحتوى</a></span></label>':'')+
     '<button class="btn btn-p full" type="submit">'+(reg?'إنشاء الحساب':'دخول')+'</button>'+
    '</form>'+
    '<p class="switch">'+(reg?'عندك حساب؟ <a href="#/login'+next+'">سجّل دخول</a>':'ما عندك حساب؟ <a href="#/register'+next+'">أنشئ حساب جديد</a>')+'</p>'+
@@ -743,7 +756,8 @@ function viewAuth(mode,params){
   var f=$('#authForm'),errb=$('#ferr');
   f.addEventListener('submit',function(ev){
     ev.preventDefault();errb.classList.remove('on');
-    var data={};$$('input,select',f).forEach(function(i){data[i.name]=i.value});
+    var data={};$$('input,select',f).forEach(function(i){data[i.name]=i.type==='checkbox'?i.checked:i.value});
+    if(reg&&!data.terms){errb.textContent='لازم توافق على شروط الاشتراك وحماية المحتوى';errb.classList.add('on');return}
     if(reg){var dg=String(data.phone||'').replace(/[^\d+]/g,'');if(data.code){dg=dg.replace(/^\+?0*/,'');if(dg.indexOf(data.code)===0&&dg.length>9)dg=dg.slice(data.code.length);data.phone='+'+data.code+dg}else{data.phone=dg.charAt(0)==='+'?dg:'+'+dg.replace(/^0+/,'')}delete data.code}
     var btn=$('button[type=submit]',f);btn.disabled=true;
     api(reg?'/register':'/login',{method:'POST',body:data}).then(function(d){
@@ -864,6 +878,69 @@ function embedHtml(url){
   return '<iframe src="'+esc(url)+'" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>';
 }
 
+// ---------- content protection (player) ----------
+// A moving watermark with the viewer's name, phone and account number stays on top of the video,
+// including in full screen, so any recording or leaked copy shows who it came from.
+var wmTimer=null,wmCleanup=null;
+function protectPlayer(scr,u){
+  if(wmTimer){clearInterval(wmTimer);wmTimer=null}
+  if(wmCleanup){wmCleanup();wmCleanup=null}
+  if(!scr)return;
+  var label=(u.name||'')+' · '+(u.phone||'')+' · #'+(u.id||'');
+  var place=function(){
+    var w=scr.querySelector('.wm-move');
+    if(!w||w.parentNode!==scr||w.textContent!==label||getComputedStyle(w).display==='none'||getComputedStyle(w).visibility==='hidden'||Number(getComputedStyle(w).opacity)<0.2){
+      if(w)w.remove();w=document.createElement('span');w.className='wm-move';w.textContent=label;scr.appendChild(w);
+    }
+    var maxX=Math.max(0,scr.clientWidth-w.offsetWidth-16),maxY=Math.max(0,scr.clientHeight-w.offsetHeight-60);
+    w.style.left=(8+Math.random()*maxX)+'px';w.style.top=(8+Math.random()*maxY)+'px';
+  };
+  place();
+  wmTimer=setInterval(function(){if(!document.body.contains(scr)){clearInterval(wmTimer);wmTimer=null;return}place()},5000);
+  // our own full screen keeps the watermark on top (the browser's video-only full screen would hide it)
+  var v=scr.querySelector('video');
+  var btn=scr.querySelector('.fsbtn');
+  var isFs=function(){return document.fullscreenElement===scr||document.webkitFullscreenElement===scr||scr.classList.contains('pseudo-fs')};
+  var exitFs=function(){if(scr.classList.contains('pseudo-fs')){scr.classList.remove('pseudo-fs');document.body.style.overflow='';return}
+    if(document.exitFullscreen)document.exitFullscreen().catch(function(){});else if(document.webkitExitFullscreen)document.webkitExitFullscreen()};
+  var enterFs=function(){
+    if(scr.requestFullscreen)scr.requestFullscreen().catch(function(){scr.classList.add('pseudo-fs');document.body.style.overflow='hidden'});
+    else if(scr.webkitRequestFullscreen)scr.webkitRequestFullscreen();
+    else{scr.classList.add('pseudo-fs');document.body.style.overflow='hidden'}
+    try{screen.orientation.lock('landscape').catch(function(){})}catch(e){}
+  };
+  if(btn)btn.addEventListener('click',function(){isFs()?exitFs():enterFs();setTimeout(place,300)});
+  var onFs=function(){
+    var el=document.fullscreenElement||document.webkitFullscreenElement;
+    if(v&&el===v){exitFs();setTimeout(enterFs,50)}
+    setTimeout(place,300);
+  };
+  var onKey=function(e){if(e.key==='Escape'&&scr.classList.contains('pseudo-fs'))exitFs()};
+  document.addEventListener('fullscreenchange',onFs);document.addEventListener('webkitfullscreenchange',onFs);document.addEventListener('keydown',onKey);
+  wmCleanup=function(){document.removeEventListener('fullscreenchange',onFs);document.removeEventListener('webkitfullscreenchange',onFs);document.removeEventListener('keydown',onKey);
+    if(scr.classList.contains('pseudo-fs'))document.body.style.overflow=''};
+  if(v){
+    v.addEventListener('dblclick',function(e){e.preventDefault();isFs()?exitFs():enterFs()});
+    // iPhone opens its own video-only full screen: bring it back to ours so the watermark stays visible
+    v.addEventListener('webkitbeginfullscreen',function(){try{v.webkitExitFullscreen()}catch(e){}setTimeout(function(){scr.classList.add('pseudo-fs');document.body.style.overflow='hidden';place()},60)});
+    v.addEventListener('contextmenu',function(e){e.preventDefault()});
+  }
+}
+
+function viewTerms(){
+  app.innerHTML='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">TERMS</span><h1>شروط الاشتراك وحماية المحتوى</h1><p>أكاديمية MARKETING MIDDLE EAST</p></div></div>'+
+  '<div class="panel terms" style="max-width:820px">'+
+  '<h2>1. الاشتراك والتفعيل</h2><p>يُفتح محتوى الدورة بعد تأكيد الدفع وتفعيل الاشتراك من إدارة الأكاديمية. الاشتراك شخصي لصاحب الحساب فقط، ولا يجوز مشاركته أو بيعه أو إعطاء بيانات الدخول لأي شخص آخر.</p>'+
+  '<h2>2. جهاز واحد في نفس الوقت</h2><p>يعمل الحساب على جهاز واحد في نفس الوقت. عند تسجيل الدخول من جهاز جديد يتم تسجيل الخروج من الجهاز السابق تلقائيًا. تُسجَّل عمليات الدخول (الوقت والدولة ونوع الجهاز) لحماية حسابك.</p>'+
+  '<h2>3. حماية المحتوى</h2><ol>'+
+   '<li>جميع الفيديوهات والملفات ملكية خاصة لأكاديمية MME، ومخصصة للمشاهدة داخل المنصة فقط.</li>'+
+   '<li>يُمنع منعًا باتًا تنزيل الفيديوهات أو تسجيل الشاشة أو تصويرها أو إعادة نشرها بأي شكل كليًا أو جزئيًا.</li>'+
+   '<li>كل فيديو يحمل علامة مائية متحركة باسمك ورقم هاتفك ورقم حسابك، وأي نسخة مسرّبة تكشف صاحبها.</li></ol>'+
+  '<h2>4. المخالفة</h2><p>عند ثبوت أي مخالفة يُوقف الحساب فورًا ونهائيًا بدون استرجاع للمبلغ، وتحتفظ الأكاديمية بحقها في اتخاذ الإجراءات القانونية.</p>'+
+  '<h2>5. التواصل</h2><p>لأي استفسار تواصل معنا على <a href="'+waLink('استفسار بخصوص شروط الاشتراك في أكاديمية MME')+'" target="_blank" rel="noopener">واتساب الأكاديمية</a>.</p>'+
+  '</div>';
+}
+
 function viewCourse(courseId,params){
   app.innerHTML='<div class="loading">جاري التحميل…</div>';
   api('/course/'+encodeURIComponent(courseId)).then(function(d){
@@ -886,7 +963,8 @@ function viewCourse(courseId,params){
     var u=state.user||{};
     app.innerHTML=head+
       '<div class="player"><div>'+
-        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span></div>'+
+        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'?t='+encodeURIComponent(lesson.vt||'')+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move">'+esc(u.name||'')+' · '+esc(u.phone||'')+' · #'+esc(u.id||'')+'</span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
+        '<div class="protect-note"><span>🔒</span><span><b>هذا الفيديو محمي ويحمل بيانات حسابك.</b> أي تسجيل أو تنزيل أو نشر يكشف صاحبه ويؤدي لإيقاف الحساب فورًا بدون استرجاع. <a href="#/terms">شروط حماية المحتوى</a></span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
       '</div><div>'+
@@ -896,6 +974,7 @@ function viewCourse(courseId,params){
         '</div>'+
       '</div></div>';
     var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)})}
+    protectPlayer($('.screen'),u);
     $$('.lessons [data-l]').forEach(function(b){b.addEventListener('click',function(){go('#/course/'+c.id+'?l='+b.getAttribute('data-l'))})});
     $('#doneBtn').addEventListener('click',function(){
       api('/progress',{method:'POST',body:{lesson_id:lesson.id,done:!done[lesson.id]}}).then(function(){
@@ -1034,7 +1113,7 @@ function admStudents(){
       $('#sBody').innerHTML=current.length?current.map(function(u){
         var ph=digits(u.phone);
         var subs=(u.active?'<span class="badge approved">'+u.active+' مفعّل</span>':'')+(u.pending?'<span class="badge pending">'+u.pending+' بانتظار</span>':'')+(!u.active&&!u.pending?'<span class="badge">بدون</span>':'');
-        return '<tr data-u="'+u.id+'"><td><b>'+esc(u.name)+'</b>'+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+'<small class="ltr">'+esc(u.email)+'</small></td>'+
+        return '<tr data-u="'+u.id+'"><td><b>'+esc(u.name)+'</b>'+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+(u.suspended?' <span class="badge susp">موقوف</span>':'')+'<small class="ltr">'+esc(u.email)+'</small></td>'+
           '<td class="ltr">'+(ph?'<a href="https://wa.me/'+ph+'" target="_blank" rel="noopener" class="wa-link">'+esc(u.phone)+'</a>':'—')+'</td>'+
           '<td><span class="pills">'+subs+'</span></td><td>'+u.done+' درس</td><td>'+money(u.paid)+'</td><td>'+ago(u.last_login)+'</td><td><a class="btn btn-g btn-s" href="#/admin?u='+u.id+'">فتح</a></td></tr>';
       }).join(''):'<tr><td colspan="7"><div class="empty">ما في نتائج.</div></td></tr>';
@@ -1053,14 +1132,20 @@ function admStudents(){
   },function(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
 }
 
+function devName(ua){ua=String(ua||'');if(!ua)return '—';
+  var os=/iPhone/.test(ua)?'iPhone':/iPad/.test(ua)?'iPad':/Android/.test(ua)?'Android':/Windows/.test(ua)?'Windows':/Mac OS/.test(ua)?'Mac':/Linux/.test(ua)?'Linux':'جهاز';
+  var br=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/SamsungBrowser/.test(ua)?'Samsung':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'';
+  return os+(br?' · '+br:'')}
 function admStudent(id){
   var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
   Promise.all([api('/admin/users/'+id),api('/admin/stats')]).then(function(r){
-    var u=r[0].user,ens=r[0].enrollments,courses=r[1].courses,ph=digits(u.phone),isMe=u.id===state.user.id;
+    var u=r[0].user,ens=r[0].enrollments,courses=r[1].courses,ph=digits(u.phone),isMe=u.id===state.user.id,logins=r[0].logins||[];
     var mine={};ens.forEach(function(e){mine[e.course_id]=1});
     var avail=courses.filter(function(c){return !mine[c.id]});
     box.innerHTML='<a class="back" href="#/admin?t=students">→ رجوع للطلاب</a>'+
-      '<div class="stu-head"><div class="av">'+esc((u.name||'?').trim().charAt(0))+'</div><div><h2>'+esc(u.name)+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+'</h2>'+
+      (u.suspended?'<div class="alert-red">⛔ هذا الحساب موقوف: ما بيقدر يدخل ولا يشوف أي فيديو.</div>':'')+
+      (r[0].countries_24h>1?'<div class="alert-red">⚠️ دخل هذا الحساب من '+r[0].countries_24h+' دول مختلفة خلال آخر 24 ساعة. ممكن يكون في مشاركة للحساب.</div>':'')+
+      '<div class="stu-head"><div class="av">'+esc((u.name||'?').trim().charAt(0))+'</div><div><h2>'+esc(u.name)+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+(u.suspended?' <span class="badge susp">موقوف</span>':'')+'</h2>'+
         '<div class="muted">انضم '+fmtDate(u.created_at)+' · آخر دخول '+ago(u.last_login)+'</div></div>'+
         '<div class="acts">'+(ph?'<a class="btn btn-wa btn-s" target="_blank" rel="noopener" href="https://wa.me/'+ph+'">واتساب</a>':'')+'<a class="btn btn-g btn-s" href="mailto:'+esc(u.email)+'">إيميل</a></div></div>'+
       '<div class="stu-grid"><div>'+
@@ -1092,7 +1177,10 @@ function admStudent(id){
           '<div class="field"><label>ملاحظات خاصة (ما بيشوفها الطالب)</label><textarea name="admin_note" rows="3">'+esc(u.admin_note||'')+'</textarea></div>'+
           
           '<button class="btn btn-p" type="submit">حفظ التعديلات</button></form></div>'+
-        '<div class="card2 danger"><h3>إجراءات</h3><div class="acts"><button class="btn btn-g btn-s" id="pwBtn">تعيين كلمة مرور جديدة</button>'+(isMe?'':'<button class="btn btn-no btn-s" id="delU">حذف الحساب</button>')+'</div></div>'+
+        '<div class="card2"><h3>سجل الدخول</h3>'+(logins.length?'<table class="logins">'+logins.map(function(l){return '<tr><td>'+fmtDate(l.at)+'<br><small>'+ago(l.at)+'</small></td><td>'+esc(l.country||'—')+'</td><td class="ltr">'+esc(devName(l.ua))+'<br><small>'+esc(l.ip||'')+'</small></td></tr>'}).join('')+'</table>':'<div class="muted">ما في عمليات دخول مسجلة بعد.</div>')+'</div>'+
+        '<div class="card2 danger"><h3>إجراءات</h3><div class="acts"><button class="btn btn-g btn-s" id="pwBtn">تعيين كلمة مرور جديدة</button>'+
+          (isMe||u.role==='admin'?'':'<button class="btn btn-g btn-s" id="outU">تسجيل خروج من كل الأجهزة</button><button class="btn '+(u.suspended?'btn-ok':'btn-no')+' btn-s" id="susU">'+(u.suspended?'إلغاء الإيقاف':'إيقاف الحساب')+'</button>')+
+          (isMe?'':'<button class="btn btn-no btn-s" id="delU">حذف الحساب</button>')+'</div></div>'+
       '</div></div>';
     var reload=function(){admStudent(id)};
     $$('[data-ap]',box).forEach(function(b){b.addEventListener('click',function(){var e=ens.filter(function(x){return String(x.id)===b.getAttribute('data-ap')})[0];e.name=u.name;approveDialog(e,reload)})});
@@ -1114,6 +1202,13 @@ function admStudent(id){
           api('/admin/users/'+id+'/password',{method:'POST',body:{password:pw}}).then(function(){close();toast('تم ✔');
             if(ph)window.open('https://wa.me/'+ph+'?text='+encodeURIComponent('مرحبًا '+u.name+'، كلمة المرور الجديدة لحسابك في أكاديمية MME:\n'+pw+'\nالدخول: https://academy.marketingmiddleeast.com/#/login'),'_blank')},function(e){toast(e.message)})});
       });
+    });
+    var sus=$('#susU');if(sus)sus.addEventListener('click',function(){
+      var to=!u.suspended;if(to&&!confirm('إيقاف حساب '+u.name+'؟ بيطلع من كل أجهزته وما بيقدر يشوف أي فيديو لحتى تلغي الإيقاف.'))return;
+      api('/admin/users/'+id+'/suspend',{method:'POST',body:{suspended:to}}).then(function(){toast(to?'تم إيقاف الحساب':'تم إلغاء الإيقاف ✔');reload()},function(e){toast(e.message)});
+    });
+    var out=$('#outU');if(out)out.addEventListener('click',function(){
+      api('/admin/users/'+id+'/logout-all',{method:'POST'}).then(function(){toast('تم تسجيل خروجه من كل الأجهزة ✔')},function(e){toast(e.message)});
     });
     var del=$('#delU');if(del)del.addEventListener('click',function(){
       if(!confirm('حذف حساب '+u.name+' وكل اشتراكاته نهائيًا؟ ما في تراجع.'))return;
@@ -1219,6 +1314,7 @@ function route(){
       case 'enrolled':return viewEnrolled(r.arg);
       case 'course':return viewCourse(r.arg,r.params);
       case 'admin':return viewAdmin(r.params);
+      case 'terms':return viewTerms();
       default:go('#');
     }
   };

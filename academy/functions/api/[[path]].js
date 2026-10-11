@@ -56,16 +56,53 @@ async function currentUser(env, req) {
   const u = await env.DB.prepare(
     'SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ?'
   ).bind(th, now()).first();
-  if (u) u.role = roleFor(u.email);
+  if (!u) return null;
+  u.role = roleFor(u.email);
+  if (u.suspended && u.role !== 'admin') return null; // suspended accounts lose access immediately
   return u;
 }
-async function createSession(env, userId) {
+async function createSession(env, userId, req, isAdmin) {
   const token = randomHex(32);
+  // one active device per student: a new sign-in ends every other session (stops password sharing)
+  if (!isAdmin) await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+  if (req) {
+    try {
+      await env.DB.prepare('INSERT INTO logins (user_id, at, ip, country, ua) VALUES (?, ?, ?, ?, ?)')
+        .bind(userId, now(), req.headers.get('cf-connecting-ip') || null, (req.cf && req.cf.country) || null,
+          clean(req.headers.get('user-agent'), 300) || null).run();
+    } catch (e) {}
+  }
   await env.DB.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)')
     .bind(await sha256(token), userId, now() + SESSION_DAYS * 86400).run();
   // opportunistic cleanup
   await env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now()).run();
   return token;
+}
+
+// ---------- signed video links ----------
+// Every lesson video URL carries a short-lived signature tied to the viewer's account,
+// so a copied link stops working for anyone else and expires on its own.
+const VIDEO_TOKEN_SECONDS = 3 * 3600;
+async function videoSecret(env) {
+  let r = await env.DB.prepare("SELECT value FROM settings WHERE key = 'video_secret'").first();
+  if (!r) {
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('video_secret', ?)").bind(randomHex(32)).run();
+    r = await env.DB.prepare("SELECT value FROM settings WHERE key = 'video_secret'").first();
+  }
+  return r.value;
+}
+async function hmac(secret, msg) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg)));
+}
+async function videoToken(env, userId, lessonId) {
+  const exp = now() + VIDEO_TOKEN_SECONDS;
+  return exp + '.' + (await hmac(await videoSecret(env), `${userId}.${lessonId}.${exp}`));
+}
+async function videoTokenOk(env, t, userId, lessonId) {
+  const m = String(t || '').match(/^(\d+)\.([0-9a-f]{64})$/);
+  if (!m || Number(m[1]) < now()) return false;
+  return timingSafeEqual(m[2], await hmac(await videoSecret(env), `${userId}.${lessonId}.${m[1]}`));
 }
 
 // ---------- handlers ----------
@@ -77,15 +114,16 @@ async function register(env, req) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('البريد الإلكتروني غير صحيح');
   if (phone.replace(/\D/g, '').length < 8) return err('اكتب رقم واتساب صحيح مع مقدمة الدولة');
   if (password.length < 6) return err('كلمة المرور لازم تكون 6 أحرف على الأقل');
+  if (b.terms !== true) return err('لازم توافق على شروط الاشتراك وحماية المحتوى');
   const exists = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
   if (exists) return err('هذا البريد مسجّل مسبقًا، سجّل دخول بدلًا من ذلك', 409);
   const salt = randomHex(16);
   const pass_hash = await hashPassword(password, salt);
   const r = await env.DB.prepare(
-    'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at, last_login) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-  ).bind(name, email, phone, pass_hash, salt, roleFor(email), now(), now()).run();
+    'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at, last_login, terms_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(name, email, phone, pass_hash, salt, roleFor(email), now(), now(), now()).run();
   const id = r.meta.last_row_id;
-  const token = await createSession(env, id);
+  const token = await createSession(env, id, req, roleFor(email) === 'admin');
   return json({ user: { id, name, email, phone, role: roleFor(email) } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
 
@@ -97,8 +135,9 @@ async function login(env, req) {
   if (!u) return err('البريد أو كلمة المرور غير صحيحة', 401);
   const h = await hashPassword(password, u.salt);
   if (!timingSafeEqual(h, u.pass_hash)) return err('البريد أو كلمة المرور غير صحيحة', 401);
+  if (u.suspended && roleFor(u.email) !== 'admin') return err('حسابك موقوف. تواصل مع إدارة الأكاديمية على واتساب', 403);
   await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?').bind(now(), u.id).run();
-  const token = await createSession(env, u.id);
+  const token = await createSession(env, u.id, req, roleFor(u.email) === 'admin');
   return json({ user: publicUser(u) }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
 
@@ -154,12 +193,14 @@ async function getCourse(env, user, id) {
   const { results } = await env.DB.prepare(
     'SELECT id, title, minutes, sort, video_url, notes, video_key, video_size FROM lessons WHERE course_id = ? ORDER BY sort, id'
   ).bind(id).all();
-  const lessons = results.map((l) => {
+  const lessons = [];
+  for (const l of results) {
     const has_video = !!l.video_key;
-    if (!access) return { id: l.id, title: l.title, minutes: l.minutes, sort: l.sort, has_video };
+    if (!access) { lessons.push({ id: l.id, title: l.title, minutes: l.minutes, sort: l.sort, has_video }); continue; }
     const { video_key, ...rest } = l;
-    return { ...rest, has_video, video_size: isAdmin ? l.video_size : undefined };
-  });
+    lessons.push({ ...rest, has_video, vt: has_video ? await videoToken(env, user.id, l.id) : undefined,
+      video_size: isAdmin ? l.video_size : undefined });
+  }
   let done = [];
   if (user && access) {
     const p = await env.DB.prepare(
@@ -240,7 +281,7 @@ async function adminDeleteEnrollment(env, id) {
 }
 async function adminUsers(env) {
   const { results } = await env.DB.prepare(
-    `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at, u.last_login, u.admin_note,
+    `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at, u.last_login, u.admin_note, u.suspended,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS active,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'pending') AS pending,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'rejected') AS rejected,
@@ -250,8 +291,21 @@ async function adminUsers(env) {
   ).all();
   return json({ users: results });
 }
+async function adminSuspend(env, req, id) {
+  const b = await body(req);
+  const u = await env.DB.prepare('SELECT email FROM users WHERE id = ?').bind(id).first();
+  if (!u) return err('المستخدم غير موجود', 404);
+  if (roleFor(u.email) === 'admin') return err('ما بتقدر توقف حساب الإدارة');
+  await env.DB.prepare('UPDATE users SET suspended = ? WHERE id = ?').bind(b.suspended ? 1 : 0, id).run();
+  if (b.suspended) await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+  return json({ ok: true });
+}
+async function adminLogoutAll(env, id) {
+  await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+  return json({ ok: true });
+}
 async function adminUser(env, id) {
-  const u = await env.DB.prepare('SELECT id, name, email, phone, role, created_at, last_login, admin_note FROM users WHERE id = ?').bind(id).first();
+  const u = await env.DB.prepare('SELECT id, name, email, phone, role, created_at, last_login, admin_note, suspended, terms_at FROM users WHERE id = ?').bind(id).first();
   if (!u) return err('المستخدم غير موجود', 404);
   const { results } = await env.DB.prepare(
     `SELECT e.id, e.course_id, e.status, e.created_at, e.decided_at, e.note, e.paid, c.title, c.price,
@@ -259,7 +313,9 @@ async function adminUser(env, id) {
        (SELECT COUNT(*) FROM progress p JOIN lessons l ON l.id = p.lesson_id WHERE p.user_id = e.user_id AND l.course_id = c.id) AS done
      FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ? ORDER BY e.created_at DESC`
   ).bind(id).all();
-  return json({ user: u, enrollments: results });
+  const logins = await env.DB.prepare('SELECT at, ip, country, ua FROM logins WHERE user_id = ? ORDER BY at DESC LIMIT 15').bind(id).all();
+  const countries = await env.DB.prepare('SELECT COUNT(DISTINCT country) AS n FROM logins WHERE user_id = ? AND at > ?').bind(id, now() - 86400).first();
+  return json({ user: u, enrollments: results, logins: logins.results, countries_24h: countries ? countries.n : 0 });
 }
 async function adminUpdateUser(env, req, id, me) {
   const b = await body(req);
@@ -389,9 +445,13 @@ async function deleteLessonVideo(env, id) {
   await env.DB.prepare('UPDATE lessons SET video_key = NULL, video_size = NULL, video_type = NULL WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
-async function streamVideo(env, req, user, id) {
+async function streamVideo(env, req, user, id, url) {
   if (!user) return err('سجّل دخول أولًا', 401);
   if (!env.VIDEOS) return noR2();
+  // only the lesson player may load the file: opening the link in a tab or a download request is refused
+  const dest = req.headers.get('sec-fetch-dest');
+  if (dest && !['video', 'audio', 'empty'].includes(dest)) return err('غير مسموح', 403);
+  if (!(await videoTokenOk(env, url.searchParams.get('t'), user.id, id))) return err('انتهت صلاحية رابط الفيديو، حدّث الصفحة', 403);
   const l = await env.DB.prepare('SELECT course_id, video_key, video_type FROM lessons WHERE id = ?').bind(id).first();
   if (!l || !l.video_key) return err('الفيديو غير موجود', 404);
   if (user.role !== 'admin') {
@@ -467,7 +527,7 @@ export async function onRequest({ request, env }) {
 
     let m;
     if ((m = path.match(/^\/course\/([\w-]+)$/)) && method === 'GET') return await getCourse(env, user, m[1]);
-    if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]));
+    if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]), url);
 
     if (!user) return err('سجّل دخول أولًا', 401);
     if (path === '/me' && method === 'GET') return await me(env, user);
@@ -490,6 +550,8 @@ export async function onRequest({ request, env }) {
         if (method === 'POST') return await adminUpdateUser(env, request, Number(m[1]), user);
         if (method === 'DELETE') return await adminDeleteUser(env, Number(m[1]), user);
       }
+      if ((m = path.match(/^\/admin\/users\/(\d+)\/suspend$/)) && method === 'POST') return await adminSuspend(env, request, Number(m[1]));
+      if ((m = path.match(/^\/admin\/users\/(\d+)\/logout-all$/)) && method === 'POST') return await adminLogoutAll(env, Number(m[1]));
       if ((m = path.match(/^\/admin\/users\/(\d+)\/password$/)) && method === 'POST') return await adminResetPassword(env, request, Number(m[1]));
       if ((m = path.match(/^\/admin\/users\/(\d+)\/enroll$/)) && method === 'POST') return await adminEnrollUser(env, request, Number(m[1]));
       if (path === '/admin/upload/start' && method === 'POST') return await uploadStart(env, request);

@@ -15,7 +15,7 @@ export async function onRequest({ request, env }) {
   const token = getCookie(request, SESSION_COOKIE);
   let ok = false;
   if (token) {
-    const row = await env.DB.prepare('SELECT 1 FROM sessions WHERE token = ? AND expires_at > ?')
+    const row = await env.DB.prepare('SELECT 1 FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ? AND COALESCE(u.suspended, 0) = 0')
       .bind(await sha256(token), Math.floor(Date.now() / 1000)).first();
     ok = !!row;
   }
