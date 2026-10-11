@@ -890,7 +890,9 @@ function protectPlayer(scr,u){
   var place=function(){
     var w=scr.querySelector('.wm-move');
     if(!w||w.parentNode!==scr||w.textContent!==label||getComputedStyle(w).display==='none'||getComputedStyle(w).visibility==='hidden'||Number(getComputedStyle(w).opacity)<0.2){
-      if(w)w.remove();w=document.createElement('span');w.className='wm-move';w.textContent=label;scr.appendChild(w);
+      if(w)w.remove();w=document.createElement('span');w.className='wm-move';
+      [u.name||'',' · ',u.phone||'',' · ','#'+(u.id||'')].forEach(function(t,i){if(i%2){w.appendChild(document.createTextNode(t))}else{var b=document.createElement('bdi');b.textContent=t;w.appendChild(b)}});
+      scr.appendChild(w);
     }
     var maxX=Math.max(0,scr.clientWidth-w.offsetWidth-16),maxY=Math.max(0,scr.clientHeight-w.offsetHeight-60);
     w.style.left=(8+Math.random()*maxX)+'px';w.style.top=(8+Math.random()*maxY)+'px';
@@ -963,7 +965,7 @@ function viewCourse(courseId,params){
     var u=state.user||{};
     app.innerHTML=head+
       '<div class="player"><div>'+
-        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'?t='+encodeURIComponent(lesson.vt||'')+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move">'+esc(u.name||'')+' · '+esc(u.phone||'')+' · #'+esc(u.id||'')+'</span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
+        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'?t='+encodeURIComponent(lesson.vt||'')+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move"><bdi>'+esc(u.name||'')+'</bdi> · <bdi>'+esc(u.phone||'')+'</bdi> · <bdi>#'+esc(u.id||'')+'</bdi></span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
         '<div class="protect-note"><span>🔒</span><span><b>هذا الفيديو محمي ويحمل بيانات حسابك.</b> أي تسجيل أو تنزيل أو نشر يكشف صاحبه ويؤدي لإيقاف الحساب فورًا بدون استرجاع. <a href="#/terms">شروط حماية المحتوى</a></span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
