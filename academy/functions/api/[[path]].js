@@ -592,9 +592,10 @@ export async function onRequest({ request, env }) {
     if (path === '/login' && method === 'POST') return await login(env, request);
     if (path === '/logout' && method === 'POST') return await logout(env, request);
     if (path === '/courses' && method === 'GET') return await listCourses(env);
-    if (path === '/settings' && method === 'GET') return await getSettings(env);
 
     const user = await currentUser(env, request);
+    // payment account details are no longer shown publicly; only the admin can read them
+    if (path === '/settings' && method === 'GET') return user && user.role === 'admin' ? await getSettings(env) : json({ settings: {} });
 
     let m;
     if ((m = path.match(/^\/course\/([\w-]+)$/)) && method === 'GET') return await getCourse(env, user, m[1]);
