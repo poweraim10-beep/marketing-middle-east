@@ -302,6 +302,12 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .screen:fullscreen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
 .screen:-webkit-full-screen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
 .screen.pseudo-fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
+.actbox{margin:18px 0;padding:22px 20px;border-radius:18px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,211,238,.06));border:1px solid rgba(34,197,94,.45);text-align:right}
+.actbox h3{color:#fff;font-size:20px;margin:0 0 12px}
+.actbox ol{margin:0 0 14px;padding-inline-start:22px;color:var(--silver);font-size:15.5px;line-height:1.9}
+.actbox .help{margin:0 0 16px;padding:10px 12px;border-radius:12px;background:rgba(6,10,22,.45);color:var(--silver);font-size:14.5px;line-height:1.8}
+.actbox .help b{color:#86efac}
+.actbox .btn{font-size:17px;padding:15px}
 .protect-note{display:flex;gap:10px;align-items:flex-start;margin:12px 0 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(234,179,8,.35);background:rgba(234,179,8,.08);color:var(--silver);font-size:13.5px;line-height:1.7}
 .protect-note b{color:#fff}
 .terms h2{color:#fff;font-size:18px;margin:26px 0 8px}.terms p,.terms li{color:var(--silver);line-height:1.9;font-size:15px}.terms ol{padding-inline-start:22px}
@@ -785,11 +791,13 @@ function viewMy(){
       '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
     html+=giftRow();
     html+='<h2 style="color:#fff;font-size:19px;margin:0 0 12px">دوراتي</h2>';
+    var pend=ens.filter(function(e){return e.status==='pending'})[0];
+    if(pend)html+=activateBox(pend);
     if(!ens.length)html+='<div class="empty">لسا ما سجّلت بأي دورة.</div>';
     else html+='<div class="list">'+ens.map(function(e){
       var acts='';
       if(e.status==='approved')acts='<a class="btn btn-p" href="#/course/'+esc(e.course_id)+'">ادخل الدورة</a>';
-      else if(e.status==='pending')acts='<a class="btn btn-wa" target="_blank" rel="noopener" href="'+payLink(e)+'">ادفع عبر واتساب</a>';
+      else if(e.status==='pending')acts='<a class="btn btn-wa" target="_blank" rel="noopener" href="'+payLink(e)+'">تواصل مع فريق أبو عمر</a>';
       else acts='<button class="btn btn-g" data-enroll="'+esc(e.course_id)+'">قدّم الطلب من جديد</button>';
       return '<div class="row"><div><h3>'+esc(e.title)+'</h3><div class="muted">طلب رقم #'+e.id+' · '+fmtDate(e.created_at)+' · $'+e.price+'</div></div><div class="acts">'+badge(e.status)+acts+'</div></div>';
     }).join('')+'</div>';
@@ -805,7 +813,14 @@ function viewMy(){
 }
 function payLink(e){
   var u=state.user||{};
-  return waLink('مرحبًا MME 👋\nأنا '+u.name+'، قدّمت طلب رقم #'+e.id+' للتسجيل في دورة:\n'+e.title+'\nالسعر: $'+e.price+'\nبريدي في الأكاديمية: '+u.email+'\nبدي أكمل الدفع.');
+  return waLink('مرحبًا فريق أبو عمر 👋\nأنا '+u.name+'، قدّمت طلب رقم #'+e.id+' للتسجيل في دورة:\n'+e.title+'\nالسعر: $'+e.price+'\nبريدي في الأكاديمية: '+u.email+'\nبدي أدفع وأفعّل الدورة.');
+}
+// how a pending student gets the course activated: contact Abu Omar's team on WhatsApp
+function activateBox(e){
+  return '<div class="actbox"><h3>🔑 كيف تتفعّل الدورة على حسابك؟</h3>'+
+    '<ol><li>تواصل مع <b style="color:#fff">فريق أبو عمر</b> على واتساب من الزر تحت.</li><li>ادفع رسوم الدورة بالطريقة اللي بتناسبك.</li><li>بنفعّلك الدورة مباشرة وبتلاقيها في «حسابي».</li></ol>'+
+    '<p class="help"><b>عندك مشكلة في طريقة الدفع؟</b> ولا يهمك، فريق أبو عمر بيوفرلك طريقة دفع مناسبة إلك.</p>'+
+    '<a class="btn btn-wa full" target="_blank" rel="noopener" href="'+payLink(e)+'">تواصل الآن مع فريق أبو عمر</a></div>';
 }
 function logout(){api('/logout',{method:'POST'}).then(function(){state.user=null;state.enrollments=[];renderNav();go('#')},function(){state.user=null;renderNav();go('#')})}
 
@@ -819,10 +834,11 @@ function viewEnrolled(courseId){
     app.innerHTML='<div class="success">'+
       '<div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'+
       '<h1>تم استلام طلبك ✔</h1>'+
-      '<p>الخطوة الجاية: ادفع رسوم الدورة عبر واتساب، وبعد ما نأكد الدفع بنفعّلك الدورة على حسابك.</p>'+
+      '<p>الدورة لسا مش مفعّلة. عشان تتفعّل لازم تتواصل مع فريق أبو عمر وتدفع رسوم الدورة.</p>'+
       '<div class="ordbox"><div><span>رقم الطلب</span><b>#'+e.id+'</b></div><div><span>الدورة</span><b>'+esc(e.title)+'</b></div><div><span>المبلغ</span><b>$'+e.price+'</b></div><div><span>الحالة</span>'+badge(e.status)+'</div></div>'+
-      '<h3 style="color:#fff;margin:18px 0 12px;font-size:19px">👇 حوّل المبلغ على أحد الحسابات 👇</h3><div class="paybox" data-paybox style="text-align:right"></div>'+'<p class="vs-note">بعد التحويل اضغط الزر وأرسل صورة الإيصال، ونفعّل لك الدورة.</p>'+'<a class="btn btn-wa full" style="font-size:17px;padding:16px;margin-top:12px" target="_blank" rel="noopener" href="'+payLink(e)+'">أرسل الإيصال عبر واتساب</a>'+
-      '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>ادفع عبر واتساب</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
+      activateBox(e)+
+      '<h3 style="color:#fff;margin:18px 0 12px;font-size:19px">أو حوّل المبلغ مباشرة على أحد الحسابات 👇</h3><div class="paybox" data-paybox style="text-align:right"></div>'+'<p class="vs-note">بعد التحويل اضغط الزر وأرسل صورة الإيصال، ونفعّل لك الدورة.</p>'+'<a class="btn btn-wa full" style="font-size:17px;padding:16px;margin-top:12px" target="_blank" rel="noopener" href="'+payLink(e)+'">أرسل الإيصال لفريق أبو عمر</a>'+
+      '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>تواصل مع فريق أبو عمر وادفع</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
     '</div>';
     renderPayboxes(app);
   });
@@ -951,7 +967,8 @@ function viewCourse(courseId,params){
     if(!d.access){
       var cta;
       if(!state.user)cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
-      else if(d.status==='pending')cta='<p>طلبك قيد المراجعة. بعد ما نأكد الدفع بتفتحلك الدورة هون.</p><a class="btn btn-wa" href="#/enrolled/'+esc(c.id)+'">تفاصيل الطلب والدفع</a>';
+      else if(d.status==='pending'){var pe=(state.enrollments||[]).filter(function(x){return x.course_id===c.id})[0]||{id:'',title:c.title,price:c.price};
+        cta='<div style="max-width:520px;margin:0 auto">'+activateBox(pe)+'</div><a class="btn btn-g" href="#/enrolled/'+esc(c.id)+'">تفاصيل الطلب وحسابات الدفع</a>'}
       else cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
       app.innerHTML=head+'<div class="locked"><p style="color:#fff;font-size:18px;margin:0 0 6px">🔒 هاي الدورة مقفلة</p><p style="color:var(--mute);margin:0 0 18px">بتنفتح بعد تفعيل اشتراكك.</p>'+cta+'</div>'+
         (ls.length?'<div class="lessons" style="margin-top:20px"><div class="lh"><span>محتوى الدورة</span><span>'+ls.length+'</span></div>'+ls.map(function(l,i){return '<button disabled><span class="ck">'+(i+1)+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+l.minutes+'m</span>':'')+'</button>'}).join('')+'</div>':'');
