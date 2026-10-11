@@ -929,6 +929,10 @@ function viewEnrolled(courseId){
       '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>تواصل مع فريق د. محمود نصرالله وادفع</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
     '</div>';
     renderPayboxes(app);
+    // course comments under the order confirmation, same section as the home page
+    var ec=document.createElement('div');ec.style.cssText='max-width:620px;margin:44px auto 0;padding-top:30px;border-top:1px solid var(--line);text-align:right;clear:both';app.appendChild(ec);
+    var ecIn=document.createElement('div');ec.appendChild(ecIn);
+    commentsSection(courseId,ecIn);
   });
 }
 
