@@ -302,6 +302,25 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .screen:fullscreen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
 .screen:-webkit-full-screen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
 .screen.pseudo-fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
+.vipbox{position:relative;overflow:hidden;margin:18px 0;padding:24px 20px 22px;border-radius:20px;text-align:right;
+  background:radial-gradient(420px 220px at 0% 0%,rgba(34,211,238,.22),transparent 70%),radial-gradient(380px 240px at 100% 100%,rgba(37,99,235,.3),transparent 70%),linear-gradient(160deg,#0f1a36,#0a1024);
+  border:1px solid rgba(34,211,238,.45);box-shadow:0 24px 60px -30px rgba(34,211,238,.6)}
+.vipbox .vtag{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.5);color:#fcd34d;font-size:13px;font-weight:600}
+.vipbox .vtop{display:flex;align-items:center;gap:16px;margin:16px 0 12px}
+.vipbox .vnum{flex:none;width:92px;height:92px;border-radius:24px;display:grid;place-items:center;text-align:center;background:linear-gradient(160deg,#22d3ee,#2563eb);box-shadow:0 14px 34px -12px rgba(34,211,238,.9)}
+.vipbox .vnum b{display:block;font-size:44px;line-height:1;color:#fff;font-weight:700;font-family:var(--mono)}
+.vipbox .vnum small{display:block;font-size:12px;color:#e0f2fe;margin-top:4px}
+.vipbox h3{margin:0;color:#fff;font-size:21px;line-height:1.5}
+.vipbox h3 span{color:var(--cyan)}
+.vipbox .vlead{margin:0 0 14px;color:var(--silver);font-size:15px;line-height:1.85}
+.vipbox ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.vipbox li{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border-radius:12px;background:rgba(6,10,22,.45);border:1px solid rgba(201,211,224,.1);color:var(--silver);font-size:14.5px;line-height:1.7}
+.vipbox li i{flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-style:normal;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.35);color:var(--cyan);font-size:14px}
+.vipbox li b{color:#fff}
+.vipbox .vdots{position:absolute;top:18px;left:18px;display:flex;gap:6px}
+.vipbox .vdots span{width:9px;height:9px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:vpulse 1.8s infinite}
+.vipbox .vdots span:nth-child(2){animation-delay:.3s}.vipbox .vdots span:nth-child(3){animation-delay:.6s}
+@keyframes vpulse{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1)}}
 .actbox{margin:18px 0;padding:22px 20px;border-radius:18px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,211,238,.06));border:1px solid rgba(34,197,94,.45);text-align:right}
 .actbox h3{color:#fff;font-size:20px;margin:0 0 12px}
 .actbox ol{margin:0 0 14px;padding-inline-start:22px;color:var(--silver);font-size:15.5px;line-height:1.9}
@@ -831,6 +850,18 @@ function payLink(e,receipt){
     'رابط الطلب للإدارة:\nhttps://academy.marketingmiddleeast.com/#/admin?u='+u.id
   );
 }
+// subscribers' perk: private group + 3 days a week of direct answers from Abu Omar
+function vipBox(){
+  return '<div class="vipbox"><div class="vdots" aria-hidden="true"><span></span><span></span><span></span></div>'+
+    '<span class="vtag">★ حصري لمشتركي الدورة</span>'+
+    '<div class="vtop"><div class="vnum"><div><b>3</b><small>أيام أسبوعيًا</small></div></div>'+
+    '<h3>استفساراتك بيرد عليها <span>أبو عمر</span> بنفسه، بشكل مباشر</h3></div>'+
+    '<p class="vlead">مع اشتراكك بالدورة بتنضم لمجموعة خاصة بالمشتركين فقط، وفيها 3 أيام كل أسبوع مخصصة لاستقبال استفساراتكم والرد عليها مباشرة من <span style="white-space:nowrap">د. محمود نصرالله</span> (أبو عمر).</p>'+
+    '<ul><li><i>1</i><span><b>مجموعة خاصة</b> بمشتركي الدورة فقط، بعيدًا عن الزحمة.</span></li>'+
+    '<li><i>2</i><span><b>3 أيام كل أسبوع</b> لاستقبال أسئلتك عن الدورة وشغلك.</span></li>'+
+    '<li><i>3</i><span><b>رد مباشر من أبو عمر</b> نفسه، مش من مساعد ولا رد آلي.</span></li></ul>'+
+    '<p class="vlead" style="margin:14px 0 0;font-size:13.5px;color:var(--mute)">رابط الانضمام للمجموعة بيوصلك بعد تفعيل الدورة على حسابك.</p></div>';
+}
 // how a pending student gets the course activated: contact Abu Omar's team on WhatsApp
 function activateBox(e){
   return '<div class="actbox"><h3>🔑 كيف تتفعّل الدورة على حسابك؟</h3>'+
@@ -852,7 +883,7 @@ function viewEnrolled(courseId){
       '<h1>تم استلام طلبك ✔</h1>'+
       '<p>الدورة لسا مش مفعّلة. عشان تتفعّل لازم تتواصل مع فريق د. محمود نصرالله وتدفع رسوم الدورة.</p>'+
       '<div class="ordbox"><div><span>رقم الطلب</span><b>#'+e.id+'</b></div><div><span>الدورة</span><b>'+esc(e.title)+'</b></div><div><span>المبلغ</span><b>$'+e.price+'</b></div><div><span>الحالة</span>'+badge(e.status)+'</div></div>'+
-      activateBox(e)+
+      activateBox(e)+vipBox()+
       '<h3 style="color:#fff;margin:18px 0 12px;font-size:19px">أو حوّل المبلغ مباشرة على أحد الحسابات 👇</h3><div class="paybox" data-paybox style="text-align:right"></div>'+'<p class="vs-note">بعد التحويل اضغط الزر وأرسل صورة الإيصال، ونفعّل لك الدورة.</p>'+'<a class="btn btn-wa full" style="font-size:17px;padding:16px;margin-top:12px" target="_blank" rel="noopener" href="'+payLink(e,true)+'">أرسل الإيصال لفريق د. محمود نصرالله</a>'+
       '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>تواصل مع فريق د. محمود نصرالله وادفع</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
     '</div>';
