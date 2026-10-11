@@ -468,7 +468,8 @@ async function streamVideo(env, req, user, id) {
     const e = await env.DB.prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'").bind(user.id, l.course_id).first();
     if (!e) return err('غير مسموح', 403);
   }
-  const obj = await env.VIDEOS.get(l.video_key, { range: req.headers, onlyIf: req.headers });
+  // no conditional (onlyIf) here: a 304 answer to a media range request leaves the player blank
+  const obj = await env.VIDEOS.get(l.video_key, req.headers.get('range') ? { range: req.headers } : undefined);
   if (!obj) return err('الفيديو غير موجود', 404);
   const h = new Headers();
   obj.writeHttpMetadata(h);
@@ -478,7 +479,6 @@ async function streamVideo(env, req, user, id) {
   h.set('cache-control', 'private, no-store');
   h.set('content-disposition', 'inline');
   h.set('x-content-type-options', 'nosniff');
-  if (!('body' in obj) || !obj.body) return new Response(null, { status: 304, headers: h });
   if (req.headers.get('range') && obj.range) {
     const size = obj.size;
     let start, end;
