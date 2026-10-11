@@ -225,6 +225,64 @@ async function markProgress(env, req, user) {
   return json({ ok: true });
 }
 
+// ---------- comments (moderated) ----------
+// Nothing a student writes is public until the admin approves it. Public lists never carry the
+// full email: only its first 3 characters, the rest hidden.
+const maskEmail = (e) => {
+  const local = String(e || '').split('@')[0];
+  return (local.slice(0, Math.min(3, Math.max(1, local.length - 1))) || '•') + '•••••';
+};
+async function listComments(env, user, courseId) {
+  const { results } = await env.DB.prepare(
+    `SELECT c.id, c.body, c.created_at, u.email,
+       EXISTS(SELECT 1 FROM enrollments e WHERE e.user_id = c.user_id AND e.course_id = c.course_id AND e.status = 'approved') AS subscriber
+     FROM comments c JOIN users u ON u.id = c.user_id
+     WHERE c.course_id = ? AND c.status = 'approved' ORDER BY c.created_at DESC LIMIT 200`
+  ).bind(courseId).all();
+  const comments = results.map((r) => ({ id: r.id, body: r.body, created_at: r.created_at, who: maskEmail(r.email), subscriber: !!r.subscriber }));
+  let mine = [];
+  if (user) {
+    const m = await env.DB.prepare(
+      "SELECT id, body, status, created_at FROM comments WHERE course_id = ? AND user_id = ? AND status != 'approved' ORDER BY created_at DESC LIMIT 10"
+    ).bind(courseId, user.id).all();
+    mine = m.results;
+  }
+  return json({ comments, mine });
+}
+async function addComment(env, req, user, courseId) {
+  const course = await env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
+  if (!course) return err('الدورة غير موجودة', 404);
+  const b = await body(req);
+  const text = String(b.body ?? '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 1000);
+  if (text.length < 3) return err('اكتب تعليقك أولًا');
+  const p = await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE user_id = ? AND status = 'pending'").bind(user.id).first();
+  if (p && p.n >= 3) return err('عندك تعليقات بانتظار الموافقة، استنى لحتى نراجعها');
+  await env.DB.prepare("INSERT INTO comments (course_id, user_id, body, status, created_at) VALUES (?, ?, ?, 'pending', ?)")
+    .bind(courseId, user.id, text, now()).run();
+  return json({ ok: true });
+}
+async function adminComments(env, url) {
+  const status = url.searchParams.get('status');
+  let sql = `SELECT c.id, c.body, c.status, c.created_at, c.decided_at, c.course_id, co.title,
+               u.id AS user_id, u.name, u.email, u.phone
+             FROM comments c JOIN users u ON u.id = c.user_id JOIN courses co ON co.id = c.course_id`;
+  const args = [];
+  if (status) { sql += ' WHERE c.status = ?'; args.push(status); }
+  sql += " ORDER BY CASE c.status WHEN 'pending' THEN 0 ELSE 1 END, c.created_at DESC LIMIT 1000";
+  const { results } = await env.DB.prepare(sql).bind(...args).all();
+  return json({ comments: results.map((r) => ({ ...r, who: maskEmail(r.email) })) });
+}
+async function adminDecideComment(env, req, id) {
+  const b = await body(req);
+  if (!['approved', 'rejected', 'pending'].includes(b.status)) return err('حالة غير صحيحة');
+  await env.DB.prepare('UPDATE comments SET status = ?, decided_at = ? WHERE id = ?').bind(b.status, now(), id).run();
+  return json({ ok: true });
+}
+async function adminDeleteComment(env, id) {
+  await env.DB.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
+  return json({ ok: true });
+}
+
 // ---------- admin ----------
 async function adminStats(env) {
   const t = now(), week = t - 7 * 86400;
@@ -527,12 +585,14 @@ export async function onRequest({ request, env }) {
 
     let m;
     if ((m = path.match(/^\/course\/([\w-]+)$/)) && method === 'GET') return await getCourse(env, user, m[1]);
+    if ((m = path.match(/^\/course\/([\w-]+)\/comments$/)) && method === 'GET') return await listComments(env, user, m[1]);
     if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]), url);
 
     if (!user) return err('سجّل دخول أولًا', 401);
     if (path === '/me' && method === 'GET') return await me(env, user);
     if (path === '/enroll' && method === 'POST') return await enroll(env, request, user);
     if (path === '/progress' && method === 'POST') return await markProgress(env, request, user);
+    if ((m = path.match(/^\/course\/([\w-]+)\/comments$/)) && method === 'POST') return await addComment(env, request, user, m[1]);
 
     if (path.startsWith('/admin')) {
       if (user.role !== 'admin') return err('هذه الصفحة للإدارة فقط', 403);
@@ -544,6 +604,11 @@ export async function onRequest({ request, env }) {
         if (method === 'DELETE') return await adminDeleteEnrollment(env, Number(m[1]));
       }
       if ((m = path.match(/^\/admin\/enrollments\/(\d+)\/meta$/)) && method === 'POST') return await adminUpdateEnrollment(env, request, Number(m[1]));
+      if (path === '/admin/comments' && method === 'GET') return await adminComments(env, url);
+      if ((m = path.match(/^\/admin\/comments\/(\d+)$/))) {
+        if (method === 'POST') return await adminDecideComment(env, request, Number(m[1]));
+        if (method === 'DELETE') return await adminDeleteComment(env, Number(m[1]));
+      }
       if (path === '/admin/users' && method === 'GET') return await adminUsers(env);
       if ((m = path.match(/^\/admin\/users\/(\d+)$/))) {
         if (method === 'GET') return await adminUser(env, Number(m[1]));
