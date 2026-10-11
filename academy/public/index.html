@@ -816,7 +816,7 @@ function viewEnrolled(courseId){
 
 function fmtSize(n){n=Number(n)||0;return n>=1073741824?(n/1073741824).toFixed(2)+' GB':n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
 function uploadVideo(lessonId,file,onProg){
-  var CH=20*1024*1024,total=Math.max(1,Math.ceil(file.size/CH)),done=0,parts=[],up;
+  var CH=10*1024*1024,total=Math.max(1,Math.ceil(file.size/CH)),done=0,parts=[],up;
   if(file.size>5*1024*1024*1024)return Promise.reject(new Error('الملف أكبر من 5GB'));
   return api('/admin/upload/start',{method:'POST',body:{lesson_id:lessonId,filename:file.name,type:file.type,size:file.size}}).then(function(s){
     up=s;var next=1;
@@ -824,7 +824,7 @@ function uploadVideo(lessonId,file,onProg){
       var blob=file.slice((n-1)*CH,Math.min(n*CH,file.size));
       return fetch('/api/admin/upload/part?key='+encodeURIComponent(up.key)+'&uploadId='+encodeURIComponent(up.uploadId)+'&part='+n,{method:'PUT',credentials:'same-origin',headers:{'content-type':'application/octet-stream'},body:blob})
         .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||'فشل رفع جزء');return d})})
-        .catch(function(e){if(tries<3)return new Promise(function(res){setTimeout(res,1500*(tries+1))}).then(function(){return putPart(n,tries+1)});throw e});
+        .catch(function(e){if(tries<6)return new Promise(function(res){setTimeout(res,Math.min(30000,2000*Math.pow(2,tries)))}).then(function(){return putPart(n,tries+1)});throw new Error('انقطع الرفع بسبب الإنترنت ('+e.message+'). اضغط «حفظ الدرس» مرة ثانية لإعادة الرفع لنفس الدرس.')});
     }
     function worker(){if(next>total)return Promise.resolve();var n=next++;return putPart(n,0).then(function(d){parts.push(d);done++;onProg&&onProg(Math.round(done/total*100));return worker()})}
     onProg&&onProg(0);
@@ -834,7 +834,25 @@ function uploadVideo(lessonId,file,onProg){
     return api('/admin/upload/complete',{method:'POST',body:{key:up.key,uploadId:up.uploadId,parts:parts,lesson_id:lessonId}});
   }).catch(function(e){if(up)api('/admin/upload/abort',{method:'POST',body:{key:up.key,uploadId:up.uploadId}}).catch(function(){});throw e});
 }
+window.__mmeVidFail=function(v){videoFail(v)};
 window.addEventListener('beforeunload',function(e){var b=document.getElementById('upBar');if(b&&!b.hidden&&/جاري/.test(b.textContent)){e.preventDefault();e.returnValue=''}});
+// checks whether this browser can actually decode the picture (H.265/HEVC files often play audio only or nothing)
+function checkPlayable(file){
+  return new Promise(function(res){
+    var v=document.createElement('video'),u=URL.createObjectURL(file),t,fin=function(r){clearTimeout(t);v.removeAttribute('src');v.load();URL.revokeObjectURL(u);res(r)};
+    v.muted=true;v.preload='metadata';
+    v.onloadedmetadata=function(){fin(v.videoWidth>0?{ok:true}:{ok:false,why:'novideo'})};
+    v.onerror=function(){fin({ok:false,why:'codec'})};
+    t=setTimeout(function(){fin({ok:true,unknown:true})},10000);
+    v.src=u;
+  });
+}
+var CODEC_MSG='⚠️ المتصفح ما قدر يشغّل صورة هذا الفيديو. غالبًا مصدّر بصيغة H.265 (HEVC)، وهاي الصيغة ما بتشتغل عند أغلب الطلاب.\n\nالحل: صدّره من جديد MP4 بترميز H.264 (في CapCut: Export ← Codec ← H.264، أو في Premiere: Format H.264).\n\nبدك تكمل الرفع هيك على كل حال؟';
+function videoFail(v){
+  var box=v.parentNode;if(!box)return;var adm=state.user&&state.user.role==='admin';
+  box.insertAdjacentHTML('beforeend','<div class="ph" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:#060A16;line-height:1.9">'+
+    (adm?'⚠️ الفيديو مرفوع بس المتصفح ما قدر يشغّله.<br>غالبًا الملف بصيغة H.265 (HEVC). صدّره MP4 بترميز H.264 وارفعه مرة ثانية من «الدورات والدروس».':'⚠️ تعذّر تشغيل الفيديو. حدّث الصفحة، وإذا ضلت المشكلة تواصل معنا على واتساب.')+'</div>');
+}
 function embedHtml(url){
   url=String(url||'').trim();var m;
   if(!url)return '<div class="ph">الفيديو لهذا الدرس قريبًا.</div>';
@@ -868,7 +886,7 @@ function viewCourse(courseId,params){
     var u=state.user||{};
     app.innerHTML=head+
       '<div class="player"><div>'+
-        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span></div>'+
+        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'" controls controlsList="nodownload noplaybackrate" disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
       '</div><div>'+
@@ -877,6 +895,7 @@ function viewCourse(courseId,params){
         ls.map(function(l,i){return '<button data-l="'+l.id+'" class="'+(l.id===lesson.id?'on ':'')+(done[l.id]?'done':'')+'"><span class="ck">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+l.minutes+'m</span>':'')+'</button>'}).join('')+
         '</div>'+
       '</div></div>';
+    var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)})}
     $$('.lessons [data-l]').forEach(function(b){b.addEventListener('click',function(){go('#/course/'+c.id+'?l='+b.getAttribute('data-l'))})});
     $('#doneBtn').addEventListener('click',function(){
       api('/progress',{method:'POST',body:{lesson_id:lesson.id,done:!done[lesson.id]}}).then(function(){
@@ -1135,7 +1154,11 @@ function admLessons(){
       lf.addEventListener('submit',function(ev){ev.preventDefault();
         var id=E.lid.value,b={course_id:c.id,title:E.title.value,video_url:E.video_url.value,sort:E.sort.value,minutes:E.minutes.value,notes:E.notes.value};
         var file=E.vfile.files[0],sb=$('button[type=submit]',lf);sb.disabled=true;
-        api('/admin/lessons'+(id?'/'+id:''),{method:'POST',body:b}).then(function(r){
+        (file?checkPlayable(file):Promise.resolve({ok:true})).then(function(ck){
+          if(!ck.ok&&!confirm(CODEC_MSG))throw new Error('تم إلغاء الرفع');
+          return api('/admin/lessons'+(id?'/'+id:''),{method:'POST',body:b});
+        }).then(function(r){
+          if(r&&r.id){E.lid.value=r.id;$('#lfTitle').textContent='تعديل: '+b.title}
           if(!file){toast('تم حفظ الدرس ✔');admLessons();return}
           return uploadVideo(r.id,file,function(p){var bar=$('#upBar');bar.hidden=false;$('i',bar).style.width=p+'%';$('span',bar).textContent=p<100?'جاري الرفع… '+p+'% — لا تسكّر الصفحة':'جاري المعالجة…'}).then(function(){toast('تم رفع الفيديو وحفظ الدرس ✔');admLessons()});
         }).catch(function(e){toast(e.message);sb.disabled=false;var bar=$('#upBar');if(bar)$('span',bar).textContent='فشل الرفع: '+e.message});});
