@@ -811,9 +811,25 @@ function viewMy(){
     $('#logoutBtn').addEventListener('click',logout);
   },function(err){app.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
 }
-function payLink(e){
-  var u=state.user||{};
-  return waLink('مرحبًا فريق أبو عمر 👋\nأنا '+u.name+'، قدّمت طلب رقم #'+e.id+' للتسجيل في دورة:\n'+e.title+'\nالسعر: $'+e.price+'\nبريدي في الأكاديمية: '+u.email+'\nبدي أدفع وأفعّل الدورة.');
+// the WhatsApp message carries the full order so the team knows exactly who is paying for what
+function payLink(e,receipt){
+  var u=state.user||{},d=new Date((e.created_at||Date.now()/1000)*1000);
+  var date=d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();
+  return waLink(
+    'مرحبًا فريق أبو عمر 👋\n'+
+    (receipt?'دفعت رسوم الدورة وبدي أأكد الدفع، والإيصال مرفق.':'بدي أدفع رسوم الدورة وأأكد الدفع عشان تتفعّل على حسابي.')+'\n\n'+
+    '📋 *تفاصيل الطلب*\n'+
+    'رقم الطلب: #'+e.id+'\n'+
+    'الدورة: '+e.title+'\n'+
+    'المبلغ: $'+e.price+'\n'+
+    'تاريخ الطلب: '+date+'\n\n'+
+    '👤 *بيانات الطالب*\n'+
+    'الاسم: '+u.name+'\n'+
+    'البريد الإلكتروني: '+u.email+'\n'+
+    'رقم الواتساب: '+u.phone+'\n'+
+    'رقم الحساب: #'+u.id+'\n\n'+
+    'رابط الطلب للإدارة:\nhttps://academy.marketingmiddleeast.com/#/admin?u='+u.id
+  );
 }
 // how a pending student gets the course activated: contact Abu Omar's team on WhatsApp
 function activateBox(e){
@@ -837,7 +853,7 @@ function viewEnrolled(courseId){
       '<p>الدورة لسا مش مفعّلة. عشان تتفعّل لازم تتواصل مع فريق أبو عمر وتدفع رسوم الدورة.</p>'+
       '<div class="ordbox"><div><span>رقم الطلب</span><b>#'+e.id+'</b></div><div><span>الدورة</span><b>'+esc(e.title)+'</b></div><div><span>المبلغ</span><b>$'+e.price+'</b></div><div><span>الحالة</span>'+badge(e.status)+'</div></div>'+
       activateBox(e)+
-      '<h3 style="color:#fff;margin:18px 0 12px;font-size:19px">أو حوّل المبلغ مباشرة على أحد الحسابات 👇</h3><div class="paybox" data-paybox style="text-align:right"></div>'+'<p class="vs-note">بعد التحويل اضغط الزر وأرسل صورة الإيصال، ونفعّل لك الدورة.</p>'+'<a class="btn btn-wa full" style="font-size:17px;padding:16px;margin-top:12px" target="_blank" rel="noopener" href="'+payLink(e)+'">أرسل الإيصال لفريق أبو عمر</a>'+
+      '<h3 style="color:#fff;margin:18px 0 12px;font-size:19px">أو حوّل المبلغ مباشرة على أحد الحسابات 👇</h3><div class="paybox" data-paybox style="text-align:right"></div>'+'<p class="vs-note">بعد التحويل اضغط الزر وأرسل صورة الإيصال، ونفعّل لك الدورة.</p>'+'<a class="btn btn-wa full" style="font-size:17px;padding:16px;margin-top:12px" target="_blank" rel="noopener" href="'+payLink(e,true)+'">أرسل الإيصال لفريق أبو عمر</a>'+
       '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>تواصل مع فريق أبو عمر وادفع</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
     '</div>';
     renderPayboxes(app);
