@@ -234,9 +234,9 @@ const maskEmail = (e) => {
 };
 async function listComments(env, user, courseId) {
   const { results } = await env.DB.prepare(
-    `SELECT c.id, c.body, c.created_at, u.email,
+    `SELECT c.id, c.body, c.created_at, COALESCE(u.email, c.guest_email) AS email,
        EXISTS(SELECT 1 FROM enrollments e WHERE e.user_id = c.user_id AND e.course_id = c.course_id AND e.status = 'approved') AS subscriber
-     FROM comments c JOIN users u ON u.id = c.user_id
+     FROM comments c LEFT JOIN users u ON u.id = c.user_id
      WHERE c.course_id = ? AND c.status = 'approved' ORDER BY c.created_at DESC LIMIT 200`
   ).bind(courseId).all();
   const comments = results.map((r) => ({ id: r.id, body: r.body, created_at: r.created_at, who: maskEmail(r.email), subscriber: !!r.subscriber }));
@@ -249,23 +249,36 @@ async function listComments(env, user, courseId) {
   }
   return json({ comments, mine });
 }
+// anyone can comment (visitor or account); everything waits for admin approval
 async function addComment(env, req, user, courseId) {
   const course = await env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(courseId).first();
   if (!course) return err('الدورة غير موجودة', 404);
   const b = await body(req);
+  if (b.website) return json({ ok: true }); // bot trap: a hidden field people never fill
   const text = String(b.body ?? '').replace(/\r/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, 1000);
   if (text.length < 3) return err('اكتب تعليقك أولًا');
-  const p = await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE user_id = ? AND status = 'pending'").bind(user.id).first();
+  const ip = req.headers.get('cf-connecting-ip') || null;
+  let guestName = null, guestEmail = null;
+  if (!user) {
+    guestName = clean(b.name, 60);
+    guestEmail = clean(b.email, 120).toLowerCase();
+    if (guestName.length < 2) return err('اكتب اسمك');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) return err('اكتب بريد إلكتروني صحيح');
+  }
+  const p = user
+    ? await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE user_id = ? AND status = 'pending'").bind(user.id).first()
+    : await env.DB.prepare("SELECT COUNT(*) AS n FROM comments WHERE status = 'pending' AND (ip = ? OR guest_email = ?) AND created_at > ?").bind(ip, guestEmail, now() - 86400).first();
   if (p && p.n >= 3) return err('عندك تعليقات بانتظار الموافقة، استنى لحتى نراجعها');
-  await env.DB.prepare("INSERT INTO comments (course_id, user_id, body, status, created_at) VALUES (?, ?, ?, 'pending', ?)")
-    .bind(courseId, user.id, text, now()).run();
+  await env.DB.prepare("INSERT INTO comments (course_id, user_id, guest_name, guest_email, ip, body, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)")
+    .bind(courseId, user ? user.id : null, guestName, guestEmail, ip, text, now()).run();
   return json({ ok: true });
 }
 async function adminComments(env, url) {
   const status = url.searchParams.get('status');
   let sql = `SELECT c.id, c.body, c.status, c.created_at, c.decided_at, c.course_id, co.title,
-               u.id AS user_id, u.name, u.email, u.phone
-             FROM comments c JOIN users u ON u.id = c.user_id JOIN courses co ON co.id = c.course_id`;
+               u.id AS user_id, COALESCE(u.name, c.guest_name) AS name, COALESCE(u.email, c.guest_email) AS email, u.phone,
+               CASE WHEN c.user_id IS NULL THEN 1 ELSE 0 END AS guest
+             FROM comments c LEFT JOIN users u ON u.id = c.user_id JOIN courses co ON co.id = c.course_id`;
   const args = [];
   if (status) { sql += ' WHERE c.status = ?'; args.push(status); }
   sql += " ORDER BY CASE c.status WHEN 'pending' THEN 0 ELSE 1 END, c.created_at DESC LIMIT 1000";
@@ -586,13 +599,13 @@ export async function onRequest({ request, env }) {
     let m;
     if ((m = path.match(/^\/course\/([\w-]+)$/)) && method === 'GET') return await getCourse(env, user, m[1]);
     if ((m = path.match(/^\/course\/([\w-]+)\/comments$/)) && method === 'GET') return await listComments(env, user, m[1]);
+    if ((m = path.match(/^\/course\/([\w-]+)\/comments$/)) && method === 'POST') return await addComment(env, request, user, m[1]);
     if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]), url);
 
     if (!user) return err('سجّل دخول أولًا', 401);
     if (path === '/me' && method === 'GET') return await me(env, user);
     if (path === '/enroll' && method === 'POST') return await enroll(env, request, user);
     if (path === '/progress' && method === 'POST') return await markProgress(env, request, user);
-    if ((m = path.match(/^\/course\/([\w-]+)\/comments$/)) && method === 'POST') return await addComment(env, request, user, m[1]);
 
     if (path.startsWith('/admin')) {
       if (user.role !== 'admin') return err('هذه الصفحة للإدارة فقط', 403);

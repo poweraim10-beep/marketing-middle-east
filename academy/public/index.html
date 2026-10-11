@@ -307,7 +307,12 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .cmts-h h2{color:#fff;font-size:21px;margin:0}.cmts-h span{color:var(--mute);font-size:14px}
 .cmt-form{padding:16px;border-radius:16px;border:1px solid var(--line-2);background:rgba(20,28,46,.6);margin-bottom:16px}
 .cmt-form textarea{width:100%;min-height:92px;resize:vertical;padding:12px 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(6,10,22,.6);color:#fff;font:inherit;font-size:15px;line-height:1.7}
-.cmt-form textarea:focus{outline:none;border-color:var(--cyan)}
+.cmt-form textarea:focus,.cmt-form input:focus{outline:none;border-color:var(--cyan)}
+.cmt-form .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.cmt-form input{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(6,10,22,.6);color:#fff;font:inherit;font-size:15px}
+.cmt-form .hp{position:absolute;top:0;right:0;width:1px;height:1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);opacity:0;pointer-events:none}
+.cmt-sent{padding:14px 16px;border-radius:14px;border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.08);color:#bbf7d0;font-size:14.5px;margin-bottom:16px}
+@media (max-width:560px){.cmt-form .g2{grid-template-columns:1fr}}
 .cmt-form .row2{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;flex-wrap:wrap}
 .cmt-form .row2 small{color:var(--mute);font-size:13px}
 .cmt-login{padding:14px 16px;border-radius:14px;border:1px dashed var(--line-2);color:var(--silver);font-size:14.5px;margin-bottom:16px}
@@ -652,6 +657,17 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
       <div class="step"><div class="n blue">03</div><h4>بنفعّلك الدورة</h4><p>بعد تأكيد الدفع بتنفتح الدورة في حسابك، وبتتعلم على وقتك.</p></div>
       <div class="step"><div class="n blue">04</div><h4>استلم شهادتك</h4><p>بعد ما تخلص الدروس بتاخد شهادة إتمام من MME.</p></div>
     </div>
+  </div>
+</section>
+
+<section class="sec" id="reviews">
+  <div class="wrap">
+    <div class="head">
+      <span class="mono">STUDENT REVIEWS</span>
+      <h2><span class="metal">YOUR</span> <span class="blue">VOICE</span></h2>
+      <p class="ar">آراء وتعليقات حول الدورة</p>
+    </div>
+    <div id="homeCmts" style="max-width:820px"></div>
   </div>
 </section>
 
@@ -1012,15 +1028,20 @@ function protectPlayer(scr,u){
 }
 
 // ---------- course comments (shown only after admin approval) ----------
-function commentsSection(courseId){
-  var holder=document.createElement('div');holder.className='cmts';holder.id='cmts';app.appendChild(holder);
+function commentsSection(courseId,target){
+  var holder;
+  if(target){holder=target;holder.classList.add('cmts');holder.style.marginTop='0'}
+  else{holder=document.createElement('div');holder.className='cmts';holder.id='cmts';app.appendChild(holder)}
+  var sent=false;
   var draw=function(){
     api('/course/'+encodeURIComponent(courseId)+'/comments').then(function(d){
       if(!document.body.contains(holder))return;
       var list=d.comments||[],mine=d.mine||[];
-      var form=state.user
-        ?'<form class="cmt-form" id="cmtF"><textarea name="body" maxlength="1000" placeholder="شاركنا رأيك بالدورة أو اسأل سؤالك…" required></textarea><div class="row2"><small>بيظهر تعليقك بعد موافقة الإدارة، ويظهر منه أول بريدك فقط.</small><button class="btn btn-p btn-s" type="submit">إرسال التعليق</button></div></form>'
-        :'<div class="cmt-login">عشان تكتب تعليق <a href="#/login">سجّل دخول</a> أو <a href="#/register">أنشئ حساب</a>.</div>';
+      var form=(sent?'<div class="cmt-sent">✔ وصل تعليقك، وبيظهر هون بعد موافقة الإدارة. شكرًا إلك!</div>':'')+
+        '<form class="cmt-form" id="cmtF" style="position:relative">'+
+        (state.user?'':'<div class="g2"><input name="name" maxlength="60" placeholder="اسمك" autocomplete="name"><input name="email" type="email" dir="ltr" maxlength="120" placeholder="بريدك الإلكتروني" autocomplete="email"></div>'+
+          '<input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">')+
+        '<textarea name="body" maxlength="1000" placeholder="شاركنا رأيك بالدورة أو اسأل سؤالك…" required></textarea><div class="row2"><small>بيظهر تعليقك بعد موافقة الإدارة، ومن بريدك بيظهر أول 3 أحرف بس.</small><button class="btn btn-p btn-s" type="submit">إرسال التعليق</button></div></form>';
       var item=function(c,own){
         var who=own?((state.user.email||'').split('@')[0].slice(0,3)+'•••••'):c.who;
         return '<div class="cmt'+(own?' mine':'')+'"><div class="cm-av">'+esc(who.charAt(0))+'</div><div style="flex:1;min-width:0"><div class="cm-meta"><span class="cm-who">'+esc(who)+'</span>'+
@@ -1031,8 +1052,12 @@ function commentsSection(courseId){
         (list.length?list.map(function(c){return item(c,false)}).join(''):(mine.length?'':'<div class="cmt-empty">ما في تعليقات لسا. كن أول من يكتب رأيه.</div>'));
       var f=$('#cmtF',holder);if(f)f.addEventListener('submit',function(ev){ev.preventDefault();
         var t=f.elements.body.value.trim();if(t.length<3){toast('اكتب تعليقك أولًا');return}
+        var data={body:t};
+        if(!state.user){data.name=f.elements.name.value.trim();data.email=f.elements.email.value.trim();data.website=f.elements.website.value;
+          if(data.name.length<2){toast('اكتب اسمك');return}
+          if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)){toast('اكتب بريد إلكتروني صحيح');return}}
         var b=$('button',f);b.disabled=true;
-        api('/course/'+encodeURIComponent(courseId)+'/comments',{method:'POST',body:{body:t}}).then(function(){toast('وصل تعليقك ✔ بيظهر بعد موافقة الإدارة');draw()},function(e){toast(e.message);b.disabled=false});
+        api('/course/'+encodeURIComponent(courseId)+'/comments',{method:'POST',body:data}).then(function(){sent=true;toast('وصل تعليقك ✔ بيظهر بعد موافقة الإدارة');draw()},function(e){toast(e.message);b.disabled=false});
       });
     },function(){});
   };
@@ -1405,7 +1430,7 @@ function admComments(){
     box.innerHTML='<p class="muted" style="margin:0 0 12px">ما في ولا تعليق بيظهر للناس إلا بعد ما تضغط «موافقة ونشر». الطلاب بيشوفوا من البريد أول 3 أحرف بس.</p>'+
       '<div class="filters">'+[['pending','بانتظار الموافقة'],['approved','منشورة'],['rejected','مخفية'],['','الكل']].map(function(f){return '<button data-cf="'+f[0]+'" class="'+(cmtFilter===f[0]?'on':'')+'">'+f[1]+' <span>'+cnt[f[0]]+'</span></button>'}).join('')+'</div>'+
       (rows.length?'<div class="list">'+rows.map(function(c){
-        return '<div class="row" style="display:block"><div class="sub-top" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b><a href="#/admin?u='+c.user_id+'" style="color:#fff">'+esc(c.name)+'</a> <small class="muted ltr" style="direction:ltr">'+esc(c.email)+'</small></b><span class="badge '+esc(c.status)+'">'+lbl[c.status]+'</span></div>'+
+        return '<div class="row" style="display:block"><div class="sub-top" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>'+(c.guest?'<span style="color:#fff">'+esc(c.name)+'</span> <span class="badge">زائر</span>':'<a href="#/admin?u='+c.user_id+'" style="color:#fff">'+esc(c.name)+'</a>')+' <small class="muted ltr" style="direction:ltr">'+esc(c.email)+'</small></b><span class="badge '+esc(c.status)+'">'+lbl[c.status]+'</span></div>'+
           '<div class="muted" style="margin:4px 0 10px">'+esc(c.title)+' · '+ago(c.created_at)+' · بيظهر باسم <span class="ltr" style="direction:ltr;display:inline-block">'+esc(c.who)+'</span></div>'+
           '<p style="margin:0 0 12px;color:var(--silver);white-space:pre-wrap;line-height:1.8">'+esc(c.body)+'</p>'+
           '<div class="acts">'+(c.status!=='approved'?'<button class="btn btn-ok btn-s" data-cs="approved" data-id="'+c.id+'">موافقة ونشر</button>':'')+
@@ -1445,6 +1470,7 @@ function route(){
   var r=parseHash();
   if(r.name==='home'){
     app.hidden=true;home.hidden=false;
+    var hc=document.getElementById('homeCmts');if(hc)commentsSection('ai-ad-video',hc);
     if(r.anchor&&r.anchor.length>1){var t=document.getElementById(r.anchor.slice(1));if(t)t.scrollIntoView()}
     return;
   }
