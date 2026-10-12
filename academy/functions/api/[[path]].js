@@ -516,6 +516,45 @@ async function deleteLessonVideo(env, id) {
   await env.DB.prepare('UPDATE lessons SET video_key = NULL, video_size = NULL, video_type = NULL WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
+
+// admin diagnostic: reads the MP4 box layout straight from R2 to say why a lesson video will not play
+async function probeLessonVideo(env, id) {
+  if (!env.VIDEOS) return noR2();
+  const l = await env.DB.prepare('SELECT video_key, video_size, video_type FROM lessons WHERE id = ?').bind(id).first();
+  if (!l || !l.video_key) return json({ ok: false, problem: 'missing', boxes: [] });
+  const head = await env.VIDEOS.head(l.video_key);
+  if (!head) return json({ ok: false, problem: 'missing', boxes: [] });
+  const size = head.size;
+  const boxes = [];
+  let off = 0, moov = null, truncated = false;
+  while (off + 8 <= size && boxes.length < 64) {
+    const o = await env.VIDEOS.get(l.video_key, { range: { offset: off, length: Math.min(16, size - off) } });
+    const b = new Uint8Array(await o.arrayBuffer());
+    const dv = new DataView(b.buffer);
+    let len = dv.getUint32(0);
+    const type = String.fromCharCode(b[4], b[5], b[6], b[7]);
+    if (!/^[\x20-\x7e]{4}$/.test(type)) { truncated = true; break; }
+    if (len === 1 && b.length >= 16) len = dv.getUint32(8) * 4294967296 + dv.getUint32(12);
+    else if (len === 0) len = size - off;
+    if (len < 8) { truncated = true; break; }
+    boxes.push({ type, offset: off, size: len });
+    if (type === 'moov') moov = { offset: off, size: len };
+    if (off + len > size) { truncated = true; break; }
+    off += len;
+  }
+  let codec = null;
+  if (moov && moov.size <= 32 * 1024 * 1024 && moov.offset + moov.size <= size) {
+    const o = await env.VIDEOS.get(l.video_key, { range: { offset: moov.offset, length: moov.size } });
+    const txt = new TextDecoder('latin1').decode(await o.arrayBuffer());
+    for (const c of ['avc1', 'avc3', 'hvc1', 'hev1', 'av01', 'vp09', 'mp4v']) if (txt.includes(c)) { codec = c; break; }
+  }
+  const moovIdx = boxes.findIndex((x) => x.type === 'moov'), mdatIdx = boxes.findIndex((x) => x.type === 'mdat');
+  let problem = null;
+  if (!moov || truncated) problem = 'incomplete';
+  else if (codec && /^(hvc1|hev1)$/.test(codec)) problem = 'hevc';
+  else if (codec && !/^avc/.test(codec)) problem = 'codec';
+  return json({ ok: !problem, problem, codec, size, stored_type: l.video_type, moov_at_end: moovIdx > mdatIdx && mdatIdx >= 0, truncated, boxes: boxes.slice(0, 12) });
+}
 async function streamVideo(env, req, user, id, url) {
   if (!user) return err('سجّل دخول أولًا', 401);
   if (!env.VIDEOS) return noR2();
@@ -637,6 +676,7 @@ export async function onRequest({ request, env }) {
       if (path === '/admin/upload/part' && method === 'PUT') return await uploadPart(env, request, url);
       if (path === '/admin/upload/complete' && method === 'POST') return await uploadComplete(env, request);
       if (path === '/admin/upload/abort' && method === 'POST') return await uploadAbort(env, request);
+      if ((m = path.match(/^\/admin\/lessons\/(\d+)\/probe$/)) && method === 'GET') return await probeLessonVideo(env, Number(m[1]));
       if ((m = path.match(/^\/admin\/lessons\/(\d+)\/video$/)) && method === 'DELETE') return await deleteLessonVideo(env, Number(m[1]));
       if (path === '/admin/lessons' && method === 'POST') return await adminSaveLesson(env, request, null);
       if ((m = path.match(/^\/admin\/lessons\/(\d+)$/))) {

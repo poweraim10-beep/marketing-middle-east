@@ -971,9 +971,28 @@ function checkPlayable(file){
 }
 var CODEC_MSG='⚠️ المتصفح ما قدر يشغّل صورة هذا الفيديو. غالبًا مصدّر بصيغة H.265 (HEVC)، وهاي الصيغة ما بتشتغل عند أغلب الطلاب.\n\nالحل: صدّره من جديد MP4 بترميز H.264 (في CapCut: Export ← Codec ← H.264، أو في Premiere: Format H.264).\n\nبدك تكمل الرفع هيك على كل حال؟';
 function videoFail(v){
-  var box=v.parentNode;if(!box)return;var adm=state.user&&state.user.role==='admin';
-  box.insertAdjacentHTML('beforeend','<div class="ph" style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:#060A16;line-height:1.9">'+
-    (adm?'⚠️ الفيديو مرفوع بس المتصفح ما قدر يشغّله.<br>غالبًا الملف بصيغة H.265 (HEVC). صدّره MP4 بترميز H.264 وارفعه مرة ثانية من «الدورات والدروس».':'⚠️ تعذّر تشغيل الفيديو. حدّث الصفحة، وإذا ضلت المشكلة تواصل معنا على واتساب.')+'</div>');
+  var box=v.parentNode;if(!box||box.querySelector('[data-vfail]'))return;var adm=state.user&&state.user.role==='admin';
+  box.insertAdjacentHTML('beforeend','<div class="ph" data-vfail style="position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:#060A16;line-height:1.9">'+
+    (adm?'⏳ جاري فحص الفيديو…':'⚠️ تعذّر تشغيل الفيديو. حدّث الصفحة، وإذا ضلت المشكلة تواصل معنا على واتساب.')+'</div>');
+  if(!adm)return;
+  var out=box.querySelector('[data-vfail]'),src=v.getAttribute('src')||'',m=src.match(/\/api\/video\/(\d+)/);if(!m)return;
+  var show=function(t){out.innerHTML=t+'<br><small style="opacity:.6">(هذا الفحص يظهر للإدارة فقط)</small>'};
+  // 1) can the server deliver the file at all?
+  fetch(src,{credentials:'same-origin',headers:{range:'bytes=0-1'}}).then(function(r){
+    if(r.status===206||r.status===200)return null;
+    return r.json().catch(function(){return{}}).then(function(d){return 'السيرفر رفض تحميل الفيديو ('+r.status+'): '+(d.error||'خطأ غير معروف')});
+  }).catch(function(){return 'انقطع الاتصال أثناء تحميل الفيديو. تأكد من الإنترنت وحدّث الصفحة.'}).then(function(netErr){
+    if(netErr){show('⚠️ '+esc(netErr));return}
+    // 2) is the stored file itself complete and H.264?
+    return api('/admin/lessons/'+m[1]+'/probe').then(function(p){
+      var sz=p.size?' (الحجم المرفوع: '+fmtSize(p.size)+')':'';
+      if(p.problem==='incomplete')show('⚠️ ملف الفيديو المرفوع <b>ناقص أو مش مكتمل</b>'+sz+'.<br>غالبًا انرفع قبل ما يخلص HandBrake من التحويل. شغّل الملف على جهازك وتأكد إنه كامل لآخره، وبعدين ارفعه مرة ثانية.');
+      else if(p.problem==='hevc')show('⚠️ الفيديو بترميز H.265 (HEVC)'+sz+'.<br>صدّره MP4 بترميز H.264 وارفعه مرة ثانية.');
+      else if(p.problem==='codec')show('⚠️ ترميز الفيديو ('+esc(p.codec||'?')+') ما بيدعمه المتصفح'+sz+'. صدّره MP4 بترميز H.264.');
+      else if(p.problem==='missing')show('⚠️ ملف الفيديو مش موجود على السيرفر. ارفعه مرة ثانية.');
+      else show('✅ الملف على السيرفر سليم (H.264'+sz+')، والمشكلة من المتصفح.<br>جرّب تحدّث الصفحة أو تفتحها من Google Chrome.');
+    });
+  }).catch(function(e){show('⚠️ ما قدرت أفحص الفيديو: '+esc(e.message||''))});
 }
 function embedHtml(url){
   url=String(url||'').trim();var m;
