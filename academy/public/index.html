@@ -978,10 +978,12 @@ function videoFail(v){
   var out=box.querySelector('[data-vfail]'),src=v.getAttribute('src')||'',m=src.match(/\/api\/video\/(\d+)/);if(!m)return;
   var show=function(t){out.innerHTML=t+'<br><small style="opacity:.6">(هذا الفحص يظهر للإدارة فقط)</small>'};
   // 1) can the server deliver the file at all?
-  fetch(src,{credentials:'same-origin',headers:{range:'bytes=0-1'}}).then(function(r){
-    if(r.status===206||r.status===200)return null;
-    return r.json().catch(function(){return{}}).then(function(d){return 'السيرفر رفض تحميل الفيديو ('+r.status+'): '+(d.error||'خطأ غير معروف')});
-  }).catch(function(){return 'انقطع الاتصال أثناء تحميل الفيديو. تأكد من الإنترنت وحدّث الصفحة.'}).then(function(netErr){
+  var me=v.error,errTxt=me?('كود '+me.code+(me.message?' · '+me.message:'')):'بدون كود';
+  var tryRange=function(rg){return fetch(src,{credentials:'same-origin',headers:{range:rg}}).then(function(r){
+    if(r.status===206||r.status===200){if(r.body&&r.body.cancel)r.body.cancel().catch(function(){});return null}
+    return r.json().catch(function(){return{}}).then(function(d){return 'السيرفر رفض تحميل الفيديو ('+r.status+' · '+rg+'): '+(d.error||'خطأ غير معروف')});
+  })};
+  tryRange('bytes=0-1').then(function(e){return e||tryRange('bytes=-1024')}).then(function(e){return e||tryRange('bytes=5000000-5000099')}).catch(function(){return 'انقطع الاتصال أثناء تحميل الفيديو. تأكد من الإنترنت وحدّث الصفحة.'}).then(function(netErr){
     if(netErr){show('⚠️ '+esc(netErr));return}
     // 2) is the stored file itself complete and H.264?
     return api('/admin/lessons/'+m[1]+'/probe').then(function(p){
@@ -990,7 +992,7 @@ function videoFail(v){
       else if(p.problem==='hevc')show('⚠️ الفيديو بترميز H.265 (HEVC)'+sz+'.<br>صدّره MP4 بترميز H.264 وارفعه مرة ثانية.');
       else if(p.problem==='codec')show('⚠️ ترميز الفيديو ('+esc(p.codec||'?')+') ما بيدعمه المتصفح'+sz+'. صدّره MP4 بترميز H.264.');
       else if(p.problem==='missing')show('⚠️ ملف الفيديو مش موجود على السيرفر. ارفعه مرة ثانية.');
-      else show('✅ الملف على السيرفر سليم (H.264'+sz+')، والمشكلة من المتصفح.<br>جرّب تحدّث الصفحة أو تفتحها من Google Chrome.');
+      else show('✅ الملف على السيرفر سليم (H.264'+sz+')، والتحميل منه شغّال.<br>خطأ المتصفح: <bdi dir="ltr" style="font-family:monospace">'+esc(errTxt)+'</bdi>');
     });
   }).catch(function(e){show('⚠️ ما قدرت أفحص الفيديو: '+esc(e.message||''))});
 }
