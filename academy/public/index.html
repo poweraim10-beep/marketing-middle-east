@@ -983,7 +983,7 @@ function videoFail(v){
     if(r.status===206||r.status===200){if(r.body&&r.body.cancel)r.body.cancel().catch(function(){});return null}
     return r.json().catch(function(){return{}}).then(function(d){return 'السيرفر رفض تحميل الفيديو ('+r.status+' · '+rg+'): '+(d.error||'خطأ غير معروف')});
   })};
-  tryRange('bytes=0-1').then(function(e){return e||tryRange('bytes=-1024')}).then(function(e){return e||tryRange('bytes=5000000-5000099')}).catch(function(){return 'انقطع الاتصال أثناء تحميل الفيديو. تأكد من الإنترنت وحدّث الصفحة.'}).then(function(netErr){
+  tryRange('bytes=0-').then(function(e){return e||tryRange('bytes=0-1')}).then(function(e){return e||tryRange('bytes=-1024')}).then(function(e){return e||tryRange('bytes=5000000-5000099')}).catch(function(){return 'انقطع الاتصال أثناء تحميل الفيديو. تأكد من الإنترنت وحدّث الصفحة.'}).then(function(netErr){
     if(netErr){show('⚠️ '+esc(netErr));return}
     // 2) is the stored file itself complete and H.264?
     return api('/admin/lessons/'+m[1]+'/probe').then(function(p){

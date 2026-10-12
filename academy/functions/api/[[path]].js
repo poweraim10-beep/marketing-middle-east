@@ -562,34 +562,38 @@ async function streamVideo(env, req, user, id, url) {
   const dest = req.headers.get('sec-fetch-dest');
   if (dest && !['video', 'audio', 'empty'].includes(dest)) return err('غير مسموح', 403);
   if (!(await videoTokenOk(env, url.searchParams.get('t'), user.id, id))) return err('انتهت صلاحية رابط الفيديو، حدّث الصفحة', 403);
-  const l = await env.DB.prepare('SELECT course_id, video_key, video_type FROM lessons WHERE id = ?').bind(id).first();
+  const l = await env.DB.prepare('SELECT course_id, video_key, video_type, video_size FROM lessons WHERE id = ?').bind(id).first();
   if (!l || !l.video_key) return err('الفيديو غير موجود', 404);
   if (user.role !== 'admin') {
     const e = await env.DB.prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'").bind(user.id, l.course_id).first();
     if (!e) return err('غير مسموح', 403);
   }
-  // no conditional (onlyIf) here: a 304 answer to a media range request leaves the player blank
-  const obj = await env.VIDEOS.get(l.video_key, req.headers.get('range') ? { range: req.headers } : undefined);
+  // no conditional (onlyIf) here: a 304 answer to a media range request leaves the player blank.
+  // The Range header is parsed here (not handed to R2) so open-ended requests like "bytes=0-",
+  // which browsers send first for every video, always get a correct 206 answer.
+  let size = Number(l.video_size) || 0;
+  if (!size) { const hd = await env.VIDEOS.head(l.video_key); if (!hd) return err('الفيديو غير موجود', 404); size = hd.size; }
+  const rh = req.headers.get('range');
+  let start = 0, end = size - 1, partial = false;
+  const rm = rh && /^bytes=(\d*)-(\d*)$/.exec(rh.trim());
+  if (rm && (rm[1] !== '' || rm[2] !== '')) {
+    if (rm[1] === '') { start = Math.max(0, size - Number(rm[2])); end = size - 1; }
+    else { start = Number(rm[1]); end = rm[2] === '' ? size - 1 : Math.min(Number(rm[2]), size - 1); }
+    if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes' } });
+    partial = true;
+  }
+  const obj = await env.VIDEOS.get(l.video_key, partial ? { range: { offset: start, length: end - start + 1 } } : undefined);
   if (!obj) return err('الفيديو غير موجود', 404);
   const h = new Headers();
-  obj.writeHttpMetadata(h);
-  h.set('content-type', l.video_type || h.get('content-type') || 'video/mp4');
+  h.set('content-type', l.video_type || (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4');
   h.set('etag', obj.httpEtag);
   h.set('accept-ranges', 'bytes');
   h.set('cache-control', 'private, no-store');
   h.set('content-disposition', 'inline');
   h.set('x-content-type-options', 'nosniff');
-  if (req.headers.get('range') && obj.range) {
-    const size = obj.size;
-    let start, end;
-    if ('suffix' in obj.range) { start = size - obj.range.suffix; end = size - 1; }
-    else { start = obj.range.offset || 0; end = obj.range.length != null ? start + obj.range.length - 1 : size - 1; }
-    h.set('content-range', `bytes ${start}-${end}/${size}`);
-    h.set('content-length', String(end - start + 1));
-    return new Response(obj.body, { status: 206, headers: h });
-  }
-  h.set('content-length', String(obj.size));
-  return new Response(obj.body, { status: 200, headers: h });
+  h.set('content-length', String(end - start + 1));
+  if (partial) h.set('content-range', `bytes ${start}-${end}/${size}`);
+  return new Response(req.method === 'HEAD' ? null : obj.body, { status: partial ? 206 : 200, headers: h });
 }
 
 // ---------- settings (payment methods) ----------
