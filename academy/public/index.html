@@ -764,7 +764,27 @@ function renderNav(){
 }
 function loadMe(){
   return api('/me').then(function(d){state.user=d.user;state.enrollments=d.enrollments;return d},function(){state.user=null;state.enrollments=[];return null})
-    .then(function(d){state.loaded=true;renderNav();return d});
+    .then(function(d){state.loaded=true;renderNav();checkWelcome();return d});
+}
+// once per activation: «مبروك، تم تسجيلك بنجاح» for a student whose course was just opened
+function checkWelcome(){
+  if(state.welcomeShown||!state.user||state.user.role==='admin')return;
+  var e=(state.enrollments||[]).filter(function(x){return x.status==='approved'&&'welcomed_at' in x&&!x.welcomed_at})[0];
+  if(!e)return;
+  state.welcomeShown=true;e.welcomed_at=1;
+  setTimeout(function(){welcomeModal(e)},350);
+  api('/welcomed',{method:'POST',body:{enrollment_id:e.id}}).catch(function(){});
+}
+function welcomeModal(e){
+  var cols=['#FBBF24','#22D3EE','#3B82F6','#A855F7','#F472B6','#34D399'],cf='';
+  for(var i=0;i<26;i++)cf+='<span class="cf" style="right:'+(Math.random()*100)+'%;background:'+cols[i%6]+';animation-delay:'+(Math.random()*0.9).toFixed(2)+'s;animation-duration:'+(2+Math.random()*1.6).toFixed(2)+'s"></span>';
+  modal('<div class="giftbox">'+cf+'<div class="gi">🎓</div><span class="gk">WELCOME · MME ACADEMY</span>'+
+    '<h3>مبروك! تم تسجيلك بنجاح في الدورة</h3>'+
+    '<p><b style="color:#fff">'+esc(e.title||'')+'</b><br>تم تفعيل اشتراكك، وصار عندك وصول كامل لكل محاضرات الدورة.</p>'+
+    '<ul><li><i>✦</i>محاضرات إضافية جديدة بتنزل كل فترة</li><li><i>⟳</i>تطوير مستمر للبرنامج والدورات</li><li><i>✓</i>اشتراكك بيشمل كل التحديثات الجاية</li><li><i>🎁</i>شنطة أدوات الطالب بتلاقيها بصفحة «حسابي»</li></ul>'+
+    '<a class="btn btn-gift full" href="#/course/'+esc(e.course_id)+'" data-wc>ابدأ الدورة الآن</a>'+
+    '<p style="margin:12px 0 0;font-size:13px">بالتوفيق، فريق د. محمود نصرالله</p></div>',
+    function(ov,close){$('[data-wc]',ov).addEventListener('click',close)});
 }
 
 

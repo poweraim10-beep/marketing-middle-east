@@ -147,12 +147,33 @@ async function logout(env, req) {
   return json({ ok: true }, 200, { 'set-cookie': sessionCookie('', 0) });
 }
 
+// enrollments.welcomed_at: when the student saw the "you're enrolled" message (shown once per activation)
+let welcomeColReady = false;
+async function ensureWelcomeCol(env) {
+  if (welcomeColReady) return;
+  try { await env.DB.prepare('ALTER TABLE enrollments ADD COLUMN welcomed_at INTEGER').run(); } catch (e) { /* column already exists */ }
+  welcomeColReady = true;
+}
+
 async function me(env, user) {
-  const { results } = await env.DB.prepare(
-    `SELECT e.id, e.course_id, e.status, e.created_at, e.decided_at, c.title, c.price
-     FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ? ORDER BY e.created_at DESC`
-  ).bind(user.id).all();
+  await ensureWelcomeCol(env);
+  const base = `SELECT e.id, e.course_id, e.status, e.created_at, e.decided_at, c.title, c.price
+     FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.user_id = ? ORDER BY e.created_at DESC`;
+  let results;
+  try {
+    ({ results } = await env.DB.prepare(base.replace('e.decided_at,', 'e.decided_at, e.welcomed_at,')).bind(user.id).all());
+  } catch (e) {
+    ({ results } = await env.DB.prepare(base).bind(user.id).all()); // never break the account page over the welcome flag
+  }
   return json({ user: publicUser(user), enrollments: results });
+}
+
+async function markWelcomed(env, req, user) {
+  const b = await body(req);
+  await ensureWelcomeCol(env);
+  await env.DB.prepare("UPDATE enrollments SET welcomed_at = ? WHERE id = ? AND user_id = ? AND status = 'approved'")
+    .bind(now(), Number(b.enrollment_id) || 0, user.id).run();
+  return json({ ok: true });
 }
 
 async function listCourses(env) {
@@ -649,6 +670,7 @@ export async function onRequest({ request, env }) {
     if (!user) return err('سجّل دخول أولًا', 401);
     if (path === '/me' && method === 'GET') return await me(env, user);
     if (path === '/enroll' && method === 'POST') return await enroll(env, request, user);
+    if (path === '/welcomed' && method === 'POST') return await markWelcomed(env, request, user);
     if (path === '/progress' && method === 'POST') return await markProgress(env, request, user);
 
     if (path.startsWith('/admin')) {
