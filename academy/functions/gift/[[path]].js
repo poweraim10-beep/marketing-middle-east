@@ -1,4 +1,4 @@
-// Gate for /gift/* : only signed-in academy accounts can download the student kit.
+// Gate for /gift/* : only signed-in accounts with an activated course (or the admin) can download the student kit.
 const SESSION_COOKIE = 'mme_s';
 
 function getCookie(req, name) {
@@ -15,9 +15,14 @@ export async function onRequest({ request, env }) {
   const token = getCookie(request, SESSION_COOKIE);
   let ok = false;
   if (token) {
-    const row = await env.DB.prepare('SELECT 1 FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ? AND COALESCE(u.suspended, 0) = 0')
-      .bind(await sha256(token), Math.floor(Date.now() / 1000)).first();
-    ok = !!row;
+    // the kit is a reward for students whose course is activated (or the admin)
+    const row = await env.DB.prepare(
+      `SELECT u.email,
+         EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS active
+       FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires_at > ? AND COALESCE(u.suspended, 0) = 0`
+    ).bind(await sha256(token), Math.floor(Date.now() / 1000)).first();
+    ok = !!row && (!!row.active || String(row.email).toLowerCase() === 'power.ai.m10@gmail.com');
+    if (row && !ok) return Response.redirect(new URL('/#/my', request.url).toString(), 302);
   }
   if (!ok) return Response.redirect(new URL('/#/register', request.url).toString(), 302);
   const res = await env.ASSETS.fetch(request);

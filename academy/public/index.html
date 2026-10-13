@@ -496,6 +496,28 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .giftrow h3{display:flex;align-items:center;gap:10px}.giftrow h3 b{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:radial-gradient(circle at 30% 25%,#FDE68A,#F59E0B 60%,#B45309);box-shadow:0 0 24px rgba(251,191,36,.45);font-size:18px}
 .mdl-x{position:absolute;top:12px;inset-inline-end:12px;width:32px;height:32px;border-radius:50%;border:1px solid var(--line-2);background:none;color:#fff;font-size:18px;cursor:pointer}
 .loading{padding:60px;text-align:center;color:var(--mute)}
+/* booking push (shown right after sign-up to accounts that have not booked yet) */
+.bk{text-align:center}
+.bk .bk-hot{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;font-weight:800;font-size:13.5px;box-shadow:0 10px 26px -10px rgba(239,68,68,.9);animation:bkp 1.6s ease-in-out infinite}
+@keyframes bkp{50%{transform:scale(1.05)}}
+.bk h3{margin:14px 0 6px!important;font-size:22px!important;line-height:1.5;color:#fff}
+.bk h3 b{background:linear-gradient(90deg,#fde047,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bk .bk-price{display:flex;align-items:baseline;justify-content:center;gap:10px;margin:12px 0 4px}
+.bk .bk-price b{font-size:40px;line-height:1;color:#fff;font-family:var(--display)}
+.bk .bk-price s{color:var(--mute);font-size:18px}
+.bk .bk-price span{font-size:14px;color:#fde047;font-weight:700}
+.cd{display:flex;justify-content:center;gap:8px;margin:14px 0 6px}
+.cd div{min-width:62px;padding:10px 6px;border-radius:14px;background:rgba(6,10,22,.8);border:1px solid rgba(250,204,21,.45);text-align:center}
+.cd b{display:block;font-size:24px;color:#fff;font-family:var(--display);line-height:1.1}
+.cd i{font-style:normal;font-size:11.5px;color:var(--mute)}
+.cd-lbl{font-size:13.5px;color:#fca5a5;font-weight:700}
+.bk ul{list-style:none;padding:0;margin:14px 0 16px;display:grid;gap:6px;text-align:right;font-size:14px;color:#dfe6f2}
+.bk ul li:before{content:"✓ ";color:var(--cyan);font-weight:700}
+.bk .btn-book{width:100%;font-size:19px;padding:16px;border:0;border-radius:16px;background:linear-gradient(90deg,#f59e0b,#facc15 50%,#fb923c);color:#1a0f00;font-weight:900;cursor:pointer;box-shadow:0 18px 40px -14px rgba(250,204,21,.9)}
+.bk .bk-gift{margin:12px 0 0;font-size:13px;color:var(--mute)}
+.bk .bk-later{background:none;border:0;color:var(--mute);font-size:13px;margin-top:8px;cursor:pointer;text-decoration:underline}
+.bkcard{position:relative;margin:0 0 26px;padding:24px;border-radius:24px;border:1px solid rgba(250,204,21,.55);background:radial-gradient(70% 90% at 100% 0%,rgba(250,204,21,.16),transparent 60%),radial-gradient(60% 80% at 0% 100%,rgba(239,68,68,.14),transparent 60%),linear-gradient(160deg,rgba(37,99,235,.22),rgba(11,16,32,.96) 60%)}
+.bkcard .btn-book{max-width:420px}
 </style>
 </head>
 <body>
@@ -860,7 +882,8 @@ function viewAuth(mode,params){
       return loadMe().then(function(){
         if(params.enroll)startEnroll(params.enroll);
         else go(state.user.role==='admin'?'#/admin':'#/my');
-        if(reg&&state.user.role!=='admin')setTimeout(giftModal,400);
+        // accounts that have not booked yet are pushed to book first; the gift only comes after activation
+        if(!params.enroll&&state.user.role!=='admin'&&!hasBooked())setTimeout(bookModal,450);
       });
     },function(err){errb.textContent=err.message;errb.classList.add('on');btn.disabled=false});
   });
@@ -878,7 +901,8 @@ function viewMy(){
     var mine={};ens.forEach(function(e){mine[e.course_id]=e});
     var html='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">MY ACCOUNT</span><h1>أهلًا '+esc(state.user.name)+'</h1><p>'+esc(state.user.email)+'</p></div>'+
       '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
-    html+=giftRow();
+    if(!hasBooked())html+=bookCard();
+    if(isActive())html+=giftRow();
     html+='<h2 style="color:#fff;font-size:19px;margin:0 0 12px">دوراتي</h2>';
     var pend=ens.filter(function(e){return e.status==='pending'})[0];
     if(pend)html+=activateBox(pend);
@@ -890,7 +914,7 @@ function viewMy(){
       else acts='<button class="btn btn-g" data-enroll="'+esc(e.course_id)+'">قدّم الطلب من جديد</button>';
       return '<div class="row"><div><h3>'+esc(e.title)+'</h3><div class="muted">طلب رقم #'+e.id+' · '+fmtDate(e.created_at)+' · $'+e.price+'</div></div><div class="acts">'+badge(e.status)+acts+'</div></div>';
     }).join('')+'</div>';
-    var others=courses.filter(function(c){return !mine[c.id]});
+    var others=courses.filter(function(c){return !mine[c.id]&&!(c.id===BOOK_COURSE&&!hasBooked())});
     if(others.length){
       html+='<h2 style="color:#fff;font-size:19px;margin:30px 0 12px">دورات متاحة</h2><div class="list">'+others.map(function(c){
         return '<div class="row"><div><h3>'+esc(c.title)+'</h3><div class="muted">$'+c.price+(c.old_price?' <s>$'+c.old_price+'</s>':'')+'</div></div><div class="acts"><button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة</button></div></div>';
@@ -1236,6 +1260,30 @@ function digits(p){return String(p||'').replace(/[^\d]/g,'')}
 function ago(s){if(!s)return '—';var d=Math.floor((Date.now()/1000-s)/86400);if(d<=0)return 'اليوم';if(d===1)return 'أمس';if(d<30)return 'قبل '+d+' يوم';return fmtDate(s)}
 function money(n){return '$'+(Number(n)||0).toLocaleString('en-US')}
 var GIFT_URL='/gift/student-kit.pdf';
+var OFFER_END=Date.parse('2026-10-19T16:00:00Z'),BOOK_COURSE='ai-ad-video';
+function hasBooked(){return (state.enrollments||[]).some(function(e){return e.course_id===BOOK_COURSE&&e.status!=='rejected'})}
+function isActive(){return (state.enrollments||[]).some(function(e){return e.status==='approved'})}
+function cdHtml(){return Date.now()<OFFER_END?'<div class="cd-lbl">⏳ العرض بينتهي خلال</div><div class="cd" data-cd><div><b data-u="d">0</b><i>يوم</i></div><div><b data-u="h">00</b><i>ساعة</i></div><div><b data-u="m">00</b><i>دقيقة</i></div><div><b data-u="s">00</b><i>ثانية</i></div></div>':''}
+setInterval(function(){var ms=Math.max(0,OFFER_END-Date.now()),t=Math.floor(ms/1000),p=function(n){return (n<10?'0':'')+n},v={d:Math.floor(t/86400),h:p(Math.floor(t%86400/3600)),m:p(Math.floor(t%3600/60)),s:p(t%60)};
+  $$('[data-cd]').forEach(function(c){$$('[data-u]',c).forEach(function(b){b.textContent=v[b.getAttribute('data-u')]})})},1000);
+function bookInner(){
+  var live=Date.now()<OFFER_END;
+  return '<span class="bk-hot">🔥 '+(live?'عرض لفترة محدودة · خصم 70%':'الحجز مفتوح الآن')+'</span>'+
+    '<h3>احجز الآن دورة <b>صناعة الفيديوهات الإعلانية بالذكاء الاصطناعي</b></h3>'+
+    (live?'<div class="bk-price"><b dir="ltr">$70</b><s dir="ltr">$233</s><span>أو 210 شيكل</span></div>':'')+cdHtml()+
+    '<ul><li>من الصفر للاحتراف، خطوة بخطوة</li><li>تعلّم واشتغل من جوالك أو لابتوبك</li><li>شهادة معتمدة من MARKETING MIDDLE EAST</li></ul>'+
+    '<button class="btn-book" data-book>احجز الآن 🚀</button>'+
+    '<p class="bk-gift">🎁 أول ما تتفعّل الدورة بتاخذ هدية: شنطة أدوات الطالب</p>';
+}
+function bookModal(){
+  if(!state.user||state.user.role==='admin'||hasBooked())return;
+  modal('<div class="bk">'+bookInner()+'<button class="bk-later" data-later>بعدين</button></div>',function(ov,close){
+    $('[data-book]',ov).addEventListener('click',function(){close();startEnroll(BOOK_COURSE)});
+    $('[data-later]',ov).addEventListener('click',close);
+  });
+}
+function bookCard(){return '<div class="bkcard bk">'+bookInner()+'</div>'}
+document.addEventListener('click',function(ev){var b=ev.target.closest('.bkcard [data-book]');if(b){ev.preventDefault();startEnroll(BOOK_COURSE)}});
 function giftModal(){
   var cols=['#FBBF24','#22D3EE','#3B82F6','#A855F7','#F472B6','#34D399'],cf='';
   for(var i=0;i<26;i++)cf+='<span class="cf" style="right:'+(Math.random()*100)+'%;background:'+cols[i%6]+';animation-delay:'+(Math.random()*0.9).toFixed(2)+'s;animation-duration:'+(2+Math.random()*1.6).toFixed(2)+'s"></span>';
@@ -1605,7 +1653,7 @@ if(parseHash().name==='home')loadMe();
 
 </script>
 <script>
-(function(){var END=Date.parse('2026-10-14T16:00:00Z'),el=document.getElementById('acCd'),box=document.getElementById('acOffer');if(!el)return;
+(function(){var END=Date.parse('2026-10-19T16:00:00Z'),el=document.getElementById('acCd'),box=document.getElementById('acOffer');if(!el)return;
 var p=function(n){return (n<10?'0':'')+n};
 function t(){var ms=END-Date.now();if(ms<=0){box.innerHTML='انتهى عرض الإطلاق.';clearInterval(i);return}var s=Math.floor(ms/1000),d=Math.floor(s/86400);el.innerHTML=(d?d+' يوم و ':'')+'<span dir="ltr">'+p(Math.floor(s%86400/3600))+':'+p(Math.floor(s%3600/60))+':'+p(s%60)+'</span>'}
 t();var i=setInterval(t,1000)})();
