@@ -78,7 +78,8 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:6
 .btn-lux:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 24px 54px -12px rgba(250,204,21,.95),0 0 0 8px rgba(250,204,21,.18),inset 0 2px 0 rgba(255,255,255,.6)}
 .btn-lux .lx-ic{font-size:1.25em;line-height:1}
 .hero .lx-ils{margin:14px 0 0;font-size:14px;color:var(--mute)}.hero .lx-ils b{color:#fde047;font-weight:700}
-.btn-lux .lx-tx{white-space:nowrap}
+.btn-lux .lx-tx{display:flex;flex-direction:column;align-items:center;line-height:1.25;white-space:nowrap}
+.btn-lux .lx-sub{margin-top:3px;font-size:12.5px;font-weight:700;color:#4a2a00;opacity:.85}
 .btn-lux .lx-tx b{font-size:1.18em;font-family:var(--display);letter-spacing:.01em}
 .btn-lux .lx-tag{flex:none;padding:5px 10px;border-radius:999px;background:#0B1020;color:#facc15;font-size:13px;font-weight:800;box-shadow:0 0 14px rgba(250,204,21,.45)}
 @keyframes lxflow{to{background-position:-220% 0}}
@@ -563,10 +564,9 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
     <p class="lead">دورات أونلاين مسجّلة تتعلمها من بيتك وعلى وقتك، من نفس الفريق اللي بيشتغل على حملات العلامات التجارية في الشرق الأوسط. من الصفر للاحتراف، وبتطبيق عملي.</p>
     <div class="intro-vid" id="introVid" hidden></div>
     <div class="ctas">
-      <a class="btn-lux" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video"><span class="lx-ic">🚀</span><span class="lx-tx">احجز مقعدك الآن بـ <b dir="ltr">$70</b> فقط</span><span class="lx-tag">خصم 70%</span></a>
+      <a class="btn-lux" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video"><span class="lx-ic">🚀</span><span class="lx-tx"><span class="lx-main">احجز مقعدك الآن بـ <b dir="ltr">$70</b> فقط</span><small class="lx-sub"><bdi dir="ltr">$70</bdi> = <bdi>210 شيكل</bdi></small></span><span class="lx-tag">خصم 70%</span></a>
       <a class="btn btn-g" href="#course">شوف تفاصيل الدورة</a>
     </div>
-    <p class="lx-ils">💡 الـ <bdi dir="ltr">$70</bdi> بتساوي <b>210 شيكل</b></p>
   </div>
 </header>
 
