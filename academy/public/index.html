@@ -61,6 +61,14 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:6
 .hero .gloss{font-size:clamp(20px,2.6vw,28px);color:#fff;font-weight:500;margin:0 0 18px}
 .hero p.lead{max-width:680px;margin:0 auto 34px;font-size:clamp(16px,1.9vw,19px);color:var(--silver)}
 .hero .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.intro-vid{max-width:880px;margin:0 auto 30px;padding:3px;border-radius:24px;background:linear-gradient(135deg,#22D3EE,#2563EB 45%,#a855f7 70%,#facc15);box-shadow:0 30px 90px -25px rgba(37,99,235,.85),0 0 60px -20px rgba(34,211,238,.5);transition:max-width .3s}
+.intro-vid.portrait{max-width:400px}
+.intro-vid .iv-in{position:relative;border-radius:21px;overflow:hidden;background:#000}
+.intro-vid video{display:block;width:100%;max-height:78vh;background:#000}
+.intro-vid iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+.intro-vid .iv-tag{position:absolute;top:12px;inset-inline-start:12px;z-index:2;padding:6px 12px;border-radius:999px;background:rgba(6,10,22,.75);border:1px solid rgba(34,211,238,.5);color:#22D3EE;font-size:12.5px;font-weight:600;pointer-events:none;transition:opacity .3s}
+.intro-vid.playing .iv-tag{opacity:0}
+.hero .ctas .btn-big{font-size:18px;padding:16px 30px}
 
 /* sections */
 section.sec{padding:clamp(60px,9vw,110px) 0;border-top:1px solid var(--line)}
@@ -514,8 +522,9 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
     <h1><span class="metal">MME</span> <span class="blue">ACADEMY</span></h1>
     <p class="gloss">أكاديمية التدريب والتطوير</p>
     <p class="lead">دورات أونلاين مسجّلة تتعلمها من بيتك وعلى وقتك، من نفس الفريق اللي بيشتغل على حملات العلامات التجارية في الشرق الأوسط. من الصفر للاحتراف، وبتطبيق عملي.</p>
+    <div class="intro-vid" id="introVid" hidden></div>
     <div class="ctas">
-      <a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز مقعدك بخصم 70% — <bdi dir="ltr">$70</bdi></a>
+      <a class="btn btn-p btn-big" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز مقعدك بخصم 70% — <bdi dir="ltr">$70</bdi></a>
       <a class="btn btn-g" href="#course">شوف تفاصيل الدورة</a>
     </div>
   </div>
@@ -960,7 +969,8 @@ function fmtSize(n){n=Number(n)||0;return n>=1073741824?(n/1073741824).toFixed(2
 function uploadVideo(lessonId,file,onProg){
   var CH=10*1024*1024,total=Math.max(1,Math.ceil(file.size/CH)),done=0,parts=[],up;
   if(file.size>5*1024*1024*1024)return Promise.reject(new Error('الملف أكبر من 5GB'));
-  return api('/admin/upload/start',{method:'POST',body:{lesson_id:lessonId,filename:file.name,type:file.type,size:file.size}}).then(function(s){
+  var isIntro=lessonId==='intro';
+  return api('/admin/upload/start',{method:'POST',body:{lesson_id:isIntro?0:lessonId,target:isIntro?'intro':undefined,filename:file.name,type:file.type,size:file.size}}).then(function(s){
     up=s;var next=1;
     function putPart(n,tries){
       var blob=file.slice((n-1)*CH,Math.min(n*CH,file.size));
@@ -973,7 +983,7 @@ function uploadVideo(lessonId,file,onProg){
     return Promise.all([worker(),worker(),worker()]);
   }).then(function(){
     parts.sort(function(a,b){return a.partNumber-b.partNumber});
-    return api('/admin/upload/complete',{method:'POST',body:{key:up.key,uploadId:up.uploadId,parts:parts,lesson_id:lessonId}});
+    return api('/admin/upload/complete',{method:'POST',body:{key:up.key,uploadId:up.uploadId,parts:parts,lesson_id:isIntro?0:lessonId,target:isIntro?'intro':undefined}});
   }).catch(function(e){if(up)api('/admin/upload/abort',{method:'POST',body:{key:up.key,uploadId:up.uploadId}}).catch(function(){});throw e});
 }
 window.__mmeVidFail=function(v){videoFail(v)};
@@ -1015,6 +1025,49 @@ function videoFail(v){
       else show('✅ الملف على السيرفر سليم (H.264'+sz+')، والتحميل منه شغّال.<br>خطأ المتصفح: <bdi dir="ltr" style="font-family:monospace">'+esc(errTxt)+'</bdi>');
     });
   }).catch(function(e){show('⚠️ ما قدرت أفحص الفيديو: '+esc(e.message||''))});
+}
+// ---------- intro (promo) video on the academy home ----------
+function renderIntro(){
+  var box=$('#introVid');if(!box)return;
+  api('/intro').then(function(d){
+    if(!d.video&&!d.url){box.hidden=true;box.innerHTML='';return}
+    var inner=d.video?'<video src="/api/intro/video?v='+esc(d.v||'')+'" controls playsinline preload="metadata" controlsList="nodownload"></video>':embedHtml(d.url);
+    box.innerHTML='<div class="iv-in"><span class="iv-tag">🎬 شوف الفيديو التعريفي بالدورة</span>'+inner+'</div>';box.hidden=false;
+    var v=$('video',box);
+    if(v){v.addEventListener('loadedmetadata',function(){box.classList.toggle('portrait',v.videoHeight>v.videoWidth)});v.addEventListener('play',function(){box.classList.add('playing')});
+      v.addEventListener('error',function(){box.hidden=true})}
+    else box.classList.add('playing');
+  },function(){box.hidden=true});
+}
+function introAdminCard(){
+  return '<div class="card2" id="introCard"><h3>🎬 الفيديو التعريفي بالدورة</h3><p style="margin:-6px 0 12px;color:var(--mute);font-size:13.5px">بيظهر أول ما تنفتح الأكاديمية، وتحته زر التسجيل بالدورة. بيشوفه أي زائر بدون تسجيل دخول.</p>'+
+    '<div id="introNow" class="muted" style="margin-bottom:12px">جاري التحميل…</div>'+
+    '<label class="drop" id="introDrop"><input type="file" id="introFile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.m4v,.webm" hidden><span id="introDropT">اضغط لاختيار الفيديو التعريفي (MP4 · H.264)</span></label>'+
+    '<div class="upbar" id="introBar" hidden><i></i><span>0%</span></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-p" id="introUp" type="button">رفع الفيديو</button><button class="btn btn-no" id="introDel" type="button" hidden>حذف الفيديو التعريفي</button></div>'+
+    '<details class="field" style="margin-top:14px"><summary style="cursor:pointer;color:var(--mute);font-size:13.5px">أو استخدم رابط يوتيوب بدل الرفع</summary><div style="display:flex;gap:8px;margin-top:8px"><input id="introUrl" dir="ltr" placeholder="https://youtu.be/..." style="flex:1"><button class="btn btn-g" id="introUrlSave" type="button">حفظ الرابط</button></div></details>'+
+  '</div>';
+}
+function bindIntroAdmin(){
+  var card=$('#introCard');if(!card)return;
+  var now=$('#introNow'),fi=$('#introFile'),dt=$('#introDropT'),up=$('#introUp'),del=$('#introDel'),bar=$('#introBar');
+  var refresh=function(){api('/intro').then(function(d){
+    now.innerHTML=d.video?'<span class="badge approved">✔ فيديو مرفوع'+(d.size?' · '+fmtSize(d.size):'')+'</span> <a href="#" style="color:var(--cyan)" onclick="location.hash=\'#\';return false">معاينة على الصفحة الرئيسية</a>':(d.url?'<span class="badge approved">✔ رابط خارجي</span> <span dir="ltr">'+esc(d.url)+'</span>':'<span class="badge pending">ما في فيديو تعريفي لسا</span>');
+    del.hidden=!d.video;$('#introUrl').value=d.url||'';
+  })};
+  refresh();
+  fi.addEventListener('change',function(){var f=fi.files[0];dt.textContent=f?('✔ '+f.name+' · '+fmtSize(f.size)):'اضغط لاختيار الفيديو التعريفي (MP4 · H.264)'});
+  up.addEventListener('click',function(){
+    var f=fi.files[0];if(!f){fi.click();return}
+    up.disabled=true;
+    checkPlayable(f).then(function(ck){
+      if(!ck.ok&&!confirm(CODEC_MSG))throw new Error('تم إلغاء الرفع');
+      return uploadVideo('intro',f,function(p){bar.hidden=false;$('i',bar).style.width=p+'%';$('span',bar).textContent=p<100?'جاري الرفع… '+p+'% — لا تسكّر الصفحة':'جاري المعالجة…'});
+    }).then(function(){toast('تم رفع الفيديو التعريفي ✔');$('span',bar).textContent='✔ تم الرفع';fi.value='';dt.textContent='اضغط لاختيار الفيديو التعريفي (MP4 · H.264)';up.disabled=false;refresh()},
+      function(e){toast(e.message);up.disabled=false;if(!bar.hidden)$('span',bar).textContent='فشل الرفع: '+e.message});
+  });
+  del.addEventListener('click',function(){if(!confirm('حذف الفيديو التعريفي من الأكاديمية؟'))return;api('/admin/intro',{method:'DELETE'}).then(function(){toast('تم الحذف');bar.hidden=true;refresh()},function(e){toast(e.message)})});
+  $('#introUrlSave').addEventListener('click',function(){api('/admin/intro',{method:'POST',body:{url:$('#introUrl').value}}).then(function(){toast('تم حفظ الرابط ✔');refresh()},function(e){toast(e.message)})});
 }
 function embedHtml(url){
   url=String(url||'').trim();var m;
@@ -1420,6 +1473,7 @@ function admLessons(){
       var c=d.course,ls=d.lessons||[];
       box.innerHTML=
         (courses.length>1?'<div class="filters">'+courses.map(function(x){return '<button data-c="'+esc(x.id)+'" class="'+(x.id===lessonCourse?'on':'')+'">'+esc(x.title)+'</button>'}).join('')+'</div>':'')+
+        introAdminCard()+
         '<div class="card2"><h3>بيانات الدورة</h3><form id="courseForm">'+
           '<div class="field"><label>اسم الدورة</label><input name="title" value="'+esc(c.title)+'"></div>'+
           '<div class="field"><label>الوصف</label><textarea name="description" rows="3">'+esc(c.description||'')+'</textarea></div>'+
@@ -1438,6 +1492,7 @@ function admLessons(){
       $$('[data-c]',box).forEach(function(b){b.addEventListener('click',function(){lessonCourse=b.getAttribute('data-c');admLessons()})});
       $('#courseForm').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
         api('/admin/courses/'+c.id,{method:'POST',body:{title:f.title.value,description:f.description.value,price:f.price.value,old_price:f.old_price.value,published:f.published.checked}}).then(function(){toast('تم الحفظ ✔')},function(e){toast(e.message)})});
+      bindIntroAdmin();
       var lf=$('#lessonForm'),E=lf.elements;
       lf.addEventListener('submit',function(ev){ev.preventDefault();
         var id=E.lid.value,b={course_id:c.id,title:E.title.value,video_url:E.video_url.value,sort:E.sort.value,minutes:E.minutes.value,notes:E.notes.value};
@@ -1543,6 +1598,7 @@ function route(){
 window.addEventListener('hashchange',route);
 renderNav();
 renderPayboxes(document);
+renderIntro();
 route();
 if(parseHash().name==='home')loadMe();
 })();

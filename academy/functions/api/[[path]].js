@@ -496,18 +496,22 @@ const noR2 = () => err('تخزين الفيديو غير مفعّل بعد (R2)'
 async function uploadStart(env, req) {
   if (!env.VIDEOS) return noR2();
   const b = await body(req);
-  const lesson = await env.DB.prepare('SELECT id FROM lessons WHERE id = ?').bind(Number(b.lesson_id) || 0).first();
-  if (!lesson) return err('الدرس غير موجود', 404);
   const type = /^video\//.test(String(b.type || '')) ? String(b.type) : 'video/mp4';
   const ext = (String(b.filename || '').match(/\.(mp4|m4v|mov|webm|mkv)$/i) || [, 'mp4'])[1].toLowerCase();
-  const key = `lessons/${lesson.id}/${randomHex(8)}.${ext}`;
+  let key;
+  if (b.target === 'intro') key = `intro/${randomHex(8)}.${ext}`;
+  else {
+    const lesson = await env.DB.prepare('SELECT id FROM lessons WHERE id = ?').bind(Number(b.lesson_id) || 0).first();
+    if (!lesson) return err('الدرس غير موجود', 404);
+    key = `lessons/${lesson.id}/${randomHex(8)}.${ext}`;
+  }
   const mpu = await env.VIDEOS.createMultipartUpload(key, { httpMetadata: { contentType: type } });
   return json({ key: mpu.key, uploadId: mpu.uploadId });
 }
 async function uploadPart(env, req, url) {
   if (!env.VIDEOS) return noR2();
   const key = url.searchParams.get('key'), uploadId = url.searchParams.get('uploadId'), n = Number(url.searchParams.get('part'));
-  if (!key || !key.startsWith('lessons/') || !uploadId || !(n >= 1 && n <= 10000)) return err('طلب غير صحيح');
+  if (!key || !/^(lessons|intro)\//.test(key) || !uploadId || !(n >= 1 && n <= 10000)) return err('طلب غير صحيح');
   const mpu = env.VIDEOS.resumeMultipartUpload(key, uploadId);
   const part = await mpu.uploadPart(n, await req.arrayBuffer());
   return json({ partNumber: part.partNumber, etag: part.etag });
@@ -515,6 +519,17 @@ async function uploadPart(env, req, url) {
 async function uploadComplete(env, req) {
   if (!env.VIDEOS) return noR2();
   const b = await body(req);
+  if (b.target === 'intro') {
+    if (!b.key || !String(b.key).startsWith('intro/') || !b.uploadId || !Array.isArray(b.parts)) return err('طلب غير صحيح');
+    const mpu = env.VIDEOS.resumeMultipartUpload(b.key, b.uploadId);
+    const obj = await mpu.complete(b.parts.map((p) => ({ partNumber: Number(p.partNumber), etag: String(p.etag) })));
+    const old = await getSetting(env, 'intro_key');
+    if (old && old !== b.key) { try { await env.VIDEOS.delete(old); } catch (e) {} }
+    await setSetting(env, 'intro_key', b.key);
+    await setSetting(env, 'intro_size', String(obj.size));
+    await setSetting(env, 'intro_type', (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4');
+    return json({ ok: true, size: obj.size });
+  }
   if (!b.key || !String(b.key).startsWith('lessons/') || !b.uploadId || !Array.isArray(b.parts)) return err('طلب غير صحيح');
   const lesson = await env.DB.prepare('SELECT id, video_key FROM lessons WHERE id = ?').bind(Number(b.lesson_id) || 0).first();
   if (!lesson) return err('الدرس غير موجود', 404);
@@ -617,6 +632,57 @@ async function streamVideo(env, req, user, id, url) {
   return new Response(req.method === 'HEAD' ? null : obj.body, { status: partial ? 206 : 200, headers: h });
 }
 
+// ---------- intro (promo) video on the academy home page: public, streamed from R2 ----------
+async function getSetting(env, k) {
+  const r = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(k).first();
+  return r ? r.value : null;
+}
+async function setSetting(env, k, v) {
+  if (v === null) return env.DB.prepare('DELETE FROM settings WHERE key = ?').bind(k).run();
+  return env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(k, v).run();
+}
+async function getIntro(env) {
+  const key = await getSetting(env, 'intro_key');
+  return json({ video: !!key, v: key ? key.slice(6, 14) : null, size: Number(await getSetting(env, 'intro_size')) || null, url: (await getSetting(env, 'intro_url')) || null });
+}
+async function saveIntro(env, req) {
+  const b = await body(req);
+  if (b.url !== undefined) await setSetting(env, 'intro_url', clean(b.url, 1000) || null);
+  return json({ ok: true });
+}
+async function deleteIntro(env) {
+  const key = await getSetting(env, 'intro_key');
+  if (key && env.VIDEOS) { try { await env.VIDEOS.delete(key); } catch (e) {} }
+  for (const k of ['intro_key', 'intro_size', 'intro_type']) await setSetting(env, k, null);
+  return json({ ok: true });
+}
+async function streamIntro(env, req) {
+  if (!env.VIDEOS) return noR2();
+  const key = await getSetting(env, 'intro_key');
+  if (!key) return err('ما في فيديو تعريفي', 404);
+  let size = Number(await getSetting(env, 'intro_size')) || 0;
+  if (!size) { const hd = await env.VIDEOS.head(key); if (!hd) return err('الفيديو غير موجود', 404); size = hd.size; }
+  const rh = req.headers.get('range');
+  let start = 0, end = size - 1, partial = false;
+  const rm = rh && /^bytes=(\d*)-(\d*)$/.exec(rh.trim());
+  if (rm && (rm[1] !== '' || rm[2] !== '')) {
+    if (rm[1] === '') { start = Math.max(0, size - Number(rm[2])); end = size - 1; }
+    else { start = Number(rm[1]); end = rm[2] === '' ? size - 1 : Math.min(Number(rm[2]), size - 1); }
+    if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes' } });
+    partial = true;
+  }
+  const obj = await env.VIDEOS.get(key, partial ? { range: { offset: start, length: end - start + 1 } } : undefined);
+  if (!obj) return err('الفيديو غير موجود', 404);
+  const h = new Headers();
+  h.set('content-type', (await getSetting(env, 'intro_type')) || 'video/mp4');
+  h.set('etag', obj.httpEtag);
+  h.set('accept-ranges', 'bytes');
+  h.set('cache-control', 'public, max-age=3600');
+  h.set('content-length', String(end - start + 1));
+  if (partial) h.set('content-range', `bytes ${start}-${end}/${size}`);
+  return new Response(req.method === 'HEAD' ? null : obj.body, { status: partial ? 206 : 200, headers: h });
+}
+
 // ---------- settings (payment methods) ----------
 const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'jawwal_number', 'jawwal_holder', 'pay_note'];
 async function getSettings(env) {
@@ -656,6 +722,8 @@ export async function onRequest({ request, env }) {
     if (path === '/login' && method === 'POST') return await login(env, request);
     if (path === '/logout' && method === 'POST') return await logout(env, request);
     if (path === '/courses' && method === 'GET') return await listCourses(env);
+    if (path === '/intro' && method === 'GET') return await getIntro(env);
+    if (path === '/intro/video' && (method === 'GET' || method === 'HEAD')) return await streamIntro(env, request);
 
     const user = await currentUser(env, request);
     // payment account details are no longer shown publicly; only the admin can read them
@@ -698,6 +766,8 @@ export async function onRequest({ request, env }) {
       if ((m = path.match(/^\/admin\/users\/(\d+)\/logout-all$/)) && method === 'POST') return await adminLogoutAll(env, Number(m[1]));
       if ((m = path.match(/^\/admin\/users\/(\d+)\/password$/)) && method === 'POST') return await adminResetPassword(env, request, Number(m[1]));
       if ((m = path.match(/^\/admin\/users\/(\d+)\/enroll$/)) && method === 'POST') return await adminEnrollUser(env, request, Number(m[1]));
+      if (path === '/admin/intro' && method === 'POST') return await saveIntro(env, request);
+      if (path === '/admin/intro' && method === 'DELETE') return await deleteIntro(env);
       if (path === '/admin/upload/start' && method === 'POST') return await uploadStart(env, request);
       if (path === '/admin/upload/part' && method === 'PUT') return await uploadPart(env, request, url);
       if (path === '/admin/upload/complete' && method === 'POST') return await uploadComplete(env, request);
