@@ -69,6 +69,22 @@ nav .wrap{display:flex;align-items:center;justify-content:space-between;height:6
 .intro-vid .iv-tag{position:absolute;top:12px;inset-inline-start:12px;z-index:2;padding:6px 12px;border-radius:999px;background:rgba(6,10,22,.75);border:1px solid rgba(34,211,238,.5);color:#22D3EE;font-size:12.5px;font-weight:600;pointer-events:none;transition:opacity .3s}
 .intro-vid.playing .iv-tag{opacity:0}
 .hero .ctas .btn-big{font-size:18px;padding:16px 30px}
+.hero .ctas{align-items:center}
+.btn-lux{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:12px;width:min(560px,100%);padding:18px 26px;border-radius:999px;overflow:hidden;isolation:isolate;
+  background:linear-gradient(100deg,#f59e0b,#facc15 25%,#fb923c 50%,#f472b6 75%,#f59e0b);background-size:220% 100%;animation:lxflow 5s linear infinite,lxpulse 2.2s ease-in-out infinite;
+  color:#1a0f00;font-weight:900;font-size:clamp(17px,4.6vw,21px);text-decoration:none;border:2px solid rgba(255,255,255,.55);
+  box-shadow:0 18px 44px -12px rgba(250,204,21,.85),0 0 0 6px rgba(250,204,21,.12),inset 0 2px 0 rgba(255,255,255,.55)}
+.btn-lux:before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.75) 48%,transparent 62%);transform:translateX(-120%);animation:lxshine 2.8s ease-in-out infinite}
+.btn-lux:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 24px 54px -12px rgba(250,204,21,.95),0 0 0 8px rgba(250,204,21,.18),inset 0 2px 0 rgba(255,255,255,.6)}
+.btn-lux .lx-ic{font-size:1.25em;line-height:1}
+.btn-lux .lx-tx{white-space:nowrap}
+.btn-lux .lx-tx b{font-size:1.18em;font-family:var(--display);letter-spacing:.01em}
+.btn-lux .lx-tag{flex:none;padding:5px 10px;border-radius:999px;background:#0B1020;color:#facc15;font-size:13px;font-weight:800;box-shadow:0 0 14px rgba(250,204,21,.45)}
+@keyframes lxflow{to{background-position:-220% 0}}
+@keyframes lxshine{0%,55%{transform:translateX(120%)}100%{transform:translateX(-120%)}}
+@keyframes lxpulse{50%{box-shadow:0 22px 54px -10px rgba(250,204,21,.95),0 0 0 12px rgba(250,204,21,.06),inset 0 2px 0 rgba(255,255,255,.55)}}
+@media (max-width:420px){.btn-lux{gap:8px;padding:16px 14px;font-size:16px}.btn-lux .lx-ic{display:none}.btn-lux .lx-tag{font-size:11.5px;padding:4px 8px}}
+@media (prefers-reduced-motion:reduce){.btn-lux,.btn-lux:before{animation:none}}
 
 /* sections */
 section.sec{padding:clamp(60px,9vw,110px) 0;border-top:1px solid var(--line)}
@@ -546,7 +562,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
     <p class="lead">دورات أونلاين مسجّلة تتعلمها من بيتك وعلى وقتك، من نفس الفريق اللي بيشتغل على حملات العلامات التجارية في الشرق الأوسط. من الصفر للاحتراف، وبتطبيق عملي.</p>
     <div class="intro-vid" id="introVid" hidden></div>
     <div class="ctas">
-      <a class="btn btn-p btn-big" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز مقعدك بخصم 70% — <bdi dir="ltr">$70</bdi></a>
+      <a class="btn-lux" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video"><span class="lx-ic">🚀</span><span class="lx-tx">احجز مقعدك الآن بـ <b dir="ltr">$70</b> فقط</span><span class="lx-tag">خصم 70%</span></a>
       <a class="btn btn-g" href="#course">شوف تفاصيل الدورة</a>
     </div>
   </div>
