@@ -277,6 +277,18 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .app{padding-top:clamp(36px,6vw,70px);padding-bottom:90px;min-height:70vh}
 .navauth{display:flex;gap:8px;align-items:center}
 .navauth .btn{padding:10px 16px;font-size:14.5px}
+.bell{position:relative;display:inline-grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1px solid var(--line-2);background:rgba(11,16,32,.7);color:#fff;font-size:18px;cursor:pointer;text-decoration:none}
+.bell i{position:absolute;top:-4px;inset-inline-end:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#ef4444;color:#fff;font:700 11.5px/20px sans-serif;font-style:normal;text-align:center;box-shadow:0 0 0 2px #060A16;animation:bkp 1.6s ease-in-out infinite}
+.nf-list{display:grid;gap:10px;text-align:right}
+.nf-item{display:block;padding:14px 16px;border-radius:16px;border:1px solid var(--line-2);background:rgba(6,10,22,.7);color:inherit;text-decoration:none}
+.nf-item.new{border-color:rgba(250,204,21,.6);background:linear-gradient(135deg,rgba(250,204,21,.1),rgba(37,99,235,.12))}
+.nf-item b{display:block;color:#fff;font-size:15.5px;line-height:1.5}
+.nf-item>span{display:block;color:var(--text);font-size:13.5px;margin-top:3px;line-height:1.7}
+.nf-item small{display:block;color:var(--mute);font-size:12px;margin-top:6px}
+.nf-new{display:inline-block;margin-inline-start:6px;padding:1px 8px;border-radius:999px;background:#facc15;color:#1a0f00;font-size:11px;font-weight:800;vertical-align:middle}
+.wa-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(11,16,32,.7)}
+.wa-row.done{opacity:.55}
+.wa-row b{color:#fff}
 .panel{max-width:460px;margin:0 auto;padding:clamp(24px,4vw,38px);border:1px solid var(--line-2);border-radius:24px;background:linear-gradient(160deg,rgba(37,99,235,.12),rgba(11,16,32,.92) 50%)}
 .panel h1,.pagehead h1{font-size:clamp(24px,3.4vw,32px);color:#fff;margin:0 0 4px;font-weight:600;line-height:1.3}
 .panel .sub{margin:0 0 24px;color:var(--mute);font-size:15px}
@@ -805,15 +817,34 @@ function parseHash(){
 function renderNav(){
   var n=$('#navAuth');if(!n)return;
   if(state.user){
-    n.innerHTML=(state.user.role==='admin'?'<a class="btn btn-g" href="#/admin">لوحة التحكم</a>':'')+
+    n.innerHTML=(state.user.role==='admin'?'<a class="btn btn-g" href="#/admin">لوحة التحكم</a>':'<button class="bell" id="bellBtn" aria-label="الإشعارات">🔔'+(state.unread?'<i>'+state.unread+'</i>':'')+'</button>')+
       '<a class="btn btn-p" href="#/my">حسابي</a>';
+    var bb=$('#bellBtn');if(bb)bb.addEventListener('click',function(){notifModal(false)});
   }else{
     n.innerHTML='<a class="btn btn-g" href="#/login">دخول</a><a class="btn btn-p" href="#/register">إنشاء حساب</a>';
   }
 }
 function loadMe(){
   return api('/me').then(function(d){state.user=d.user;state.enrollments=d.enrollments;return d},function(){state.user=null;state.enrollments=[];return null})
-    .then(function(d){state.loaded=true;renderNav();checkWelcome();return d});
+    .then(function(d){state.loaded=true;renderNav();checkWelcome();loadNotifs();return d});
+}
+// ---------- notifications (new course / new lecture) ----------
+function loadNotifs(){
+  if(!state.user||state.user.role==='admin')return Promise.resolve();
+  return api('/notifications').then(function(d){
+    state.notifs=d.items||[];state.unread=d.unread||0;renderNav();
+    if(state.unread&&!state.notifShown){state.notifShown=true;setTimeout(function(){notifModal(true)},900)}
+  },function(){});
+}
+function nfItem(n){return '<a class="nf-item'+(n.unread?' new':'')+'" href="'+esc(n.link||'#/my')+'" data-nf><b>'+esc(n.title)+(n.unread?'<span class="nf-new">جديد</span>':'')+'</b>'+(n.body?'<span>'+esc(n.body)+'</span>':'')+'<small>'+ago(n.created_at)+'</small></a>'}
+function notifModal(onlyNew){
+  var list=(state.notifs||[]).filter(function(n){return !onlyNew||n.unread});
+  if(!list.length&&onlyNew)return;
+  if(onlyNew&&document.querySelector('.mdl')){setTimeout(function(){notifModal(true)},1500);return}
+  modal('<div class="bk"><span class="bk-hot">🔔 '+(onlyNew?'جديد بالأكاديمية':'الإشعارات')+'</span><h3 style="font-size:20px!important">'+(onlyNew?'في إشي جديد إلك!':'آخر الأخبار')+'</h3>'+
+    (list.length?'<div class="nf-list">'+list.slice(0,8).map(nfItem).join('')+'</div>':'<p style="color:var(--mute)">ما في إشعارات لسا.</p>')+'</div>',
+    function(ov,close){$$('[data-nf]',ov).forEach(function(a){a.addEventListener('click',close)})});
+  if(state.unread){api('/notifications/seen',{method:'POST',body:{}}).catch(function(){});state.unread=0;(state.notifs||[]).forEach(function(n){n.unread=false});renderNav()}
 }
 // once per activation: «مبروك، تم تسجيلك بنجاح» for a student whose course was just opened
 function checkWelcome(){
@@ -921,6 +952,7 @@ function viewMy(){
       '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
     if(!hasBooked())html+=bookCard();
     if(isActive())html+=giftRow();
+    if(state.notifs&&state.notifs.length)html+='<h2 style="color:#fff;font-size:19px;margin:0 0 12px">🔔 الإشعارات</h2><div class="nf-list" style="margin-bottom:26px">'+state.notifs.slice(0,5).map(nfItem).join('')+'</div>';
     html+='<h2 style="color:#fff;font-size:19px;margin:0 0 12px">دوراتي</h2>';
     var pend=ens.filter(function(e){return e.status==='pending'})[0];
     if(pend)html+=activateBox(pend);
@@ -1344,14 +1376,14 @@ function viewAdmin(params){
   if(params.t)adminTab=params.t;
   app.innerHTML='<div class="adm-head"><div><span class="mono" style="color:var(--cyan)">ADMIN · MME ACADEMY</span><h1>لوحة التحكم</h1></div>'+
     '<div class="acts"><a class="btn btn-g btn-s" href="#/my">حسابي</a><button class="btn btn-g btn-s" id="logoutBtn">خروج</button></div></div>'+
-    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','الدورات والدروس'],['pay','طرق الدفع']].map(function(x){
+    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','الدورات والدروس'],['notifs','الإشعارات'],['pay','طرق الدفع']].map(function(x){
       return '<button data-t="'+x[0]+'" class="'+(adminTab===x[0]&&!params.u?'on':'')+'">'+x[1]+(x[0]==='orders'?'<span class="cnt" id="pendCnt" hidden></span>':'')+(x[0]==='comments'?'<span class="cnt" id="cmtCnt" hidden></span>':'')+'</button>'}).join('')+'</div><div id="adm"></div>';
   $('#logoutBtn').addEventListener('click',logout);
   $$('.tabs button').forEach(function(b){b.addEventListener('click',function(){adminTab=b.getAttribute('data-t');go('#/admin?t='+adminTab)})});
   api('/admin/enrollments?status=pending').then(function(d){var n=d.enrollments.length,el=$('#pendCnt');if(el&&n){el.hidden=false;el.textContent=n}});
   api('/admin/comments?status=pending').then(function(d){var n=d.comments.length,el=$('#cmtCnt');if(el&&n){el.hidden=false;el.textContent=n}});
   if(params.u)return admStudent(Number(params.u));
-  ({overview:admOverview,orders:admOrders,students:admStudents,comments:admComments,lessons:admLessons,pay:admPay})[adminTab]();
+  ({overview:admOverview,orders:admOrders,students:admStudents,comments:admComments,lessons:admLessons,notifs:admNotifs,pay:admPay})[adminTab]();
 }
 
 function admOverview(){
@@ -1539,12 +1571,13 @@ function admLessons(){
       var c=d.course,ls=d.lessons||[];
       box.innerHTML=
         (courses.length>1?'<div class="filters">'+courses.map(function(x){return '<button data-c="'+esc(x.id)+'" class="'+(x.id===lessonCourse?'on':'')+'">'+esc(x.title)+'</button>'}).join('')+'</div>':'')+
+        '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-p" id="newCourseBtn" type="button">➕ دورة جديدة</button></div>'+
         introAdminCard()+
         '<div class="card2"><h3>بيانات الدورة</h3><form id="courseForm">'+
           '<div class="field"><label>اسم الدورة</label><input name="title" value="'+esc(c.title)+'"></div>'+
           '<div class="field"><label>الوصف</label><textarea name="description" rows="3">'+esc(c.description||'')+'</textarea></div>'+
           '<div class="grid2"><div class="field"><label>السعر ($)</label><input name="price" type="number" min="0" step="0.01" value="'+c.price+'"></div><div class="field"><label>السعر قبل الخصم ($) — اختياري</label><input name="old_price" type="number" min="0" step="0.01" value="'+(c.old_price||'')+'"></div></div>'+
-          '<label style="display:flex;gap:8px;align-items:center;margin-bottom:14px;color:var(--silver)"><input type="checkbox" name="published" '+(c.published?'checked':'')+'> الدورة ظاهرة للطلاب</label>'+
+          '<label style="display:flex;gap:8px;align-items:center;margin-bottom:14px;color:var(--silver)"><input type="checkbox" name="published" '+(c.published?'checked':'')+'> الدورة ظاهرة للطلاب <small style="color:var(--mute)">(أول ما تظهر بينبعت إشعار «دورة جديدة» لكل المشتركين)</small></label>'+
           '<button class="btn btn-p" type="submit">حفظ</button></form></div>'+
         '<div class="card2"><h3 id="lfTitle">إضافة درس جديد</h3><form id="lessonForm"><input type="hidden" name="lid">'+
           '<div class="field"><label>عنوان الدرس</label><input name="title" required></div>'+
@@ -1559,6 +1592,7 @@ function admLessons(){
       $('#courseForm').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
         api('/admin/courses/'+c.id,{method:'POST',body:{title:f.title.value,description:f.description.value,price:f.price.value,old_price:f.old_price.value,published:f.published.checked}}).then(function(){toast('تم الحفظ ✔')},function(e){toast(e.message)})});
       bindIntroAdmin();
+      $('#newCourseBtn').addEventListener('click',newCourseDialog);
       var lf=$('#lessonForm'),E=lf.elements;
       lf.addEventListener('submit',function(ev){ev.preventDefault();
         var id=E.lid.value,b={course_id:c.id,title:E.title.value,video_url:E.video_url.value,sort:E.sort.value,minutes:E.minutes.value,notes:E.notes.value};
@@ -1618,6 +1652,56 @@ function admComments(){
   },function(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
 }
 
+function newCourseDialog(){
+  modal('<h3>➕ دورة جديدة</h3><p class="mdl-sub">إذا اخترت «تظهر للطلاب الآن» بينبعت إشعار فيها لكل المشتركين.</p><form id="ncF">'+
+    '<div class="field"><label>اسم الدورة</label><input name="title" required></div>'+
+    '<div class="field"><label>رابط مختصر بالإنجليزي (اختياري)</label><input name="slug" dir="ltr" placeholder="ai-design"></div>'+
+    '<div class="field"><label>الوصف</label><textarea name="description" rows="3"></textarea></div>'+
+    '<div class="grid2"><div class="field"><label>السعر ($)</label><input name="price" type="number" min="0" step="0.01" value="70"></div><div class="field"><label>قبل الخصم ($)</label><input name="old_price" type="number" min="0" step="0.01"></div></div>'+
+    '<label style="display:flex;gap:8px;align-items:center;margin-bottom:14px;color:var(--silver)"><input type="checkbox" name="published"> تظهر للطلاب الآن</label>'+
+    '<button class="btn btn-p full" type="submit">إنشاء الدورة</button></form>',function(ov,close){
+    $('#ncF',ov).addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements,b=$('button[type=submit]',ov);b.disabled=true;
+      api('/admin/courses',{method:'POST',body:{title:f.title.value,slug:f.slug.value,description:f.description.value,price:f.price.value,old_price:f.old_price.value,published:f.published.checked}}).then(function(r){
+        close();toast('تم إنشاء الدورة ✔'+(f.published.checked?' وانبعت الإشعار':''));lessonCourse=r.id;admLessons();
+      },function(e){toast(e.message);b.disabled=false})});
+  });
+}
+var SITE='https://academy.marketingmiddleeast.com/';
+function waNotifText(n,u){return 'مرحبًا '+(u.name||'').split(' ')[0]+' 👋\n'+n.title+(n.body?'\n'+n.body:'')+'\n\n'+SITE+(n.link||'')+'\n\nأكاديمية MME'}
+function admNotifs(){
+  var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
+  Promise.all([api('/admin/notifications'),api('/admin/stats')]).then(function(r){
+    var ns=r[0].notifications||[],courses=r[1].courses||[];
+    box.innerHTML='<div class="card2"><h3>📣 إرسال إشعار جديد</h3><p style="margin:-6px 0 12px;color:var(--mute);font-size:13.5px">الإشعارات بتطلع للطالب أول ما يفتح الأكاديمية (نافذة + جرس 🔔)، ومن هون بتقدر تبعتها كمان على واتساب. الدورات الجديدة والمحاضرات الجديدة بينعملها إشعار تلقائي.</p><form id="nfF">'+
+      '<div class="field"><label>العنوان</label><input name="title" required placeholder="مثال: 🎁 بث مباشر الخميس الساعة 8"></div>'+
+      '<div class="field"><label>التفاصيل (اختياري)</label><textarea name="body" rows="2"></textarea></div>'+
+      '<div class="grid2"><div class="field"><label>لمين؟</label><select name="audience" class="sel"><option value="all">كل المشتركين بالأكاديمية</option>'+courses.map(function(c){return '<option value="c:'+esc(c.id)+'">طلاب دورة: '+esc(c.title)+'</option>'}).join('')+'</select></div>'+
+      '<div class="field"><label>رابط (اختياري)</label><input name="link" dir="ltr" placeholder="#/course/ai-ad-video"></div></div>'+
+      '<button class="btn btn-p" type="submit">إرسال الإشعار</button></form></div>'+
+      '<h3 style="color:#fff;margin:6px 0 12px">الإشعارات ('+ns.length+')</h3>'+
+      (ns.length?'<div class="list">'+ns.map(function(n){var auto=n.kind==='course'?'دورة جديدة · تلقائي':n.kind==='lesson'?'محاضرة جديدة · تلقائي':'يدوي';
+        return '<div class="row"><div><h3>'+esc(n.title)+'</h3><div class="muted">'+auto+' · '+(n.audience==='course'?'طلاب «'+esc(n.course_title||'')+'»':'كل المشتركين')+' · '+n.recipients+' شخص · '+ago(n.created_at)+'</div><div class="muted">📲 واتساب: انبعت لـ '+n.wa_sent+' من '+n.recipients+'</div></div>'+
+          '<div class="acts"><button class="btn btn-wa btn-s" data-nwa="'+n.id+'">إرسال على واتساب</button><button class="btn btn-no btn-s" data-del="'+n.id+'">حذف</button></div></div>'}).join('')+'</div>':'<div class="empty">ما في إشعارات لسا.</div>');
+    $('#nfF').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements,a=f.audience.value,b=$('button[type=submit]',ev.target);b.disabled=true;
+      api('/admin/notifications',{method:'POST',body:{title:f.title.value,body:f.body.value,link:f.link.value,audience:a==='all'?'all':'course',course_id:a==='all'?null:a.slice(2)}}).then(function(){toast('تم إرسال الإشعار ✔');admNotifs()},function(e){toast(e.message);b.disabled=false})});
+    $$('[data-del]',box).forEach(function(b){b.addEventListener('click',function(){if(!confirm('حذف الإشعار؟'))return;api('/admin/notifications/'+b.getAttribute('data-del'),{method:'DELETE'}).then(function(){toast('تم الحذف');admNotifs()},function(e){toast(e.message)})})});
+    $$('[data-nwa]',box).forEach(function(b){b.addEventListener('click',function(){waSendDialog(Number(b.getAttribute('data-nwa')))})});
+  },function(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
+}
+function waSendDialog(id){
+  api('/admin/notifications/'+id).then(function(d){
+    var n=d.notification,rs=d.recipients||[];
+    var rows=function(){return rs.length?rs.map(function(u){var ph=digits(u.phone);return '<div class="wa-row'+(u.wa_sent?' done':'')+'"><span><b>'+esc(u.name)+'</b><br><small class="ltr" style="color:var(--mute)">'+esc(u.phone||'')+'</small></span>'+(ph?'<a class="btn btn-wa btn-s" target="_blank" rel="noopener" data-u="'+u.id+'" href="https://wa.me/'+ph+'?text='+encodeURIComponent(waNotifText(n,u))+'">'+(u.wa_sent?'✓ انبعت':'إرسال')+'</a>':'<small>بدون رقم</small>')+'</div>'}).join(''):'<div class="empty">ما في مشتركين لهذا الإشعار.</div>'};
+    modal('<h3>📲 '+esc(n.title)+'</h3><p class="mdl-sub">اضغط «إرسال» جنب كل اسم، بيفتحلك واتساب والرسالة جاهزة. ('+rs.length+' شخص)</p>'+
+      '<button class="btn btn-g btn-s" id="cpNums" type="button" style="margin-bottom:10px">نسخ كل الأرقام (لقائمة بث)</button>'+
+      '<div id="waList" style="display:grid;gap:8px;max-height:55vh;overflow:auto">'+rows()+'</div>',function(ov){
+      $('#cpNums',ov).addEventListener('click',function(){var t=rs.map(function(u){return u.phone}).filter(Boolean).join('\n');(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){toast('تم نسخ '+rs.length+' رقم ✔')},function(){toast('ما قدرت أنسخ')})});
+      $('#waList',ov).addEventListener('click',function(ev){var a=ev.target.closest('[data-u]');if(!a)return;var uid=Number(a.getAttribute('data-u'));
+        api('/admin/notifications/'+id+'/wa',{method:'POST',body:{user_id:uid}}).catch(function(){});
+        rs.forEach(function(u){if(u.id===uid)u.wa_sent=true});setTimeout(function(){$('#waList',ov).innerHTML=rows()},300)});
+    });
+  },function(e){toast(e.message)});
+}
 function admPay(){
   var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
   PAY=null;

@@ -123,6 +123,7 @@ async function register(env, req) {
     'INSERT INTO users (name, email, phone, pass_hash, salt, role, created_at, last_login, terms_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
   ).bind(name, email, phone, pass_hash, salt, roleFor(email), now(), now(), now()).run();
   const id = r.meta.last_row_id;
+  try { await env.DB.prepare('UPDATE users SET notif_seen = (SELECT COALESCE(MAX(id), 0) FROM notifications) WHERE id = ?').bind(id).run(); } catch (e) {}
   const token = await createSession(env, id, req, roleFor(email) === 'admin');
   return json({ user: { id, name, email, phone, role: roleFor(email) } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
@@ -473,8 +474,10 @@ async function adminSaveLesson(env, req, id) {
     const course = await env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(clean(b.course_id, 60)).first();
     if (!course) return err('الدورة غير موجودة', 404);
     const r = await env.DB.prepare('INSERT INTO lessons (title, video_url, notes, sort, minutes, course_id) VALUES (?, ?, ?, ?, ?, ?)').bind(...vals, course.id).run();
+    if (vals[1]) await notifyLesson(env, r.meta.last_row_id);
     return json({ ok: true, id: r.meta.last_row_id });
   }
+  if (vals[1]) await notifyLesson(env, id);
   return json({ ok: true, id });
 }
 async function adminDeleteLesson(env, id) {
@@ -488,6 +491,106 @@ async function adminSaveCourse(env, req, id) {
   const b = await body(req);
   await env.DB.prepare('UPDATE courses SET title = ?, description = ?, price = ?, old_price = ?, published = ? WHERE id = ?')
     .bind(clean(b.title, 200), clean(b.description, 4000), Number(b.price) || 0, b.old_price ? Number(b.old_price) : null, b.published ? 1 : 0, id).run();
+  if (b.published) await notifyCourse(env, id);
+  return json({ ok: true });
+}
+async function adminCreateCourse(env, req) {
+  const b = await body(req);
+  const title = clean(b.title, 200);
+  if (title.length < 3) return err('اكتب اسم الدورة');
+  let base = clean(b.slug, 40).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'course';
+  let cid = base, i = 2;
+  while (await env.DB.prepare('SELECT 1 FROM courses WHERE id = ?').bind(cid).first()) cid = `${base}-${i++}`;
+  const sort = (await env.DB.prepare('SELECT COALESCE(MAX(sort), 0) + 1 AS s FROM courses').first()).s;
+  await env.DB.prepare('INSERT INTO courses (id, title, description, price, old_price, published, sort) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(cid, title, clean(b.description, 4000) || null, Number(b.price) || 0, b.old_price ? Number(b.old_price) : null, b.published ? 1 : 0, sort).run();
+  if (b.published) await notifyCourse(env, cid);
+  return json({ ok: true, id: cid });
+}
+
+// ---------- notifications: new course for everyone, new lecture for that course's students ----------
+async function ensureNotifTables(env) {
+  try {
+    await env.DB.prepare("CREATE TABLE IF NOT EXISTS notifications (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, ref TEXT, title TEXT NOT NULL, body TEXT, link TEXT, course_id TEXT, audience TEXT NOT NULL DEFAULT 'all', created_at INTEGER NOT NULL)").run();
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS notif_wa (notif_id INTEGER NOT NULL, user_id INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(notif_id, user_id))').run();
+  } catch (e) {}
+}
+async function addNotif(env, n) {
+  await ensureNotifTables(env);
+  if (n.ref) {
+    const ex = await env.DB.prepare('SELECT id FROM notifications WHERE kind = ? AND ref = ?').bind(n.kind, n.ref).first();
+    if (ex) return ex.id;
+  }
+  const r = await env.DB.prepare('INSERT INTO notifications (kind, ref, title, body, link, course_id, audience, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(n.kind, n.ref || null, n.title, n.body || null, n.link || null, n.course_id || null, n.audience || 'all', now()).run();
+  return r.meta.last_row_id;
+}
+async function notifyCourse(env, cid) {
+  const c = await env.DB.prepare('SELECT id, title, published FROM courses WHERE id = ?').bind(cid).first();
+  if (!c || !c.published) return;
+  await addNotif(env, { kind: 'course', ref: c.id, title: `🆕 دورة جديدة: ${c.title}`, body: 'نزلت دورة جديدة على أكاديمية MME. شوف التفاصيل واحجز مقعدك.', link: '#/course/' + c.id, course_id: c.id, audience: 'all' });
+}
+async function notifyLesson(env, lid) {
+  const l = await env.DB.prepare('SELECT l.id, l.title, l.course_id, l.video_key, l.video_url, c.title AS ctitle FROM lessons l JOIN courses c ON c.id = l.course_id WHERE l.id = ?').bind(lid).first();
+  if (!l || (!l.video_key && !l.video_url)) return;
+  await addNotif(env, { kind: 'lesson', ref: String(l.id), title: `🎬 محاضرة جديدة: ${l.title}`, body: `نزلت محاضرة جديدة بدورة «${l.ctitle}». ادخل وشاهدها الآن.`, link: `#/course/${l.course_id}?l=${l.id}`, course_id: l.course_id, audience: 'course' });
+}
+// which notifications a user can see: everything for "all", course ones only for its activated students
+const NOTIF_VISIBLE = `(n.audience = 'all' OR EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = ? AND e.course_id = n.course_id AND e.status = 'approved'))`;
+async function myNotifs(env, user) {
+  await ensureNotifTables(env);
+  const { results } = await env.DB.prepare(`SELECT n.id, n.kind, n.title, n.body, n.link, n.created_at FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 30`).bind(user.id).all();
+  const seen = Number(user.notif_seen) || 0;
+  return json({ items: results.map((x) => ({ ...x, unread: x.id > seen })), unread: results.filter((x) => x.id > seen).length });
+}
+async function markNotifsSeen(env, user) {
+  await env.DB.prepare('UPDATE users SET notif_seen = (SELECT COALESCE(MAX(id), 0) FROM notifications) WHERE id = ?').bind(user.id).run();
+  return json({ ok: true });
+}
+async function notifRecipients(env, n) {
+  const sql = n.audience === 'course'
+    ? "SELECT u.id, u.name, u.phone FROM users u JOIN enrollments e ON e.user_id = u.id AND e.course_id = ? AND e.status = 'approved' WHERE COALESCE(u.suspended,0) = 0 AND u.role != 'admin' ORDER BY u.name"
+    : "SELECT u.id, u.name, u.phone FROM users u WHERE COALESCE(u.suspended,0) = 0 AND u.role != 'admin' ORDER BY u.created_at DESC";
+  const { results } = n.audience === 'course' ? await env.DB.prepare(sql).bind(n.course_id).all() : await env.DB.prepare(sql).all();
+  return results;
+}
+async function adminNotifs(env) {
+  await ensureNotifTables(env);
+  const { results } = await env.DB.prepare(`SELECT n.*, c.title AS course_title, (SELECT COUNT(*) FROM notif_wa w WHERE w.notif_id = n.id) AS wa_sent FROM notifications n LEFT JOIN courses c ON c.id = n.course_id ORDER BY n.id DESC LIMIT 100`).all();
+  for (const n of results) n.recipients = (await notifRecipients(env, n)).length;
+  return json({ notifications: results });
+}
+async function adminNotifDetail(env, id) {
+  const n = await env.DB.prepare('SELECT * FROM notifications WHERE id = ?').bind(id).first();
+  if (!n) return err('غير موجود', 404);
+  const rec = await notifRecipients(env, n);
+  const { results } = await env.DB.prepare('SELECT user_id FROM notif_wa WHERE notif_id = ?').bind(id).all();
+  const sent = new Set(results.map((r) => r.user_id));
+  return json({ notification: n, recipients: rec.map((u) => ({ ...u, wa_sent: sent.has(u.id) })) });
+}
+async function adminCreateNotif(env, req) {
+  const b = await body(req);
+  const title = clean(b.title, 200);
+  if (title.length < 3) return err('اكتب عنوان الإشعار');
+  const audience = b.audience === 'course' ? 'course' : 'all';
+  let course_id = null;
+  if (audience === 'course') {
+    const c = await env.DB.prepare('SELECT id FROM courses WHERE id = ?').bind(clean(b.course_id, 60)).first();
+    if (!c) return err('اختار الدورة');
+    course_id = c.id;
+  }
+  const id = await addNotif(env, { kind: 'custom', title, body: clean(b.body, 1000) || null, link: clean(b.link, 300) || null, course_id, audience });
+  return json({ ok: true, id });
+}
+async function adminMarkWa(env, req, id) {
+  const b = await body(req);
+  if (b.sent === false) await env.DB.prepare('DELETE FROM notif_wa WHERE notif_id = ? AND user_id = ?').bind(id, Number(b.user_id) || 0).run();
+  else await env.DB.prepare('INSERT OR IGNORE INTO notif_wa (notif_id, user_id, at) VALUES (?, ?, ?)').bind(id, Number(b.user_id) || 0, now()).run();
+  return json({ ok: true });
+}
+async function adminDeleteNotif(env, id) {
+  await env.DB.prepare('DELETE FROM notif_wa WHERE notif_id = ?').bind(id).run();
+  await env.DB.prepare('DELETE FROM notifications WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
 
@@ -538,6 +641,7 @@ async function uploadComplete(env, req) {
   if (lesson.video_key && lesson.video_key !== b.key) { try { await env.VIDEOS.delete(lesson.video_key); } catch (e) {} }
   await env.DB.prepare('UPDATE lessons SET video_key = ?, video_size = ?, video_type = ? WHERE id = ?')
     .bind(b.key, obj.size, (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4', lesson.id).run();
+  await notifyLesson(env, lesson.id);
   return json({ ok: true, size: obj.size });
 }
 async function uploadAbort(env, req) {
@@ -739,6 +843,8 @@ export async function onRequest({ request, env }) {
     if (path === '/me' && method === 'GET') return await me(env, user);
     if (path === '/enroll' && method === 'POST') return await enroll(env, request, user);
     if (path === '/welcomed' && method === 'POST') return await markWelcomed(env, request, user);
+    if (path === '/notifications' && method === 'GET') return await myNotifs(env, user);
+    if (path === '/notifications/seen' && method === 'POST') return await markNotifsSeen(env, user);
     if (path === '/progress' && method === 'POST') return await markProgress(env, request, user);
 
     if (path.startsWith('/admin')) {
@@ -780,6 +886,14 @@ export async function onRequest({ request, env }) {
         if (method === 'DELETE') return await adminDeleteLesson(env, Number(m[1]));
       }
       if ((m = path.match(/^\/admin\/courses\/([\w-]+)$/)) && method === 'POST') return await adminSaveCourse(env, request, m[1]);
+      if (path === '/admin/courses' && method === 'POST') return await adminCreateCourse(env, request);
+      if (path === '/admin/notifications' && method === 'GET') return await adminNotifs(env);
+      if (path === '/admin/notifications' && method === 'POST') return await adminCreateNotif(env, request);
+      if ((m = path.match(/^\/admin\/notifications\/(\d+)$/))) {
+        if (method === 'GET') return await adminNotifDetail(env, Number(m[1]));
+        if (method === 'DELETE') return await adminDeleteNotif(env, Number(m[1]));
+      }
+      if ((m = path.match(/^\/admin\/notifications\/(\d+)\/wa$/)) && method === 'POST') return await adminMarkWa(env, request, Number(m[1]));
     }
     return err('Not found', 404);
   } catch (e) {
