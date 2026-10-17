@@ -523,7 +523,71 @@ async function addNotif(env, n) {
   }
   const r = await env.DB.prepare('INSERT INTO notifications (kind, ref, title, body, link, course_id, audience, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(n.kind, n.ref || null, n.title, n.body || null, n.link || null, n.course_id || null, n.audience || 'all', now()).run();
+  const job = pushNotif(env, { ...n, id: r.meta.last_row_id }).catch(() => {});
+  if (env.__wait) env.__wait(job); else await job;
   return r.meta.last_row_id;
+}
+
+// ---------- phone push notifications (Web Push + VAPID, no payload: the service worker fetches the text) ----------
+const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const b64uStr = (str) => b64u(new TextEncoder().encode(str));
+async function ensurePushTables(env) {
+  try { await env.DB.prepare('CREATE TABLE IF NOT EXISTS push_subs (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, endpoint TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL)').run(); } catch (e) {}
+}
+async function vapidKeys(env) {
+  let pub = await getSetting(env, 'vapid_pub'), priv = await getSetting(env, 'vapid_priv');
+  if (!pub || !priv) {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    pub = b64u(await crypto.subtle.exportKey('raw', kp.publicKey));
+    priv = JSON.stringify(await crypto.subtle.exportKey('jwk', kp.privateKey));
+    // first writer wins so two parallel requests can't end up with different keys
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('vapid_pub', ?)").bind(pub).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('vapid_priv', ?)").bind(priv).run();
+    pub = await getSetting(env, 'vapid_pub'); priv = await getSetting(env, 'vapid_priv');
+  }
+  return { pub, priv };
+}
+async function vapidAuth(env, endpoint) {
+  const { pub, priv } = await vapidKeys(env);
+  const key = await crypto.subtle.importKey('jwk', JSON.parse(priv), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const head = b64uStr(JSON.stringify({ typ: 'JWT', alg: 'ES256' }));
+  const body = b64uStr(JSON.stringify({ aud: new URL(endpoint).origin, exp: now() + 12 * 3600, sub: 'mailto:info@marketingmiddleeast.com' }));
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(`${head}.${body}`));
+  return `vapid t=${head}.${body}.${b64u(sig)}, k=${pub}`;
+}
+async function pushNotif(env, n) {
+  await ensurePushTables(env);
+  const sql = n.audience === 'course'
+    ? "SELECT s.id, s.endpoint FROM push_subs s JOIN enrollments e ON e.user_id = s.user_id AND e.course_id = ? AND e.status = 'approved'"
+    : 'SELECT s.id, s.endpoint FROM push_subs s';
+  const { results } = n.audience === 'course' ? await env.DB.prepare(sql).bind(n.course_id).all() : await env.DB.prepare(sql).all();
+  for (const sub of results) {
+    try {
+      const r = await fetch(sub.endpoint, { method: 'POST', headers: { TTL: '172800', Urgency: 'high', Authorization: await vapidAuth(env, sub.endpoint), 'Content-Length': '0' } });
+      if (r.status === 404 || r.status === 410) await env.DB.prepare('DELETE FROM push_subs WHERE id = ?').bind(sub.id).run();
+    } catch (e) {}
+  }
+}
+async function pushKey(env) { return json({ key: (await vapidKeys(env)).pub }); }
+async function pushSubscribe(env, req, user) {
+  const b = await body(req);
+  const ep = clean(b.endpoint, 1000);
+  if (!/^https:\/\//.test(ep)) return err('اشتراك غير صحيح');
+  await ensurePushTables(env);
+  await env.DB.prepare('INSERT INTO push_subs (user_id, endpoint, created_at) VALUES (?, ?, ?) ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id').bind(user.id, ep, now()).run();
+  return json({ ok: true });
+}
+async function pushUnsubscribe(env, req) {
+  const b = await body(req);
+  await ensurePushTables(env);
+  await env.DB.prepare('DELETE FROM push_subs WHERE endpoint = ?').bind(clean(b.endpoint, 1000)).run();
+  return json({ ok: true });
+}
+// what the service worker shows: the newest notification this user can see
+async function latestNotif(env, user) {
+  await ensureNotifTables(env);
+  const n = await env.DB.prepare(`SELECT n.id, n.title, n.body, n.link FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 1`).bind(user.id).first();
+  return json({ item: n || null });
 }
 async function notifyCourse(env, cid) {
   const c = await env.DB.prepare('SELECT id, title, published FROM courses WHERE id = ?').bind(cid).first();
@@ -805,7 +869,10 @@ async function saveSettings(env, req) {
 }
 
 // ---------- router ----------
-export async function onRequest({ request, env }) {
+export async function onRequest(context) {
+  const { request } = context;
+  // bindings stay reachable through the prototype; __wait lets slow work (push sends) finish after the response
+  const env = Object.assign(Object.create(context.env), { __wait: (p) => { try { context.waitUntil(p); } catch (e) {} } });
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/api/, '').replace(/\/+$/, '') || '/';
   const method = request.method;
@@ -845,6 +912,10 @@ export async function onRequest({ request, env }) {
     if (path === '/welcomed' && method === 'POST') return await markWelcomed(env, request, user);
     if (path === '/notifications' && method === 'GET') return await myNotifs(env, user);
     if (path === '/notifications/seen' && method === 'POST') return await markNotifsSeen(env, user);
+    if (path === '/notifications/latest' && method === 'GET') return await latestNotif(env, user);
+    if (path === '/push/key' && method === 'GET') return await pushKey(env);
+    if (path === '/push/subscribe' && method === 'POST') return await pushSubscribe(env, request, user);
+    if (path === '/push/unsubscribe' && method === 'POST') return await pushUnsubscribe(env, request);
     if (path === '/progress' && method === 'POST') return await markProgress(env, request, user);
 
     if (path.startsWith('/admin')) {

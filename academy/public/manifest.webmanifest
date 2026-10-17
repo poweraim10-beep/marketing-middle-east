@@ -1,0 +1,15 @@
+{
+  "name": "أكاديمية MME",
+  "short_name": "MME Academy",
+  "start_url": "/#/my",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#060A16",
+  "theme_color": "#060A16",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
