@@ -299,7 +299,19 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .pushcard h3{margin:0 0 4px;color:#fff;font-size:17px}
 .pushcard p{margin:0;color:var(--text);font-size:13.5px;line-height:1.8}
 .pushcard ol{margin:6px 0 0;padding-inline-start:20px;color:var(--text);font-size:13.5px;line-height:1.9}
-.btn-push{border:0;border-radius:14px;padding:12px 18px;font-weight:800;font-size:15px;cursor:pointer;color:#04260f;background:linear-gradient(90deg,#4ade80,#22c55e);box-shadow:0 12px 28px -12px rgba(34,197,94,.9)}
+.btn-push{border:0;border-radius:14px;padding:13px 20px;font-weight:900;font-size:15.5px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#ef4444,#dc2626);box-shadow:0 12px 28px -10px rgba(239,68,68,.95);animation:bkp 1.6s ease-in-out infinite}
+.pushcard.off,.pushcard.bad{border-color:rgba(239,68,68,.7);background:linear-gradient(135deg,rgba(239,68,68,.2),rgba(127,29,29,.18) 55%,rgba(11,16,32,.92))}
+.pushcard.off .pi,.pushcard.bad .pi{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.6)}
+.pushcard.off h3,.pushcard.bad h3{color:#fecaca}
+.pushcard.on{border-color:rgba(34,197,94,.6);padding:14px 18px}
+.pushcard.on .pi{width:44px;height:44px;font-size:22px}
+.pushcard .ok-pill{flex:none;display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:14px;background:linear-gradient(90deg,#4ade80,#22c55e);color:#04260f;font-weight:900;font-size:14.5px}
+.push-done{position:fixed;inset:0;z-index:120;display:grid;place-items:center;background:rgba(3,6,14,.72);backdrop-filter:blur(4px);animation:pdf .25s ease}
+.push-done div{text-align:center;padding:28px 30px;border-radius:24px;background:#0B1020;border:1px solid rgba(34,197,94,.6);box-shadow:0 30px 80px -20px rgba(34,197,94,.55);animation:pdp .45s cubic-bezier(.2,1.4,.4,1)}
+.push-done i{display:grid;place-items:center;width:92px;height:92px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,#4ade80,#16a34a);color:#fff;font-size:52px;font-style:normal;box-shadow:0 0 0 10px rgba(34,197,94,.18)}
+.push-done b{display:block;color:#fff;font-size:21px}
+.push-done span{display:block;margin-top:6px;color:var(--text);font-size:14px}
+@keyframes pdf{from{opacity:0}}@keyframes pdp{from{transform:scale(.6);opacity:0}}
 .panel{max-width:460px;margin:0 auto;padding:clamp(24px,4vw,38px);border:1px solid var(--line-2);border-radius:24px;background:linear-gradient(160deg,rgba(37,99,235,.12),rgba(11,16,32,.92) 50%)}
 .panel h1,.pagehead h1{font-size:clamp(24px,3.4vw,32px);color:#fff;margin:0 0 4px;font-weight:600;line-height:1.3}
 .panel .sub{margin:0 0 24px;color:var(--mute);font-size:15px}
@@ -863,16 +875,20 @@ function enablePush(){
   if(!pushSupported()){toast(IS_IOS?'على الآيفون: أضف الأكاديمية للشاشة الرئيسية أول':'المتصفح ما بيدعم الإشعارات');return Promise.resolve(false)}
   return Notification.requestPermission().then(function(p){
     if(p!=='granted'){toast('لازم تسمح بالإشعارات من إعدادات المتصفح');return false}
-    return subscribePush().then(function(){toast('تم تفعيل إشعارات الجوال ✔');$$('.pushcard').forEach(function(c){c.remove()});return true});
+    return subscribePush().then(function(){
+      var ov=document.createElement('div');ov.className='push-done';ov.innerHTML='<div><i>✓</i><b>تم تفعيل الإشعارات بنجاح</b><span>رح يوصلك كل جديد على جوالك 🔔</span></div>';
+      document.body.appendChild(ov);var close=function(){ov.remove()};ov.addEventListener('click',close);setTimeout(close,2600);
+      $$('.pushcard').forEach(function(c){c.outerHTML=pushCardHtml('on')});return true});
   }).catch(function(e){toast(e.message||'ما قدرنا نفعّل الإشعارات');return false});
 }
 // keep an already-allowed device linked to whoever is signed in now
 function syncPush(){if(!state.user||!pushSupported()||Notification.permission!=='granted')return;subscribePush().catch(function(){})}
 function pushCardHtml(st){
-  if(st==='on'||st==='unsupported')return '';
-  if(st==='ios-install')return '<div class="pushcard"><span class="pi">📲</span><div><h3>خلّي الإشعارات توصلك على الآيفون</h3><p>عشان يوصلك إشعار أول ما تنزل محاضرة أو دورة جديدة:</p><ol><li>اضغط زر المشاركة <b>⬆️</b> بأسفل سفاري</li><li>اختار <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>افتح الأكاديمية من الأيقونة، وفعّل الإشعارات من «حسابي»</li></ol></div></div>';
-  if(st==='denied')return '<div class="pushcard"><span class="pi">🔕</span><div><h3>الإشعارات مسكّرة على هذا الجهاز</h3><p>افتح إعدادات المتصفح ← الإشعارات، واسمح لـ academy.marketingmiddleeast.com، وبعدين حدّث الصفحة.</p></div></div>';
-  return '<div class="pushcard"><span class="pi">🔔</span><div><h3>فعّل إشعارات الجوال</h3><p>بيوصلك إشعار على جوالك أول ما تنزل محاضرة جديدة أو دورة جديدة، حتى لو الموقع مسكّر.</p></div><button class="btn-push" data-push>فعّل الإشعارات</button></div>';
+  if(st==='unsupported')return '';
+  if(st==='on')return '<div class="pushcard on"><span class="pi">🔔</span><div><h3>إشعارات الجوال مفعّلة</h3><p>رح يوصلك إشعار أول ما تنزل محاضرة أو دورة جديدة.</p></div><span class="ok-pill">✅ تم تفعيل الإشعارات</span></div>';
+  if(st==='ios-install')return '<div class="pushcard bad"><span class="pi">📲</span><div><h3>خلّي الإشعارات توصلك على الآيفون</h3><p>عشان يوصلك إشعار أول ما تنزل محاضرة أو دورة جديدة:</p><ol><li>اضغط زر المشاركة <b>⬆️</b> بأسفل سفاري</li><li>اختار <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>افتح الأكاديمية من الأيقونة، وفعّل الإشعارات من «حسابي»</li></ol></div></div>';
+  if(st==='denied')return '<div class="pushcard bad"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>المتصفح مانع الإشعارات. افتح إعدادات المتصفح ← الإشعارات، واسمح لـ academy.marketingmiddleeast.com، وبعدين حدّث الصفحة.</p></div></div>';
+  return '<div class="pushcard off"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>لازم تفعّلها الآن عشان ما تفوتك ولا محاضرة جديدة ولا دورة جديدة، حتى لو الموقع مسكّر.</p></div><button class="btn-push" data-push>🔔 فعّل الإشعارات الآن</button></div>';
 }
 function mountPushCard(where){
   if(!state.user)return;
