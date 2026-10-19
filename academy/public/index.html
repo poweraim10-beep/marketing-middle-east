@@ -982,9 +982,22 @@ function pushCardHtml(st){
   if(st==='denied')return '<div class="pushcard bad"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>المتصفح مانع الإشعارات. افتح إعدادات المتصفح ← الإشعارات، واسمح لـ academy.marketingmiddleeast.com، وبعدين حدّث الصفحة.</p></div></div>';
   return '<div class="pushcard off"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>'+(adm?'فعّلها عشان يوصلك إشعار على جوالك فورًا مع كل حساب جديد وكل طلب جديد للدورة.':'لازم تفعّلها الآن عشان ما تفوتك ولا محاضرة جديدة ولا دورة جديدة، حتى لو الموقع مسكّر.')+'</p></div><button class="btn-push" data-push>🔔 فعّل الإشعارات الآن</button></div>';
 }
+// «install as an app»: on Android, notifications from the installed app come without Chrome's own «unsubscribe» link
+var INSTALL_EVT=null;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();INSTALL_EVT=e;$$('[data-install]').forEach(function(b){b.hidden=false})});
+window.addEventListener('appinstalled',function(){INSTALL_EVT=null;$$('.installcard').forEach(function(c){c.remove()});toast('تم تثبيت تطبيق الأكاديمية ✔')});
+function installCardHtml(){
+  if(IS_STANDALONE)return '';
+  if(IS_IOS)return '';
+  var adm=state.user&&state.user.role==='admin';
+  return '<div class="pushcard installcard" style="border-color:rgba(34,211,238,.55)"><span class="pi" style="background:rgba(34,211,238,.15);border-color:rgba(34,211,238,.5)">📲</span><div><h3>ثبّت تطبيق الأكاديمية على جوالك</h3><p>'+(adm?'الإشعارات بتوصلك باسم التطبيق ومعها زر «افتح لوحة التحكم» بدل «ألغِ اشتراكي».':'بتفتح الأكاديمية من أيقونة على جوالك زي أي تطبيق، والإشعارات بتوصلك باسمها.')+'</p>'+
+    '<p style="margin-top:4px;font-size:12.5px;color:var(--mute)">إذا ما ظهر الزر: من كروم اضغط ⋮ ← «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</p></div>'+
+    '<button class="btn-push" style="background:linear-gradient(90deg,#22d3ee,#2563eb);animation:none" data-install'+(INSTALL_EVT?'':' hidden')+'>📲 ثبّت التطبيق</button></div>';
+}
+document.addEventListener('click',function(ev){var b=ev.target.closest('[data-install]');if(!b||!INSTALL_EVT)return;ev.preventDefault();INSTALL_EVT.prompt();INSTALL_EVT.userChoice.then(function(){INSTALL_EVT=null})});
 function mountPushCard(where){
   if(!state.user)return;
-  pushStatus().then(function(st){var el=$(where);if(!el)return;var h=pushCardHtml(st);if(h)el.insertAdjacentHTML('afterbegin',h)});
+  pushStatus().then(function(st){var el=$(where);if(!el)return;var h=pushCardHtml(st)+(where==='#nfPush'?'':installCardHtml());if(h)el.insertAdjacentHTML('afterbegin',h)});
 }
 document.addEventListener('click',function(ev){var b=ev.target.closest('[data-push]');if(b){ev.preventDefault();b.disabled=true;enablePush().then(function(ok){if(!ok)b.disabled=false})}});
 
