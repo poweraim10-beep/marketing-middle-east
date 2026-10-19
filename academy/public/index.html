@@ -976,10 +976,11 @@ function enablePush(){
 function syncPush(){if(!state.user||!pushSupported()||Notification.permission!=='granted')return;subscribePush().catch(function(){})}
 function pushCardHtml(st){
   if(st==='unsupported')return '';
-  if(st==='on')return '<div class="pushcard on"><span class="pi">🔔</span><div><h3>إشعارات الجوال مفعّلة</h3><p>رح يوصلك إشعار أول ما تنزل محاضرة أو دورة جديدة.</p></div><span class="ok-pill">✅ تم تفعيل الإشعارات</span></div>';
+  var adm=state.user&&state.user.role==='admin';
+  if(st==='on')return '<div class="pushcard on"><span class="pi">🔔</span><div><h3>إشعارات الجوال مفعّلة</h3><p>'+(adm?'رح يوصلك إشعار على الجوال مع كل حساب جديد وكل طلب جديد للدورة.':'رح يوصلك إشعار أول ما تنزل محاضرة أو دورة جديدة.')+'</p></div><span class="ok-pill">✅ تم تفعيل الإشعارات</span></div>';
   if(st==='ios-install')return '<div class="pushcard bad"><span class="pi">📲</span><div><h3>خلّي الإشعارات توصلك على الآيفون</h3><p>عشان يوصلك إشعار أول ما تنزل محاضرة أو دورة جديدة:</p><ol><li>اضغط زر المشاركة <b>⬆️</b> بأسفل سفاري</li><li>اختار <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>افتح الأكاديمية من الأيقونة، وفعّل الإشعارات من «حسابي»</li></ol></div></div>';
   if(st==='denied')return '<div class="pushcard bad"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>المتصفح مانع الإشعارات. افتح إعدادات المتصفح ← الإشعارات، واسمح لـ academy.marketingmiddleeast.com، وبعدين حدّث الصفحة.</p></div></div>';
-  return '<div class="pushcard off"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>لازم تفعّلها الآن عشان ما تفوتك ولا محاضرة جديدة ولا دورة جديدة، حتى لو الموقع مسكّر.</p></div><button class="btn-push" data-push>🔔 فعّل الإشعارات الآن</button></div>';
+  return '<div class="pushcard off"><span class="pi">🔕</span><div><h3>⚠️ إشعاراتك مغلقة!</h3><p>'+(adm?'فعّلها عشان يوصلك إشعار على جوالك فورًا مع كل حساب جديد وكل طلب جديد للدورة.':'لازم تفعّلها الآن عشان ما تفوتك ولا محاضرة جديدة ولا دورة جديدة، حتى لو الموقع مسكّر.')+'</p></div><button class="btn-push" data-push>🔔 فعّل الإشعارات الآن</button></div>';
 }
 function mountPushCard(where){
   if(!state.user)return;
@@ -1166,7 +1167,7 @@ function vipBox(){
     '<div class="vtop"><div class="vnum"><div><b>3</b><small>أيام أسبوعيًا</small></div></div>'+
     '<h3>استفساراتك بيرد عليها <span>أبو عمر</span> بنفسه، بشكل مباشر</h3></div>'+
     '<p class="vlead">مع اشتراكك بالدورة بتنضم لمجموعة خاصة بالمشتركين فقط، وفيها 3 أيام كل أسبوع مخصصة لاستقبال استفساراتكم والرد عليها مباشرة من <span style="white-space:nowrap">د. محمود نصرالله</span> (أبو عمر).</p>'+
-    '<ul><li><i>1</i><span><b>مجموعة خاصة</b> بمشتركي الدورة فقط، بعيدًا عن الزحمة.</span></li>'+
+    '<ul><li><i>1</i><span><b>🎁 شنطة أدوات الطالب</b> هدية مع اشتراكك: برومبتات جاهزة، بريف واتفاق عمل، قوالب رسائل وجدول نشر.</span></li>'+
     '<li><i>2</i><span><b>3 أيام كل أسبوع</b> لاستقبال أسئلتك عن الدورة وشغلك.</span></li>'+
     '<li><i>3</i><span><b>رد مباشر من أبو عمر</b> نفسه، مش من مساعد ولا رد آلي.</span></li></ul>'+
     '<p class="vlead" style="margin:14px 0 0;font-size:13.5px;color:var(--mute)">رابط الانضمام للمجموعة بيوصلك بعد تفعيل الدورة على حسابك.</p></div>';
@@ -1550,6 +1551,7 @@ function viewAdmin(params){
     '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','الدورات والدروس'],['notifs','الإشعارات'],['pay','طرق الدفع']].map(function(x){
       return '<button data-t="'+x[0]+'" class="'+(adminTab===x[0]&&!params.u?'on':'')+'">'+x[1]+(x[0]==='orders'?'<span class="cnt" id="pendCnt" hidden></span>':'')+(x[0]==='comments'?'<span class="cnt" id="cmtCnt" hidden></span>':'')+'</button>'}).join('')+'</div><div id="adm"></div>';
   $('#logoutBtn').addEventListener('click',logout);
+  if(!$('#admPush')){var tb=$('.tabs');if(tb){tb.insertAdjacentHTML('beforebegin','<div id="admPush"></div>');mountPushCard('#admPush')}}
   $$('.tabs button').forEach(function(b){b.addEventListener('click',function(){adminTab=b.getAttribute('data-t');go('#/admin?t='+adminTab)})});
   api('/admin/enrollments?status=pending').then(function(d){var n=d.enrollments.length,el=$('#pendCnt');if(el&&n){el.hidden=false;el.textContent=n}});
   api('/admin/comments?status=pending').then(function(d){var n=d.comments.length,el=$('#cmtCnt');if(el&&n){el.hidden=false;el.textContent=n}});

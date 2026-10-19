@@ -168,6 +168,7 @@ async function register(env, req) {
   const id = r.meta.last_row_id;
   try { await env.DB.prepare('UPDATE users SET notif_seen = (SELECT COALESCE(MAX(id), 0) FROM notifications) WHERE id = ?').bind(id).run(); } catch (e) {}
   await ensureRefCode(env, { id });
+  if (roleFor(email) !== 'admin') await alertAdmin(env, `👤 حساب جديد: ${name}`, `${phone} · ${email}${referredBy ? ' · جاي بدعوة من صديق' : ''}`, `#/admin?u=${id}`);
   const token = await createSession(env, id, req, roleFor(email) === 'admin');
   return json({ user: { id, name, email, phone, role: roleFor(email) } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
@@ -256,9 +257,11 @@ async function enroll(env, req, user) {
     await env.DB.prepare('INSERT INTO enrollments (user_id, course_id, status, created_at) VALUES (?, ?, ?, ?)')
       .bind(user.id, course.id, 'pending', now()).run();
     e = await env.DB.prepare('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?').bind(user.id, course.id).first();
+    await alertAdmin(env, `🆕 طلب جديد #${e.id}: ${user.name}`, `طلب دورة «${course.title}» ($${course.price}). تواصل معه وفعّل الطلب.`, '#/admin?t=orders');
   } else if (e.status === 'rejected') {
     await env.DB.prepare("UPDATE enrollments SET status = 'pending', decided_at = NULL, created_at = ? WHERE id = ?").bind(now(), e.id).run();
     e.status = 'pending';
+    await alertAdmin(env, `🆕 طلب جديد #${e.id}: ${user.name}`, `قدّم طلب دورة «${course.title}» من جديد ($${course.price}).`, '#/admin?t=orders');
   }
   return json({ enrollment: { id: e.id, status: e.status, course_id: course.id, title: course.title, price: course.price } });
 }
@@ -699,6 +702,18 @@ async function runDaily(env, force) {
   }
   return { sent, candidates: results.length };
 }
+// phone alert for the admin (new account, new order); shown by the service worker like a personal reminder
+async function alertAdmin(env, title, msg, link) {
+  try {
+    const a = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(OWNER_EMAIL).first();
+    if (!a) return;
+    await env.DB.prepare('UPDATE users SET last_nudge = ?, nudge_title = ?, nudge_body = ?, nudge_link = ? WHERE id = ?').bind(now(), title, msg, link, a.id).run();
+    await ensurePushTables(env);
+    const subs = await env.DB.prepare('SELECT id, endpoint FROM push_subs WHERE user_id = ?').bind(a.id).all();
+    const job = sendPushes(env, subs.results).catch(() => {});
+    if (env.__wait) env.__wait(job); else await job;
+  } catch (e) {}
+}
 async function pushKey(env) { return json({ key: (await vapidKeys(env)).pub }); }
 async function pushSubscribe(env, req, user) {
   const b = await body(req);
@@ -720,7 +735,7 @@ async function latestNotif(env, user) {
   const n = await env.DB.prepare(`SELECT n.id, n.kind, n.title, n.body, n.link, n.created_at FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 1`).bind(user.id).first();
   // a personal daily reminder newer than the last announcement wins
   if (user.nudge_title && user.last_nudge && (!n || user.last_nudge >= n.created_at)) {
-    return json({ item: { id: 'r' + user.last_nudge, kind: 'nudge', title: user.nudge_title, body: user.nudge_body, link: user.nudge_link } });
+    return json({ item: { id: 'r' + user.last_nudge, kind: user.role === 'admin' ? 'admin' : 'nudge', title: user.nudge_title, body: user.nudge_body, link: user.nudge_link } });
   }
   return json({ item: n || null });
 }
