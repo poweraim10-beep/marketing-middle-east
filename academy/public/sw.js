@@ -20,6 +20,9 @@ self.addEventListener('push', (event) => {
       tag: n ? 'mme-' + n.id : 'mme',
       renotify: true,
       data: { url: '/' + ((n && n.link) || '#/my') },
+      // our own button; Android Chrome may still add its own «unsubscribe» link next to it
+      actions: [{ action: 'open', title: n && n.kind === 'lesson' ? '▶️ مشاهدة الآن' : n && n.kind === 'course' ? '👀 شوف الدورة الآن' : '👈 افتح الآن' }],
+      requireInteraction: true,
     });
   })());
 });

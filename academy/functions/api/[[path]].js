@@ -586,7 +586,7 @@ async function pushUnsubscribe(env, req) {
 // what the service worker shows: the newest notification this user can see
 async function latestNotif(env, user) {
   await ensureNotifTables(env);
-  const n = await env.DB.prepare(`SELECT n.id, n.title, n.body, n.link FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 1`).bind(user.id).first();
+  const n = await env.DB.prepare(`SELECT n.id, n.kind, n.title, n.body, n.link FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 1`).bind(user.id).first();
   return json({ item: n || null });
 }
 async function notifyCourse(env, cid) {
