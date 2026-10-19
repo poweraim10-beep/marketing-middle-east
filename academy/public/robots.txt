@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /gift/
 
-Sitemap: https://marketingmiddleeast.com/sitemap.xml
+Sitemap: https://academy.marketingmiddleeast.com/sitemap.xml
