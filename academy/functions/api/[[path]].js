@@ -166,6 +166,12 @@ async function me(env, user) {
   } catch (e) {
     ({ results } = await env.DB.prepare(base).bind(user.id).all()); // never break the account page over the welcome flag
   }
+  // "last seen" drives the daily reminders; written at most every 10 minutes
+  if (!user.last_seen || user.last_seen < now() - 600) {
+    try { await env.DB.prepare('UPDATE users SET last_seen = ? WHERE id = ?').bind(now(), user.id).run(); } catch (e) {}
+  }
+  // backup trigger for the daily reminders in case the scheduled call did not run
+  if (env.__wait) env.__wait(runDaily(env, false).catch(() => {}));
   return json({ user: publicUser(user), enrollments: results });
 }
 
@@ -561,12 +567,67 @@ async function pushNotif(env, n) {
     ? "SELECT s.id, s.endpoint FROM push_subs s JOIN enrollments e ON e.user_id = s.user_id AND e.course_id = ? AND e.status = 'approved'"
     : 'SELECT s.id, s.endpoint FROM push_subs s';
   const { results } = n.audience === 'course' ? await env.DB.prepare(sql).bind(n.course_id).all() : await env.DB.prepare(sql).all();
-  for (const sub of results) {
+  await sendPushes(env, results);
+}
+async function sendPushes(env, subs) {
+  for (const sub of subs) {
     try {
       const r = await fetch(sub.endpoint, { method: 'POST', headers: { TTL: '172800', Urgency: 'high', Authorization: await vapidAuth(env, sub.endpoint), 'Content-Length': '0' } });
       if (r.status === 404 || r.status === 410) await env.DB.prepare('DELETE FROM push_subs WHERE id = ?').bind(sub.id).run();
     } catch (e) {}
   }
+}
+
+// ---------- daily «كمّل محاضراتك» reminders for activated students who did not open the academy today ----------
+const NUDGES = [
+  (x) => [`👋 مرحبا ${x.name}، ما تنسى تكمّل محاضراتك`, `المحاضرة الجاية: «${x.lesson}». عشر دقايق اليوم بتفرق!`],
+  (x) => [`🔥 ${x.name}، كمّل سلسلتك اليوم`, `باقيلك ${x.left} ${x.left === 1 ? 'محاضرة' : 'محاضرات'} وبتخلص الدورة وبتاخذ شهادتك 🎓`],
+  (x) => ['🎬 محاضرتك الجاية بتستناك', `«${x.lesson}»، يلا تعال نكمّل سوا.`],
+  (x) => ['💪 خطوة صغيرة كل يوم', `كل محاضرة بتقرّبك من أول زبون إلك. ادخل كمّل «${x.lesson}».`],
+  (x) => [`✨ ${x.name}، إنت قريب من الاحتراف`, `خلّصت ${x.done} من ${x.total}، كمّل «${x.lesson}» واقترب من شهادتك.`],
+];
+const LONG_AWAY = (x) => [`⏰ ${x.name}، صار إلك فترة ما دخلت!`, `احنا هون ومستنيينك 😊 كمّل من وين ما وقفت: «${x.lesson}».`];
+async function runDaily(env, force) {
+  const last = Number(await getSetting(env, 'cron_last')) || 0;
+  if (!force && last > now() - 20 * 3600) return { skipped: true };
+  const h = new Date().getUTCHours();
+  if (!force && (h < 7 || h > 18)) return { skipped: 'night' }; // only between 10:00 and 21:59 Gaza time
+
+  await setSetting(env, 'cron_last', String(now()));
+  await ensurePushTables(env);
+  const day = 20 * 3600;
+  const { results } = await env.DB.prepare(
+    `SELECT DISTINCT u.id, u.name, COALESCE(u.last_seen, u.last_login, 0) AS seen FROM users u
+     JOIN enrollments e ON e.user_id = u.id AND e.status = 'approved'
+     WHERE COALESCE(u.suspended, 0) = 0 AND u.role != 'admin'
+       AND EXISTS (SELECT 1 FROM push_subs s WHERE s.user_id = u.id)
+       AND COALESCE(u.last_seen, u.last_login, 0) < ? AND COALESCE(u.last_nudge, 0) < ?`
+  ).bind(now() - day, now() - day).all();
+  let sent = 0;
+  for (const u of results) {
+    const ens = await env.DB.prepare("SELECT e.course_id FROM enrollments e WHERE e.user_id = ? AND e.status = 'approved' ORDER BY e.decided_at DESC").bind(u.id).all();
+    for (const e of ens.results) {
+      const ls = await env.DB.prepare(
+        `SELECT l.id, l.title, EXISTS (SELECT 1 FROM progress p WHERE p.user_id = ? AND p.lesson_id = l.id) AS done
+         FROM lessons l WHERE l.course_id = ? AND (l.video_key IS NOT NULL OR l.video_url IS NOT NULL) ORDER BY l.sort, l.id`
+      ).bind(u.id, e.course_id).all();
+      const all = ls.results, next = all.find((l) => !l.done);
+      if (!next) continue; // finished this course
+      const x = { name: String(u.name || '').trim().split(/\s+/)[0] || 'صديقي', lesson: next.title, total: all.length, done: all.filter((l) => l.done).length };
+      x.left = x.total - x.done;
+      const away = now() - u.seen > 3 * 24 * 3600;
+      let pick = (Math.floor(now() / 86400) + u.id) % NUDGES.length;
+      if (pick === 4 && !x.done) pick = 0; // «خلّصت 0 من …» reads badly
+      const [title, msg] = (away ? LONG_AWAY : NUDGES[pick])(x);
+      await env.DB.prepare('UPDATE users SET last_nudge = ?, nudge_title = ?, nudge_body = ?, nudge_link = ? WHERE id = ?')
+        .bind(now(), title, msg, `#/course/${e.course_id}?l=${next.id}`, u.id).run();
+      const subs = await env.DB.prepare('SELECT id, endpoint FROM push_subs WHERE user_id = ?').bind(u.id).all();
+      await sendPushes(env, subs.results);
+      sent++;
+      break;
+    }
+  }
+  return { sent, candidates: results.length };
 }
 async function pushKey(env) { return json({ key: (await vapidKeys(env)).pub }); }
 async function pushSubscribe(env, req, user) {
@@ -586,7 +647,11 @@ async function pushUnsubscribe(env, req) {
 // what the service worker shows: the newest notification this user can see
 async function latestNotif(env, user) {
   await ensureNotifTables(env);
-  const n = await env.DB.prepare(`SELECT n.id, n.kind, n.title, n.body, n.link FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 1`).bind(user.id).first();
+  const n = await env.DB.prepare(`SELECT n.id, n.kind, n.title, n.body, n.link, n.created_at FROM notifications n WHERE ${NOTIF_VISIBLE} ORDER BY n.id DESC LIMIT 1`).bind(user.id).first();
+  // a personal daily reminder newer than the last announcement wins
+  if (user.nudge_title && user.last_nudge && (!n || user.last_nudge >= n.created_at)) {
+    return json({ item: { id: 'r' + user.last_nudge, kind: 'nudge', title: user.nudge_title, body: user.nudge_body, link: user.nudge_link } });
+  }
   return json({ item: n || null });
 }
 async function notifyCourse(env, cid) {
@@ -894,6 +959,8 @@ export async function onRequest(context) {
     if (path === '/logout' && method === 'POST') return await logout(env, request);
     if (path === '/courses' && method === 'GET') return await listCourses(env);
     if (path === '/intro' && method === 'GET') return await getIntro(env);
+    // called once a day by the scheduled GitHub workflow; safe to call publicly (runs at most every 20h)
+    if (path === '/cron/daily' && (method === 'GET' || method === 'POST')) return json(await runDaily(env, false));
     if (path === '/intro/video' && (method === 'GET' || method === 'HEAD')) return await streamIntro(env, request);
 
     const user = await currentUser(env, request);
@@ -959,6 +1026,7 @@ export async function onRequest(context) {
       if ((m = path.match(/^\/admin\/courses\/([\w-]+)$/)) && method === 'POST') return await adminSaveCourse(env, request, m[1]);
       if (path === '/admin/courses' && method === 'POST') return await adminCreateCourse(env, request);
       if (path === '/admin/notifications' && method === 'GET') return await adminNotifs(env);
+      if (path === '/admin/reminders/run' && method === 'POST') return json(await runDaily(env, true));
       if (path === '/admin/notifications' && method === 'POST') return await adminCreateNotif(env, request);
       if ((m = path.match(/^\/admin\/notifications\/(\d+)$/))) {
         if (method === 'GET') return await adminNotifDetail(env, Number(m[1]));

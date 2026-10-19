@@ -1,0 +1,11 @@
+name: Academy daily reminders
+on:
+  schedule:
+    - cron: '0 15 * * *'   # 18:00 Gaza time
+  workflow_dispatch:
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger «كمّل محاضراتك» reminders
+        run: curl -fsS -X POST -H 'content-type: application/json' https://academy.marketingmiddleeast.com/api/cron/daily

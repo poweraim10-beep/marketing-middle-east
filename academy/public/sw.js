@@ -21,7 +21,7 @@ self.addEventListener('push', (event) => {
       renotify: true,
       data: { url: '/' + ((n && n.link) || '#/my') },
       // our own button; Android Chrome may still add its own «unsubscribe» link next to it
-      actions: [{ action: 'open', title: n && n.kind === 'lesson' ? '▶️ مشاهدة الآن' : n && n.kind === 'course' ? '👀 شوف الدورة الآن' : '👈 افتح الآن' }],
+      actions: [{ action: 'open', title: n && n.kind === 'lesson' ? '▶️ مشاهدة الآن' : n && n.kind === 'nudge' ? '▶️ كمّل الآن' : n && n.kind === 'course' ? '👀 شوف الدورة الآن' : '👈 افتح الآن' }],
       requireInteraction: true,
     });
   })());
