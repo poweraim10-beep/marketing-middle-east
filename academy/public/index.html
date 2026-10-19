@@ -379,6 +379,14 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .screen .wm-move{position:absolute;z-index:3;pointer-events:none;font-family:var(--mono);font-size:clamp(11px,1.6vw,15px);font-weight:600;color:rgba(255,255,255,.42);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:nowrap;direction:ltr;transition:top 1.2s ease,left 1.2s ease;user-select:none}
 .screen .fsbtn{position:absolute;top:10px;right:10px;z-index:4;width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(4,10,24,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
 .screen .fsbtn:hover{background:rgba(4,10,24,.8)}
+/* tap gestures: double tap sides = ±10s, hold = 2× speed (bottom strip left free for the native controls) */
+.screen .tapzone{position:absolute;left:0;right:0;top:0;bottom:64px;z-index:2;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.screen .tz-fx{position:absolute;top:50%;z-index:3;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;padding:18px 22px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;font-weight:800;font-size:15px;pointer-events:none;opacity:0;transition:opacity .25s}
+.screen .tz-fx b{font-size:26px;line-height:1}
+.screen .tz-fx.on{opacity:1}
+.screen .tz-fwd{right:8%}.screen .tz-back{left:8%}
+.screen .tz-mid{left:50%;transform:translate(-50%,-50%);border-radius:50%;width:74px;height:74px;padding:0;justify-content:center}
+.screen .tz-fast{top:14px;left:50%;transform:translateX(-50%);flex-direction:row;padding:8px 16px;font-size:14px}
 .screen:fullscreen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
 .screen:-webkit-full-screen{border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh}
 .screen.pseudo-fs{position:fixed;inset:0;z-index:9999;border-radius:0;border:0;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
@@ -1338,6 +1346,44 @@ function embedHtml(url){
 // A moving watermark with the viewer's name, phone and account number stays on top of the video,
 // including in full screen, so any recording or leaked copy shows who it came from.
 var wmTimer=null,wmCleanup=null;
+// YouTube-style controls on the lesson video: double tap right/left = forward/back 10 s
+// (keep tapping to add 10 s more), hold = 2× speed, single tap = play/pause; arrows/space on desktop
+function addTapGestures(scr,v){
+  if(scr.querySelector('.tapzone'))return;
+  var z=document.createElement('div');z.className='tapzone';scr.appendChild(z);
+  var mk=function(cls,html){var d=document.createElement('div');d.className='tz-fx '+cls;d.innerHTML=html;scr.appendChild(d);return d};
+  var fwd=mk('tz-fwd','<b>⏩</b><span>10 ثواني</span>'),back=mk('tz-back','<b>⏪</b><span>10 ثواني</span>'),mid=mk('tz-mid','<b>▶</b>'),fast=mk('tz-fast','<b style="font-size:16px">⏩</b><span>سرعة 2×</span>');
+  var flash=function(el,txt){if(txt!=null)el.querySelector('span').textContent=txt;el.classList.add('on');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('on')},650)};
+  var seekStreak=0,streakSide=0,streakT=0;
+  var seek=function(dir){
+    var t=Date.now();if(dir!==streakSide||t-streakT>900)seekStreak=0;seekStreak+=10;streakSide=dir;streakT=t;
+    var d=v.duration||1e9;v.currentTime=Math.max(0,Math.min(d-0.3,v.currentTime+dir*10));
+    flash(dir>0?fwd:back,seekStreak+' ثانية');
+  };
+  var toggle=function(){if(v.paused){v.play().catch(function(){});mid.querySelector('b').textContent='▶'}else{v.pause();mid.querySelector('b').textContent='❚❚'}mid.classList.add('on');clearTimeout(mid._t);mid._t=setTimeout(function(){mid.classList.remove('on')},500)};
+  var lastTap=0,tapTimer=null,holdTimer=null,holding=false,prevRate=1,downX=0;
+  var side=function(x){var r=scr.getBoundingClientRect();return x-r.left>r.width/2?1:-1};
+  z.addEventListener('pointerdown',function(e){
+    downX=e.clientX;holding=false;clearTimeout(holdTimer);
+    holdTimer=setTimeout(function(){if(v.paused)return;holding=true;prevRate=v.playbackRate||1;v.playbackRate=2;fast.classList.add('on')},450);
+  });
+  var endHold=function(){clearTimeout(holdTimer);if(holding){v.playbackRate=prevRate;fast.classList.remove('on')}};
+  z.addEventListener('pointerup',function(e){
+    var wasHold=holding;endHold();if(wasHold){holding=false;return}
+    var t=Date.now(),dir=side(e.clientX);
+    if(t-lastTap<320||(t-streakT<900&&dir===streakSide)){clearTimeout(tapTimer);lastTap=0;seek(dir);return}
+    lastTap=t;clearTimeout(tapTimer);tapTimer=setTimeout(function(){lastTap=0;toggle()},330);
+  });
+  z.addEventListener('pointerleave',endHold);z.addEventListener('pointercancel',endHold);
+  z.addEventListener('contextmenu',function(e){e.preventDefault()});
+  z.addEventListener('dblclick',function(e){e.preventDefault()});
+  var onKey=function(e){
+    if(!document.body.contains(scr)){document.removeEventListener('keydown',onKey);return}
+    var tg=(e.target&&e.target.tagName)||'';if(/INPUT|TEXTAREA|SELECT/.test(tg))return;
+    if(e.key==='ArrowRight'){e.preventDefault();seek(1)}else if(e.key==='ArrowLeft'){e.preventDefault();seek(-1)}else if(e.key===' '){e.preventDefault();toggle()}
+  };
+  document.addEventListener('keydown',onKey);
+}
 function protectPlayer(scr,u){
   if(wmTimer){clearInterval(wmTimer);wmTimer=null}
   if(wmCleanup){wmCleanup();wmCleanup=null}
@@ -1377,8 +1423,8 @@ function protectPlayer(scr,u){
   document.addEventListener('fullscreenchange',onFs);document.addEventListener('webkitfullscreenchange',onFs);document.addEventListener('keydown',onKey);
   wmCleanup=function(){document.removeEventListener('fullscreenchange',onFs);document.removeEventListener('webkitfullscreenchange',onFs);document.removeEventListener('keydown',onKey);
     if(scr.classList.contains('pseudo-fs'))document.body.style.overflow=''};
+  if(v)addTapGestures(scr,v);
   if(v){
-    v.addEventListener('dblclick',function(e){e.preventDefault();isFs()?exitFs():enterFs()});
     // iPhone opens its own video-only full screen: bring it back to ours so the watermark stays visible
     v.addEventListener('webkitbeginfullscreen',function(){try{v.webkitExitFullscreen()}catch(e){}setTimeout(function(){scr.classList.add('pseudo-fs');document.body.style.overflow='hidden';place()},60)});
     v.addEventListener('contextmenu',function(e){e.preventDefault()});
