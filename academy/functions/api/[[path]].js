@@ -441,7 +441,7 @@ async function adminDeleteEnrollment(env, id) {
 }
 async function adminUsers(env) {
   const { results } = await env.DB.prepare(
-    `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at, u.last_login, u.admin_note, u.suspended,
+    `SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at, MAX(COALESCE(u.last_login, 0), COALESCE(u.last_seen, 0)) AS last_login, u.admin_note, u.suspended,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS active,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'pending') AS pending,
        (SELECT COUNT(*) FROM enrollments e WHERE e.user_id = u.id AND e.status = 'rejected') AS rejected,
@@ -467,7 +467,7 @@ async function adminLogoutAll(env, id) {
   return json({ ok: true });
 }
 async function adminUser(env, id) {
-  const u = await env.DB.prepare('SELECT id, name, email, phone, role, created_at, last_login, admin_note, suspended, terms_at, ref_code, referred_by FROM users WHERE id = ?').bind(id).first();
+  const u = await env.DB.prepare('SELECT id, name, email, phone, role, created_at, MAX(COALESCE(last_login, 0), COALESCE(last_seen, 0)) AS last_login, admin_note, suspended, terms_at, ref_code, referred_by FROM users WHERE id = ?').bind(id).first();
   if (!u) return err('المستخدم غير موجود', 404);
   const referrer = u.referred_by ? await env.DB.prepare('SELECT id, name FROM users WHERE id = ?').bind(u.referred_by).first() : null;
   const refs = await env.DB.prepare(
