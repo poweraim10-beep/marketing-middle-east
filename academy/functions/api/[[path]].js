@@ -47,7 +47,10 @@ async function body(req) {
   try { return await req.json(); } catch { return {}; }
 }
 const clean = (s, max = 200) => String(s ?? '').trim().slice(0, max);
-const publicUser = (u) => u && { id: u.id, name: u.name, email: u.email, phone: u.phone, role: roleFor(u.email) };
+const PHONE_MAIL = '@wa.mme'; // placeholder e-mail for accounts registered with a WhatsApp number only
+const phoneTail = (p) => String(p || '').replace(/\D/g, '').slice(-9);
+const PHONE_TAIL_SQL = "substr(replace(replace(replace(phone, '+', ''), ' ', ''), '-', ''), -9)";
+const publicUser = (u) => u && { id: u.id, name: u.name, email: String(u.email || '').endsWith(PHONE_MAIL) ? '' : u.email, phone: u.phone, role: roleFor(u.email) };
 
 // ---------- referrals ----------
 const REF_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -145,15 +148,22 @@ async function videoTokenOk(env, t, userId, lessonId) {
 // ---------- handlers ----------
 async function register(env, req) {
   const b = await body(req);
-  const name = clean(b.name, 80), email = clean(b.email, 120).toLowerCase(), phone = clean(b.phone, 30);
+  const name = clean(b.name, 80), phone = clean(b.phone, 30);
+  let email = clean(b.email, 120).toLowerCase();
   const password = String(b.password || '');
   if (name.length < 2) return err('اكتب اسمك الكامل');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('البريد الإلكتروني غير صحيح');
   if (phone.replace(/\D/g, '').length < 8) return err('اكتب رقم واتساب صحيح مع مقدمة الدولة');
+  // e-mail is optional (many students in Gaza can't open one): the WhatsApp number becomes the login
+  const tail = phoneTail(phone);
+  const samePhone = await env.DB.prepare(`SELECT id FROM users WHERE ${PHONE_TAIL_SQL} = ?`).bind(tail).first();
+  if (!email) {
+    if (samePhone) return err('رقم الواتساب هذا مسجّل مسبقًا، سجّل دخول فيه بدلًا من ذلك', 409);
+    email = phone.replace(/\D/g, '') + PHONE_MAIL;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('البريد الإلكتروني غير صحيح');
   if (password.length < 6) return err('كلمة المرور لازم تكون 6 أحرف على الأقل');
   if (b.terms !== true) return err('لازم توافق على شروط الاشتراك وحماية المحتوى');
   const exists = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first();
-  if (exists) return err('هذا البريد مسجّل مسبقًا، سجّل دخول بدلًا من ذلك', 409);
+  if (exists) return err(email.endsWith(PHONE_MAIL) ? 'رقم الواتساب هذا مسجّل مسبقًا، سجّل دخول فيه بدلًا من ذلك' : 'هذا البريد مسجّل مسبقًا، سجّل دخول بدلًا من ذلك', 409);
   const salt = randomHex(16);
   const pass_hash = await hashPassword(password, salt);
   let referredBy = null;
@@ -168,19 +178,26 @@ async function register(env, req) {
   const id = r.meta.last_row_id;
   try { await env.DB.prepare('UPDATE users SET notif_seen = (SELECT COALESCE(MAX(id), 0) FROM notifications) WHERE id = ?').bind(id).run(); } catch (e) {}
   await ensureRefCode(env, { id });
-  if (roleFor(email) !== 'admin') await alertAdmin(env, `👤 حساب جديد: ${name}`, `${phone} · ${email}${referredBy ? ' · جاي بدعوة من صديق' : ''}`, `#/admin?u=${id}`);
+  if (roleFor(email) !== 'admin') await alertAdmin(env, `👤 حساب جديد: ${name}`, `${phone}${email.endsWith(PHONE_MAIL) ? ' · بدون إيميل' : ' · ' + email}${referredBy ? ' · جاي بدعوة من صديق' : ''}`, `#/admin?u=${id}`);
   const token = await createSession(env, id, req, roleFor(email) === 'admin');
-  return json({ user: { id, name, email, phone, role: roleFor(email) } }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+  return json({ user: publicUser({ id, name, email, phone }) }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
 
 async function login(env, req) {
   const b = await body(req);
-  const email = clean(b.email, 120).toLowerCase();
+  const ident = clean(b.email, 120).toLowerCase();
   const password = String(b.password || '');
-  const u = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
-  if (!u) return err('البريد أو كلمة المرور غير صحيحة', 401);
+  let u = null;
+  if (ident.includes('@')) u = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(ident).first();
+  else if (ident.replace(/\D/g, '').length >= 8) {
+    // log in with the WhatsApp number: match on the last 9 digits so 059…, 59…, +97059… all work
+    const { results } = await env.DB.prepare(`SELECT * FROM users WHERE ${PHONE_TAIL_SQL} = ?`).bind(phoneTail(ident)).all();
+    for (const c of results) { if (timingSafeEqual(await hashPassword(password, c.salt), c.pass_hash)) { u = c; break; } }
+    if (!u && results.length) u = results[0];
+  }
+  if (!u) return err('البريد/رقم الواتساب أو كلمة المرور غير صحيحة', 401);
   const h = await hashPassword(password, u.salt);
-  if (!timingSafeEqual(h, u.pass_hash)) return err('البريد أو كلمة المرور غير صحيحة', 401);
+  if (!timingSafeEqual(h, u.pass_hash)) return err('البريد/رقم الواتساب أو كلمة المرور غير صحيحة', 401);
   if (u.suspended && roleFor(u.email) !== 'admin') return err('حسابك موقوف. تواصل مع إدارة الأكاديمية على واتساب', 403);
   await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?').bind(now(), u.id).run();
   const token = await createSession(env, u.id, req, roleFor(u.email) === 'admin');

@@ -1093,14 +1093,15 @@ function viewAuth(mode,params){
    '<div class="formerr" id="ferr"></div>'+
    '<form id="authForm" novalidate>'+
     (reg?'<div class="field"><label for="fName">الاسم الكامل</label><input id="fName" name="name" autocomplete="name" required></div>':'')+
-    '<div class="field"><label for="fEmail">البريد الإلكتروني</label><input id="fEmail" name="email" type="email" dir="ltr" autocomplete="email" required></div>'+
+    (reg?'<div class="field"><label for="fEmail">البريد الإلكتروني <small style="color:var(--mute);font-weight:400">(اختياري)</small></label><input id="fEmail" name="email" type="email" dir="ltr" autocomplete="email" placeholder="name@gmail.com"><span class="hint">ما عندك إيميل؟ اتركه فاضي، وبتسجّل دخول برقم الواتساب.</span></div>'
+       :'<div class="field"><label for="fEmail">رقم الواتساب أو البريد الإلكتروني</label><input id="fEmail" name="email" type="text" dir="ltr" autocomplete="username" placeholder="0599 123 456  أو  name@gmail.com" required></div>')+
     (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><div class="phonerow"><input id="fPhone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="59 000 0000" autocomplete="tel-national" required><select id="fCode" name="code" dir="rtl" aria-label="مقدمة الدولة">'+CODES.map(function(c){return '<option value="'+c[1]+'">'+c[0]+' (+'+c[1]+')</option>'}).join('')+'<option value="">دولة أخرى</option></select></div><span class="hint" id="phHint">بدون صفر البداية. عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
     '<div class="field"><label for="fPass">كلمة المرور</label><input id="fPass" name="password" type="password" dir="ltr" autocomplete="'+(reg?'new-password':'current-password')+'" minlength="6" required>'+(reg?'<span class="hint">6 أحرف على الأقل.</span>':'')+'</div>'+
     (reg?'<label class="chk"><input type="checkbox" id="fTerms" name="terms"> <span>أوافق على <a href="#/terms" target="_blank">شروط الاشتراك وحماية المحتوى</a></span></label>':'')+
     '<button class="btn btn-p full" type="submit">'+(reg?'إنشاء الحساب':'دخول')+'</button>'+
    '</form>'+
    '<p class="switch">'+(reg?'عندك حساب؟ <a href="#/login'+next+'">سجّل دخول</a>':'ما عندك حساب؟ <a href="#/register'+next+'">أنشئ حساب جديد</a>')+'</p>'+
-   (reg?'':'<p class="switch">نسيت كلمة المرور؟ <a href="'+waLink('نسيت كلمة المرور لحسابي في أكاديمية MME، بريدي: ')+'" target="_blank" rel="noopener">تواصل معنا على واتساب</a></p>')+
+   (reg?'':'<p class="switch">نسيت كلمة المرور؟ <a href="'+waLink('نسيت كلمة المرور لحسابي في أكاديمية MME، رقمي / بريدي: ')+'" target="_blank" rel="noopener">تواصل معنا على واتساب</a></p>')+
   '</div>';
   var f=$('#authForm'),errb=$('#ferr');
   f.addEventListener('submit',function(ev){
@@ -1132,7 +1133,7 @@ function viewMy(){
   Promise.all([loadMe(),api('/courses')]).then(function(r){
     var ens=state.enrollments||[],courses=r[1].courses||[];
     var mine={};ens.forEach(function(e){mine[e.course_id]=e});
-    var html='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">MY ACCOUNT</span><h1>أهلًا '+esc(state.user.name)+'</h1><p>'+esc(state.user.email)+'</p></div>'+
+    var html='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">MY ACCOUNT</span><h1>أهلًا '+esc(state.user.name)+'</h1><p dir="ltr" style="text-align:right">'+esc(state.user.email||state.user.phone||'')+'</p></div>'+
       '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
     html+='<div id="pushSlot"></div>';
     if(!hasBooked())html+=bookCard();
@@ -1175,7 +1176,7 @@ function payLink(e,receipt){
     'تاريخ الطلب: '+date+'\n\n'+
     '👤 *بيانات الطالب*\n'+
     'الاسم: '+u.name+'\n'+
-    'البريد الإلكتروني: '+u.email+'\n'+
+    (u.email?'البريد الإلكتروني: '+u.email+'\n':'')+
     'رقم الواتساب: '+u.phone+'\n'+
     'رقم الحساب: #'+u.id+'\n\n'+
     'رابط الطلب للإدارة:\nhttps://academy.marketingmiddleeast.com/#/admin?u='+u.id
@@ -1532,6 +1533,7 @@ function viewCourse(courseId,params){
 
 // ---------- admin ----------
 var adminTab='overview',orderFilter='pending',lessonCourse=null,stuFilter='all',stuSort='new',stuQ='',ordQ='';
+function mailOf(e){return /@wa\.mme$/.test(e||'')?'بدون إيميل · دخول بالواتساب':(e||'')}
 function digits(p){return String(p||'').replace(/[^\d]/g,'')}
 function ago(s){if(!s)return '—';var x=Math.max(0,Math.floor(Date.now()/1000-s));
   if(x<60)return 'الآن';var m=Math.floor(x/60);if(m<60)return m===1?'قبل دقيقة':m===2?'قبل دقيقتين':'قبل '+m+(m<=10?' دقائق':' دقيقة');
@@ -1651,7 +1653,7 @@ function admOrders(){
         var ph=digits(e.phone),msg='مرحبًا '+e.name+'، معك أكاديمية MME بخصوص طلبك رقم #'+e.id+' لدورة '+e.title+' ($'+finalPrice(e)+').';
         return '<div class="row ord"><div class="ord-main"><div class="ord-top"><b class="ord-id">#'+e.id+'</b><a class="ord-name" href="#/admin?u='+e.user_id+'">'+esc(e.name)+'</a>'+badge(e.status)+'</div>'+
           '<div class="muted">'+esc(e.title)+' · '+money(e.status==='approved'&&e.paid!=null?e.paid:finalPrice(e))+(e.status!=='approved'&&e.ref_discount?' <span class="ref-chip">🎁 خصم دعوات '+e.ref_discount+'%</span>':'')+' · '+ago(e.created_at)+'</div>'+(e.referrer?'<div class="muted">👥 جاي بدعوة من '+esc(e.referrer)+'</div>':'')+
-          '<div class="muted ltr">'+esc(e.phone)+' · '+esc(e.email)+'</div>'+(e.note?'<div class="note">📝 '+esc(e.note)+'</div>':'')+'</div>'+
+          '<div class="muted ltr">'+esc(e.phone)+' · '+esc(mailOf(e.email))+'</div>'+(e.note?'<div class="note">📝 '+esc(e.note)+'</div>':'')+'</div>'+
           '<div class="acts">'+(ph?'<a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/'+ph+'?text='+encodeURIComponent(msg)+'">واتساب</a>':'')+
           (e.status!=='approved'?'<button class="btn btn-ok btn-s" data-ap="'+e.id+'">قبول وتفعيل</button>':'')+
           (e.status==='pending'?'<button class="btn btn-no btn-s" data-st="rejected" data-id="'+e.id+'">رفض</button>':'')+
@@ -1689,7 +1691,7 @@ function admStudents(){
       $('#sBody').innerHTML=current.length?current.map(function(u){
         var ph=digits(u.phone);
         var subs=(u.active?'<span class="badge approved">'+u.active+' مفعّل</span>':'')+(u.pending?'<span class="badge pending">'+u.pending+' بانتظار</span>':'')+(!u.active&&!u.pending?'<span class="badge">بدون</span>':'');
-        return '<tr data-u="'+u.id+'"><td><b>'+esc(u.name)+'</b>'+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+(u.suspended?' <span class="badge susp">موقوف</span>':'')+'<small class="ltr">'+esc(u.email)+'</small></td>'+
+        return '<tr data-u="'+u.id+'"><td><b>'+esc(u.name)+'</b>'+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+(u.suspended?' <span class="badge susp">موقوف</span>':'')+'<small class="ltr">'+esc(mailOf(u.email))+'</small></td>'+
           '<td class="ltr">'+(ph?'<a href="https://wa.me/'+ph+'" target="_blank" rel="noopener" class="wa-link">'+esc(u.phone)+'</a>':'—')+'</td>'+
           '<td><span class="pills">'+subs+'</span></td><td>'+u.done+' درس</td><td>'+money(u.paid)+'</td><td>'+(u.refs?'<span class="ref-chip">'+u.ref_paid+' / '+u.refs+'</span>':'—')+'</td><td>'+(u.last_login?'<b style="color:#fff;font-weight:600">'+ago(u.last_login)+'</b><small style="display:block;color:var(--mute);font-size:12px;white-space:nowrap">'+fmtDT(u.last_login)+'</small>':'—')+'</td><td><a class="btn btn-g btn-s" href="#/admin?u='+u.id+'">فتح</a></td></tr>';
       }).join(''):'<tr><td colspan="8"><div class="empty">ما في نتائج.</div></td></tr>';
@@ -1723,7 +1725,7 @@ function admStudent(id){
       (r[0].countries_24h>1?'<div class="alert-red">⚠️ دخل هذا الحساب من '+r[0].countries_24h+' دول مختلفة خلال آخر 24 ساعة. ممكن يكون في مشاركة للحساب.</div>':'')+
       '<div class="stu-head"><div class="av">'+esc((u.name||'?').trim().charAt(0))+'</div><div><h2>'+esc(u.name)+(u.role==='admin'?' <span class="badge">أدمن</span>':'')+(u.suspended?' <span class="badge susp">موقوف</span>':'')+'</h2>'+
         '<div class="muted">انضم '+fmtDT(u.created_at)+' · آخر دخول '+ago(u.last_login)+(u.last_login?' ('+fmtDT(u.last_login)+')':'')+'</div></div>'+
-        '<div class="acts">'+(ph?'<a class="btn btn-wa btn-s" target="_blank" rel="noopener" href="https://wa.me/'+ph+'">واتساب</a>':'')+'<a class="btn btn-g btn-s" href="mailto:'+esc(u.email)+'">إيميل</a></div></div>'+
+        '<div class="acts">'+(ph?'<a class="btn btn-wa btn-s" target="_blank" rel="noopener" href="https://wa.me/'+ph+'">واتساب</a>':'')+(/@wa\.mme$/.test(u.email||'')?'':'<a class="btn btn-g btn-s" href="mailto:'+esc(u.email)+'">إيميل</a>')+'</div></div>'+
       '<div class="stu-grid"><div>'+
         '<div class="card2"><div class="card2-h"><h3>الاشتراكات</h3></div>'+
           (ens.length?'<div class="list">'+ens.map(function(e){
