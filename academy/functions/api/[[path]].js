@@ -89,6 +89,28 @@ async function refStats(env, userId) {
 }
 const priceAfter = (price, discount) => Math.max(0, Math.round(Number(price || 0) * (100 - discount)) / 100);
 
+// ---------- affiliates (content creators): a code gives the buyer a lower price and the creator a reward ----------
+const AFF_PRICE_DEFAULT = 50, AFF_REWARD_DEFAULT = 10;
+async function affConf(env) {
+  const g = async (k, d) => { const r = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(k).first(); const v = r ? Number(r.value) : NaN; return Number.isFinite(v) && v >= 0 ? v : d; };
+  return { price: await g('aff_price', AFF_PRICE_DEFAULT), reward: await g('aff_reward', AFF_REWARD_DEFAULT) };
+}
+const normCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+async function findAff(env, code) {
+  const c = normCode(code);
+  if (!c) return null;
+  return await env.DB.prepare('SELECT id, name, aff_code FROM users WHERE aff_code = ? AND aff_on = 1 AND COALESCE(suspended, 0) = 0').bind(c).first();
+}
+async function affStats(env, uid) {
+  const { reward } = await affConf(env);
+  const r = await env.DB.prepare(`SELECT
+      (SELECT COUNT(*) FROM enrollments WHERE aff_id = ?) AS used,
+      (SELECT COUNT(*) FROM enrollments WHERE aff_id = ? AND status = 'approved') AS paid,
+      (SELECT COALESCE(SUM(amount), 0) FROM aff_payouts WHERE aff_id = ?) AS paid_out`).bind(uid, uid, uid).first();
+  const earned = (r.paid || 0) * reward;
+  return { used: r.used || 0, paid: r.paid || 0, reward, earned, paid_out: r.paid_out || 0, balance: earned - (r.paid_out || 0) };
+}
+
 async function currentUser(env, req) {
   const token = getCookie(req, SESSION_COOKIE);
   if (!token) return null;
@@ -240,10 +262,19 @@ async function me(env, user) {
     `SELECT u.name, u.created_at, EXISTS (SELECT 1 FROM enrollments e WHERE e.user_id = u.id AND e.status = 'approved') AS paid
      FROM users u WHERE u.referred_by = ? ORDER BY u.created_at DESC LIMIT 50`
   ).bind(user.id).all();
-  const enrollments = results.map((e) => ({ ...e, final_price: e.status === 'pending' ? priceAfter(e.price, rs.discount) : e.price }));
+  const ac = await affConf(env);
+  const coupons = {};
+  for (const e of results) { const c = await env.DB.prepare('SELECT coupon FROM enrollments WHERE id = ?').bind(e.id).first(); coupons[e.id] = c && c.coupon; }
+  const enrollments = results.map((e) => {
+    let fp = e.status === 'pending' ? priceAfter(e.price, rs.discount) : e.price;
+    if (e.status === 'pending' && coupons[e.id]) fp = Math.min(fp, ac.price);
+    return { ...e, coupon: coupons[e.id] || null, final_price: fp };
+  });
+  const affiliate = user.aff_on && user.aff_code ? { code: user.aff_code, price: ac.price, ...(await affStats(env, user.id)) } : null;
   return json({
     user: publicUser(user),
     enrollments,
+    affiliate,
     referral: { code, ...rs, friends: friends.results.map((f) => ({ name: String(f.name || '').trim().split(/\s+/)[0], created_at: f.created_at, paid: !!f.paid })) },
   });
 }
@@ -270,17 +301,30 @@ async function enroll(env, req, user) {
   const course = await env.DB.prepare('SELECT * FROM courses WHERE id = ? AND published = 1').bind(clean(b.course_id, 60)).first();
   if (!course) return err('الدورة غير موجودة', 404);
   let e = await env.DB.prepare('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?').bind(user.id, course.id).first();
+  let aff = b.code ? await findAff(env, b.code) : null;
+  if (b.code && !aff) return err('كود الخصم غير صحيح، تأكد منه أو اتركه فاضي');
+  if (aff && aff.id === user.id) return err('ما بتقدر تستخدم الكود الخاص فيك');
+  if (e && e.status !== 'approved' && aff && !e.aff_id) {
+    await env.DB.prepare('UPDATE enrollments SET coupon = ?, aff_id = ? WHERE id = ?').bind(aff.aff_code, aff.id, e.id).run();
+    e.coupon = aff.aff_code; e.aff_id = aff.id;
+  }
   if (!e) {
-    await env.DB.prepare('INSERT INTO enrollments (user_id, course_id, status, created_at) VALUES (?, ?, ?, ?)')
-      .bind(user.id, course.id, 'pending', now()).run();
+    await env.DB.prepare('INSERT INTO enrollments (user_id, course_id, status, created_at, coupon, aff_id) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(user.id, course.id, 'pending', now(), aff ? aff.aff_code : null, aff ? aff.id : null).run();
     e = await env.DB.prepare('SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?').bind(user.id, course.id).first();
-    await alertAdmin(env, `🆕 طلب جديد #${e.id}: ${user.name}`, `طلب دورة «${course.title}» ($${course.price}). تواصل معه وفعّل الطلب.`, '#/admin?t=orders');
+    await alertAdmin(env, `🆕 طلب جديد #${e.id}: ${user.name}`, `طلب دورة «${course.title}» ($${aff ? (await affConf(env)).price : course.price})${aff ? ' بكود ' + aff.aff_code : ''}. تواصل معه وفعّل الطلب.`, '#/admin?t=orders');
   } else if (e.status === 'rejected') {
     await env.DB.prepare("UPDATE enrollments SET status = 'pending', decided_at = NULL, created_at = ? WHERE id = ?").bind(now(), e.id).run();
     e.status = 'pending';
     await alertAdmin(env, `🆕 طلب جديد #${e.id}: ${user.name}`, `قدّم طلب دورة «${course.title}» من جديد ($${course.price}).`, '#/admin?t=orders');
   }
-  return json({ enrollment: { id: e.id, status: e.status, course_id: course.id, title: course.title, price: course.price } });
+  return json({ enrollment: { id: e.id, status: e.status, course_id: course.id, title: course.title, price: course.price, coupon: e.coupon || null } });
+}
+async function checkCoupon(env, code) {
+  const a = await findAff(env, code);
+  if (!a) return json({ valid: false });
+  const { price } = await affConf(env);
+  return json({ valid: true, code: a.aff_code, price, by: String(a.name || '').trim().split(/\s+/)[0] });
 }
 
 async function getCourse(env, user, id) {
@@ -424,7 +468,8 @@ async function adminStats(env) {
 }
 async function adminEnrollments(env, url) {
   const status = url.searchParams.get('status');
-  let sql = `SELECT e.id, e.status, e.created_at, e.decided_at, e.note, e.paid, e.course_id, c.title, c.price,
+  let sql = `SELECT e.id, e.status, e.created_at, e.decided_at, e.note, e.paid, e.course_id, e.coupon, c.title, c.price,
+               (SELECT name FROM users a WHERE a.id = e.aff_id) AS aff_name,
                u.id AS user_id, u.name, u.email, u.phone,
                (SELECT COUNT(*) FROM users r WHERE r.referred_by = u.id AND EXISTS (SELECT 1 FROM enrollments x WHERE x.user_id = r.id AND x.status = 'approved')) AS ref_paid,
                (SELECT name FROM users r WHERE r.id = u.referred_by) AS referrer
@@ -434,7 +479,8 @@ async function adminEnrollments(env, url) {
   sql += " ORDER BY CASE e.status WHEN 'pending' THEN 0 ELSE 1 END, e.created_at DESC LIMIT 1000";
   const { results } = await env.DB.prepare(sql).bind(...args).all();
   const pct = await refPct(env);
-  results.forEach((e) => { e.ref_discount = Math.min(100, e.ref_paid * pct); e.final_price = priceAfter(e.price, e.ref_discount); });
+  const ac = await affConf(env);
+  results.forEach((e) => { e.ref_discount = Math.min(100, e.ref_paid * pct); e.final_price = priceAfter(e.price, e.ref_discount); if (e.coupon) e.final_price = Math.min(e.final_price, ac.price); });
   return json({ enrollments: results, ref_pct: pct });
 }
 async function adminDecide(env, req, id) {
@@ -443,7 +489,10 @@ async function adminDecide(env, req, id) {
   const e = await env.DB.prepare('SELECT e.*, c.price FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.id = ?').bind(id).first();
   if (!e) return err('الطلب غير موجود', 404);
   let def = e.paid ?? e.price;
-  if (b.status === 'approved' && e.paid == null) def = priceAfter(e.price, (await refStats(env, e.user_id)).discount);
+  if (b.status === 'approved' && e.paid == null) {
+    def = priceAfter(e.price, (await refStats(env, e.user_id)).discount);
+    if (e.coupon) def = Math.min(def, (await affConf(env)).price);
+  }
   const paid = b.status === 'approved' ? (b.paid !== undefined && b.paid !== '' ? Number(b.paid) || 0 : def) : e.paid;
   const note = b.note !== undefined ? clean(b.note, 500) || null : e.note;
   await env.DB.prepare('UPDATE enrollments SET status = ?, decided_at = ?, paid = ?, note = ? WHERE id = ?').bind(b.status, now(), paid, note, id).run();
@@ -503,7 +552,34 @@ async function adminUser(env, id) {
   ).bind(id).all();
   const logins = await env.DB.prepare('SELECT at, ip, country, ua FROM logins WHERE user_id = ? ORDER BY at DESC LIMIT 15').bind(id).all();
   const countries = await env.DB.prepare('SELECT COUNT(DISTINCT country) AS n FROM logins WHERE user_id = ? AND at > ?').bind(id, now() - 86400).first();
-  return json({ user: u, enrollments: results, logins: logins.results, countries_24h: countries ? countries.n : 0, referral });
+  const af = await env.DB.prepare('SELECT aff_code, aff_on FROM users WHERE id = ?').bind(id).first();
+  const affiliate = { code: af && af.aff_code, on: !!(af && af.aff_on), ...(await affStats(env, id)) };
+  return json({ user: u, enrollments: results, logins: logins.results, countries_24h: countries ? countries.n : 0, referral, affiliate });
+}
+async function adminSetAffiliate(env, req, id) {
+  const b = await body(req);
+  const u = await env.DB.prepare('SELECT id, name, aff_code FROM users WHERE id = ?').bind(id).first();
+  if (!u) return err('المستخدم غير موجود', 404);
+  if (!b.on) { await env.DB.prepare('UPDATE users SET aff_on = 0 WHERE id = ?').bind(id).run(); return json({ ok: true }); }
+  const code = normCode(b.code) || u.aff_code;
+  if (!code || code.length < 3) return err('اكتب كود من 3 أحرف/أرقام إنجليزي على الأقل');
+  const ex = await env.DB.prepare('SELECT id FROM users WHERE aff_code = ? AND id != ?').bind(code, id).first();
+  if (ex) return err('هذا الكود مستخدم لمسوّق ثاني');
+  await env.DB.prepare('UPDATE users SET aff_code = ?, aff_on = 1 WHERE id = ?').bind(code, id).run();
+  return json({ ok: true, code });
+}
+async function adminAffiliates(env) {
+  const { results } = await env.DB.prepare('SELECT id, name, phone, email, aff_code, aff_on FROM users WHERE aff_code IS NOT NULL ORDER BY aff_on DESC, name').all();
+  for (const a of results) Object.assign(a, await affStats(env, a.id));
+  const payouts = await env.DB.prepare('SELECT p.*, u.name FROM aff_payouts p JOIN users u ON u.id = p.aff_id ORDER BY p.at DESC LIMIT 50').all();
+  return json({ affiliates: results, payouts: payouts.results, conf: await affConf(env) });
+}
+async function adminAffPayout(env, req, id) {
+  const b = await body(req);
+  const amount = Number(b.amount);
+  if (!Number.isFinite(amount) || amount <= 0) return err('اكتب المبلغ');
+  await env.DB.prepare('INSERT INTO aff_payouts (aff_id, amount, note, at) VALUES (?, ?, ?, ?)').bind(id, amount, clean(b.note, 300) || null, now()).run();
+  return json({ ok: true });
 }
 async function adminUpdateUser(env, req, id, me) {
   const b = await body(req);
@@ -1019,7 +1095,7 @@ async function streamIntro(env, req) {
 }
 
 // ---------- settings (payment methods) ----------
-const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'jawwal_number', 'jawwal_holder', 'pay_note', 'ref_pct'];
+const PAY_KEYS = ['bank_name', 'bank_holder', 'bank_account', 'bank_iban', 'palpay_number', 'palpay_holder', 'jawwal_number', 'jawwal_holder', 'pay_note', 'ref_pct', 'aff_price', 'aff_reward'];
 async function getSettings(env) {
   const { results } = await env.DB.prepare('SELECT key, value FROM settings').all();
   const s = {};
@@ -1066,6 +1142,7 @@ export async function onRequest(context) {
     if (path === '/logout' && method === 'POST') return await logout(env, request);
     if (path === '/courses' && method === 'GET') return await listCourses(env);
     if (path === '/intro' && method === 'GET') return await getIntro(env);
+    { const m0 = path.match(/^\/coupon\/([A-Za-z0-9]{1,20})$/); if (m0 && method === 'GET') return await checkCoupon(env, m0[1]); }
     // called once a day by the scheduled GitHub workflow; safe to call publicly (runs at most every 20h)
     if (path === '/cron/daily' && (method === 'GET' || method === 'POST')) return json(await runDaily(env, false));
     if (path === '/intro/video' && (method === 'GET' || method === 'HEAD')) return await streamIntro(env, request);
@@ -1133,6 +1210,9 @@ export async function onRequest(context) {
       if ((m = path.match(/^\/admin\/courses\/([\w-]+)$/)) && method === 'POST') return await adminSaveCourse(env, request, m[1]);
       if (path === '/admin/courses' && method === 'POST') return await adminCreateCourse(env, request);
       if (path === '/admin/notifications' && method === 'GET') return await adminNotifs(env);
+      if (path === '/admin/affiliates' && method === 'GET') return await adminAffiliates(env);
+      if ((m = path.match(/^\/admin\/affiliates\/(\d+)\/payout$/)) && method === 'POST') return await adminAffPayout(env, request, Number(m[1]));
+      if ((m = path.match(/^\/admin\/users\/(\d+)\/affiliate$/)) && method === 'POST') return await adminSetAffiliate(env, request, Number(m[1]));
       if (path === '/admin/reminders/run' && method === 'POST') return json(await runDaily(env, true));
       if (path === '/admin/notifications' && method === 'POST') return await adminCreateNotif(env, request);
       if ((m = path.match(/^\/admin\/notifications\/(\d+)$/))) {
