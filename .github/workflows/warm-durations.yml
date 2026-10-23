@@ -1,0 +1,13 @@
+name: Academy lesson durations
+on:
+  push:
+    paths: ['.github/workflows/warm-durations.yml']
+  workflow_dispatch:
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Load the course so missing lesson durations get measured
+        run: |
+          sleep 150
+          for i in 1 2 3; do curl -fsS https://academy.marketingmiddleeast.com/api/course/ai-ad-video -o /dev/null || true; sleep 20; done
