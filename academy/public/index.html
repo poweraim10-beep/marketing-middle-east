@@ -1596,7 +1596,7 @@ function ago(s){if(!s)return '—';var x=Math.max(0,Math.floor(Date.now()/1000-s
 function fmtDT(s){if(!s)return '';try{var d=new Date(s*1000);return d.toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})+' · '+d.toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})}catch(e){return ''}}
 function money(n){return '$'+(Number(n)||0).toLocaleString('en-US')}
 var GIFT_URL='/gift/student-kit.pdf';
-var OFFER_END=Date.parse('2026-10-19T16:00:00Z'),BOOK_COURSE='ai-ad-video';
+var OFFER_END=Date.parse('2026-10-28T20:59:00Z'),BOOK_COURSE='ai-ad-video';
 function hasBooked(){return (state.enrollments||[]).some(function(e){return e.course_id===BOOK_COURSE&&e.status!=='rejected'})}
 function isActive(){return (state.enrollments||[]).some(function(e){return e.status==='approved'})}
 function cdHtml(){return Date.now()<OFFER_END?'<div class="cd-lbl">⏳ العرض بينتهي خلال</div><div class="cd" data-cd><div><b data-u="d">0</b><i>يوم</i></div><div><b data-u="h">00</b><i>ساعة</i></div><div><b data-u="m">00</b><i>دقيقة</i></div><div><b data-u="s">00</b><i>ثانية</i></div></div>':''}
@@ -2078,7 +2078,7 @@ if(parseHash().name==='home')loadMe();
 
 </script>
 <script>
-(function(){var END=Date.parse('2026-10-19T16:00:00Z'),el=document.getElementById('acCd'),box=document.getElementById('acOffer');if(!el)return;
+(function(){var END=Date.parse('2026-10-28T20:59:00Z'),el=document.getElementById('acCd'),box=document.getElementById('acOffer');if(!el)return;
 var p=function(n){return (n<10?'0':'')+n};
 function t(){var ms=END-Date.now();if(ms<=0){box.innerHTML='انتهى عرض الإطلاق.';clearInterval(i);return}var s=Math.floor(ms/1000),d=Math.floor(s/86400);el.innerHTML=(d?d+' يوم و ':'')+'<span dir="ltr">'+p(Math.floor(s%86400/3600))+':'+p(Math.floor(s%3600/60))+':'+p(s%60)+'</span>'}
 t();var i=setInterval(t,1000)})();
