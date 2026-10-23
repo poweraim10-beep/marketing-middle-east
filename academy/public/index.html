@@ -1549,7 +1549,7 @@ function viewCourse(courseId,params){
         cta='<div style="max-width:520px;margin:0 auto">'+activateBox(pe)+'</div><a class="btn btn-g" href="#/enrolled/'+esc(c.id)+'">تفاصيل الطلب وحسابات الدفع</a>'}
       else cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
       app.innerHTML=head+'<div class="locked"><p style="color:#fff;font-size:18px;margin:0 0 6px">🔒 هاي الدورة مقفلة</p><p style="color:var(--mute);margin:0 0 18px">بتنفتح بعد تفعيل اشتراكك.</p>'+cta+'</div>'+
-        (ls.length?'<div class="lessons" style="margin-top:20px"><div class="lh"><span>محتوى الدورة</span><span>'+ls.length+'</span></div>'+ls.map(function(l,i){return '<button disabled><span class="ck">'+(i+1)+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+l.minutes+'m</span>':'')+'</button>'}).join('')+'</div>':'');
+        (ls.length?'<div class="lessons" style="margin-top:20px"><div class="lh"><span>محتوى الدورة</span><span>'+ls.length+'</span></div>'+ls.map(function(l,i){return '<button disabled><span class="ck">'+(i+1)+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+Math.max(1,Math.round(l.minutes))+' د</span>':'')+'</button>'}).join('')+'</div>':'');
       commentsSection(c.id);
       return;
     }
@@ -1568,7 +1568,7 @@ function viewCourse(courseId,params){
       '</div><div>'+
         '<div class="lessons"><div class="lh"><span>محتوى الدورة</span><span>'+pct+'%</span></div>'+
         '<div style="padding:0 16px 12px;border-bottom:1px solid var(--line)"><div class="prog"><i style="width:'+pct+'%"></i></div></div>'+
-        ls.map(function(l,i){return '<button data-l="'+l.id+'" class="'+(l.id===lesson.id?'on ':'')+(done[l.id]?'done':'')+'"><span class="ck">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+l.minutes+'m</span>':'')+'</button>'}).join('')+
+        ls.map(function(l,i){return '<button data-l="'+l.id+'" class="'+(l.id===lesson.id?'on ':'')+(done[l.id]?'done':'')+'"><span class="ck">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+Math.max(1,Math.round(l.minutes))+' د</span>':'')+'</button>'}).join('')+
         '</div>'+
       '</div></div>';
     var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)})}

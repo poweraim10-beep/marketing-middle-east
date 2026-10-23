@@ -340,6 +340,12 @@ async function getCourse(env, user, id) {
   const { results } = await env.DB.prepare(
     'SELECT id, title, minutes, sort, video_url, notes, video_key, video_size FROM lessons WHERE course_id = ? ORDER BY sort, id'
   ).bind(id).all();
+  // lessons uploaded without a typed duration get it measured from the file itself, in the background
+  const missing = results.filter((l) => l.video_key && !l.minutes);
+  if (missing.length && env.VIDEOS) {
+    const job = (async () => { for (const l of missing) { try { const sec = await videoSeconds(env, l.video_key); if (sec) await env.DB.prepare('UPDATE lessons SET minutes = ? WHERE id = ? AND minutes IS NULL').bind(Math.round(sec / 6) / 10, l.id).run(); } catch (e) {} } })();
+    if (env.__wait) env.__wait(job); else await job;
+  }
   const lessons = [];
   for (const l of results) {
     const has_video = !!l.video_key;
@@ -965,6 +971,37 @@ async function deleteLessonVideo(env, id) {
 }
 
 // admin diagnostic: reads the MP4 box layout straight from R2 to say why a lesson video will not play
+// reads the duration (seconds) from the MP4 'mvhd' box without downloading the video
+async function videoSeconds(env, key) {
+  const head = await env.VIDEOS.head(key);
+  if (!head) return null;
+  const size = head.size;
+  let off = 0;
+  for (let i = 0; i < 64 && off + 8 <= size; i++) {
+    const o = await env.VIDEOS.get(key, { range: { offset: off, length: Math.min(16, size - off) } });
+    const b = new Uint8Array(await o.arrayBuffer()), dv = new DataView(b.buffer);
+    let len = dv.getUint32(0);
+    const type = String.fromCharCode(b[4], b[5], b[6], b[7]);
+    if (len === 1 && b.length >= 16) len = dv.getUint32(8) * 4294967296 + dv.getUint32(12);
+    else if (len === 0) len = size - off;
+    if (len < 8) return null;
+    if (type === 'moov') {
+      const m = await env.VIDEOS.get(key, { range: { offset: off, length: Math.min(len, 65536) } });
+      const mb = new Uint8Array(await m.arrayBuffer()), md = new DataView(mb.buffer);
+      for (let j = 8; j + 32 < mb.length; j++) {
+        if (mb[j] === 0x6d && mb[j + 1] === 0x76 && mb[j + 2] === 0x68 && mb[j + 3] === 0x64) {
+          const v = mb[j + 4], p = j + 8;
+          const ts = v === 1 ? md.getUint32(p + 16) : md.getUint32(p + 8);
+          const du = v === 1 ? md.getUint32(p + 20) * 4294967296 + md.getUint32(p + 24) : md.getUint32(p + 12);
+          return ts ? du / ts : null;
+        }
+      }
+      return null;
+    }
+    off += len;
+  }
+  return null;
+}
 async function probeLessonVideo(env, id) {
   if (!env.VIDEOS) return noR2();
   const l = await env.DB.prepare('SELECT video_key, video_size, video_type FROM lessons WHERE id = ?').bind(id).first();
