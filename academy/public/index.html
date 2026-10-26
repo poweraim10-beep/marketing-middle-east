@@ -600,13 +600,13 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .aff-card{margin-bottom:26px;padding:22px;border-radius:22px;border:1px solid rgba(34,211,238,.55);background:radial-gradient(70% 90% at 0% 0%,rgba(34,211,238,.16),transparent 60%),linear-gradient(160deg,rgba(168,85,247,.18),rgba(11,16,32,.96) 60%)}
 .aff-card h3{margin:0 0 6px;color:#fff;font-size:20px}
 .aff-code{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border-radius:16px;border:1.5px dashed rgba(250,204,21,.7);background:rgba(250,204,21,.07)}
-.aff-code b{font-family:'IBM Plex Mono',monospace;font-size:28px;letter-spacing:.12em;color:#fde047}
+.aff-code b{font-size:28px;color:#fde047}
 .aff-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
 .aff-stats div{padding:12px 8px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line);text-align:center}
 .aff-stats b{display:block;font-size:24px;color:#fff}.aff-stats span{font-size:12.5px;color:var(--mute)}
 .aff-stats .money b{color:#86efac}
 @media(max-width:560px){.aff-stats{grid-template-columns:repeat(2,1fr)}}
-.cp-row{display:flex;gap:8px;margin-top:12px}.cp-row input{flex:1;min-width:0;text-transform:uppercase;letter-spacing:.08em}
+.cp-row{display:flex;gap:8px;margin-top:12px}.cp-row input{flex:1;min-width:0;text-transform:uppercase}
 .cp-ok{margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.5);color:#bbf7d0;font-weight:600}
 .aff-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.5);color:#67e8f9;font-size:12.5px;font-weight:600}
 .ref-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(250,204,21,.14);border:1px solid rgba(250,204,21,.5);color:#fde047;font-size:12.5px;font-weight:600}
@@ -921,11 +921,12 @@ var REF=null;
 // creator (affiliate) discount code: ?code=XXX
 var CODE=null;
 (function(){
-  var m=(location.search||'').match(/[?&]code=([A-Za-z0-9]{2,20})/)||(location.hash||'').match(/[?&]code=([A-Za-z0-9]{2,20})/);
-  if(m){CODE=m[1].toUpperCase();try{localStorage.setItem('mme_code',CODE)}catch(e){}}
+  var m=(location.search||'').match(/[?&]code=([^&#]{2,200})/)||(location.hash||'').match(/[?&]code=([^&#]{2,200})/);
+  if(m){var raw=m[1];try{raw=decodeURIComponent(raw.replace(/\+/g,' '))}catch(e){}setCode(raw);}
   else{try{CODE=localStorage.getItem('mme_code')}catch(e){}}
 })();
-function setCode(c){CODE=c?String(c).toUpperCase().replace(/[^A-Z0-9]/g,''):null;try{CODE?localStorage.setItem('mme_code',CODE):localStorage.removeItem('mme_code')}catch(e){}}
+function normCode(c){return String(c||'').toUpperCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').replace(/[^A-Z0-9\u0621-\u064A]/g,'').slice(0,20)}
+function setCode(c){CODE=c?normCode(c)||null:null;try{CODE?localStorage.setItem('mme_code',CODE):localStorage.removeItem('mme_code')}catch(e){}}
 function affUrl(code){return location.origin+'/?code='+encodeURIComponent(code)}
 function affCard(a){
   if(!a||!a.code)return '';
@@ -943,7 +944,7 @@ function affCard(a){
 function couponBox(e){
   if(!e||e.status==='approved')return '';
   if(e.coupon)return '<div class="cp-ok">🏷 تم تطبيق الكود <b dir="ltr">'+esc(e.coupon)+'</b>، سعر الدورة صار <b dir="ltr">$'+finalPrice(e)+'</b> بدل <s dir="ltr">$'+e.price+'</s></div>';
-  return '<div class="cp-row"><input id="cpIn" dir="ltr" placeholder="عندك كود خصم؟ اكتبه هون" maxlength="20" value="'+esc(CODE||'')+'"><button class="btn btn-p" id="cpBtn" data-cid="'+esc(e.course_id)+'">تطبيق</button></div>';
+  return '<div class="cp-row"><input id="cpIn" dir="auto" placeholder="عندك كود خصم؟ اكتبه هون" maxlength="20" value="'+esc(CODE||'')+'"><button class="btn btn-p" id="cpBtn" data-cid="'+esc(e.course_id)+'">تطبيق</button></div>';
 }
 function refUrl(code){return location.origin+'/?ref='+encodeURIComponent(code)}
 function refPctVal(){var v=PAY&&PAY.ref_pct!=null&&PAY.ref_pct!==''?Number(PAY.ref_pct):25;return isFinite(v)?v:25}
@@ -1141,7 +1142,7 @@ function viewAuth(mode,params){
        :'<div class="field"><label for="fEmail">رقم الواتساب أو البريد الإلكتروني</label><input id="fEmail" name="email" type="text" dir="ltr" autocomplete="username" placeholder="0599 123 456  أو  name@gmail.com" required></div>')+
     (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><div class="phonerow"><input id="fPhone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="59 000 0000" autocomplete="tel-national" required><select id="fCode" name="code" dir="rtl" aria-label="مقدمة الدولة">'+CODES.map(function(c){return '<option value="'+c[1]+'">'+c[0]+' (+'+c[1]+')</option>'}).join('')+'<option value="">دولة أخرى</option></select></div><span class="hint" id="phHint">بدون صفر البداية. عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
     '<div class="field"><label for="fPass">كلمة المرور</label><input id="fPass" name="password" type="password" dir="ltr" autocomplete="'+(reg?'new-password':'current-password')+'" minlength="6" required>'+(reg?'<span class="hint">6 أحرف على الأقل.</span>':'')+'</div>'+
-    (reg?'<div class="field"><label for="fCoupon">كود الخصم <small style="color:var(--mute);font-weight:400">(اختياري)</small></label><input id="fCoupon" name="coupon" dir="ltr" maxlength="20" style="text-transform:uppercase;letter-spacing:.08em" placeholder="مثلًا: AHMAD" value="'+esc(CODE||'')+'"><span class="hint">إذا معك كود من أحد صناع المحتوى، بيصير سعر الدورة أقل.</span></div>':'')+
+    (reg?'<div class="field"><label for="fCoupon">كود الخصم <small style="color:var(--mute);font-weight:400">(اختياري)</small></label><input id="fCoupon" name="coupon" dir="auto" maxlength="20" style="text-transform:uppercase" placeholder="مثلًا: الخال" value="'+esc(CODE||'')+'"><span class="hint">إذا معك كود من أحد صناع المحتوى، بيصير سعر الدورة أقل.</span></div>':'')+
     (reg?'<label class="chk"><input type="checkbox" id="fTerms" name="terms"> <span>أوافق على <a href="#/terms" target="_blank">شروط الاشتراك وحماية المحتوى</a></span></label>':'')+
     '<button class="btn btn-p full" type="submit">'+(reg?'إنشاء الحساب':'دخول')+'</button>'+
    '</form>'+
@@ -1809,7 +1810,7 @@ function admStudent(id){
         '</div>'+
         '<div class="card2"><h3>🎤 مسوّق (صانع محتوى)</h3>'+
           (af.on?'<div class="muted" style="line-height:1.9">الكود: <b class="ltr" style="color:#fde047">'+esc(af.code)+'</b><br>سجّلوا بكوده: <b style="color:#fff">'+af.used+'</b> · تفعّلوا: <b style="color:#fff">'+af.paid+'</b><br>أرباحه: <b style="color:#86efac">$'+af.earned+'</b> · تم تحويل: <b>$'+af.paid_out+'</b> · الرصيد: <b style="color:#86efac">$'+af.balance+'</b></div>':'<p class="muted">فعّل حسابه كمسوّق واعطيه كود خاص. أي شخص بيسجّل بالكود بياخذ الدورة بسعر الكود، وهو بياخذ عمولة عن كل اشتراك مفعّل.</p>')+
-          '<form id="afF" class="cp-row"><input name="code" dir="ltr" maxlength="20" placeholder="الكود مثلًا AHMAD" value="'+esc(af.code||'')+'" style="text-transform:uppercase"><button class="btn btn-ok" type="submit">'+(af.on?'حفظ الكود':'تفعيل كمسوّق')+'</button></form>'+
+          '<form id="afF" class="cp-row"><input name="code" dir="auto" maxlength="20" placeholder="الكود مثلًا الخال أو AHMAD" value="'+esc(af.code||'')+'" style="text-transform:uppercase"><button class="btn btn-ok" type="submit">'+(af.on?'حفظ الكود':'تفعيل كمسوّق')+'</button></form>'+
           (af.on?'<button class="btn btn-g btn-s" id="afOff" style="margin-top:10px">إيقاف المسوّق</button>':'')+
         '</div>'+
         '<div class="card2"><h3>بيانات الحساب</h3><form id="uF">'+

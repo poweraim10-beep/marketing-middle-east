@@ -95,7 +95,8 @@ async function affConf(env) {
   const g = async (k, d) => { const r = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(k).first(); const v = r ? Number(r.value) : NaN; return Number.isFinite(v) && v >= 0 ? v : d; };
   return { price: await g('aff_price', AFF_PRICE_DEFAULT), reward: await g('aff_reward', AFF_REWARD_DEFAULT) };
 }
-const normCode = (c) => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20);
+// codes may be English (AHMAD) or Arabic (الخال); Arabic is normalised so أ/إ/آ and diacritics don't matter
+const normCode = (c) => String(c || '').toUpperCase().replace(/[\u064B-\u065F\u0670\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/[^A-Z0-9\u0621-\u064A]/g, '').slice(0, 20);
 async function findAff(env, code) {
   const c = normCode(code);
   if (!c) return null;
@@ -568,9 +569,11 @@ async function adminSetAffiliate(env, req, id) {
   if (!u) return err('المستخدم غير موجود', 404);
   if (!b.on) { await env.DB.prepare('UPDATE users SET aff_on = 0 WHERE id = ?').bind(id).run(); return json({ ok: true }); }
   const code = normCode(b.code) || u.aff_code;
-  if (!code || code.length < 3) return err('اكتب كود من 3 أحرف/أرقام إنجليزي على الأقل');
-  const ex = await env.DB.prepare('SELECT id FROM users WHERE aff_code = ? AND id != ?').bind(code, id).first();
-  if (ex) return err('هذا الكود مستخدم لمسوّق ثاني');
+  if (!code || code.length < 3) return err('اكتب كود من 3 أحرف/أرقام على الأقل');
+  const ex = await env.DB.prepare('SELECT id, aff_on FROM users WHERE aff_code = ? AND id != ?').bind(code, id).first();
+  if (ex && ex.aff_on) return err('هذا الكود مستخدم لمسوّق ثاني، أوقفه عنده أول');
+  // a stopped creator's code can be handed to someone else; their history stays (enrollments keep aff_id)
+  if (ex) await env.DB.prepare('UPDATE users SET aff_code = NULL WHERE id = ?').bind(ex.id).run();
   await env.DB.prepare('UPDATE users SET aff_code = ?, aff_on = 1 WHERE id = ?').bind(code, id).run();
   return json({ ok: true, code });
 }
@@ -1179,7 +1182,7 @@ export async function onRequest(context) {
     if (path === '/logout' && method === 'POST') return await logout(env, request);
     if (path === '/courses' && method === 'GET') return await listCourses(env);
     if (path === '/intro' && method === 'GET') return await getIntro(env);
-    { const m0 = path.match(/^\/coupon\/([A-Za-z0-9]{1,20})$/); if (m0 && method === 'GET') return await checkCoupon(env, m0[1]); }
+    { const m0 = path.match(/^\/coupon\/([^/]{1,200})$/); if (m0 && method === 'GET') { let c = m0[1]; try { c = decodeURIComponent(c); } catch (e) {} return await checkCoupon(env, c); } }
     // called once a day by the scheduled GitHub workflow; safe to call publicly (runs at most every 20h)
     if (path === '/cron/daily' && (method === 'GET' || method === 'POST')) return json(await runDaily(env, false));
     if (path === '/intro/video' && (method === 'GET' || method === 'HEAD')) return await streamIntro(env, request);
