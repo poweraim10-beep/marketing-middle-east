@@ -547,6 +547,13 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .mdl-sub{margin:0 0 16px;color:var(--mute);font-size:14px}
 .mdl-box:has(.giftbox){border:1px solid transparent;background:linear-gradient(#0A0F22,#0A0F22) padding-box,linear-gradient(135deg,#FBBF24,#22D3EE 35%,#3B82F6 65%,#A855F7) border-box;box-shadow:0 30px 90px -20px rgba(37,99,235,.55),0 0 0 1px rgba(255,255,255,.03);overflow:hidden}
 .giftbox{position:relative;text-align:center}
+.cpbox .gi{font-size:58px}
+.cpbox .cp-price{display:flex;align-items:center;justify-content:center;gap:14px;margin:16px 0 6px}
+.cpbox .cp-price b{font-size:46px;font-weight:900;color:#86efac;line-height:1}
+.cpbox .cp-price s{font-size:22px;color:var(--mute)}
+.cpbox .cp-tag{display:inline-block;margin-top:6px;padding:6px 16px;border-radius:999px;border:1.5px dashed rgba(250,204,21,.8);background:rgba(250,204,21,.1);color:#fde047;font-weight:800;font-size:18px}
+.cp-live{display:block;margin-top:6px;font-size:13.5px;font-weight:700}
+.cp-live.ok{color:#86efac}.cp-live.bad{color:#fca5a5}
 .giftbox:before{content:"";position:absolute;inset:-26px -26px auto;height:190px;background:radial-gradient(60% 80% at 50% 0%,rgba(59,130,246,.45),transparent 70%),radial-gradient(40% 60% at 85% 10%,rgba(168,85,247,.35),transparent 70%),radial-gradient(40% 60% at 15% 10%,rgba(34,211,238,.3),transparent 70%);pointer-events:none}
 .giftbox>*{position:relative}
 .giftbox .gi{width:92px;height:92px;margin:4px auto 16px;border-radius:50%;display:grid;place-items:center;font-size:46px;line-height:1;background:radial-gradient(circle at 30% 25%,#FDE68A,#F59E0B 55%,#B45309);box-shadow:0 0 0 6px rgba(251,191,36,.15),0 0 50px rgba(251,191,36,.55);animation:gpop .7s cubic-bezier(.2,1.6,.4,1) both,gglow 2.4s ease-in-out .7s infinite}
@@ -1142,7 +1149,7 @@ function viewAuth(mode,params){
        :'<div class="field"><label for="fEmail">رقم الواتساب أو البريد الإلكتروني</label><input id="fEmail" name="email" type="text" dir="ltr" autocomplete="username" placeholder="0599 123 456  أو  name@gmail.com" required></div>')+
     (reg?'<div class="field"><label for="fPhone">رقم واتساب</label><div class="phonerow"><input id="fPhone" name="phone" type="tel" inputmode="numeric" dir="ltr" placeholder="59 000 0000" autocomplete="tel-national" required><select id="fCode" name="code" dir="rtl" aria-label="مقدمة الدولة">'+CODES.map(function(c){return '<option value="'+c[1]+'">'+c[0]+' (+'+c[1]+')</option>'}).join('')+'<option value="">دولة أخرى</option></select></div><span class="hint" id="phHint">بدون صفر البداية. عشان نتواصل معك لتأكيد الدفع.</span></div>':'')+
     '<div class="field"><label for="fPass">كلمة المرور</label><input id="fPass" name="password" type="password" dir="ltr" autocomplete="'+(reg?'new-password':'current-password')+'" minlength="6" required>'+(reg?'<span class="hint">6 أحرف على الأقل.</span>':'')+'</div>'+
-    (reg?'<div class="field"><label for="fCoupon">كود الخصم <small style="color:var(--mute);font-weight:400">(اختياري)</small></label><input id="fCoupon" name="coupon" dir="auto" maxlength="20" style="text-transform:uppercase" placeholder="مثلًا: الخال" value="'+esc(CODE||'')+'"><span class="hint">إذا معك كود من أحد صناع المحتوى، بيصير سعر الدورة أقل.</span></div>':'')+
+    (reg?'<div class="field"><label for="fCoupon">كود الخصم <small style="color:var(--mute);font-weight:400">(اختياري)</small></label><input id="fCoupon" name="coupon" dir="auto" maxlength="20" style="text-transform:uppercase" placeholder="مثلًا: الخال" value="'+esc(CODE||'')+'"><span class="cp-live" id="cpLive"></span><span class="hint">معك كود خصم؟ اكتبه هون وبيصير سعر الدورة أقل.</span></div>':'')+
     (reg?'<label class="chk"><input type="checkbox" id="fTerms" name="terms"> <span>أوافق على <a href="#/terms" target="_blank">شروط الاشتراك وحماية المحتوى</a></span></label>':'')+
     '<button class="btn btn-p full" type="submit">'+(reg?'إنشاء الحساب':'دخول')+'</button>'+
    '</form>'+
@@ -1150,6 +1157,20 @@ function viewAuth(mode,params){
    (reg?'':'<p class="switch">نسيت كلمة المرور؟ <a href="'+waLink('نسيت كلمة المرور لحسابي في أكاديمية MME، رقمي / بريدي: ')+'" target="_blank" rel="noopener">تواصل معنا على واتساب</a></p>')+
   '</div>';
   var f=$('#authForm'),errb=$('#ferr');
+  var fc0=$('#fCoupon'),cpT;
+  if(fc0){
+    var liveCheck=function(show){
+      var v=normCode(fc0.value),L=$('#cpLive');if(!L)return;
+      if(!v){L.textContent='';L.className='cp-live';return}
+      checkCode(v).then(function(d){
+        if(normCode(fc0.value)!==v)return;
+        if(d.valid){L.className='cp-live ok';L.textContent='✓ مبروك! تم تفعيل الخصم، سعر الكورس $'+d.price;if(show&&!celebrated(d.code))couponModal(d.code,d.price)}
+        else if(v.length>=3){L.className='cp-live bad';L.textContent='الكود غير صحيح'}
+      },function(){});
+    };
+    fc0.addEventListener('input',function(){clearTimeout(cpT);cpT=setTimeout(function(){liveCheck(true)},700)});
+    if(fc0.value)liveCheck(false);
+  }
   f.addEventListener('submit',function(ev){
     ev.preventDefault();errb.classList.remove('on');
     var data={};$$('input,select',f).forEach(function(i){data[i.name]=i.type==='checkbox'?i.checked:i.value});
@@ -1184,7 +1205,7 @@ function viewMy(){
       '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
     html+='<div id="pushSlot"></div>';
     if(!hasBooked())html+=bookCard();
-    html+=affCard(state.affiliate);
+    if(state.user.role!=='admin')html+=affCard(state.affiliate);
     html+=refCard(state.referral);
     if(isActive())html+=giftRow();
     if(state.notifs&&state.notifs.length)html+='<h2 style="color:#fff;font-size:19px;margin:0 0 12px">🔔 الإشعارات</h2><div class="nf-list" style="margin-bottom:26px">'+state.notifs.slice(0,5).map(nfItem).join('')+'</div>';
@@ -1270,10 +1291,11 @@ function viewEnrolled(courseId){
       '<div class="stepsline"><span class="ok"><i>✓</i>أنشأت حسابك</span><span class="ok"><i>✓</i>قدّمت طلب التسجيل</span><span><i>3</i>تواصل مع فريق د. محمود نصرالله وادفع</span><span><i>4</i>بنفعّلك الدورة وبتلاقيها في <a href="#/my" style="color:var(--cyan)">حسابي</a></span></div>'+
     '</div>';
     renderPayboxes(app);
+    if(e.coupon&&!celebrated(e.coupon))couponModal(e.coupon,finalPrice(e));
     var cb=$('#cpBtn');if(cb)cb.addEventListener('click',function(){
       var c=$('#cpIn').value.trim();if(!c){toast('اكتب الكود');return}
       cb.disabled=true;
-      api('/enroll',{method:'POST',body:{course_id:cb.getAttribute('data-cid'),code:c}}).then(function(){setCode(c);toast('تم تطبيق الكود ✔');viewEnrolled(courseId)},function(er){toast(er.message);cb.disabled=false});
+      api('/enroll',{method:'POST',body:{course_id:cb.getAttribute('data-cid'),code:c}}).then(function(d){setCode(c);var cc=(d.enrollment&&d.enrollment.coupon)||normCode(c);viewEnrolled(courseId);checkCode(cc).then(function(x){couponModal(cc,x.price||50)},function(){couponModal(cc,50)})},function(er){toast(er.message);cb.disabled=false});
     });
     // course comments under the order confirmation, same section as the home page
     var ec=document.createElement('div');ec.style.cssText='max-width:620px;margin:44px auto 0;padding-top:30px;border-top:1px solid var(--line);text-align:right;clear:both';app.appendChild(ec);
@@ -1633,6 +1655,21 @@ function giftModal(){
 function giftRow(){
   return '<div class="row giftrow"><div><h3><b>🎁</b>شنطة أدوات الطالب</h3><div class="muted">هديتك من أكاديمية MME: برومبتات، بريف، اتفاق عمل، قوالب رسائل وجدول نشر.</div></div><div class="acts"><a class="btn btn-gift" href="'+GIFT_URL+'" download>حمّل PDF</a></div></div>';
 }
+// «مبروك! تم تفعيل الخصم»: shown once per code when a valid discount code is entered or arrives via a link
+function couponModal(code,price,cta){
+  var cols=['#FBBF24','#22D3EE','#3B82F6','#A855F7','#F472B6','#34D399'],cf='';
+  for(var i=0;i<26;i++)cf+='<span class="cf" style="right:'+(Math.random()*100)+'%;background:'+cols[i%6]+';animation-delay:'+(Math.random()*0.9).toFixed(2)+'s;animation-duration:'+(2+Math.random()*1.6).toFixed(2)+'s"></span>';
+  try{sessionStorage.setItem('mme_cel_'+code,'1')}catch(e){}
+  modal('<div class="giftbox cpbox">'+cf+'<div class="gi">🎉</div><span class="gk">DISCOUNT ACTIVATED</span><h3>مبروك! تم تفعيل الخصم</h3>'+
+    '<span class="cp-tag">كود «'+esc(code)+'»</span>'+
+    '<div class="cp-price"><b dir="ltr">$'+price+'</b><s dir="ltr">$70</s></div>'+
+    '<p>سعر كورس صناعة الفيديوهات الإعلانية بالذكاء الاصطناعي صار <b style="color:#fff">'+price+' دولار بس</b>.</p>'+
+    (cta?'<button class="btn btn-gift full" data-cpgo>'+cta+'</button>':'<button class="btn btn-gift full" data-cpgo>تمام 👍</button>')+'</div>',function(ov,close){
+      $('[data-cpgo]',ov).addEventListener('click',function(){close();if(cta)go(state.user?'#/enrolled/'+BOOK_COURSE:'#/register?enroll='+BOOK_COURSE)});
+    });
+}
+function celebrated(code){try{return sessionStorage.getItem('mme_cel_'+code)==='1'}catch(e){return false}}
+function checkCode(c){return api('/coupon/'+encodeURIComponent(normCode(c)))}
 function modal(html,onMount){
   var ov=document.createElement('div');ov.className='mdl';ov.innerHTML='<div class="mdl-box" role="dialog" aria-modal="true"><button class="mdl-x" aria-label="إغلاق">×</button>'+html+'</div>';
   document.body.appendChild(ov);requestAnimationFrame(function(){ov.classList.add('on')});
@@ -1663,7 +1700,7 @@ function viewAdmin(params){
   if(params.t)adminTab=params.t;
   app.innerHTML='<div class="adm-head"><div><span class="mono" style="color:var(--cyan)">ADMIN · MME ACADEMY</span><h1>لوحة التحكم</h1></div>'+
     '<div class="acts"><a class="btn btn-g btn-s" href="#/my">حسابي</a><button class="btn btn-g btn-s" id="logoutBtn">خروج</button></div></div>'+
-    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','الدورات والدروس'],['notifs','الإشعارات'],['affs','المسوّقين'],['pay','طرق الدفع']].map(function(x){
+    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','الدورات والدروس'],['notifs','الإشعارات'],['affs','أكواد الخصم'],['pay','طرق الدفع']].map(function(x){
       return '<button data-t="'+x[0]+'" class="'+(adminTab===x[0]&&!params.u?'on':'')+'">'+x[1]+(x[0]==='orders'?'<span class="cnt" id="pendCnt" hidden></span>':'')+(x[0]==='comments'?'<span class="cnt" id="cmtCnt" hidden></span>':'')+'</button>'}).join('')+'</div><div id="adm"></div>';
   $('#logoutBtn').addEventListener('click',logout);
   if(!$('#admPush')){var tb=$('.tabs');if(tb){tb.insertAdjacentHTML('beforebegin','<div id="admPush"></div>');mountPushCard('#admPush')}}
@@ -2075,6 +2112,7 @@ renderPayboxes(document);
 renderIntro();
 route();
 if(parseHash().name==='home')loadMe();
+if(CODE&&!celebrated(CODE)&&/[?&]code=/.test(location.search+location.hash)){checkCode(CODE).then(function(d){if(d.valid&&!celebrated(d.code))couponModal(d.code,d.price,'احجز الكورس بـ $'+d.price+' الآن')},function(){})}
 })();
 
 </script>
