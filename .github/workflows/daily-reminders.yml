@@ -8,4 +8,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger «كمّل محاضراتك» reminders
-        run: curl -fsS -X POST -H 'content-type: application/json' https://academy.marketingmiddleeast.com/api/cron/daily
+        run: |
+          curl -fsS -X POST -H 'content-type: application/json' https://academy.marketingmiddleeast.com/api/cron/daily
