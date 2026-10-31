@@ -1,0 +1,24 @@
+name: Academy light-quality videos
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/transcode-low.yml', 'scripts/transcode_low.py']
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'   # every 6 hours: new uploads get their light copy automatically
+permissions:
+  contents: read
+  id-token: write   # GitHub OIDC token: the only credential the academy accepts for /api/tc
+concurrency:
+  group: transcode-low
+  cancel-in-progress: false
+jobs:
+  transcode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg
+        run: (command -v ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)) && ffmpeg -version | head -1
+      - name: Make 480p copies of lessons that don't have one
+        run: python3 scripts/transcode_low.py

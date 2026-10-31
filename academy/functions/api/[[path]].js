@@ -145,7 +145,7 @@ async function createSession(env, userId, req, isAdmin) {
 // ---------- signed video links ----------
 // Every lesson video URL carries a short-lived signature tied to the viewer's account,
 // so a copied link stops working for anyone else and expires on its own.
-const VIDEO_TOKEN_SECONDS = 3 * 3600;
+const VIDEO_TOKEN_SECONDS = 12 * 3600;
 async function videoSecret(env) {
   let r = await env.DB.prepare("SELECT value FROM settings WHERE key = 'video_secret'").first();
   if (!r) {
@@ -329,6 +329,7 @@ async function checkCoupon(env, code) {
 }
 
 async function getCourse(env, user, id) {
+  await ensureLowCols(env);
   const course = await env.DB.prepare('SELECT * FROM courses WHERE id = ?').bind(id).first();
   if (!course) return err('الدورة غير موجودة', 404);
   const isAdmin = user && user.role === 'admin';
@@ -339,7 +340,7 @@ async function getCourse(env, user, id) {
   }
   const access = isAdmin || status === 'approved';
   const { results } = await env.DB.prepare(
-    'SELECT id, title, minutes, sort, video_url, notes, video_key, video_size FROM lessons WHERE course_id = ? ORDER BY sort, id'
+    'SELECT id, title, minutes, sort, video_url, notes, video_key, video_size, video_key_low FROM lessons WHERE course_id = ? ORDER BY sort, id'
   ).bind(id).all();
   // lessons uploaded without a typed duration get it measured from the file itself, in the background
   const missing = results.filter((l) => l.video_key && !l.minutes);
@@ -351,8 +352,8 @@ async function getCourse(env, user, id) {
   for (const l of results) {
     const has_video = !!l.video_key;
     if (!access) { lessons.push({ id: l.id, title: l.title, minutes: l.minutes, sort: l.sort, has_video }); continue; }
-    const { video_key, ...rest } = l;
-    lessons.push({ ...rest, has_video, vt: has_video ? await videoToken(env, user.id, l.id) : undefined,
+    const { video_key, video_key_low, ...rest } = l;
+    lessons.push({ ...rest, has_video, has_low: !!video_key_low, vt: has_video ? await videoToken(env, user.id, l.id) : undefined,
       video_size: isAdmin ? l.video_size : undefined });
   }
   let done = [];
@@ -955,6 +956,7 @@ async function uploadComplete(env, req) {
   const mpu = env.VIDEOS.resumeMultipartUpload(b.key, b.uploadId);
   const obj = await mpu.complete(b.parts.map((p) => ({ partNumber: Number(p.partNumber), etag: String(p.etag) })));
   if (lesson.video_key && lesson.video_key !== b.key) { try { await env.VIDEOS.delete(lesson.video_key); } catch (e) {} }
+  await dropLow(env, lesson.id);
   await env.DB.prepare('UPDATE lessons SET video_key = ?, video_size = ?, video_type = ? WHERE id = ?')
     .bind(b.key, obj.size, (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4', lesson.id).run();
   await notifyLesson(env, lesson.id);
@@ -969,6 +971,7 @@ async function uploadAbort(env, req) {
 async function deleteLessonVideo(env, id) {
   const l = await env.DB.prepare('SELECT video_key FROM lessons WHERE id = ?').bind(id).first();
   if (l && l.video_key && env.VIDEOS) { try { await env.VIDEOS.delete(l.video_key); } catch (e) {} }
+  await dropLow(env, id);
   await env.DB.prepare('UPDATE lessons SET video_key = NULL, video_size = NULL, video_type = NULL WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
@@ -1042,6 +1045,85 @@ async function probeLessonVideo(env, id) {
   else if (codec && !/^avc/.test(codec)) problem = 'codec';
   return json({ ok: !problem, problem, codec, size, stored_type: l.video_type, moov_at_end: moovIdx > mdatIdx && mdatIdx >= 0, truncated, boxes: boxes.slice(0, 12) });
 }
+const VIDEO_CHUNK = 4 * 1024 * 1024;
+let lowColsOk = false;
+async function ensureLowCols(env) {
+  if (lowColsOk) return;
+  for (const c of ['video_key_low TEXT', 'video_size_low INTEGER']) { try { await env.DB.prepare('ALTER TABLE lessons ADD COLUMN ' + c).run(); } catch (e) {} }
+  lowColsOk = true;
+}
+async function dropLow(env, id) {
+  await ensureLowCols(env);
+  const l = await env.DB.prepare('SELECT video_key_low FROM lessons WHERE id = ?').bind(id).first();
+  if (l && l.video_key_low && env.VIDEOS) { try { await env.VIDEOS.delete(l.video_key_low); } catch (e) {} }
+  await env.DB.prepare('UPDATE lessons SET video_key_low = NULL, video_size_low = NULL WHERE id = ?').bind(id).run();
+}
+
+// ---------- GitHub Actions OIDC: only a workflow of our own repo, on main, may use /tc/* ----------
+const GH_REPO = 'poweraim10-beep/marketing-middle-east', GH_AUD = 'mme-academy-transcode';
+let ghJwks = null, ghJwksAt = 0;
+const b64uBytes = (x) => Uint8Array.from(atob(x.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((x.length + 3) % 4)), (c) => c.charCodeAt(0));
+async function ghOidcOk(req) {
+  const t = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const p = t.split('.');
+  if (p.length !== 3) return false;
+  try {
+    const head = JSON.parse(new TextDecoder().decode(b64uBytes(p[0])));
+    const c = JSON.parse(new TextDecoder().decode(b64uBytes(p[1])));
+    if (head.alg !== 'RS256') return false;
+    if (c.iss !== 'https://token.actions.githubusercontent.com' || c.aud !== GH_AUD || c.repository !== GH_REPO || c.ref !== 'refs/heads/main') return false;
+    if (!(c.exp > now()) || (c.nbf && c.nbf > now() + 60)) return false;
+    if (!ghJwks || Date.now() - ghJwksAt > 3600e3) {
+      const r = await fetch('https://token.actions.githubusercontent.com/.well-known/jwks');
+      ghJwks = (await r.json()).keys; ghJwksAt = Date.now();
+    }
+    const jwk = ghJwks.find((k) => k.kid === head.kid);
+    if (!jwk) return false;
+    const key = await crypto.subtle.importKey('jwk', { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+    return await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64uBytes(p[2]), new TextEncoder().encode(p[0] + '.' + p[1]));
+  } catch (e) { return false; }
+}
+async function transcodeApi(env, req, path, method, url) {
+  if (!env.VIDEOS) return noR2();
+  if (!(await ghOidcOk(req))) return err('غير مسموح', 403);
+  await ensureLowCols(env);
+  let m;
+  if (path === '/tc/jobs' && method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT id, title, video_size FROM lessons WHERE video_key IS NOT NULL AND video_key_low IS NULL ORDER BY sort, id').all();
+    return json({ jobs: results });
+  }
+  if ((m = path.match(/^\/tc\/src\/(\d+)$/)) && method === 'GET') {
+    const l = await env.DB.prepare('SELECT video_key FROM lessons WHERE id = ?').bind(Number(m[1])).first();
+    if (!l || !l.video_key) return err('الفيديو غير موجود', 404);
+    const obj = await env.VIDEOS.get(l.video_key);
+    if (!obj) return err('الفيديو غير موجود', 404);
+    return new Response(obj.body, { headers: { 'content-type': 'video/mp4', 'content-length': String(obj.size), 'x-src-key': l.video_key } });
+  }
+  if ((m = path.match(/^\/tc\/start\/(\d+)$/)) && method === 'POST') {
+    const key = `lessons/${Number(m[1])}/low-${Math.random().toString(16).slice(2, 10)}.mp4`;
+    const mpu = await env.VIDEOS.createMultipartUpload(key, { httpMetadata: { contentType: 'video/mp4' } });
+    return json({ key, uploadId: mpu.uploadId });
+  }
+  if (path === '/tc/part' && method === 'PUT') {
+    const key = url.searchParams.get('key') || '', n = Number(url.searchParams.get('n'));
+    if (!/^lessons\/\d+\/low-[0-9a-f]+\.mp4$/.test(key) || !(n >= 1 && n <= 10000)) return err('طلب غير صحيح');
+    const part = await env.VIDEOS.resumeMultipartUpload(key, url.searchParams.get('uploadId') || '').uploadPart(n, req.body);
+    return json({ partNumber: part.partNumber, etag: part.etag });
+  }
+  if ((m = path.match(/^\/tc\/done\/(\d+)$/)) && method === 'POST') {
+    const id = Number(m[1]), b = await req.json();
+    if (!/^lessons\/\d+\/low-[0-9a-f]+\.mp4$/.test(String(b.key)) || !String(b.key).startsWith(`lessons/${id}/`)) return err('طلب غير صحيح');
+    const l = await env.DB.prepare('SELECT video_key, video_key_low FROM lessons WHERE id = ?').bind(id).first();
+    const obj = await env.VIDEOS.resumeMultipartUpload(b.key, b.uploadId).complete(b.parts.map((x) => ({ partNumber: Number(x.partNumber), etag: String(x.etag) })));
+    // the original was replaced while we were converting: this copy is stale, throw it away
+    if (!l || l.video_key !== b.src_key) { try { await env.VIDEOS.delete(b.key); } catch (e) {} return json({ ok: false, stale: true }); }
+    if (l.video_key_low) { try { await env.VIDEOS.delete(l.video_key_low); } catch (e) {} }
+    await env.DB.prepare('UPDATE lessons SET video_key_low = ?, video_size_low = ? WHERE id = ?').bind(b.key, obj.size, id).run();
+    return json({ ok: true, size: obj.size });
+  }
+  return err('غير موجود', 404);
+}
+
 async function streamVideo(env, req, user, id, url) {
   if (!user) return err('سجّل دخول أولًا', 401);
   if (!env.VIDEOS) return noR2();
@@ -1049,8 +1131,10 @@ async function streamVideo(env, req, user, id, url) {
   const dest = req.headers.get('sec-fetch-dest');
   if (dest && !['video', 'audio', 'empty'].includes(dest)) return err('غير مسموح', 403);
   if (!(await videoTokenOk(env, url.searchParams.get('t'), user.id, id))) return err('انتهت صلاحية رابط الفيديو، حدّث الصفحة', 403);
-  const l = await env.DB.prepare('SELECT course_id, video_key, video_type, video_size FROM lessons WHERE id = ?').bind(id).first();
+  await ensureLowCols(env);
+  const l = await env.DB.prepare('SELECT course_id, video_key, video_type, video_size, video_key_low, video_size_low FROM lessons WHERE id = ?').bind(id).first();
   if (!l || !l.video_key) return err('الفيديو غير موجود', 404);
+  if (url.searchParams.get('q') === 'low' && l.video_key_low) { l.video_key = l.video_key_low; l.video_size = l.video_size_low; l.video_type = 'video/mp4'; }
   if (user.role !== 'admin') {
     const e = await env.DB.prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'approved'").bind(user.id, l.course_id).first();
     if (!e) return err('غير مسموح', 403);
@@ -1068,6 +1152,9 @@ async function streamVideo(env, req, user, id, url) {
     else { start = Number(rm[1]); end = rm[2] === '' ? size - 1 : Math.min(Number(rm[2]), size - 1); }
     if (start >= size || start > end) return new Response(null, { status: 416, headers: { 'content-range': `bytes */${size}`, 'accept-ranges': 'bytes' } });
     partial = true;
+    // answer in short pieces: one huge open-ended response stalls for good on a shaky connection,
+    // while short pieces let the player keep asking for the next part (and seek without waste)
+    if (end - start + 1 > VIDEO_CHUNK) end = start + VIDEO_CHUNK - 1;
   }
   const obj = await env.VIDEOS.get(l.video_key, partial ? { range: { offset: start, length: end - start + 1 } } : undefined);
   if (!obj) return err('الفيديو غير موجود', 404);
@@ -1075,7 +1162,7 @@ async function streamVideo(env, req, user, id, url) {
   h.set('content-type', l.video_type || (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4');
   h.set('etag', obj.httpEtag);
   h.set('accept-ranges', 'bytes');
-  h.set('cache-control', 'private, no-store');
+  h.set('cache-control', 'private, max-age=3600');
   h.set('content-disposition', 'inline');
   h.set('x-content-type-options', 'nosniff');
   h.set('content-length', String(end - start + 1));
@@ -1168,7 +1255,7 @@ export async function onRequest(context) {
   if (!env.DB) return err('قاعدة البيانات غير مربوطة', 500);
 
   // CSRF guard: state-changing requests must be JSON from our own origin
-  if (method !== 'GET' && method !== 'HEAD') {
+  if (method !== 'GET' && method !== 'HEAD' && !path.startsWith('/tc/')) {
     const ct = request.headers.get('content-type') || '';
     const origin = request.headers.get('origin');
     if (origin && new URL(origin).host !== url.host) return err('Forbidden', 403);
@@ -1186,6 +1273,8 @@ export async function onRequest(context) {
     // called once a day by the scheduled GitHub workflow; safe to call publicly (runs at most every 20h)
     if (path === '/cron/daily' && (method === 'GET' || method === 'POST')) return json(await runDaily(env, false));
     if (path === '/intro/video' && (method === 'GET' || method === 'HEAD')) return await streamIntro(env, request);
+    // light-quality (480p) copies: made by the GitHub workflow, authenticated with GitHub's OIDC token
+    if (path.startsWith('/tc/')) return await transcodeApi(env, request, path, method, url);
 
     const user = await currentUser(env, request);
     // payment account details are no longer shown publicly; only the admin can read them

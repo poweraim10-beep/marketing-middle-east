@@ -377,7 +377,14 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .screen iframe,.screen video{position:absolute;inset:0;width:100%;height:100%;border:0}
 .screen .wm{position:absolute;top:12px;left:12px;z-index:2;pointer-events:none;font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.06em;direction:ltr}
 .screen .wm-move{position:absolute;z-index:3;pointer-events:none;font-family:var(--mono);font-size:clamp(11px,1.6vw,15px);font-weight:600;color:rgba(255,255,255,.42);text-shadow:0 1px 2px rgba(0,0,0,.55);white-space:nowrap;direction:ltr;transition:top 1.2s ease,left 1.2s ease;user-select:none}
-.screen .fsbtn{position:absolute;top:10px;right:10px;z-index:4;width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(4,10,24,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
+.screen .qbtn{position:absolute;top:10px;left:10px;z-index:4;height:38px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(4,10,24,.6);color:#fff;font:600 13px/1 inherit;cursor:pointer;display:flex;align-items:center;gap:6px}
+.qbtn b{color:#67e8f9}.qbtn.low b{color:#fde047}
+.qmenu{position:absolute;top:54px;left:10px;z-index:5;min-width:210px;padding:6px;border-radius:12px;background:rgba(4,10,24,.95);border:1px solid rgba(255,255,255,.2)}
+.qmenu button{display:block;width:100%;text-align:right;padding:10px 12px;border:0;border-radius:8px;background:none;color:#fff;font:600 14px inherit;cursor:pointer}
+.qmenu button small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:3px}
+.qmenu button.on{background:rgba(34,211,238,.15)}.qmenu button:hover{background:rgba(255,255,255,.08)}
+.vnote{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:5;max-width:90%;padding:9px 14px;border-radius:10px;background:rgba(4,10,24,.92);border:1px solid rgba(250,204,21,.5);color:#fde047;font-size:13.5px;font-weight:600;text-align:center;pointer-events:none}
+.fsbtn{position:absolute;top:10px;right:10px;z-index:4;width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(4,10,24,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
 .screen .fsbtn:hover{background:rgba(4,10,24,.8)}
 /* tap gestures: double tap sides = ±10s, hold = 2× speed (bottom strip left free for the native controls) */
 .screen .tapzone{position:absolute;left:0;right:0;top:0;bottom:64px;z-index:2;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
@@ -1325,7 +1332,53 @@ function uploadVideo(lessonId,file,onProg){
     return api('/admin/upload/complete',{method:'POST',body:{key:up.key,uploadId:up.uploadId,parts:parts,lesson_id:isIntro?0:lessonId,target:isIntro?'intro':undefined}});
   }).catch(function(e){if(up)api('/admin/upload/abort',{method:'POST',body:{key:up.key,uploadId:up.uploadId}}).catch(function(){});throw e});
 }
-window.__mmeVidFail=function(v){videoFail(v)};
+window.__mmeVidFail=function(v){if(v.__recover&&v.__recover())return;videoFail(v)};
+// ---------- lesson player: quality choice (original / light 480p) + recovery on weak connections ----------
+function slowNet(){var c=navigator.connection;return !!(c&&(c.saveData||/^(slow-2g|2g|3g)$/.test(c.effectiveType||'')))}
+function vidQ(l){if(!l.has_low)return 'high';var q=null;try{q=localStorage.getItem('mme_q')}catch(e){}return q==='low'||q==='high'?q:(slowNet()?'low':'high')}
+function vidSrc(l,q){return '/api/video/'+l.id+'?t='+encodeURIComponent(l.vt||'')+(q==='low'&&l.has_low?'&q=low':'')}
+function smartPlayer(v,l,cid){
+  var scr=v.parentNode,q=vidQ(l),autoLow=false,wTimer=null,stalls=0,retries=0,note=null,noteT=null;
+  var say=function(t,ms){if(!note){note=document.createElement('div');note.className='vnote';scr.appendChild(note)}note.textContent=t;note.hidden=false;clearTimeout(noteT);noteT=setTimeout(function(){note.hidden=true},ms||5000)};
+  var reload=function(newQ){
+    var t=v.currentTime||0,play=!v.paused||v.__wantPlay;q=newQ||q;
+    v.src=vidSrc(l,q);v.load();
+    v.addEventListener('loadedmetadata',function f(){v.removeEventListener('loadedmetadata',f);try{v.currentTime=t}catch(e){}if(play){var p=v.play();if(p&&p.catch)p.catch(function(){})}});
+    paintQ();
+  };
+  v.addEventListener('play',function(){v.__wantPlay=true});
+  v.addEventListener('pause',function(){if(!v.seeking)v.__wantPlay=false});
+  // stuck while «loading»: first try the light copy, otherwise reopen the stream where it stopped
+  v.addEventListener('waiting',function(){
+    clearTimeout(wTimer);
+    wTimer=setTimeout(function(){
+      if(v.readyState>=3||v.paused&&!v.__wantPlay)return;
+      stalls++;
+      if(l.has_low&&q!=='low'){autoLow=true;try{localStorage.setItem('mme_q','low')}catch(e){}say('⚡ النت ضعيف شوي، حوّلنا للجودة الخفيفة عشان ما يقطع. بتقدر ترجع للعالية من زر الجودة.',7000);reload('low')}
+      else{say('⏳ عم نعيد الاتصال…',3000);reload()}
+    },l.has_low&&q!=='low'?7000:12000);
+  });
+  ['playing','canplay','seeked'].forEach(function(e){v.addEventListener(e,function(){clearTimeout(wTimer)})});
+  // network error / expired link: get a fresh link from the server and continue from the same second
+  v.__recover=function(){
+    if(retries>=3||!(v.currentTime>0||v.__wantPlay))return false;retries++;
+    api('/course/'+encodeURIComponent(cid)).then(function(d){var n=(d.lessons||[]).filter(function(x){return x.id===l.id})[0];if(n){l.vt=n.vt;l.has_low=n.has_low}reload()},function(){reload()});
+    say('⏳ عم نعيد الاتصال…',3000);return true;
+  };
+  if(!l.has_low)return;
+  var btn=document.createElement('button');btn.type='button';btn.className='qbtn';scr.appendChild(btn);
+  var menu=null;
+  function paintQ(){if(!btn)return;btn.className='qbtn'+(q==='low'?' low':'');btn.innerHTML='⚙️ الجودة: <b>'+(q==='low'?'خفيفة':'عالية')+'</b>'}
+  paintQ();
+  btn.addEventListener('click',function(e){
+    e.stopPropagation();if(menu){menu.remove();menu=null;return}
+    menu=document.createElement('div');menu.className='qmenu';
+    menu.innerHTML='<button data-q="high" class="'+(q==='high'?'on':'')+'">🎬 عالية (الأصلية)<small>أوضح صورة، بدها نت قوي</small></button><button data-q="low" class="'+(q==='low'?'on':'')+'">⚡ خفيفة 480p<small>للنت الضعيف، ما بتقطع وبتوفّر باقة</small></button>';
+    scr.appendChild(menu);
+    $$('[data-q]',menu).forEach(function(b){b.addEventListener('click',function(ev){ev.stopPropagation();var nq=b.getAttribute('data-q');try{localStorage.setItem('mme_q',nq)}catch(x){}menu.remove();menu=null;if(nq!==q)reload(nq)})});
+  });
+  document.addEventListener('click',function(){if(menu){menu.remove();menu=null}});
+}
 window.addEventListener('beforeunload',function(e){var b=document.getElementById('upBar');if(b&&!b.hidden&&/جاري/.test(b.textContent)){e.preventDefault();e.returnValue=''}});
 // checks whether this browser can actually decode the picture (H.265/HEVC files often play audio only or nothing)
 function checkPlayable(file){
@@ -1584,7 +1637,7 @@ function viewCourse(courseId,params){
     var u=state.user||{};
     app.innerHTML=head+
       '<div class="player"><div>'+
-        '<div class="screen">'+(lesson.has_video?'<video src="/api/video/'+lesson.id+'?t='+encodeURIComponent(lesson.vt||'')+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move"><bdi>'+esc(u.name||'')+'</bdi> · <bdi>'+esc(u.phone||'')+'</bdi>'+(u.role==='admin'?' · <bdi>#'+esc(u.id||'')+'</bdi>':'')+'</span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
+        '<div class="screen">'+(lesson.has_video?'<video src="'+vidSrc(lesson,vidQ(lesson))+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move"><bdi>'+esc(u.name||'')+'</bdi> · <bdi>'+esc(u.phone||'')+'</bdi>'+(u.role==='admin'?' · <bdi>#'+esc(u.id||'')+'</bdi>':'')+'</span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
         '<div class="protect-note"><span>🔒</span><span><b>هذا الفيديو محمي ويحمل بيانات حسابك.</b> أي تسجيل أو تنزيل أو نشر يكشف صاحبه ويؤدي لإيقاف الحساب فورًا بدون استرجاع. <a href="#/terms">شروط حماية المحتوى</a></span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
@@ -1594,7 +1647,7 @@ function viewCourse(courseId,params){
         ls.map(function(l,i){return '<button data-l="'+l.id+'" class="'+(l.id===lesson.id?'on ':'')+(done[l.id]?'done':'')+'"><span class="ck">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+Math.max(1,Math.round(l.minutes))+' د</span>':'')+'</button>'}).join('')+
         '</div>'+
       '</div></div>';
-    var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)})}
+    var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)});smartPlayer(pv,lesson,c.id)}
     protectPlayer($('.screen'),u);
     commentsSection(c.id);
     $$('.lessons [data-l]').forEach(function(b){b.addEventListener('click',function(){go('#/course/'+c.id+'?l='+b.getAttribute('data-l'))})});
