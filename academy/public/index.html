@@ -1696,6 +1696,20 @@ function ago(s){if(!s)return '—';var x=Math.max(0,Math.floor(Date.now()/1000-s
 function fmtDT(s){if(!s)return '';try{var d=new Date(s*1000);return d.toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})+' · '+d.toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})}catch(e){return ''}}
 function money(n){return '$'+(Number(n)||0).toLocaleString('en-US')}
 var GIFT_URL='/gift/student-kit.pdf';
+// phones hand «download» links to their download manager, which goes without the login cookie and
+// lands on the sign-up page; so the kit is fetched here with the session, then saved from memory
+document.addEventListener('click',function(ev){
+  var a=ev.target.closest('a[href="'+GIFT_URL+'"]');if(!a)return;
+  ev.preventDefault();if(a.__busy)return;a.__busy=true;var t=a.textContent;a.textContent='جاري التحميل…';
+  fetch(GIFT_URL,{credentials:'same-origin'}).then(function(r){
+    if(!r.ok||!/pdf/.test(r.headers.get('content-type')||''))throw new Error(r.redirected&&/login/.test(r.url)?'login':'x');
+    return r.blob();
+  }).then(function(b){
+    var u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download='MME-Student-Kit.pdf';document.body.appendChild(l);l.click();l.remove();
+    setTimeout(function(){URL.revokeObjectURL(u)},60000);toast('تم تحميل الشنطة ✔ بتلاقيها بالتنزيلات');
+  }).catch(function(e){toast(e.message==='login'?'سجّل دخول أول عشان تحمّل الشنطة':'الشنطة بتنزل بعد تفعيل الكورس على حسابك')})
+  .then(function(){a.__busy=false;a.textContent=t});
+});
 var OFFER_END=Date.parse('2026-10-28T20:59:00Z'),BOOK_COURSE='ai-ad-video';
 function hasBooked(){return (state.enrollments||[]).some(function(e){return e.course_id===BOOK_COURSE&&e.status!=='rejected'})}
 function isActive(){return (state.enrollments||[]).some(function(e){return e.status==='approved'})}

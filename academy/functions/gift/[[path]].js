@@ -24,7 +24,7 @@ export async function onRequest({ request, env }) {
     ok = !!row && (!!row.active || String(row.email).toLowerCase() === 'power.ai.m10@gmail.com');
     if (row && !ok) return Response.redirect(new URL('/#/my', request.url).toString(), 302);
   }
-  if (!ok) return Response.redirect(new URL('/#/register', request.url).toString(), 302);
+  if (!ok) return Response.redirect(new URL('/#/login', request.url).toString(), 302);
   const res = await env.ASSETS.fetch(request);
   const h = new Headers(res.headers);
   h.set('cache-control', 'private, no-store');
