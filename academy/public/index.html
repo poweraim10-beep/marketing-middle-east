@@ -627,6 +627,16 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 @media (max-width:760px){.rf-tiers{grid-template-columns:repeat(2,1fr);gap:18px 12px}.rf-stats b{font-size:19px}}
 /* booking push (shown right after sign-up to accounts that have not booked yet) */
 .bk{text-align:center}
+.wl-ok{width:64px;height:64px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;font-size:32px;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 12px 30px -10px rgba(34,197,94,.9)}
+.wl h3{margin:0 0 6px;color:#fff;font-size:22px}
+.wl-warn{margin:12px 0 14px;padding:11px 14px;border-radius:14px;background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.55);color:#fde68a;font-size:14px;font-weight:600;line-height:1.7}
+.wl-course{text-align:right;padding:16px;border-radius:18px;border:1px solid rgba(34,211,238,.4);background:linear-gradient(160deg,rgba(37,99,235,.22),rgba(11,16,32,.95))}
+.wl-course h4{margin:0 0 6px;color:#fff;font-size:17px;line-height:1.5}
+.wl-course p{margin:0 0 10px;color:var(--silver,#cbd5e1);font-size:14px;line-height:1.75}
+.wl-course ul{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:14px;color:#e2e8f0}
+.wl-course li::before{content:'✓ ';color:#86efac;font-weight:800}
+.wl-price{display:flex;align-items:baseline;justify-content:center;gap:10px;margin:14px 0 4px}
+.wl-price b{font-size:32px;color:#86efac}.wl-price s{color:var(--mute)}.wl-price span{color:#fde047;font-weight:700}
 .bk .bk-hot{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:linear-gradient(90deg,#ef4444,#f97316);color:#fff;font-weight:800;font-size:13.5px;box-shadow:0 10px 26px -10px rgba(239,68,68,.9);animation:bkp 1.6s ease-in-out infinite}
 @keyframes bkp{50%{transform:scale(1.05)}}
 .bk h3{margin:14px 0 6px!important;font-size:22px!important;line-height:1.5;color:#fff}
@@ -1192,7 +1202,7 @@ function viewAuth(mode,params){
         if(params.enroll)startEnroll(params.enroll);
         else go(state.user.role==='admin'?'#/admin':'#/my');
         // accounts that have not booked yet are pushed to book first; the gift only comes after activation
-        if(!params.enroll&&state.user.role!=='admin'&&!hasBooked())setTimeout(bookModal,450);
+        if(!params.enroll&&state.user.role!=='admin'&&!hasBooked())setTimeout(reg?welcomeModal:bookModal,450);
       });
     },function(err){errb.textContent=err.message;errb.classList.add('on');btn.disabled=false});
   });
@@ -1686,6 +1696,23 @@ function bookInner(){
     '<ul><li>من الصفر للاحتراف، خطوة بخطوة</li><li>تعلّم واشتغل من جوالك أو لابتوبك</li><li>شهادة معتمدة من MARKETING MIDDLE EAST</li></ul>'+
     '<button class="btn-book" data-book>احجز الآن 🚀</button>'+
     '<p class="bk-gift">🎁 أول ما تتفعّل الدورة بتاخذ هدية: شنطة أدوات الطالب</p>';
+}
+// right after a new account is created: congratulate, then make clear that the account is not a seat yet
+function welcomeModal(){
+  if(!state.user||state.user.role==='admin'||hasBooked())return;
+  var first=String(state.user.name||'').trim().split(/\s+/)[0];
+  modal('<div class="bk wl"><div class="wl-ok">✓</div>'+
+    '<h3>مبروك'+(first?' يا '+esc(first):'')+'! تم إنشاء حسابك بنجاح 🎉</h3>'+
+    '<div class="wl-warn">⚠️ إنشاء الحساب لحاله ما بيفتحلك الكورس. عشان تبلّش تتعلم، احجز مقعدك بالكورس الآن.</div>'+
+    '<div class="wl-course"><h4>🎬 كورس صناعة الفيديوهات الإعلانية بالذكاء الاصطناعي</h4>'+
+      '<p>بتتعلم من الصفر كيف تعمل فيديوهات إعلانية احترافية للمحلات والشركات بالذكاء الاصطناعي، من جوالك أو لابتوبك، وكيف تحوّلها لشغل ودخل حقيقي.</p>'+
+      '<ul><li>14 محاضرة مسجّلة أونلاين (أكثر من 4 ساعات)</li><li>كيف تعمل إعلان مموّل وتسوّق لخدمتك وتجيب أول زبون</li><li>شهادة معتمدة من MARKETING MIDDLE EAST</li><li>🎁 هدية شنطة أدوات الطالب بعد التفعيل</li></ul></div>'+
+    '<div class="wl-price"><b dir="ltr">$50</b><s dir="ltr">$233</s><span>= 150 شيكل</span></div>'+
+    '<button class="btn-book" data-book>احجز مقعدك في الكورس الآن 🚀</button>'+
+    '<button class="bk-later" data-later>بعدين</button></div>',function(ov,close){
+      $('[data-book]',ov).addEventListener('click',function(){close();startEnroll(BOOK_COURSE)});
+      $('[data-later]',ov).addEventListener('click',close);
+    });
 }
 function bookModal(){
   if(!state.user||state.user.role==='admin'||hasBooked())return;
