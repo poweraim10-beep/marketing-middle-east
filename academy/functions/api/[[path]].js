@@ -124,10 +124,12 @@ async function currentUser(env, req) {
   if (u.suspended && u.role !== 'admin') return null; // suspended accounts lose access immediately
   return u;
 }
+const MAX_DEVICES = 2;
 async function createSession(env, userId, req, isAdmin) {
   const token = randomHex(32);
-  // one active device per student: a new sign-in ends every other session (stops password sharing)
-  if (!isAdmin) await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId).run();
+  // two active devices per student: a new sign-in keeps only the most recent other session (stops password sharing)
+  if (!isAdmin) await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token NOT IN (SELECT token FROM sessions WHERE user_id = ? ORDER BY expires_at DESC LIMIT ?)')
+    .bind(userId, userId, MAX_DEVICES - 1).run();
   if (req) {
     try {
       await env.DB.prepare('INSERT INTO logins (user_id, at, ip, country, ua) VALUES (?, ?, ?, ?, ?)')
