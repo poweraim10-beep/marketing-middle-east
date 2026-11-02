@@ -1722,18 +1722,13 @@ function welcomeModal(){
     '<div class="wl-steps"><div class="ok"><b>✓</b>إنشاء الحساب</div><div class="now"><b>2</b>احجز مقعدك</div><div><b>3</b>ابدأ التعلم</div></div>'+
     '<div class="wl-course"><h4>🎬 كورس صناعة الفيديوهات الإعلانية بالذكاء الاصطناعي</h4>'+
       '<p>بتتعلم من الصفر كيف تعمل فيديوهات إعلانية احترافية للمحلات والشركات بالذكاء الاصطناعي، من جوالك أو لابتوبك، وكيف تحوّلها لشغل ودخل حقيقي.</p>'+
-      '<div class="wl-stats" id="wlStats"><div><b>…</b><span>محاضرة مسجّلة</span></div><div><b>…</b><span>ساعات تدريب</span></div></div>'+
+      '<div class="wl-stats"><div><b>18</b><span>محاضرة مسجّلة</span></div><div><b>+5</b><span>ساعات تدريب</span></div></div>'+
       '<ul><li>كيف تعمل إعلان مموّل وتسوّق لخدمتك</li><li>كيف تجيب أول زبون إلك</li><li>شهادة معتمدة من MARKETING MIDDLE EAST</li><li>🎁 هدية شنطة أدوات الطالب بعد التفعيل</li></ul></div>'+
     '<div class="wl-price"><b dir="ltr">$50</b><s dir="ltr">$233</s><span>= 150 شيكل</span></div>'+
     '<button class="btn-book" data-book>احجز مقعدك في الكورس الآن 🚀</button>'+
     '<button class="bk-later" data-later>بعدين</button></div>',function(ov,close){
       $('[data-book]',ov).addEventListener('click',function(){close();startEnroll(BOOK_COURSE)});
       $('[data-later]',ov).addEventListener('click',close);
-      // lecture count and total hours come from the lessons actually on the site
-      api('/course/'+BOOK_COURSE).then(function(d){
-        var ls=d.lessons||[],min=ls.reduce(function(t,l){return t+(Number(l.minutes)||0)},0),h=Math.floor(min/60),el=$('#wlStats',ov);if(!el||!ls.length)return;
-        el.innerHTML='<div><b>'+ls.length+'</b><span>محاضرة مسجّلة</span></div><div><b>+'+h+'</b><span>ساعات تدريب</span></div>';
-      },function(){});
     });
 }
 function bookModal(){
