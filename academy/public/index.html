@@ -1025,7 +1025,7 @@ function renderNav(){
   }
 }
 function loadMe(){
-  return api('/me').then(function(d){state.user=d.user;state.enrollments=d.enrollments;state.referral=d.referral;state.affiliate=d.affiliate||null;return d},function(){state.user=null;state.enrollments=[];state.referral=null;state.affiliate=null;return null})
+  return api('/me').then(function(d){state.user=d.user;state.enrollments=d.enrollments;state.referral=d.referral;state.affiliate=d.affiliate||null;return d},function(e){if(e&&/جهازين/.test(e.message||''))setTimeout(function(){modal('<h3>📱 حسابك مفعّل على جهازين</h3><p class="mdl-sub" style="line-height:1.9">'+esc(e.message)+'</p><a class="btn btn-wa full" target="_blank" rel="noopener" href="'+waLink('مرحبا، بدي أعيد تعيين الأجهزة على حسابي في أكاديمية MME')+'">تواصل معنا على واتساب</a>')},300);state.user=null;state.enrollments=[];state.referral=null;state.affiliate=null;return null})
     .then(function(d){state.loaded=true;renderNav();checkWelcome();loadNotifs();return d});
 }
 // ---------- phone (push) notifications ----------
@@ -1627,7 +1627,7 @@ function viewTerms(){
   app.innerHTML='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">TERMS</span><h1>شروط الاشتراك وحماية المحتوى</h1><p>أكاديمية MARKETING MIDDLE EAST</p></div></div>'+
   '<div class="panel terms" style="max-width:820px">'+
   '<h2>1. الاشتراك والتفعيل</h2><p>يُفتح محتوى الدورة بعد تأكيد الدفع وتفعيل الاشتراك من إدارة الأكاديمية. الاشتراك شخصي لصاحب الحساب فقط، ولا يجوز مشاركته أو بيعه أو إعطاء بيانات الدخول لأي شخص آخر.</p>'+
-  '<h2>2. جهازين بنفس الوقت كحد أقصى</h2><p>يعمل الحساب على جهازين بنفس الوقت كحد أقصى (مثلًا جوالك ولابتوبك). عند تسجيل الدخول من جهاز ثالث يتم تسجيل الخروج تلقائيًا من أقدم جهاز. تُسجَّل عمليات الدخول (الوقت والدولة ونوع الجهاز) لحماية حسابك.</p>'+
+  '<h2>2. جهازين فقط لكل حساب</h2><p>يعمل الحساب على جهازين فقط (مثلًا جوالك ولابتوبك)، وأول جهازين بتدخل منهم بيصيروا أجهزتك المعتمدة. ما بتقدر تدخل من جهاز ثالث، وإذا غيّرت جهازك تواصل معنا لإعادة تعيين الأجهزة. تُسجَّل عمليات الدخول (الوقت والدولة ونوع الجهاز) لحماية حسابك.</p>'+
   '<h2>3. حماية المحتوى</h2><ol>'+
    '<li>جميع الفيديوهات والملفات ملكية خاصة لأكاديمية MME، ومخصصة للمشاهدة داخل المنصة فقط.</li>'+
    '<li>يُمنع منعًا باتًا تنزيل الفيديوهات أو تسجيل الشاشة أو تصويرها أو إعادة نشرها بأي شكل كليًا أو جزئيًا.</li>'+
@@ -1942,6 +1942,10 @@ function admStudent(id){
           'سجّلوا من رابطه: <b style="color:#fff">'+(rf.registered||0)+'</b> · اشتركوا: <b style="color:#fff">'+(rf.paid||0)+'</b> · خصمه: <b style="color:#fde047">'+(rf.discount||0)+'%</b></div>'+
           (rf.friends&&rf.friends.length?'<div class="rf-friends">'+rf.friends.map(function(f){return '<a href="#/admin?u='+f.id+'"><span class="'+(f.paid?'ok':'')+'">'+(f.paid?'✓ ':'⏳ ')+esc(f.name)+'</span></a>'}).join('')+'</div>':'')+
         '</div>'+
+        '<div class="card2"><h3>📱 الأجهزة المعتمدة ('+((r[0].devices||[]).length)+'/'+(r[0].max_devices||2)+')</h3>'+
+          ((r[0].devices||[]).length?(r[0].devices.map(function(d,i){return '<div class="muted" style="padding:6px 0;border-bottom:1px solid var(--line)"><b style="color:#fff">'+(i+1)+'. '+esc(d.label||'جهاز')+'</b> · أول دخول '+ago(d.created_at)+' · آخر استخدام '+ago(d.last_at)+'</div>'}).join('')):'<p class="muted">لسا ما في أجهزة مسجّلة. أول جهازين بيدخل منهم بيصيروا أجهزته.</p>')+
+          '<button class="btn btn-g btn-s" id="devReset" style="margin-top:10px">🔄 إعادة تعيين الأجهزة</button>'+
+        '</div>'+
         '<div class="card2"><h3>🎤 مسوّق (صانع محتوى)</h3>'+
           (af.on?'<div class="muted" style="line-height:1.9">الكود: <b class="ltr" style="color:#fde047">'+esc(af.code)+'</b><br>سجّلوا بكوده: <b style="color:#fff">'+af.used+'</b> · تفعّلوا: <b style="color:#fff">'+af.paid+'</b><br>أرباحه: <b style="color:#86efac">$'+af.earned+'</b> · تم تحويل: <b>$'+af.paid_out+'</b> · الرصيد: <b style="color:#86efac">$'+af.balance+'</b></div>':'<p class="muted">فعّل حسابه كمسوّق واعطيه كود خاص. أي شخص بيسجّل بالكود بياخذ الدورة بسعر الكود، وهو بياخذ عمولة عن كل اشتراك مفعّل.</p>')+
           '<form id="afF" class="cp-row"><input name="code" dir="auto" maxlength="20" placeholder="الكود مثلًا الخال أو AHMAD" value="'+esc(af.code||'')+'" style="text-transform:uppercase"><button class="btn btn-ok" type="submit">'+(af.on?'حفظ الكود':'تفعيل كمسوّق')+'</button></form>'+
@@ -1971,6 +1975,7 @@ function admStudent(id){
     })});
     var enF=$('#enF');if(enF)enF.addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
       api('/admin/users/'+id+'/enroll',{method:'POST',body:{course_id:f.course_id.value,paid:f.paid.value,note:f.note.value,status:'approved'}}).then(function(){toast('تم تفعيل الدورة ✔');reload()},function(e){toast(e.message)})});
+    $('#devReset').addEventListener('click',function(){if(!confirm('بدك تمسح أجهزته المعتمدة؟ بيطلع من كل أجهزته، وأول جهازين بيدخل منهم بعدها بيصيروا أجهزته الجديدة.'))return;api('/admin/users/'+u.id+'/devices/reset',{method:'POST',body:{}}).then(function(){toast('تم إعادة تعيين الأجهزة ✔');admStudent(u.id)},function(er){toast(er.message)})});
     $('#afF').addEventListener('submit',function(ev){ev.preventDefault();api('/admin/users/'+u.id+'/affiliate',{method:'POST',body:{on:true,code:ev.target.elements.code.value}}).then(function(d){toast('تم تفعيل المسوّق بكود '+d.code+' ✔');admStudent(u.id)},function(er){toast(er.message)})});
     var ao=$('#afOff');if(ao)ao.addEventListener('click',function(){if(!confirm('إيقاف كود هذا المسوّق؟'))return;api('/admin/users/'+u.id+'/affiliate',{method:'POST',body:{on:false}}).then(function(){toast('تم الإيقاف');admStudent(u.id)},function(er){toast(er.message)})});
     $('#uF').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;

@@ -124,12 +124,42 @@ async function currentUser(env, req) {
   if (u.suspended && u.role !== 'admin') return null; // suspended accounts lose access immediately
   return u;
 }
-const MAX_DEVICES = 2;
+// ---------- registered devices: a student account works on 2 known devices only ----------
+const MAX_DEVICES = 2, DEVICE_COOKIE = 'mme_d';
+const DEVICE_LIMIT_MSG = 'حسابك مفعّل على جهازين، وما بتقدر تدخل من جهاز ثالث. إذا غيّرت جوالك أو جهازك، تواصل معنا على واتساب ومنعيدلك تعيين الأجهزة.';
+let devTableOk = false;
+async function ensureDevices(env) {
+  if (devTableOk) return;
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS devices (user_id INTEGER NOT NULL, dev TEXT NOT NULL, label TEXT, created_at INTEGER NOT NULL, last_at INTEGER, PRIMARY KEY (user_id, dev))').run();
+  devTableOk = true;
+}
+function deviceLabel(req) {
+  const ua = req.headers.get('user-agent') || '';
+  const os = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'جهاز';
+  const br = /SamsungBrowser/.test(ua) ? 'Samsung' : /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : '';
+  return (os + (br ? ' · ' + br : '')).slice(0, 60);
+}
+const deviceCookie = (dev) => `${DEVICE_COOKIE}=${dev}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${5 * 365 * 86400}`;
+// returns {ok, dev}: ok=false when the account already has 2 other registered devices
+async function bindDevice(env, req, userId) {
+  await ensureDevices(env);
+  let dev = getCookie(req, DEVICE_COOKIE);
+  if (!dev || !/^[0-9a-f]{32}$/.test(dev)) dev = randomHex(16);
+  const dh = await sha256(dev);
+  const ex = await env.DB.prepare('SELECT 1 FROM devices WHERE user_id = ? AND dev = ?').bind(userId, dh).first();
+  if (ex) { await env.DB.prepare('UPDATE devices SET last_at = ? WHERE user_id = ? AND dev = ?').bind(now(), userId, dh).run(); return { ok: true, dev }; }
+  const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM devices WHERE user_id = ?').bind(userId).first();
+  if ((c ? c.n : 0) >= MAX_DEVICES) return { ok: false, dev };
+  await env.DB.prepare('INSERT INTO devices (user_id, dev, label, created_at, last_at) VALUES (?, ?, ?, ?, ?)').bind(userId, dh, deviceLabel(req), now(), now()).run();
+  return { ok: true, dev };
+}
+function jsonCookies(data, cookies, status = 200) {
+  const h = new Headers({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+  for (const c of cookies) h.append('set-cookie', c);
+  return new Response(JSON.stringify(data), { status, headers: h });
+}
 async function createSession(env, userId, req, isAdmin) {
   const token = randomHex(32);
-  // two active devices per student: a new sign-in keeps only the most recent other session (stops password sharing)
-  if (!isAdmin) await env.DB.prepare('DELETE FROM sessions WHERE user_id = ? AND token NOT IN (SELECT token FROM sessions WHERE user_id = ? ORDER BY expires_at DESC LIMIT ?)')
-    .bind(userId, userId, MAX_DEVICES - 1).run();
   if (req) {
     try {
       await env.DB.prepare('INSERT INTO logins (user_id, at, ip, country, ua) VALUES (?, ?, ?, ?, ?)')
@@ -205,7 +235,8 @@ async function register(env, req) {
   await ensureRefCode(env, { id });
   if (roleFor(email) !== 'admin') await alertAdmin(env, `👤 حساب جديد: ${name}`, `${phone}${email.endsWith(PHONE_MAIL) ? ' · بدون إيميل' : ' · ' + email}${referredBy ? ' · جاي بدعوة من صديق' : ''}`, `#/admin?u=${id}`);
   const token = await createSession(env, id, req, roleFor(email) === 'admin');
-  return json({ user: publicUser({ id, name, email, phone }) }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+  const d = roleFor(email) === 'admin' ? null : await bindDevice(env, req, id);
+  return jsonCookies({ user: publicUser({ id, name, email, phone }) }, [sessionCookie(token, SESSION_DAYS * 86400)].concat(d ? [deviceCookie(d.dev)] : []));
 }
 
 async function login(env, req) {
@@ -224,9 +255,12 @@ async function login(env, req) {
   const h = await hashPassword(password, u.salt);
   if (!timingSafeEqual(h, u.pass_hash)) return err('البريد/رقم الواتساب أو كلمة المرور غير صحيحة', 401);
   if (u.suspended && roleFor(u.email) !== 'admin') return err('حسابك موقوف. تواصل مع إدارة الأكاديمية على واتساب', 403);
+  const isAdm = roleFor(u.email) === 'admin';
+  const d = isAdm ? null : await bindDevice(env, req, u.id);
+  if (d && !d.ok) return jsonCookies({ error: DEVICE_LIMIT_MSG, code: 'device_limit' }, [deviceCookie(d.dev)], 403);
   await env.DB.prepare('UPDATE users SET last_login = ? WHERE id = ?').bind(now(), u.id).run();
-  const token = await createSession(env, u.id, req, roleFor(u.email) === 'admin');
-  return json({ user: publicUser(u) }, 200, { 'set-cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+  const token = await createSession(env, u.id, req, isAdm);
+  return jsonCookies({ user: publicUser(u) }, [sessionCookie(token, SESSION_DAYS * 86400)].concat(d ? [deviceCookie(d.dev)] : []));
 }
 
 async function logout(env, req) {
@@ -564,7 +598,9 @@ async function adminUser(env, id) {
   const countries = await env.DB.prepare('SELECT COUNT(DISTINCT country) AS n FROM logins WHERE user_id = ? AND at > ?').bind(id, now() - 86400).first();
   const af = await env.DB.prepare('SELECT aff_code, aff_on FROM users WHERE id = ?').bind(id).first();
   const affiliate = { code: af && af.aff_code, on: !!(af && af.aff_on), ...(await affStats(env, id)) };
-  return json({ user: u, enrollments: results, logins: logins.results, countries_24h: countries ? countries.n : 0, referral, affiliate });
+  await ensureDevices(env);
+  const devices = (await env.DB.prepare('SELECT label, created_at, last_at FROM devices WHERE user_id = ? ORDER BY created_at').bind(id).all()).results;
+  return json({ user: u, enrollments: results, logins: logins.results, countries_24h: countries ? countries.n : 0, referral, affiliate, devices, max_devices: MAX_DEVICES });
 }
 async function adminSetAffiliate(env, req, id) {
   const b = await body(req);
@@ -1289,7 +1325,20 @@ export async function onRequest(context) {
     if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]), url);
 
     if (!user) return err('سجّل دخول أولًا', 401);
-    if (path === '/me' && method === 'GET') return await me(env, user);
+    if (path === '/me' && method === 'GET') {
+      if (user.role !== 'admin') {
+        const d = await bindDevice(env, request, user.id);
+        if (!d.ok) {
+          const t = getCookie(request, SESSION_COOKIE);
+          if (t) await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(await sha256(t)).run();
+          return jsonCookies({ error: DEVICE_LIMIT_MSG, code: 'device_limit' }, [sessionCookie('', 0), deviceCookie(d.dev)], 401);
+        }
+        const r = await me(env, user);
+        if (!getCookie(request, DEVICE_COOKIE)) r.headers.append('set-cookie', deviceCookie(d.dev));
+        return r;
+      }
+      return await me(env, user);
+    }
     if (path === '/enroll' && method === 'POST') return await enroll(env, request, user);
     if (path === '/welcomed' && method === 'POST') return await markWelcomed(env, request, user);
     if (path === '/notifications' && method === 'GET') return await myNotifs(env, user);
@@ -1342,6 +1391,12 @@ export async function onRequest(context) {
       if (path === '/admin/courses' && method === 'POST') return await adminCreateCourse(env, request);
       if (path === '/admin/notifications' && method === 'GET') return await adminNotifs(env);
       if (path === '/admin/affiliates' && method === 'GET') return await adminAffiliates(env);
+      if ((m = path.match(/^\/admin\/users\/(\d+)\/devices\/reset$/)) && method === 'POST') {
+        await ensureDevices(env);
+        await env.DB.prepare('DELETE FROM devices WHERE user_id = ?').bind(Number(m[1])).run();
+        await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(Number(m[1])).run();
+        return json({ ok: true });
+      }
       if ((m = path.match(/^\/admin\/affiliates\/(\d+)\/payout$/)) && method === 'POST') return await adminAffPayout(env, request, Number(m[1]));
       if ((m = path.match(/^\/admin\/users\/(\d+)\/affiliate$/)) && method === 'POST') return await adminSetAffiliate(env, request, Number(m[1]));
       if (path === '/admin/reminders/run' && method === 'POST') return json(await runDaily(env, true));
