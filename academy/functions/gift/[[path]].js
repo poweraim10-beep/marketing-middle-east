@@ -11,10 +11,27 @@ async function sha256(s) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function hmacHex(secret, msg) {
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return [...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+// ?t=exp.userId.sig from /api/gift/link (made only for activated students)
+async function linkOk(env, t) {
+  const m = String(t || '').match(/^(\d+)\.(\d+)\.([0-9a-f]{64})$/);
+  if (!m || Number(m[1]) < Math.floor(Date.now() / 1000)) return false;
+  const r = await env.DB.prepare("SELECT value FROM settings WHERE key = 'video_secret'").first();
+  if (!r) return false;
+  const sig = await hmacHex(r.value, `gift.${m[2]}.${m[1]}`);
+  let d = 0; for (let i = 0; i < 64; i++) d |= sig.charCodeAt(i) ^ m[3].charCodeAt(i);
+  if (d) return false;
+  const u = await env.DB.prepare('SELECT COALESCE(suspended, 0) AS s FROM users WHERE id = ?').bind(Number(m[2])).first();
+  return !!u && !u.s;
+}
+
 export async function onRequest({ request, env }) {
   const token = getCookie(request, SESSION_COOKIE);
-  let ok = false;
-  if (token) {
+  let ok = await linkOk(env, new URL(request.url).searchParams.get('t'));
+  if (!ok && token) {
     // the kit is a reward for students whose course is activated (or the admin)
     const row = await env.DB.prepare(
       `SELECT u.email,

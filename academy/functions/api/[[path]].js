@@ -190,6 +190,16 @@ async function hmac(secret, msg) {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return hex(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(msg)));
 }
+// short-lived signed link for the student kit: phone download managers fetch it without the login cookie
+async function giftLink(env, user) {
+  if (user.role !== 'admin') {
+    const e = await env.DB.prepare("SELECT 1 FROM enrollments WHERE user_id = ? AND status = 'approved'").bind(user.id).first();
+    if (!e) return err('الشنطة بتنزل بعد تفعيل الكورس على حسابك', 403);
+  }
+  const exp = now() + 30 * 60;
+  const t = `${exp}.${user.id}.${await hmac(await videoSecret(env), `gift.${user.id}.${exp}`)}`;
+  return json({ url: '/gift/student-kit.pdf?t=' + t });
+}
 async function videoToken(env, userId, lessonId) {
   const exp = now() + VIDEO_TOKEN_SECONDS;
   return exp + '.' + (await hmac(await videoSecret(env), `${userId}.${lessonId}.${exp}`));
@@ -1325,6 +1335,7 @@ export async function onRequest(context) {
     if ((m = path.match(/^\/video\/(\d+)$/)) && (method === 'GET' || method === 'HEAD')) return await streamVideo(env, request, user, Number(m[1]), url);
 
     if (!user) return err('سجّل دخول أولًا', 401);
+    if (path === '/gift/link' && method === 'GET') return await giftLink(env, user);
     if (path === '/me' && method === 'GET') {
       if (user.role !== 'admin') {
         const d = await bindDevice(env, request, user.id);

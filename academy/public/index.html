@@ -383,6 +383,11 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .qmenu button{display:block;width:100%;text-align:right;padding:10px 12px;border:0;border-radius:8px;background:none;color:#fff;font:600 14px inherit;cursor:pointer}
 .qmenu button small{display:block;color:var(--mute);font-weight:400;font-size:12px;margin-top:3px}
 .qmenu button.on{background:rgba(34,211,238,.15)}.qmenu button:hover{background:rgba(255,255,255,.08)}
+.nxbar{display:flex;gap:10px;margin-top:12px}
+.nxbar .btn{flex:1}
+.nxov{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;background:rgba(4,10,24,.88);backdrop-filter:blur(3px)}
+.nxov b{color:#fff;font-size:17px;line-height:1.6}.nxov small{color:#94a3b8;font-size:13px}
+.nxov .row2{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .vnote{position:absolute;bottom:58px;left:50%;transform:translateX(-50%);z-index:5;max-width:90%;padding:9px 14px;border-radius:10px;background:rgba(4,10,24,.92);border:1px solid rgba(250,204,21,.5);color:#fde047;font-size:13.5px;font-weight:600;text-align:center;pointer-events:none}
 .fsbtn{position:absolute;top:10px;right:10px;z-index:4;width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(4,10,24,.55);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:grid;place-items:center}
 .screen .fsbtn:hover{background:rgba(4,10,24,.8)}
@@ -1664,6 +1669,7 @@ function viewCourse(courseId,params){
         '<div class="screen">'+(lesson.has_video?'<video src="'+vidSrc(lesson,vidQ(lesson))+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move"><bdi>'+esc(u.name||'')+'</bdi> · <bdi>'+esc(u.phone||'')+'</bdi>'+(u.role==='admin'?' · <bdi>#'+esc(u.id||'')+'</bdi>':'')+'</span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
         '<div class="protect-note"><span>🔒</span><span><b>هذا الفيديو محمي ويحمل بيانات حسابك.</b> أي تسجيل أو تنزيل أو نشر يكشف صاحبه ويؤدي لإيقاف الحساب فورًا بدون استرجاع. <a href="#/terms">شروط حماية المحتوى</a></span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
+        (function(){var i=ls.indexOf(lesson),pv=ls[i-1],nx=ls[i+1];return (pv||nx)?'<div class="nxbar">'+(pv?'<a class="btn btn-g" href="#/course/'+esc(c.id)+'?l='+pv.id+'">→ السابقة</a>':'')+(nx?'<a class="btn btn-p" href="#/course/'+esc(c.id)+'?l='+nx.id+'">المحاضرة التالية ←</a>':'')+'</div>':''})()+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
       '</div><div>'+
         '<div class="lessons"><div class="lh"><span>محتوى الدورة</span><span>'+pct+'%</span></div>'+
@@ -1671,7 +1677,21 @@ function viewCourse(courseId,params){
         ls.map(function(l,i){return '<button data-l="'+l.id+'" class="'+(l.id===lesson.id?'on ':'')+(done[l.id]?'done':'')+'"><span class="ck">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="mn">'+Math.max(1,Math.round(l.minutes))+' د</span>':'')+'</button>'}).join('')+
         '</div>'+
       '</div></div>';
-    var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)});smartPlayer(pv,lesson,c.id)}
+    var pv=$('.screen video');if(pv){pv.addEventListener('loadedmetadata',function(){if(!pv.videoWidth)videoFail(pv)});smartPlayer(pv,lesson,c.id)
+      // end of the video: mark it done and offer the next lecture (auto-plays after a short countdown)
+      pv.addEventListener('ended',function(){
+        if(!done[lesson.id])api('/progress',{method:'POST',body:{lesson_id:lesson.id,done:true}}).then(function(){done[lesson.id]=1},function(){});
+        var i=ls.indexOf(lesson),nx=ls[i+1],scr=pv.parentNode;if(document.fullscreenElement)try{document.exitFullscreen()}catch(e){}
+        var ov=document.createElement('div');ov.className='nxov';
+        if(!nx){ov.innerHTML='<b>🎉 مبروك! خلّصت آخر محاضرة بالكورس</b><small>تم تعليمها كمكتملة</small><div class="row2"><button class="btn btn-g" data-x>إغلاق</button></div>';scr.appendChild(ov);$('[data-x]',ov).onclick=function(){ov.remove()};return}
+        var n=6;ov.innerHTML='<small>✓ تم تعليم المحاضرة كمكتملة</small><b>المحاضرة التالية:<br>'+esc(nx.title)+'</b><small>بتبلّش تلقائيًا بعد <span data-n>'+n+'</span> ثواني</small><div class="row2"><button class="btn btn-p" data-go>▶ شغّل التالية الآن</button><button class="btn btn-g" data-x>إلغاء</button></div>';
+        scr.appendChild(ov);
+        var goNext=function(){clearInterval(iv);location.hash='#/course/'+c.id+'?l='+nx.id+'&auto=1'};
+        var iv=setInterval(function(){n--;var e=$('[data-n]',ov);if(e)e.textContent=n;if(n<=0)goNext()},1000);
+        $('[data-go]',ov).onclick=goNext;$('[data-x]',ov).onclick=function(){clearInterval(iv);ov.remove()};
+      });
+      if(params.auto){var pp=pv.play();if(pp&&pp.catch)pp.catch(function(){})}
+    }
     protectPlayer($('.screen'),u);
     commentsSection(c.id);
     $$('.lessons [data-l]').forEach(function(b){b.addEventListener('click',function(){go('#/course/'+c.id+'?l='+b.getAttribute('data-l'))})});
@@ -1697,18 +1717,12 @@ function fmtDT(s){if(!s)return '';try{var d=new Date(s*1000);return d.toLocaleDa
 function money(n){return '$'+(Number(n)||0).toLocaleString('en-US')}
 var GIFT_URL='/gift/student-kit.pdf';
 // phones hand «download» links to their download manager, which goes without the login cookie and
-// lands on the sign-up page; so the kit is fetched here with the session, then saved from memory
+// lands on the sign-up page; so we ask for a short-lived signed link and open that instead
 document.addEventListener('click',function(ev){
   var a=ev.target.closest('a[href="'+GIFT_URL+'"]');if(!a)return;
   ev.preventDefault();if(a.__busy)return;a.__busy=true;var t=a.textContent;a.textContent='جاري التحميل…';
-  fetch(GIFT_URL,{credentials:'same-origin'}).then(function(r){
-    if(!r.ok||!/pdf/.test(r.headers.get('content-type')||''))throw new Error(r.redirected&&/login/.test(r.url)?'login':'x');
-    return r.blob();
-  }).then(function(b){
-    var u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download='MME-Student-Kit.pdf';document.body.appendChild(l);l.click();l.remove();
-    setTimeout(function(){URL.revokeObjectURL(u)},60000);toast('تم تحميل الشنطة ✔ بتلاقيها بالتنزيلات');
-  }).catch(function(e){toast(e.message==='login'?'سجّل دخول أول عشان تحمّل الشنطة':'الشنطة بتنزل بعد تفعيل الكورس على حسابك')})
-  .then(function(){a.__busy=false;a.textContent=t});
+  api('/gift/link').then(function(d){location.href=d.url;toast('بلّش التحميل ✔ بتلاقي الشنطة بالتنزيلات')},function(e){toast(/دخول/.test(e.message)?'سجّل دخول أول عشان تحمّل الشنطة':e.message)})
+  .then(function(){setTimeout(function(){a.__busy=false;a.textContent=t},1500)});
 });
 var OFFER_END=Date.parse('2026-10-28T20:59:00Z'),BOOK_COURSE='ai-ad-video';
 function hasBooked(){return (state.enrollments||[]).some(function(e){return e.course_id===BOOK_COURSE&&e.status!=='rejected'})}
