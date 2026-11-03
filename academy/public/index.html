@@ -385,6 +385,13 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .qmenu button.on{background:rgba(34,211,238,.15)}.qmenu button:hover{background:rgba(255,255,255,.08)}
 .nxbar{display:flex;gap:10px;margin-top:12px}
 .nxbar .btn{flex:1}
+.nxbar .btn-idx{flex:0 0 auto}
+.idx-list{display:grid;gap:6px;margin-top:10px;max-height:60vh;overflow-y:auto}
+.idx-list a{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:#e2e8f0;text-decoration:none;font-size:14px;font-weight:600;line-height:1.5}
+.idx-list a .n{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.08);color:#fff;font-size:12.5px}
+.idx-list a.done .n{background:#16a34a}
+.idx-list a.on{border-color:rgba(34,211,238,.7);background:rgba(34,211,238,.1)}
+.idx-list a .t{flex:1}.idx-list a .m{flex:none;color:var(--mute);font-size:12px}
 .nxov{position:absolute;inset:0;z-index:6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;text-align:center;background:rgba(4,10,24,.88);backdrop-filter:blur(3px)}
 .nxov b{color:#fff;font-size:17px;line-height:1.6}.nxov small{color:#94a3b8;font-size:13px}
 .nxov .row2{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
@@ -1669,7 +1676,7 @@ function viewCourse(courseId,params){
         '<div class="screen">'+(lesson.has_video?'<video src="'+vidSrc(lesson,vidQ(lesson))+'" controls controlsList="nodownload nofullscreen noremoteplayback" disableRemotePlayback disablePictureInPicture oncontextmenu="return false" playsinline preload="metadata" onerror="window.__mmeVidFail&&window.__mmeVidFail(this)"></video>':embedHtml(lesson.video_url))+'<span class="wm">'+esc(u.email||'')+' · '+esc(u.phone||'')+'</span><span class="wm-move"><bdi>'+esc(u.name||'')+'</bdi> · <bdi>'+esc(u.phone||'')+'</bdi>'+(u.role==='admin'?' · <bdi>#'+esc(u.id||'')+'</bdi>':'')+'</span><button class="fsbtn" type="button" aria-label="ملء الشاشة" title="ملء الشاشة">⛶</button></div>'+
         '<div class="protect-note"><span>🔒</span><span><b>هذا الفيديو محمي ويحمل بيانات حسابك.</b> أي تسجيل أو تنزيل أو نشر يكشف صاحبه ويؤدي لإيقاف الحساب فورًا بدون استرجاع. <a href="#/terms">شروط حماية المحتوى</a></span></div>'+
         '<div class="lessonmeta"><h2>'+esc(lesson.title)+'</h2><button class="btn '+(done[lesson.id]?'btn-g':'btn-p')+'" id="doneBtn">'+(done[lesson.id]?'✓ تم — إلغاء':'علّم كمكتمل')+'</button></div>'+
-        (function(){var i=ls.indexOf(lesson),pv=ls[i-1],nx=ls[i+1];return (pv||nx)?'<div class="nxbar">'+(pv?'<a class="btn btn-g" href="#/course/'+esc(c.id)+'?l='+pv.id+'">→ السابقة</a>':'')+(nx?'<a class="btn btn-p" href="#/course/'+esc(c.id)+'?l='+nx.id+'">المحاضرة التالية ←</a>':'')+'</div>':''})()+
+        (function(){var i=ls.indexOf(lesson),pv=ls[i-1],nx=ls[i+1];return '<div class="nxbar"><button class="btn btn-g btn-idx" id="idxBtn" type="button">📋 الفهرس</button>'+(pv?'<a class="btn btn-g" href="#/course/'+esc(c.id)+'?l='+pv.id+'">→ السابقة</a>':'')+(nx?'<a class="btn btn-p" href="#/course/'+esc(c.id)+'?l='+nx.id+'">المحاضرة التالية ←</a>':'')+'</div>'})()+
         (lesson.notes?'<div class="notes">'+esc(lesson.notes)+'</div>':'')+
       '</div><div>'+
         '<div class="lessons"><div class="lh"><span>محتوى الدورة</span><span>'+pct+'%</span></div>'+
@@ -1693,6 +1700,13 @@ function viewCourse(courseId,params){
       if(params.auto){var pp=pv.play();if(pp&&pp.catch)pp.catch(function(){})}
     }
     protectPlayer($('.screen'),u);
+    // «الفهرس»: every lecture in one list, with what's done, the current one, and the duration
+    var ib=$('#idxBtn');if(ib)ib.addEventListener('click',function(){
+      var nd=Object.keys(done).length;
+      modal('<h3>📋 فهرس المحاضرات</h3><p class="mdl-sub">'+ls.length+' محاضرة · خلّصت '+nd+' ('+pct+'%)</p><div class="idx-list">'+
+        ls.map(function(l,i){return '<a href="#/course/'+esc(c.id)+'?l='+l.id+'" class="'+(done[l.id]?'done ':'')+(l.id===lesson.id?'on':'')+'"><span class="n">'+(done[l.id]?'✓':(i+1))+'</span><span class="t">'+esc(l.title)+'</span>'+(l.minutes?'<span class="m">'+Math.max(1,Math.round(l.minutes))+' د</span>':'')+'</a>'}).join('')+'</div>',
+        function(ov,close){$$('.idx-list a',ov).forEach(function(a){a.addEventListener('click',close)});var on=$('.idx-list a.on',ov);if(on)on.scrollIntoView({block:'center'})});
+    });
     commentsSection(c.id);
     $$('.lessons [data-l]').forEach(function(b){b.addEventListener('click',function(){go('#/course/'+c.id+'?l='+b.getAttribute('data-l'))})});
     $('#doneBtn').addEventListener('click',function(){
