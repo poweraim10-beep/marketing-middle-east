@@ -1026,14 +1026,17 @@ function refCard(r){
 }
 
 // ---------- nav ----------
+function hadAccount(){try{return !!localStorage.getItem('mme_had')}catch(e){return false}}
 function renderNav(){
   var n=$('#navAuth');if(!n)return;
   if(state.user){
+    try{localStorage.setItem('mme_had',state.user.phone||'1')}catch(e){}
     n.innerHTML=(state.user.role==='admin'?'<a class="btn btn-g" href="#/admin">لوحة التحكم</a>':'<button class="bell" id="bellBtn" aria-label="الإشعارات">🔔'+(state.unread?'<i>'+state.unread+'</i>':'')+'</button>')+
       '<a class="btn btn-p" href="#/my">حسابي</a>';
     var bb=$('#bellBtn');if(bb)bb.addEventListener('click',function(){notifModal(false)});
   }else{
-    n.innerHTML='<a class="btn btn-g" href="#/login">دخول</a><a class="btn btn-p" href="#/register">إنشاء حساب</a>';
+    // a browser that was signed in before gets «تسجيل الدخول» as the main button, so students don't sign up twice
+    n.innerHTML=hadAccount()?'<a class="btn btn-g" href="#/register">حساب جديد</a><a class="btn btn-p" href="#/login">تسجيل الدخول</a>':'<a class="btn btn-g" href="#/login">دخول</a><a class="btn btn-p" href="#/register">إنشاء حساب</a>';
   }
 }
 function loadMe(){
@@ -1184,6 +1187,7 @@ function viewAuth(mode,params){
   '<div class="panel">'+
    '<h1>'+(reg?'إنشاء حساب جديد':'تسجيل الدخول')+'</h1>'+
    '<p class="sub">'+(params.enroll?'سجّل '+(reg?'حسابك':'دخولك')+' عشان تكمل طلب التسجيل بالدورة.':(reg?'حساب واحد لكل دوراتك في أكاديمية MME.':'أهلًا فيك من جديد.'))+'</p>'+
+   (reg?'<div class="rf-invite" style="border-color:rgba(34,211,238,.55);background:rgba(34,211,238,.08);color:#a5f3fc">👤 <b>مسجّل عنا من قبل؟</b> لا تعمل حساب جديد، <a href="#/login'+next+'" style="color:#fff;text-decoration:underline">اضغط هون وسجّل دخول</a> برقم الواتساب وكلمة السر.</div>':'')+
    (reg&&REF?'<div class="rf-invite">🎁 وصلت بدعوة من صديق، سجّل واشترك وساعده يحصل على خصمه</div>':'')+
    '<div class="formerr" id="ferr"></div>'+
    '<form id="authForm" novalidate>'+
