@@ -837,6 +837,43 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .bk .bk-later{background:none;border:0;color:var(--mute);font-size:13px;margin-top:8px;cursor:pointer;text-decoration:underline}
 .bkcard{position:relative;margin:0 0 26px;padding:24px;border-radius:24px;border:1px solid rgba(250,204,21,.55);background:radial-gradient(70% 90% at 100% 0%,rgba(250,204,21,.16),transparent 60%),radial-gradient(60% 80% at 0% 100%,rgba(239,68,68,.14),transparent 60%),linear-gradient(160deg,rgba(37,99,235,.22),rgba(11,16,32,.96) 60%)}
 .bkcard .btn-book{max-width:420px}
+
+/* two-course chooser */
+.hero-pick{margin:26px auto 0;max-width:780px}
+.hp-lbl{color:#e9d9a6;font-weight:800;letter-spacing:.3px;margin:0 0 12px;font-size:15px}
+.hp-more{display:inline-block;margin-top:14px;color:#cbd5e1;font-size:14px;text-decoration:underline;text-underline-offset:4px}
+.pk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;text-align:right}
+.pk-grid.one{grid-template-columns:1fr;max-width:420px;margin:0 auto}
+.pk{position:relative;display:flex;flex-direction:column;gap:9px;padding:18px 16px 16px;border-radius:20px;overflow:hidden;isolation:isolate;
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 40px -22px rgba(0,0,0,.8);transition:transform .25s,box-shadow .25s}
+.pk:hover{transform:translateY(-3px)}
+.pk::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.9}
+.pk1{border-color:rgba(96,165,250,.45)}.pk1::before{background:radial-gradient(120% 80% at 100% 0,rgba(59,130,246,.28),transparent 60%)}
+.pk2{border-color:rgba(234,179,8,.55)}.pk2::before{background:radial-gradient(120% 80% at 100% 0,rgba(234,179,8,.26),transparent 60%)}
+.pk-off{position:absolute;top:12px;left:12px;font-weight:900;font-size:12px;padding:4px 9px;border-radius:999px;color:#111;background:#facc15}
+.pk1 .pk-off{background:#60a5fa;color:#06122b}
+.pk-hd{display:flex;gap:10px;align-items:center}
+.pk-ic{flex:0 0 46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.08)}
+.pk-ic .fa-logo{width:34px;height:34px}
+.pk-hd small{display:block;font-size:11.5px;font-weight:800;letter-spacing:.3px}
+.pk1 .pk-hd small{color:#93c5fd}.pk2 .pk-hd small{color:#fcd34d}
+.pk-hd b{display:block;color:#fff;font-size:16px;line-height:1.45}
+.pk-d{margin:0;color:#cbd5e1;font-size:13.5px;line-height:1.7}
+.pk-pts{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.pk-pts li{font-size:12px;color:#e2e8f0;padding:4px 9px;border-radius:999px;background:rgba(255,255,255,.07)}
+.pk-pr{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:auto}
+.pk-pr b{font-size:28px;font-weight:900;color:#fff}.pk2 .pk-pr b{color:#fde68a}
+.pk-pr s{color:#94a3b8;font-size:15px}.pk-pr em{font-style:normal;color:#e2e8f0;font-size:13px;font-weight:700}
+.pk-cd{font-size:12px;font-weight:800;color:#fca5a5;font-variant-numeric:tabular-nums}
+.pk-btn{display:block;width:100%;text-align:center;border:0;cursor:pointer;font:inherit;font-weight:900;font-size:15.5px;padding:13px 10px;border-radius:14px;text-decoration:none}
+.pk1 .pk-btn{background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;box-shadow:0 10px 24px -10px rgba(59,130,246,.9)}
+.pk2 .pk-btn{background:linear-gradient(135deg,#fde68a,#eab308 55%,#a16207);color:#1a1200;box-shadow:0 10px 24px -10px rgba(234,179,8,.9)}
+.pk-mine .pk-btn{background:rgba(255,255,255,.1)!important;color:#fff!important;box-shadow:none!important}
+.bk .pk-grid,.wl .pk-grid{margin:14px 0 6px}
+.bk .pk-grid{grid-template-columns:1fr!important}.pk-hd{padding-left:56px}.bk .pk-pts li{margin:0;padding:4px 9px}.bk .pk-pts li::before{display:none}.bk .pk-d{font-size:13px}
+.wl-pickh{color:#fff;margin:16px 0 0;font-size:16px}
+.bk-sub{color:#94a3b8;font-size:13.5px;margin:4px 0 0}
+@media (max-width:640px){.pk-grid{grid-template-columns:1fr}.pk-hd b{font-size:15px}.pk-pr b{font-size:25px}}
 </style>
 </head>
 <body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="fa-logo" viewBox="0 0 64 64"><defs>
@@ -876,9 +913,10 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
     <p class="gloss">أكاديمية الشرق الأوسط للتدريب والتطوير</p>
     <p class="lead">دورات أونلاين مسجّلة تتعلمها من بيتك وعلى وقتك، من نفس الفريق اللي بيشتغل على حملات العلامات التجارية في الشرق الأوسط. من الصفر للاحتراف، وبتطبيق عملي.</p>
     <div class="intro-vid" id="introVid" hidden></div>
-    <div class="ctas">
-      <a class="btn-lux" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video"><span class="lx-ic">🚀</span><span class="lx-tx"><span class="lx-main">احجز مقعدك الآن بـ <b dir="ltr">$50</b> فقط</span><small class="lx-sub"><bdi dir="ltr">$50</bdi> = <bdi>150 شيكل</bdi></small></span><span class="lx-tag">خصم 70%</span></a>
-      <a class="btn btn-g" href="#course">شوف تفاصيل الدورة</a>
+    <div class="hero-pick">
+      <p class="hp-lbl">✦ اختار دورتك وابدأ اليوم ✦</p>
+      <div class="hp-grid" id="heroPick"></div>
+      <a class="hp-more" href="#course">قارن بين الدورتين وشوف التفاصيل ↓</a>
     </div>
   </div>
 </header>
@@ -1338,7 +1376,7 @@ function renderNav(){
 }
 function loadMe(){
   return api('/me').then(function(d){state.user=d.user;state.enrollments=d.enrollments;state.referral=d.referral;state.affiliate=d.affiliate||null;return d},function(e){if(e&&/جهازين/.test(e.message||''))setTimeout(function(){modal('<h3>📱 حسابك مفعّل على جهازين</h3><p class="mdl-sub" style="line-height:1.9">'+esc(e.message)+'</p><a class="btn btn-wa full" target="_blank" rel="noopener" href="'+waLink('مرحبا، بدي أعيد تعيين الأجهزة على حسابي في أكاديمية MME')+'">تواصل معنا على واتساب</a>')},300);state.user=null;state.enrollments=[];state.referral=null;state.affiliate=null;return null})
-    .then(function(d){state.loaded=true;renderNav();checkWelcome();loadNotifs();return d});
+    .then(function(d){state.loaded=true;renderNav();checkWelcome();loadNotifs();if(typeof renderHeroPick==="function")renderHeroPick();return d});
 }
 // ---------- phone (push) notifications ----------
 var IS_IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -1529,7 +1567,7 @@ function viewAuth(mode,params){
         if(params.enroll)startEnroll(params.enroll);
         else go(state.user.role==='admin'?'#/admin':'#/my');
         // accounts that have not booked yet are pushed to book first; the gift only comes after activation
-        if(!params.enroll&&state.user.role!=='admin'&&!hasBooked())setTimeout(reg?welcomeModal:bookModal,450);
+        if(!params.enroll&&state.user.role!=='admin'&&!hasBooked())setTimeout(reg?signupModal:bookModal,450);
       });
     },function(err){errb.textContent=err.message;errb.classList.add('on');btn.disabled=false});
   });
@@ -1548,7 +1586,7 @@ function viewMy(){
     var html='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">MY ACCOUNT</span><h1>أهلًا '+esc(state.user.name)+'</h1><p dir="ltr" style="text-align:right">'+esc(state.user.email||state.user.phone||'')+'</p></div>'+
       '<button class="btn btn-g" id="logoutBtn">تسجيل خروج</button></div>';
     html+='<div id="pushSlot"></div>';
-    if(!hasBooked())html+=bookCard();
+    if(anyFree())html+=bookCard();
     if(state.user.role!=='admin')html+=affCard(state.affiliate);
     html+=refCard(state.referral);
     if(isActive())html+=giftRow();
@@ -1564,7 +1602,7 @@ function viewMy(){
       else acts='<button class="btn btn-g" data-enroll="'+esc(e.course_id)+'">قدّم الطلب من جديد</button>';
       return '<div class="row"><div><h3>'+esc(e.title)+'</h3><div class="muted">طلب رقم #'+e.id+' · '+fmtDate(e.created_at)+' · '+(e.status==='pending'?priceHtml(e):'<bdi dir="ltr">$'+e.price+'</bdi>')+'</div></div><div class="acts">'+badge(e.status)+acts+'</div></div>';
     }).join('')+'</div>';
-    var others=courses.filter(function(c){return !mine[c.id]&&!(c.id===BOOK_COURSE&&!hasBooked())});
+    var others=courses.filter(function(c){return !mine[c.id]&&!CMETA.some(function(m){return m.id===c.id})});
     if(others.length){
       html+='<h2 style="color:#fff;font-size:19px;margin:30px 0 12px">دورات متاحة</h2><div class="list">'+others.map(function(c){
         return '<div class="row"><div><h3>'+(c.id==='funded-ads'?'🆕 ':'')+esc(c.title)+'</h3><div class="muted"><bdi dir="ltr">$'+c.price+'</bdi> ≈ '+ilsOf(c.price)+' شيكل'+(c.old_price?' · بدل <s dir="ltr">$'+c.old_price+'</s>':'')+'</div></div><div class="acts"><button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة</button></div></div>';
@@ -2045,44 +2083,52 @@ function isActive(){return (state.enrollments||[]).some(function(e){return e.sta
 function cdHtml(){return Date.now()<OFFER_END?'<div class="cd-lbl">⏳ العرض بينتهي خلال</div><div class="cd" data-cd><div><b data-u="d">0</b><i>يوم</i></div><div><b data-u="h">00</b><i>ساعة</i></div><div><b data-u="m">00</b><i>دقيقة</i></div><div><b data-u="s">00</b><i>ثانية</i></div></div>':''}
 setInterval(function(){var ms=Math.max(0,OFFER_END-Date.now()),t=Math.floor(ms/1000),p=function(n){return (n<10?'0':'')+n},v={d:Math.floor(t/86400),h:p(Math.floor(t%86400/3600)),m:p(Math.floor(t%3600/60)),s:p(t%60)};
   $$('[data-cd]').forEach(function(c){$$('[data-u]',c).forEach(function(b){b.textContent=v[b.getAttribute('data-u')]})})},1000);
+// the academy's courses as the student sees them; prices are refreshed from /api/courses on load
+var CMETA=[
+  {id:'ai-ad-video',cls:'pk1',ic:'🎬',k:'01 · الأكثر طلبًا',t:'صناعة الفيديو الإعلاني بالذكاء الاصطناعي',d:'تصنع إعلانات فيديو احترافية بالذكاء الاصطناعي، بدون كاميرا ولا تصوير.',price:50,old:233,pts:['18 محاضرة مسجّلة','+5 ساعات تدريب','🎁 شنطة أدوات الطالب']},
+  {id:'funded-ads',cls:'pk2',ic:'<svg class="fa-logo" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg>',k:'02 · إصدار جديد',t:'الإعلانات الممولة من الصفر للاحتراف',d:'تموّل إعلاناتك على فيسبوك وإنستغرام صح، وتبيع التمويل كخدمة لزباينك.',price:35,old:99,pts:['Meta Ads Manager','استهداف وميزانية ونتائج','شهادة معتمدة']}
+];
+function myCourseStatus(id){var e=(state.enrollments||[]).filter(function(x){return x.course_id===id&&x.status!=='rejected'})[0];return e?e.status:null}
+function pickCard(m,opts){
+  var st=myCourseStatus(m.id),off=m.old?Math.round((1-m.price/m.old)*100):0,end=m.id==='funded-ads'?FA_END:OFFER_END,live=Date.now()<end;
+  var act=st==='approved'?'<a class="pk-btn" href="#/course/'+m.id+'">▶ ادخل الدورة</a>':st==='pending'?'<a class="pk-btn" href="#/enrolled/'+m.id+'">⏳ طلبك قيد التفعيل</a>':'<button type="button" class="pk-btn" data-pick="'+m.id+'">'+(m.id==='funded-ads'?'👑 ':'🚀 ')+'احجز هاي الدورة</button>';
+  return '<div class="pk '+m.cls+(st?' pk-mine':'')+'">'+(off?'<span class="pk-off" dir="ltr">-'+off+'%</span>':'')+
+    '<div class="pk-hd"><span class="pk-ic">'+m.ic+'</span><span><small>'+m.k+'</small><b>'+m.t+'</b></span></div>'+
+    (opts&&opts.short?'':'<p class="pk-d">'+m.d+'</p><ul class="pk-pts">'+m.pts.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>')+
+    '<div class="pk-pr"><b dir="ltr">$'+m.price+'</b>'+(m.old?'<s dir="ltr">$'+m.old+'</s>':'')+'<em>≈ '+ilsOf(m.price)+' شيكل</em></div>'+
+    (live&&!st?'<span class="pk-cd" data-pkcd="'+m.id+'"></span>':'')+act+'</div>';
+}
+function pickGrid(opts){var L=CMETA.filter(function(m){return !(opts&&opts.notMine)||!myCourseStatus(m.id)});return '<div class="pk-grid'+(L.length<2?' one':'')+'">'+L.map(function(m){return pickCard(m,opts)}).join('')+'</div>'}
+function anyFree(){return CMETA.some(function(m){return !myCourseStatus(m.id)})}
+document.addEventListener('click',function(ev){var b=ev.target.closest('[data-pick]');if(!b)return;ev.preventDefault();var ov=b.closest('.mdl-ov,.mdl');if(ov){var x=$('.mdl-x',ov.closest('.mdl-ov')||ov);if(x)x.click()}startEnroll(b.getAttribute('data-pick'))});
+setInterval(function(){$$('[data-pkcd]').forEach(function(e){var end=e.getAttribute('data-pkcd')==='funded-ads'?FA_END:OFFER_END,ms=end-Date.now();if(ms<=0){e.remove();return}var t=Math.floor(ms/1000),d=Math.floor(t/86400),h=Math.floor(t%86400/3600),mi=Math.floor(t%3600/60),z=function(n){return (n<10?'0':'')+n};e.textContent='⏳ العرض بينتهي خلال '+(d?d+' '+(d>2&&d<11?'أيام':'يوم')+' و':'')+z(h)+':'+z(mi)+':'+z(t%60)})},1000);
+function renderHeroPick(){var h=$('#heroPick');if(h)h.innerHTML=pickGrid({short:true})}
 function bookInner(){
-  var live=Date.now()<OFFER_END;
-  return '<span class="bk-hot">🔥 '+(live?'عرض لفترة محدودة · خصم 70%':'الحجز مفتوح الآن')+'</span>'+
-    '<h3>احجز الآن دورة <b>صناعة الفيديوهات الإعلانية بالذكاء الاصطناعي</b></h3>'+
-    (live?'<div class="bk-price"><b dir="ltr">$50</b><s dir="ltr">$233</s><span>أو 150 شيكل</span></div>':'')+cdHtml()+
-    '<ul><li>من الصفر للاحتراف، خطوة بخطوة</li><li>تعلّم واشتغل من جوالك أو لابتوبك</li><li>شهادة معتمدة من MARKETING MIDDLE EAST</li></ul>'+
-    '<button class="btn-book" data-book>احجز الآن 🚀</button>'+
-    '<p class="bk-gift">🎁 أول ما تتفعّل الدورة بتاخذ هدية: شنطة أدوات الطالب</p>';
+  return '<span class="bk-hot">🔥 الحجز مفتوح الآن</span><h3>اختار الدورة اللي بدك تبلّش فيها</h3><p class="bk-sub">كل دورة إلها سعرها، وبتقدر تحجز الثانية بأي وقت.</p>'+pickGrid({notMine:true})+
+    '<p class="bk-gift">🎁 بعد تفعيل أي دورة بتاخذ هدية: شنطة أدوات الطالب</p>';
 }
 // right after a new account is created: congratulate, then make clear that the account is not a seat yet
-function welcomeModal(){
-  if(!state.user||state.user.role==='admin'||hasBooked())return;
+function signupModal(){
+  if(!state.user||state.user.role==='admin'||!anyFree())return;
   var first=String(state.user.name||'').trim().split(/\s+/)[0];
   modal('<div class="bk wl"><div class="wl-ok">✓</div>'+
     '<h3>مبروك'+(first?' يا '+esc(first):'')+'! تم إنشاء حسابك بنجاح 🎉</h3>'+
-    '<p class="wl-sub">حسابك جاهز، وباقي خطوة وحدة عشان يفتحلك الكورس</p>'+
-    '<span class="wl-live"><i></i>الكورس متوفر الآن · المقاعد مفتوحة</span>'+
+    '<p class="wl-sub">حسابك جاهز، وباقي خطوة وحدة: اختار الدورة واحجز مقعدك</p>'+
+    '<span class="wl-live"><i></i>الدورتين متوفرين الآن · المقاعد مفتوحة</span>'+
     '<div class="wl-steps"><div class="ok"><b>✓</b>إنشاء الحساب</div><div class="now"><b>2</b>احجز مقعدك</div><div><b>3</b>ابدأ التعلم</div></div>'+
-    '<div class="wl-course"><h4>🎬 كورس صناعة الفيديوهات الإعلانية بالذكاء الاصطناعي</h4>'+
-      '<p>بتتعلم من الصفر كيف تعمل فيديوهات إعلانية احترافية للمحلات والشركات بالذكاء الاصطناعي، من جوالك أو لابتوبك، وكيف تحوّلها لشغل ودخل حقيقي.</p>'+
-      '<div class="wl-stats"><div><b>18</b><span>محاضرة مسجّلة</span></div><div><b>+5</b><span>ساعات تدريب</span></div></div>'+
-      '<ul><li>كيف تعمل إعلان مموّل وتسوّق لخدمتك</li><li>كيف تجيب أول زبون إلك</li><li>شهادة معتمدة من MARKETING MIDDLE EAST</li><li>🎁 هدية شنطة أدوات الطالب بعد التفعيل</li></ul></div>'+
-    '<div class="wl-price"><b dir="ltr">$50</b><s dir="ltr">$233</s><span>= 150 شيكل</span></div>'+
-    '<button class="btn-book" data-book>احجز مقعدك في الكورس الآن 🚀</button>'+
+    '<h4 class="wl-pickh">اختار دورتك 👇</h4>'+pickGrid({notMine:true})+
     '<button class="bk-later" data-later>بعدين</button></div>',function(ov,close){
-      $('[data-book]',ov).addEventListener('click',function(){close();startEnroll(BOOK_COURSE)});
       $('[data-later]',ov).addEventListener('click',close);
     });
 }
 function bookModal(){
-  if(!state.user||state.user.role==='admin'||hasBooked())return;
+  if(!state.user||state.user.role==='admin'||!anyFree())return;
   modal('<div class="bk">'+bookInner()+'<button class="bk-later" data-later>بعدين</button></div>',function(ov,close){
-    $('[data-book]',ov).addEventListener('click',function(){close();startEnroll(BOOK_COURSE)});
     $('[data-later]',ov).addEventListener('click',close);
   });
 }
 function bookCard(){return '<div class="bkcard bk">'+bookInner()+'</div>'}
-document.addEventListener('click',function(ev){var b=ev.target.closest('.bkcard [data-book]');if(b){ev.preventDefault();startEnroll(BOOK_COURSE)}});
+
 function giftModal(){
   var cols=['#FBBF24','#22D3EE','#3B82F6','#A855F7','#F472B6','#34D399'],cf='';
   for(var i=0;i<26;i++)cf+='<span class="cf" style="right:'+(Math.random()*100)+'%;background:'+cols[i%6]+';animation-delay:'+(Math.random()*0.9).toFixed(2)+'s;animation-duration:'+(2+Math.random()*1.6).toFixed(2)+'s"></span>';
@@ -2645,7 +2691,8 @@ function faTick(){
   $$('[data-facdt]').forEach(function(e){e.textContent=txt});
 }
 faTick();setInterval(faTick,1000);
-api('/courses').then(function(d){(d.courses||[]).forEach(function(c){if(!c.offer_end)return;if(c.id==='funded-ads')FA_END=c.offer_end*1000;if(c.id===BOOK_COURSE)OFFER_END=c.offer_end*1000});faTick()},function(){});
+api('/courses').then(function(d){(d.courses||[]).forEach(function(c){CMETA.forEach(function(m){if(m.id===c.id){if(c.price)m.price=c.price;if(c.old_price)m.old=c.old_price}});if(!c.offer_end)return;if(c.id==='funded-ads')FA_END=c.offer_end*1000;if(c.id===BOOK_COURSE)OFFER_END=c.offer_end*1000});faTick();renderHeroPick()},function(){});
+renderHeroPick();
 window.addEventListener('hashchange',route);
 renderNav();
 renderPayboxes(document);
