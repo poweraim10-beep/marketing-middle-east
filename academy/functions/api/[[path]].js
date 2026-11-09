@@ -737,11 +737,13 @@ async function adminSaveCourse(env, req, id) {
   return json({ ok: true });
 }
 async function adminNotifyCourse(env, id) {
-  const c = await env.DB.prepare('SELECT id, title, published FROM courses WHERE id = ?').bind(id).first();
+  const c = await env.DB.prepare('SELECT id, title, published, price, old_price FROM courses WHERE id = ?').bind(id).first();
   if (!c) return err('الدورة غير موجودة', 404);
   if (!c.published) return err('الدورة مخفية. فعّل «ظاهرة للطلاب» أول');
-  await addNotif(env, { kind: 'course', ref: c.id + '@' + now(), title: `🆕 دورة جديدة: ${c.title}`, body: 'نزلت دورة جديدة على أكاديمية MME. شوف التفاصيل واحجز مقعدك.', link: '#/course/' + c.id, course_id: c.id, audience: 'all' });
-  return json({ ok: true });
+  const ils = { 50: 150, 35: 100, 70: 210 }[c.price] || Math.round(c.price * 3);
+  const body = `نزلت دورة جديدة على أكاديمية MME 🎉 سعر الإطلاق $${c.price} (≈ ${ils} شيكل)${c.old_price ? ` بدل $${c.old_price}` : ''} لفترة محدودة. احجز مقعدك الآن.`;
+  const nid = await addNotif(env, { kind: 'course', ref: c.id + '@' + now(), title: `🆕 دورة جديدة: ${c.title}`, body, link: '#/course/' + c.id, course_id: c.id, audience: 'all' });
+  return json({ ok: true, id: nid });
 }
 async function adminCourseOverview(env, id) {
   await ensureCourseCols(env);
@@ -1179,6 +1181,7 @@ async function transcodeApi(env, req, path, method, url) {
   if (!(await ghOidcOk(req))) return err('غير مسموح', 403);
   await ensureLowCols(env);
   let m;
+  if ((m = path.match(/^\/tc\/notify-course\/([\w-]+)$/)) && method === 'POST') return await adminNotifyCourse(env, m[1]);
   if (path === '/tc/jobs' && method === 'GET') {
     const { results } = await env.DB.prepare('SELECT id, title, video_size FROM lessons WHERE video_key IS NOT NULL AND video_key_low IS NULL ORDER BY sort, id').all();
     return json({ jobs: results });
