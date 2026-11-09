@@ -695,6 +695,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
     </a>
     <div class="navlinks">
       <a class="small" href="#course">الدورات</a>
+      <a class="small" href="#funded-ads">🆕 الإعلانات الممولة</a>
       <a class="small" href="#how">كيف تعمل</a>
       <a class="small" href="https://marketingmiddleeast.com">الموقع الرئيسي</a>
       <span class="navauth" id="navAuth"></span>
@@ -771,6 +772,45 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
           </div>
         </div>
       </div>
+    </article>
+
+    <div class="head" id="funded-ads" style="margin-top:56px">
+      <span class="mono">NEW COURSE · 02</span>
+      <h2><span class="metal">FUNDED ADS</span> <span class="blue">MASTERCLASS</span></h2>
+      <p class="ar">🆕 الدورة الثانية في الأكاديمية</p>
+    </div>
+    <article class="course course2">
+      <div class="body">
+        <div class="tags">
+          <span class="tag hot">NEW</span>
+          <span class="tag">FACEBOOK · INSTAGRAM</span>
+          <span class="tag">ZERO → PRO</span>
+        </div>
+        <span class="biz-badge"><span class="bz-ic" aria-hidden="true">📢</span><span>موّل إعلاناتك صح، وقدّم التمويل كخدمة مدفوعة لزباينك</span></span>
+        <h3>الإعلانات الممولة — من الصفر للاحتراف</h3>
+        <div class="en">FUNDED ADS — FROM ZERO TO PRO</div>
+        <p class="c-desc">بتتعلم كيف تعمل إعلان ممول احترافي على فيسبوك وإنستغرام، من إنشاء الحساب الإعلاني لحد ما توصل للناس الصح وتجيب نتائج حقيقية، بدون ما تحرق مصاريك.</p>
+        <ul class="learn">
+          <li>إنشاء حساب الأعمال والحساب الإعلاني خطوة بخطوة</li>
+          <li>اختيار هدف الإعلان الصح: رسائل، مبيعات، زيارات</li>
+          <li>استهداف الجمهور المناسب لكل منتج وخدمة</li>
+          <li>تحديد الميزانية والمدة بدون ما تحرق مصاريك</li>
+          <li>قراءة النتائج وتحسين الإعلان</li>
+          <li>كيف تقدّم تمويل الإعلانات كخدمة مدفوعة لزباينك</li>
+        </ul>
+      </div>
+      <aside class="side">
+        <span class="mono" style="color:var(--mute)">LAUNCH OFFER</span>
+        <div class="price"><span class="now">$35</span><span class="was">$99</span><span class="off70" dir="ltr">-65%</span></div>
+        <div class="offer">💰 <b>$35 ≈ 100 شيكل</b> بس<br>بدل <s dir="ltr">$99</s>، سعر إطلاق لفترة محدودة.</div>
+        <ul class="meta">
+          <li><span>طريقة التعلم</span><b>أونلاين مسجّل</b></li>
+          <li><span>الوقت</span><b>على راحتك</b></li>
+          <li><span>المستوى</span><b>من الصفر</b></li>
+          <li><span>عند الإتمام</span><b>شهادة من MME</b></li>
+        </ul>
+        <a class="btn btn-p" href="#/register?enroll=funded-ads" data-enroll="funded-ads">احجز بسعر <bdi dir="ltr">$35</bdi> (100 شيكل)</a>
+      </aside>
     </article>
     <div class="vstack">
       <div class="vs-top">
@@ -1008,7 +1048,7 @@ function renderRefTiers(){
     return '<div class="rf-tier'+(free?' free':'')+'"><div class="ppl">'+(n<=5?new Array(n+1).join('👤'):'👤 × '+n)+'</div><b dir="ltr">'+(free?'100%':d+'%')+'</b><span>'+(n===1?'صديق واحد':n===2?'صديقين':n+' أصدقاء')+'</span></div>'}).join('');
 }
 function finalPrice(e){return e.final_price!=null?e.final_price:e.price}
-function priceHtml(e){var f=finalPrice(e);return f<e.price?'<bdi dir="ltr">$'+f+'</bdi><span class="price-old"><bdi dir="ltr">$'+e.price+'</bdi></span>':'<bdi dir="ltr">$'+e.price+'</bdi>'}
+function priceHtml(e){var f=finalPrice(e);return (f<e.price?'<bdi dir="ltr">$'+f+'</bdi><span class="price-old"><bdi dir="ltr">$'+e.price+'</bdi></span>':'<bdi dir="ltr">$'+e.price+'</bdi>')+' <small style="color:var(--mute)">≈ '+ilsOf(f)+' شيكل</small>'}
 function refCard(r){
   if(!r||!r.code||!r.pct)return '';
   var url=refUrl(r.code),pct=r.pct,need=Math.ceil(100/pct);
@@ -1026,6 +1066,7 @@ function refCard(r){
 }
 
 // ---------- nav ----------
+var ILS={50:150,35:100,70:210};function ilsOf(p){p=Number(p)||0;return ILS[p]||Math.round(p*3)}
 function hadAccount(){try{return !!localStorage.getItem('mme_had')}catch(e){return false}}
 function renderNav(){
   var n=$('#navAuth');if(!n)return;
@@ -1270,7 +1311,7 @@ function viewMy(){
     var others=courses.filter(function(c){return !mine[c.id]&&!(c.id===BOOK_COURSE&&!hasBooked())});
     if(others.length){
       html+='<h2 style="color:#fff;font-size:19px;margin:30px 0 12px">دورات متاحة</h2><div class="list">'+others.map(function(c){
-        return '<div class="row"><div><h3>'+esc(c.title)+'</h3><div class="muted">$'+c.price+(c.old_price?' <s>$'+c.old_price+'</s>':'')+'</div></div><div class="acts"><button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة</button></div></div>';
+        return '<div class="row"><div><h3>'+(c.id==='funded-ads'?'🆕 ':'')+esc(c.title)+'</h3><div class="muted"><bdi dir="ltr">$'+c.price+'</bdi> ≈ '+ilsOf(c.price)+' شيكل'+(c.old_price?' · بدل <s dir="ltr">$'+c.old_price+'</s>':'')+'</div></div><div class="acts"><button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة</button></div></div>';
       }).join('')+'</div>';
     }
     app.innerHTML=html;
@@ -1288,7 +1329,7 @@ function payLink(e,receipt){
     '📋 *تفاصيل الطلب*\n'+
     'رقم الطلب: #'+e.id+'\n'+
     'الدورة: '+e.title+'\n'+
-    'المبلغ: $'+finalPrice(e)+(e.coupon?' (بكود الخصم '+e.coupon+')':finalPrice(e)<e.price?' (بعد خصم الدعوات '+(state.referral?state.referral.discount:0)+'%)':'')+'\n'+
+    'المبلغ: $'+finalPrice(e)+' (≈ '+ilsOf(finalPrice(e))+' شيكل)'+(e.coupon?' (بكود الخصم '+e.coupon+')':finalPrice(e)<e.price?' (بعد خصم الدعوات '+(state.referral?state.referral.discount:0)+'%)':'')+'\n'+
     'تاريخ الطلب: '+date+'\n\n'+
     '👤 *بيانات الطالب*\n'+
     'الاسم: '+u.name+'\n'+
@@ -1660,10 +1701,10 @@ function viewCourse(courseId,params){
     var head='<div class="pagehead"><div><span class="mono" style="color:var(--cyan)">COURSE</span><h1>'+esc(c.title)+'</h1><p>'+ls.length+' درس</p></div></div>';
     if(!d.access){
       var cta;
-      if(!state.user)cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
+      if(!state.user)cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+' ('+ilsOf(c.price)+' شيكل)</button>';
       else if(d.status==='pending'){var pe=(state.enrollments||[]).filter(function(x){return x.course_id===c.id})[0]||{id:'',title:c.title,price:c.price};
         cta='<div style="max-width:520px;margin:0 auto">'+activateBox(pe)+'</div><a class="btn btn-g" href="#/enrolled/'+esc(c.id)+'">تفاصيل الطلب وحسابات الدفع</a>'}
-      else cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+'</button>';
+      else cta='<button class="btn btn-p" data-enroll="'+esc(c.id)+'">سجّل بالدورة — $'+c.price+' ('+ilsOf(c.price)+' شيكل)</button>';
       app.innerHTML=head+'<div class="locked"><p style="color:#fff;font-size:18px;margin:0 0 6px">🔒 هاي الدورة مقفلة</p><p style="color:var(--mute);margin:0 0 18px">بتنفتح بعد تفعيل اشتراكك.</p>'+cta+'</div>'+
         (ls.length?'<div class="lessons" style="margin-top:20px"><div class="lh"><span>محتوى الدورة</span><span>'+ls.length+'</span></div>'+ls.map(function(l,i){return '<button disabled><span class="ck">'+(i+1)+'</span><span class="t">'+esc(l.title)+'</span>'+''+'</button>'}).join('')+'</div>':'');
       commentsSection(c.id);
