@@ -284,6 +284,39 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .pay-empty{grid-column:1/-1;text-align:center;color:var(--mute);padding:14px;border:1px dashed var(--line-2);border-radius:14px}
 @media (max-width:640px){.paybox{grid-template-columns:1fr}}
 .off70{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#04130a;background:#22D3EE;padding:5px 10px;border-radius:9px}
+/* ---------- course 02: funded ads (royal gold) ---------- */
+.fa-head{margin-top:72px}
+.fa-kicker{color:#f5c451!important;letter-spacing:.2em}
+.fa-gold{background:linear-gradient(100deg,#fff3c4 0%,#f5c451 35%,#c8892b 60%,#ffe8a3 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 22px rgba(245,196,81,.35))}
+.fa-silver{background:linear-gradient(180deg,#fff,#a8b3c7);-webkit-background-clip:text;background-clip:text;color:transparent}
+@property --fa-a{syntax:'<angle>';initial-value:0deg;inherits:false}
+.course2{position:relative;border:0;isolation:isolate;background:radial-gradient(60% 50% at 100% 0%,rgba(245,196,81,.16),transparent 60%),radial-gradient(55% 45% at 0% 100%,rgba(139,92,246,.22),transparent 60%),linear-gradient(165deg,#1a1033 0%,#0d0a1c 55%,#07060f 100%);box-shadow:0 40px 90px -40px rgba(245,196,81,.45),0 0 0 1px rgba(245,196,81,.12) inset}
+.course2::before{content:'';position:absolute;inset:0;padding:1.5px;border-radius:inherit;background:conic-gradient(from var(--fa-a),#f5c451,#8b5cf6 25%,#f5c451 50%,#ffe8a3 62%,#8b5cf6 80%,#f5c451);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:faSpin 7s linear infinite;z-index:-1}
+@keyframes faSpin{to{--fa-a:360deg}}
+.fa-ribbon{position:absolute;top:18px;left:-6px;z-index:2;padding:7px 16px 7px 14px;border-radius:0 10px 10px 0;background:linear-gradient(90deg,#c8892b,#f5c451);color:#1a1033;font-weight:800;font-size:13px;box-shadow:0 10px 24px -8px rgba(245,196,81,.8)}
+.course2 .side{background:linear-gradient(180deg,rgba(245,196,81,.07),rgba(7,6,15,.6));border-color:rgba(245,196,81,.18)!important}
+.course2 h3{color:#fff}.course2 .fa-dash{color:#f5c451}
+.course2 .en{color:#cbb47a}
+.course2 .c-desc b{color:#f5c451}
+.fa-tag{border-color:rgba(245,196,81,.7)!important;color:#f5c451!important;background:rgba(245,196,81,.08)}
+.fa-badge{display:inline-flex;align-items:center;gap:10px;width:fit-content;max-width:100%;margin:2px 0 14px;padding:9px 16px;border-radius:16px;background:linear-gradient(100deg,rgba(245,196,81,.18),rgba(139,92,246,.22));border:1px solid rgba(245,196,81,.55);color:#ffe8a3;font-weight:700;font-size:clamp(14px,1.7vw,16px);line-height:1.5}
+.fa-mods{list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;counter-reset:fa}
+.fa-mods li{counter-increment:fa;position:relative;padding:14px 14px 14px 14px;padding-inline-start:52px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(245,196,81,.16);display:flex;flex-direction:column;gap:3px;transition:border-color .25s,transform .25s}
+.fa-mods li:hover{border-color:rgba(245,196,81,.55);transform:translateY(-2px)}
+.fa-mods li::before{content:counter(fa,decimal-leading-zero);position:absolute;inset-inline-start:12px;top:14px;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#ffe8a3,#c8892b);color:#1a1033;font-weight:800;font-size:12.5px;font-family:var(--display)}
+.fa-mods b{color:#fff;font-size:15.5px}.fa-mods span{color:#b9b3cc;font-size:13.5px;line-height:1.7}
+@media(max-width:760px){.fa-mods{grid-template-columns:1fr}.course2 .body{padding-top:58px}}
+.fa-now{background:linear-gradient(180deg,#fff3c4,#f5c451 55%,#c8892b);-webkit-background-clip:text;background-clip:text;color:transparent!important;filter:drop-shadow(0 8px 24px rgba(245,196,81,.35))}
+.fa-off{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#1a1033;background:linear-gradient(135deg,#ffe8a3,#f5c451);padding:5px 10px;border-radius:9px}
+.fa-ils{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:14px;background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.45);color:#fff;font-size:15px}
+.fa-ils b{color:#ffe8a3;font-size:20px}.fa-ils span{color:#b9b3cc;font-size:13.5px}
+.course2 .meta b{color:#fff}
+.fa-cta{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:2px;padding:16px 18px;border-radius:16px;text-decoration:none;text-align:center;background:linear-gradient(100deg,#c8892b,#f5c451 45%,#ffe8a3 60%,#f5c451 75%,#c8892b);color:#1a1033;font-weight:800;font-size:18px;box-shadow:0 18px 40px -14px rgba(245,196,81,.85)}
+.fa-cta small{font-weight:700;font-size:13px;opacity:.8}
+.fa-cta::after{content:'';position:absolute;top:0;bottom:0;width:40%;left:-60%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.65),transparent);transform:skewX(-20deg);animation:faShine 3.2s ease-in-out infinite}
+@keyframes faShine{0%,55%{left:-60%}100%{left:130%}}
+@media(prefers-reduced-motion:reduce){.course2::before,.fa-cta::after{animation:none}}
+
 .vs-off{display:inline-block;margin-top:12px;padding:6px 14px;border-radius:999px;background:#ef4444;color:#fff;font-weight:800;font-size:15px}
 .ils{font-size:.85em;color:#e2e8f0;white-space:nowrap}
 .ils b{color:#4ade80;font-family:inherit}
@@ -774,42 +807,44 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
       </div>
     </article>
 
-    <div class="head" id="funded-ads" style="margin-top:56px">
-      <span class="mono">NEW COURSE · 02</span>
-      <h2><span class="metal">FUNDED ADS</span> <span class="blue">MASTERCLASS</span></h2>
-      <p class="ar">🆕 الدورة الثانية في الأكاديمية</p>
+    <div class="head fa-head" id="funded-ads">
+      <span class="mono fa-kicker">✦ NEW COURSE · 02 ✦</span>
+      <h2><span class="fa-gold">FUNDED ADS</span> <span class="fa-silver">MASTERCLASS</span></h2>
+      <p class="ar">الدورة الثانية في الأكاديمية · حوّل كل شيكل بتصرفه على الإعلان لزبون حقيقي</p>
     </div>
     <article class="course course2">
+      <span class="fa-ribbon">إصدار جديد</span>
       <div class="body">
         <div class="tags">
-          <span class="tag hot">NEW</span>
+          <span class="tag fa-tag">NEW · 2026</span>
+          <span class="tag">META ADS MANAGER</span>
           <span class="tag">FACEBOOK · INSTAGRAM</span>
-          <span class="tag">ZERO → PRO</span>
         </div>
-        <span class="biz-badge"><span class="bz-ic" aria-hidden="true">📢</span><span>موّل إعلاناتك صح، وقدّم التمويل كخدمة مدفوعة لزباينك</span></span>
-        <h3>الإعلانات الممولة — من الصفر للاحتراف</h3>
+        <span class="fa-badge"><span aria-hidden="true">💎</span><span>من أول إعلان ممول… لخدمة مدفوعة بتبيعها لزباينك</span></span>
+        <h3>الإعلانات الممولة <span class="fa-dash">—</span> من الصفر للاحتراف</h3>
         <div class="en">FUNDED ADS — FROM ZERO TO PRO</div>
-        <p class="c-desc">بتتعلم كيف تعمل إعلان ممول احترافي على فيسبوك وإنستغرام، من إنشاء الحساب الإعلاني لحد ما توصل للناس الصح وتجيب نتائج حقيقية، بدون ما تحرق مصاريك.</p>
-        <ul class="learn">
-          <li>إنشاء حساب الأعمال والحساب الإعلاني خطوة بخطوة</li>
-          <li>اختيار هدف الإعلان الصح: رسائل، مبيعات، زيارات</li>
-          <li>استهداف الجمهور المناسب لكل منتج وخدمة</li>
-          <li>تحديد الميزانية والمدة بدون ما تحرق مصاريك</li>
-          <li>قراءة النتائج وتحسين الإعلان</li>
-          <li>كيف تقدّم تمويل الإعلانات كخدمة مدفوعة لزباينك</li>
-        </ul>
+        <p class="c-desc">الإعلان الحلو لحاله ما بيكفي، لازم يوصل للناس الصح. بهاي الدورة بتمسك <b>مدير الإعلانات</b> من الصفر، وبتتعلم كيف تموّل إعلانك على فيسبوك وإنستغرام بذكاء: هدف صح، جمهور صح، ميزانية مضبوطة، ونتائج بتقدر تقيسها وتحسّنها.</p>
+        <ol class="fa-mods">
+          <li><b>الحساب الإعلاني</b><span>إعداد حساب الأعمال والحساب الإعلاني خطوة بخطوة، بالطريقة الصح</span></li>
+          <li><b>الهدف الصح</b><span>رسائل، مبيعات، زيارات… ومتى تستخدم كل واحد</span></li>
+          <li><b>الاستهداف الذكي</b><span>توصل لزبونك الحقيقي، مش لأي حدا</span></li>
+          <li><b>الميزانية</b><span>تبلّش بمبلغ صغير، وتكبّر الإعلان اللي بينجح</span></li>
+          <li><b>قراءة الأرقام</b><span>تعرف شو شغّال، وشو لازم يتوقف فورًا</span></li>
+          <li><b>خدمة مدفوعة</b><span>كيف تبيع تمويل الإعلانات لزباينك وتعمل منه دخل شهري</span></li>
+        </ol>
       </div>
       <aside class="side">
-        <span class="mono" style="color:var(--mute)">LAUNCH OFFER</span>
-        <div class="price"><span class="now">$35</span><span class="was">$99</span><span class="off70" dir="ltr">-65%</span></div>
-        <div class="offer">💰 <b>$35 ≈ 100 شيكل</b> بس<br>بدل <s dir="ltr">$99</s>، سعر إطلاق لفترة محدودة.</div>
+        <span class="mono fa-kicker">LAUNCH OFFER · سعر الإطلاق</span>
+        <div class="price"><span class="now fa-now">$35</span><span class="was">$99</span><span class="fa-off" dir="ltr">-65%</span></div>
+        <div class="fa-ils"><b>≈ 100 شيكل فقط</b><span>بدل <s dir="ltr">$99</s> · لفترة محدودة</span></div>
         <ul class="meta">
           <li><span>طريقة التعلم</span><b>أونلاين مسجّل</b></li>
           <li><span>الوقت</span><b>على راحتك</b></li>
           <li><span>المستوى</span><b>من الصفر</b></li>
+          <li><span>الأداة</span><b dir="ltr">Meta Ads Manager</b></li>
           <li><span>عند الإتمام</span><b>شهادة من MME</b></li>
         </ul>
-        <a class="btn btn-p" href="#/register?enroll=funded-ads" data-enroll="funded-ads">احجز بسعر <bdi dir="ltr">$35</bdi> (100 شيكل)</a>
+        <a class="fa-cta" href="#/register?enroll=funded-ads" data-enroll="funded-ads"><span>👑 احجز مقعدك بـ <bdi dir="ltr">$35</bdi></span><small>= 100 شيكل فقط</small></a>
       </aside>
     </article>
     <div class="vstack">
