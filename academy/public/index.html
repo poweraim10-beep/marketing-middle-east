@@ -286,6 +286,29 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .off70{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#04130a;background:#22D3EE;padding:5px 10px;border-radius:9px}
 /* ---------- course 02: funded ads (royal gold) ---------- */
 .fa-head{margin-top:0}
+/* ---------- offers: one tab per course ---------- */
+.cat-sep3 span{border-color:rgba(74,222,128,.5);color:#86efac;background:rgba(34,197,94,.08)}
+.offers{margin-top:8px}
+.of-head{text-align:center;margin-bottom:18px}
+.of-head h2{margin:0 0 6px;color:#fff;font-size:clamp(22px,3.2vw,30px)}
+.of-head p{margin:0;color:#b8c2d6;font-size:15px}
+.of-tabs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
+.of-t{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:18px;border:1.5px solid var(--line-2);background:rgba(255,255,255,.03);color:#cbd5e1;cursor:pointer;text-align:right;font:inherit;transition:all .25s}
+.of-t .n{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-family:var(--display);font-weight:800;background:rgba(255,255,255,.06);color:#fff}
+.of-t>span:last-child{display:flex;flex-direction:column;gap:2px}.of-t b{color:#fff;font-size:15.5px}.of-t small{color:#94a3b8;font-size:13px;text-align:right}
+.of-t1.on{border-color:#3b82f6;background:rgba(37,99,235,.16);box-shadow:0 14px 34px -18px rgba(37,99,235,.9)}.of-t1.on .n{background:#2563eb}
+.of-t2.on{border-color:#f5c451;background:rgba(245,196,81,.12);box-shadow:0 14px 34px -18px rgba(245,196,81,.9)}.of-t2.on .n{background:linear-gradient(135deg,#ffe8a3,#c8892b);color:#1a1033}
+.of-chip{display:inline-block;margin-bottom:12px;padding:7px 16px;border-radius:999px;font-weight:700;font-size:14px;background:rgba(37,99,235,.18);border:1px solid rgba(59,130,246,.55);color:#bfdbfe}
+.of-ils{display:inline-block;font-size:.5em;font-weight:700;color:#cbd5e1;vertical-align:middle}
+.of-pane .vs-get .vs-ctas{margin-top:18px}
+.of2{background:radial-gradient(60% 50% at 100% 0%,rgba(245,196,81,.14),transparent 60%),linear-gradient(170deg,#1a1033,#0b0918 55%)!important;border-color:rgba(245,196,81,.45)!important}
+.of2 .of-chip{background:rgba(245,196,81,.12);border-color:rgba(245,196,81,.55);color:#ffe8a3}
+.of2 .vs-now b{background:linear-gradient(180deg,#fff3c4,#f5c451 55%,#c8892b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.of2 .vs-off{background:linear-gradient(135deg,#f5c451,#c8892b);color:#1a1033}
+.fa-btn{background:linear-gradient(100deg,#c8892b,#f5c451 50%,#c8892b);color:#1a1033!important;font-weight:800}
+.vs-paybox{margin-top:14px}
+@media(max-width:560px){.of-t{padding:12px}.of-t .n{width:34px;height:34px}.of-t b{font-size:14px}}
+
 /* ---------- courses catalog ---------- */
 .cat-head{text-align:center;margin-bottom:28px}
 .cat-head .mono{color:var(--cyan);letter-spacing:.22em}
@@ -913,25 +936,60 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
         <a class="fa-cta" href="#/register?enroll=funded-ads" data-enroll="funded-ads"><span>👑 احجز مقعدك بـ <bdi dir="ltr">$35</bdi></span><small>= 100 شيكل فقط</small></a>
       </aside>
     </article>
-    <div class="vstack">
-      <div class="vs-top">
-        <div class="vs-total">القيمة الكلية: <s dir="ltr">$233</s></div>
-        <div class="vs-now">ولكن الآن بـ <b dir="ltr">$50</b></div>
-        <span class="vs-off">خصم 70%</span> <span class="vs-cd">⏳ العرض لفترة محدودة</span>
+    <div class="cat-sep cat-sep3"><span>💳 الاشتراك والدفع</span></div>
+    <div class="offers" id="offers">
+      <div class="of-head">
+        <h2>اختار الدورة اللي بدك تشترك فيها</h2>
+        <p>كل دورة إلها سعرها ومحتواها. اضغط على الدورة وبتشوف تفاصيل العرض تبعها.</p>
       </div>
-      <div class="vs-get">
-        <h3>ما الذي ستحصل عليه عند الاشتراك</h3>
-        <ul>
-          <li><i>✅</i><span>دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي — من الصفر للاحتراف</span></li>
-          <li><i>🎁</i><span>دليل أدوات الذكاء الاصطناعي (PDF)</span></li>
-          <li><i>🎁</i><span>شهادة معتمدة من <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span></li>
-        </ul>
+      <div class="of-tabs" role="tablist">
+        <button type="button" role="tab" class="of-t of-t1 on" data-of="1" aria-selected="true"><span class="n">01</span><span><b>صناعة الفيديو الإعلاني</b><small><bdi dir="ltr">$50</bdi> ≈ 150 شيكل</small></span></button>
+        <button type="button" role="tab" class="of-t of-t2" data-of="2" aria-selected="false"><span class="n">02</span><span><b>الإعلانات الممولة</b><small><bdi dir="ltr">$35</bdi> ≈ 100 شيكل</small></span></button>
       </div>
-      <div class="vs-pay">
-        <h3>👇 خيارات الدفع — السعر <b dir="ltr">$50</b> <span class="ils">أو <b>150 شيكل</b></span> 👇</h3>
-                <div class="paybox" data-paybox></div>
-        <p class="vs-note">سجّل واحجز مقعدك، وتفاصيل الدفع بتوصلك من فريقنا على واتساب. بعد الدفع بنفعّلك الدورة فورًا.</p>
-        <div class="vs-ctas"><a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">سجّل واحجز مقعدك</a><a class="btn btn-wa" href="#" data-wa="أريد الاشتراك في دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي، وهذا إيصال التحويل:">تواصل عبر واتساب</a></div>
+
+      <div class="vstack of-pane" data-pane="1">
+        <div class="vs-top">
+          <span class="of-chip">🎬 الدورة 01 · صناعة الفيديو الإعلاني بالذكاء الاصطناعي</span>
+          <div class="vs-total">القيمة الكلية: <s dir="ltr">$233</s></div>
+          <div class="vs-now">ولكن الآن بـ <b dir="ltr">$50</b> <span class="of-ils">≈ 150 شيكل</span></div>
+          <span class="vs-off">خصم 70%</span> <span class="vs-cd">⏳ العرض لفترة محدودة</span>
+        </div>
+        <div class="vs-get">
+          <h3>شو بتاخد مع هاي الدورة</h3>
+          <ul>
+            <li><i>✅</i><span>دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي — من الصفر للاحتراف</span></li>
+            <li><i>🎁</i><span>شنطة أدوات الطالب (PDF): برومبتات جاهزة، بريف واتفاق عمل، قوالب رسائل</span></li>
+            <li><i>🏅</i><span>شهادة معتمدة من <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span></li>
+          </ul>
+          <div class="vs-ctas"><a class="btn btn-p" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز الدورة 01 بـ <bdi dir="ltr">$50</bdi></a><a class="btn btn-wa" href="#" data-wa="أريد الاشتراك في دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي، وهذا إيصال التحويل:">تواصل عبر واتساب</a></div>
+        </div>
+      </div>
+
+      <div class="vstack of-pane of2" data-pane="2" hidden>
+        <div class="vs-top">
+          <span class="of-chip">📢 الدورة 02 · الإعلانات الممولة من الصفر للاحتراف</span>
+          <div class="vs-total">القيمة الكلية: <s dir="ltr">$99</s></div>
+          <div class="vs-now">ولكن الآن بـ <b dir="ltr">$35</b> <span class="of-ils">≈ 100 شيكل</span></div>
+          <span class="vs-off">خصم 65%</span> <span class="vs-cd">👑 سعر الإطلاق</span>
+        </div>
+        <div class="vs-get">
+          <h3>شو بتاخد مع هاي الدورة</h3>
+          <ul>
+            <li><i>✅</i><span>دورة الإعلانات الممولة على فيسبوك وإنستغرام — من الصفر للاحتراف</span></li>
+            <li><i>📊</i><span>كيف تقرأ أرقام الإعلان وتحسّنه بدون ما تحرق مصاريك</span></li>
+            <li><i>💼</i><span>كيف تبيع تمويل الإعلانات كخدمة شهرية لزباينك</span></li>
+            <li><i>🏅</i><span>شهادة معتمدة من <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span></li>
+          </ul>
+          <div class="vs-ctas"><a class="btn fa-btn" href="#/register?enroll=funded-ads" data-enroll="funded-ads">احجز الدورة 02 بـ <bdi dir="ltr">$35</bdi></a><a class="btn btn-wa" href="#" data-wa="أريد الاشتراك في دورة الإعلانات الممولة من الصفر للاحتراف، وهذا إيصال التحويل:">تواصل عبر واتساب</a></div>
+        </div>
+      </div>
+
+      <div class="vstack vs-paybox">
+        <div class="vs-pay">
+          <h3>👇 طرق الدفع (نفسها للدورتين) 👇</h3>
+          <div class="paybox" data-paybox></div>
+          <p class="vs-note">سجّل واحجز مقعدك بالدورة اللي اخترتها، وتفاصيل الدفع بتوصلك من فريقنا على واتساب. بعد الدفع بنفعّلك الدورة فورًا.</p>
+        </div>
       </div>
     </div>
   <div class="cert-wrap">
@@ -2396,6 +2454,11 @@ function route(){
   };
   if(!state.loaded){app.innerHTML='<div class="loading">جاري التحميل…</div>';loadMe().then(run)}else run();
 }
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest('[data-of]');if(!t)return;var n=t.getAttribute('data-of');
+  $$('[data-of]').forEach(function(b){var on=b===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false')});
+  $$('[data-pane]').forEach(function(p){p.hidden=p.getAttribute('data-pane')!==n});
+});
 window.addEventListener('hashchange',route);
 renderNav();
 renderPayboxes(document);
