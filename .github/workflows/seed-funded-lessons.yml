@@ -1,0 +1,19 @@
+name: Academy — add the 14 lesson titles of the funded-ads course
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/seed-funded-lessons.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for the site deploy
+        run: sleep 150
+      - name: Add lesson titles (only if the course has no lessons yet)
+        run: |
+          T=$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=mme-academy-transcode" | python3 -c 'import json,sys;print(json.load(sys.stdin)["value"])')
+          curl -fsS -X POST -H "Authorization: Bearer $T" -H 'content-type: application/json' -d '{}' https://academy.marketingmiddleeast.com/api/tc/seed-lessons/funded-ads

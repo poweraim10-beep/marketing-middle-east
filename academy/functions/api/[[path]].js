@@ -1152,6 +1152,22 @@ async function dropLow(env, id) {
   await env.DB.prepare('UPDATE lessons SET video_key_low = NULL, video_size_low = NULL WHERE id = ?').bind(id).run();
 }
 
+// one-off: the 14 lesson titles of «الإعلانات الممولة من الصفر للاحتراف». Runs only while the course has no lessons yet.
+const FUNDED_LESSONS = [["ليش الإعلان الممول؟", "القسم 1: التجهيز · الفرق بين النشر العادي والإعلان الممول، وأكبر الغلطات اللي بتحرق الميزانية"], ["تجهيز الأساس: الصفحة + واتساب بزنس", "القسم 1: التجهيز · صفحة جاهزة للإعلان، وواتساب أعمال مربوط فيها"], ["حساب الإعلانات ومدير الأعمال", "القسم 1: التجهيز · وين بتعيش إعلاناتك: Meta Business Suite ومدير الإعلانات"], ["البطاقة وطرق الدفع", "القسم 1: التجهيز · إضافة البطاقة، الفواتير، والدفع من غزة"], ["أهداف الإعلان", "القسم 2: بناء الإعلان · رسائل، تفاعل، زيارات… ومتى تستخدم كل واحد"], ["الاستهداف", "القسم 2: بناء الإعلان · الدولة، المدينة، العمر، والاهتمامات"], ["الميزانية والمدة", "القسم 2: بناء الإعلان · كيف تبدأ بدولار لخمسة باليوم صح"], ["الإعلان اللي بيوقّف التقليب", "القسم 2: بناء الإعلان · الفيديو، الهوك، والكابشن"], ["اختبر أكثر من إعلان", "القسم 3: التحسين · 3 نسخ، وبعد 48 ساعة بتخلّي الرابح"], ["قراءة الأرقام", "القسم 3: التحسين · الوصول، تكلفة الرسالة، ومتى توقف ومتى تكبّر"], ["إعادة الاستهداف", "القسم 3: التحسين · ترجّع اللي شاف إعلانك ومشتراش"], ["ليش بينرفض الإعلان؟", "القسم 3: التحسين · أشهر أسباب الرفض وكيف تحلها"], ["من رسالة لزبون", "القسم 4: البيع · الرد السريع، رسالة الترحيب، والردود الجاهزة"], ["مشروع عملي: من الصفر لأول زبون", "القسم 4: البيع · حملة كاملة خطوة بخطوة، وكيف تحوّلها لبزنس"]];
+async function seedFundedLessons(env) {
+  const c = await env.DB.prepare("SELECT id FROM courses WHERE id = 'funded-ads'").first();
+  if (!c) return err('الدورة غير موجودة', 404);
+  const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM lessons WHERE course_id = 'funded-ads'").first();
+  if (n && n.n > 0) {
+    const { results } = await env.DB.prepare("SELECT id, title, sort FROM lessons WHERE course_id = 'funded-ads' ORDER BY sort, id").all();
+    return json({ ok: true, skipped: 'already has lessons', lessons: results });
+  }
+  for (let i = 0; i < FUNDED_LESSONS.length; i++) {
+    const [title, notes] = FUNDED_LESSONS[i];
+    await env.DB.prepare('INSERT INTO lessons (title, video_url, notes, sort, minutes, course_id) VALUES (?, NULL, ?, ?, NULL, ?)').bind(title, notes, i + 1, 'funded-ads').run();
+  }
+  return json({ ok: true, added: FUNDED_LESSONS.length });
+}
 // ---------- GitHub Actions OIDC: only a workflow of our own repo, on main, may use /tc/* ----------
 const GH_REPO = 'poweraim10-beep/marketing-middle-east', GH_AUD = 'mme-academy-transcode';
 let ghJwks = null, ghJwksAt = 0;
@@ -1182,6 +1198,7 @@ async function transcodeApi(env, req, path, method, url) {
   await ensureLowCols(env);
   let m;
   if ((m = path.match(/^\/tc\/notify-course\/([\w-]+)$/)) && method === 'POST') return await adminNotifyCourse(env, m[1]);
+  if (path === '/tc/seed-lessons/funded-ads' && method === 'POST') return await seedFundedLessons(env);
   if (path === '/tc/jobs' && method === 'GET') {
     const { results } = await env.DB.prepare('SELECT id, title, video_size FROM lessons WHERE video_key IS NOT NULL AND video_key_low IS NULL ORDER BY sort, id').all();
     return json({ jobs: results });

@@ -420,6 +420,13 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .fa-mods li::before{content:counter(fa,decimal-leading-zero);position:absolute;inset-inline-start:12px;top:14px;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#ffe8a3,#c8892b);color:#1a1033;font-weight:800;font-size:12.5px;font-family:var(--display)}
 .fa-mods b{color:#fff;font-size:15.5px}.fa-mods span{color:#b9b3cc;font-size:13.5px;line-height:1.7}
 @media(max-width:760px){.fa-mods{grid-template-columns:1fr}.course2 .body{padding-top:58px}}
+.fa-cur{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+.fa-sec{border:1px solid rgba(245,196,81,.22);border-radius:18px;padding:12px;background:rgba(255,255,255,.02)}
+.fa-sec h4{margin:2px 4px 10px;color:#fff;font-size:17px;display:flex;align-items:center;gap:10px}
+.fa-sec h4 em{font-style:normal;font-size:12px;padding:3px 10px;border-radius:20px;background:linear-gradient(135deg,#ffe8a3,#c8892b);color:#1a1033;font-weight:800}
+.fa-sec .fa-mods{grid-template-columns:1fr;margin:0}
+@media(max-width:760px){.fa-cur{grid-template-columns:1fr}}
+
 .fa-now{background:linear-gradient(180deg,#fff3c4,#f5c451 55%,#c8892b);-webkit-background-clip:text;background-clip:text;color:transparent!important;filter:drop-shadow(0 8px 24px rgba(245,196,81,.35))}
 .fa-off{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#1a1033;background:linear-gradient(135deg,#ffe8a3,#f5c451);padding:5px 10px;border-radius:9px}
 .fa-ils{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:14px;background:rgba(245,196,81,.08);border:1px solid rgba(245,196,81,.45);color:#fff;font-size:15px}
@@ -982,14 +989,30 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
         <h3>الإعلانات الممولة <span class="fa-dash">—</span> من الصفر للاحتراف</h3>
         <div class="en">FUNDED ADS — FROM ZERO TO PRO</div>
         <p class="c-desc">الإعلان الحلو لحاله ما بيكفي، لازم يوصل للناس الصح. بهاي الدورة بتمسك <b>مدير الإعلانات</b> من الصفر، وبتتعلم كيف تموّل إعلانك على فيسبوك وإنستغرام بذكاء: هدف صح، جمهور صح، ميزانية مضبوطة، ونتائج بتقدر تقيسها وتحسّنها.</p>
-        <ol class="fa-mods">
-          <li><b>الحساب الإعلاني</b><span>إعداد حساب الأعمال والحساب الإعلاني خطوة بخطوة، بالطريقة الصح</span></li>
-          <li><b>الهدف الصح</b><span>رسائل، مبيعات، زيارات… ومتى تستخدم كل واحد</span></li>
-          <li><b>الاستهداف الذكي</b><span>توصل لزبونك الحقيقي، مش لأي حدا</span></li>
-          <li><b>الميزانية</b><span>تبلّش بمبلغ صغير، وتكبّر الإعلان اللي بينجح</span></li>
-          <li><b>قراءة الأرقام</b><span>تعرف شو شغّال، وشو لازم يتوقف فورًا</span></li>
-          <li><b>خدمة مدفوعة</b><span>كيف تبيع تمويل الإعلانات لزباينك وتعمل منه دخل شهري</span></li>
-        </ol>
+        <div class="fa-cur">
+          <div class="fa-sec"><h4><em>القسم 1</em>التجهيز</h4><ol class="fa-mods" start="1" style="counter-reset:fa 0">
+            <li><b>ليش الإعلان الممول؟</b><span>الفرق بين النشر العادي والإعلان الممول، وأكبر الغلطات اللي بتحرق الميزانية</span></li>
+            <li><b>تجهيز الأساس: الصفحة + واتساب بزنس</b><span>صفحة جاهزة للإعلان، وواتساب أعمال مربوط فيها</span></li>
+            <li><b>حساب الإعلانات ومدير الأعمال</b><span>وين بتعيش إعلاناتك: Meta Business Suite ومدير الإعلانات</span></li>
+            <li><b>البطاقة وطرق الدفع</b><span>إضافة البطاقة، الفواتير، والدفع من غزة</span></li>
+          </ol></div>
+          <div class="fa-sec"><h4><em>القسم 2</em>بناء الإعلان</h4><ol class="fa-mods" start="5" style="counter-reset:fa 4">
+            <li><b>أهداف الإعلان</b><span>رسائل، تفاعل، زيارات… ومتى تستخدم كل واحد</span></li>
+            <li><b>الاستهداف</b><span>الدولة، المدينة، العمر، والاهتمامات</span></li>
+            <li><b>الميزانية والمدة</b><span>كيف تبدأ بدولار لخمسة باليوم صح</span></li>
+            <li><b>الإعلان اللي بيوقّف التقليب</b><span>الفيديو، الهوك، والكابشن</span></li>
+          </ol></div>
+          <div class="fa-sec"><h4><em>القسم 3</em>التحسين</h4><ol class="fa-mods" start="9" style="counter-reset:fa 8">
+            <li><b>اختبر أكثر من إعلان</b><span>3 نسخ، وبعد 48 ساعة بتخلّي الرابح</span></li>
+            <li><b>قراءة الأرقام</b><span>الوصول، تكلفة الرسالة، ومتى توقف ومتى تكبّر</span></li>
+            <li><b>إعادة الاستهداف</b><span>ترجّع اللي شاف إعلانك ومشتراش</span></li>
+            <li><b>ليش بينرفض الإعلان؟</b><span>أشهر أسباب الرفض وكيف تحلها</span></li>
+          </ol></div>
+          <div class="fa-sec"><h4><em>القسم 4</em>البيع</h4><ol class="fa-mods" start="13" style="counter-reset:fa 12">
+            <li><b>من رسالة لزبون</b><span>الرد السريع، رسالة الترحيب، والردود الجاهزة</span></li>
+            <li><b>مشروع عملي: من الصفر لأول زبون</b><span>حملة كاملة خطوة بخطوة، وكيف تحوّلها لبزنس</span></li>
+          </ol></div>
+        </div>
       </div>
       <aside class="side">
         <span class="mono fa-kicker">LAUNCH OFFER · سعر الإطلاق</span>
@@ -998,6 +1021,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
         <div class="fa-cd" data-facd><span class="fa-cdl">⏳ عرض الإطلاق بينتهي خلال</span><div class="fa-cdb"><span><b data-u="d">05</b><i>يوم</i></span><span><b data-u="h">00</b><i>ساعة</i></span><span><b data-u="m">00</b><i>دقيقة</i></span><span><b data-u="s">00</b><i>ثانية</i></span></div></div>
         <ul class="meta">
           <li><span>طريقة التعلم</span><b>أونلاين مسجّل</b></li>
+          <li><span>المحاضرات</span><b>14 محاضرة · 4 أقسام</b></li>
           <li><span>الوقت</span><b>على راحتك</b></li>
           <li><span>المستوى</span><b>من الصفر</b></li>
           <li><span>الأداة</span><b dir="ltr">Meta Ads Manager</b></li>
@@ -1045,7 +1069,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
         <div class="vs-get">
           <h3>شو بتاخد مع هاي الدورة</h3>
           <ul>
-            <li><i>✅</i><span>دورة الإعلانات الممولة على فيسبوك وإنستغرام — من الصفر للاحتراف</span></li>
+            <li><i>✅</i><span>دورة الإعلانات الممولة على فيسبوك وإنستغرام — من الصفر للاحتراف: 14 محاضرة مسجّلة بـ 4 أقسام</span></li>
             <li><i>📊</i><span>كيف تقرأ أرقام الإعلان وتحسّنه بدون ما تحرق مصاريك</span></li>
             <li><i>💼</i><span>كيف تبيع تمويل الإعلانات كخدمة شهرية لزباينك</span></li>
             <li><i>🏅</i><span>شهادة معتمدة من <bdi dir="ltr">MARKETING MIDDLE EAST</bdi></span></li>
