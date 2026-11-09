@@ -902,6 +902,23 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
           <a class="btn btn-p mag acad-enter" id="acadEnter" href="https://academy.marketingmiddleeast.com" target="_blank" rel="noopener"><span data-en="Enter the Academy">ادخل الأكاديمية</span></a>
           <a class="btn btn-g mag" id="acadNotify" href="https://wa.me/970567686774" target="_blank" rel="noopener"><span data-en="Notify me at launch">أبلغني عند الإطلاق</span></a>
         </div>
+        <div class="ah-courses">
+          <a class="ahc ahc1" href="https://academy.marketingmiddleeast.com/#ai-course" target="_blank" rel="noopener"><span class="ahc-ic">🎬</span><span class="ahc-tx"><b data-en="AI Ad Video Production">صناعة الفيديو الإعلاني بالذكاء الاصطناعي</b><small><bdi dir="ltr">$50</bdi> ≈ 150 شيكل</small></span></a>
+          <a class="ahc ahc2" href="https://academy.marketingmiddleeast.com/#funded-ads" target="_blank" rel="noopener"><span class="ahc-ic"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="ahc-logo" width="64" height="64" aria-hidden="true">
+  <defs>
+    <linearGradient id="faG3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f5c451"/><stop offset="1" stop-color="#b8741f"/></linearGradient>
+    <radialGradient id="faB3" cx=".3" cy=".2" r="1"><stop offset="0" stop-color="#3a1f6e"/><stop offset="1" stop-color="#120b24"/></radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#faB3)" stroke="url(#faG3)" stroke-width="2.4"/>
+  <path d="M13 27.5h7.5L38 18v25l-17.5-9.5H13a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z" fill="url(#faG3)"/>
+  <path d="M17 34l2.6 9.2a2 2 0 0 0 1.9 1.5h2.6l-2.8-10.7z" fill="url(#faG3)" opacity=".85"/>
+  <path d="M43 24.5a8 8 0 0 1 0 12" fill="none" stroke="url(#faG3)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M47.5 20.5a14 14 0 0 1 0 20" fill="none" stroke="url(#faG3)" stroke-width="2.6" stroke-linecap="round" opacity=".7"/>
+  <path d="M30 53l7-6 5 3.5 9-9" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 41.5h5v5" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+</span><span class="ahc-tx"><b data-en="Funded Ads · NEW">الإعلانات الممولة <em>جديد</em></b><small><bdi dir="ltr">$35</bdi> ≈ 100 شيكل · <s dir="ltr">$99</s></small></span></a>
+        </div>
         <p class="note-soon" id="acadNote" hidden data-en="The course platform opens soon on this website. Register your interest and we'll message you on launch day.">منصة الدورات تُفتح قريبًا على هذا الموقع. سجّل اهتمامك ونرسل لك يوم الإطلاق.</p>
       </div>
       <ul class="ah-feats">
@@ -1260,6 +1277,22 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
 .of-x{top:9px;width:32px;height:32px;font-size:18px}
 }
 @media (max-height:640px){.of-perks,.of-note,.of-brand{display:none}.of-now{font-size:44px}.of-in{padding-top:18px}}
+.ah-courses{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+@media(max-width:640px){.ah-courses{grid-template-columns:1fr}}
+.ahc{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;text-decoration:none;color:#fff;transition:transform .25s}
+.ahc:hover{transform:translateY(-2px)}
+.ahc1{background:linear-gradient(160deg,rgba(37,99,235,.22),rgba(10,16,36,.9));border:1px solid rgba(59,130,246,.5)}
+.ahc2{background:linear-gradient(160deg,rgba(124,58,237,.25),rgba(13,10,28,.95));border:1px solid rgba(245,196,81,.55)}
+.ahc-ic{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:rgba(34,211,238,.1)}
+.ahc2 .ahc-ic{background:none}.ahc-logo{width:46px;height:46px}
+.ahc-tx{display:flex;flex-direction:column;gap:3px}.ahc-tx b{font-size:14.5px;line-height:1.45}.ahc-tx small{color:#cbd5e1;font-size:12.5px}
+.ahc-tx em{font-style:normal;font-size:11px;padding:2px 7px;border-radius:999px;background:linear-gradient(135deg,#ffe8a3,#c8892b);color:#1a1033;margin-inline-start:4px}
+
+.of-fa .of-logo{display:block;width:64px;height:64px;margin:4px auto 2px;filter:drop-shadow(0 10px 26px rgba(245,196,81,.5))}
+.of-fa .of-now{background:linear-gradient(180deg,#fff3c4,#f5c451 55%,#c8892b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.of-fa .of-rib{background:linear-gradient(135deg,#ffe8a3,#c8892b);color:#1a1033}
+@media (max-height:640px){.of-fa .of-logo{display:none}}
+
 html[dir=ltr] .of-kick,html[dir=ltr] .of-perks span{font-family:var(--body)}
 html[dir=rtl] .of-rib{right:-40px;left:auto;transform:rotate(40deg)}
 html[dir=ltr] .of-rib{left:-40px;right:auto;transform:rotate(-40deg)}
@@ -1307,14 +1340,28 @@ html[dir=rtl] .of-chip{padding:12px 12px 12px 20px}
 <div class="of-ov" id="ofOv" role="dialog" aria-modal="true" aria-labelledby="ofT" hidden>
   <div class="of-box">
     <button type="button" class="of-x" id="ofX" aria-label="إغلاق">×</button>
-    <a class="of-card" href="https://academy.marketingmiddleeast.com/#course" target="_blank" rel="noopener" id="ofGo">
+    <a class="of-card of-fa" href="https://academy.marketingmiddleeast.com/#funded-ads" target="_blank" rel="noopener" id="ofGo">
       <div class="of-in">
-        <span class="of-rib">-70% OFF</span>
+        <span class="of-rib">-65% OFF</span>
         <i class="of-spark" style="top:22%;left:12%"></i><i class="of-spark" style="top:30%;right:10%"></i><i class="of-spark" style="top:58%;left:8%"></i>
-        <span class="of-kick"><i></i><span data-en="Launch offer · limited time">عرض الإطلاق · لفترة محدودة</span></span>
+        <span class="of-kick"><i></i><span data-en="New course · launch offer">دورة جديدة · عرض الإطلاق</span></span>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="of-logo" width="64" height="64" aria-hidden="true">
+  <defs>
+    <linearGradient id="faG2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f5c451"/><stop offset="1" stop-color="#b8741f"/></linearGradient>
+    <radialGradient id="faB2" cx=".3" cy=".2" r="1"><stop offset="0" stop-color="#3a1f6e"/><stop offset="1" stop-color="#120b24"/></radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#faB2)" stroke="url(#faG2)" stroke-width="2.4"/>
+  <path d="M13 27.5h7.5L38 18v25l-17.5-9.5H13a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z" fill="url(#faG2)"/>
+  <path d="M17 34l2.6 9.2a2 2 0 0 0 1.9 1.5h2.6l-2.8-10.7z" fill="url(#faG2)" opacity=".85"/>
+  <path d="M43 24.5a8 8 0 0 1 0 12" fill="none" stroke="url(#faG2)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M47.5 20.5a14 14 0 0 1 0 20" fill="none" stroke="url(#faG2)" stroke-width="2.6" stroke-linecap="round" opacity=".7"/>
+  <path d="M30 53l7-6 5 3.5 9-9" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 41.5h5v5" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
         <span class="of-brand">MME ACADEMY</span>
-        <p class="of-t" id="ofT"><span data-en="AI Ad Video Production — From Zero to Pro">دورة صناعة الفيديو الإعلاني بالذكاء الاصطناعي — من الصفر للاحتراف</span></p>
-        <div class="of-price"><span class="of-now">$50</span><span class="of-old"><span class="of-was">$233</span><span class="of-save"><span data-en="Save $183">وفّر <bdi dir="ltr">$183</bdi></span></span></span></div>
+        <p class="of-t" id="ofT"><span data-en="Funded Ads — From Zero to Pro">دورة الإعلانات الممولة — من الصفر للاحتراف</span></p>
+        <div class="of-price"><span class="of-now">$35</span><span class="of-old"><span class="of-was">$99</span><span class="of-save"><span data-en="≈ 100 ILS">≈ 100 شيكل</span></span></span></div>
         <p class="of-cdl"><span data-en="Offer ends in">العرض ينتهي خلال</span></p>
         <div class="of-cd" aria-live="off">
           <div><b id="ofD">00</b><span data-en="Days">يوم</span></div>
@@ -1322,17 +1369,17 @@ html[dir=rtl] .of-chip{padding:12px 12px 12px 20px}
           <div><b id="ofM">00</b><span data-en="Min">دقيقة</span></div>
           <div><b id="ofS">00</b><span data-en="Sec">ثانية</span></div>
         </div>
-        <div class="of-perks"><span data-en="Recorded · online">🎬 أونلاين مسجّل</span><span data-en="Certificate">🏅 شهادة إتمام</span><span data-en="Zero to pro">🚀 من الصفر</span></div>
+        <div class="of-perks"><span data-en="Facebook · Instagram">📢 فيسبوك وإنستغرام</span><span data-en="Certificate">🏅 شهادة إتمام</span><span data-en="Zero to pro">🚀 من الصفر</span></div>
         <span class="of-cta"><span data-en="Book your seat now">احجز مقعدك الآن</span><span class="ar" aria-hidden="true">‹</span></span>
-        <p class="of-note"><span data-en="70% off — limited time only.">خصم 70% لفترة محدودة فقط</span></p>
+        <p class="of-note"><span data-en="65% off — launch price, 5 days only.">خصم 65% · سعر الإطلاق لمدة 5 أيام فقط</span></p>
       </div>
     </a>
   </div>
 </div>
-<button type="button" class="of-chip" id="ofChip" aria-label="عرض الدورة لفترة محدودة"><span class="of-c-badge">-70%</span><span class="of-c-txt"><span class="of-c-top"><i></i><span data-en="LIMITED OFFER">عرض لفترة محدودة</span></span><span class="of-c-main"><span data-en="AI Course for">دورة الذكاء الاصطناعي بـ</span> <bdi dir="ltr">$50</bdi>&nbsp; <s dir="ltr">$233</s></span><span class="of-c-time"><span data-en="Ends in">ينتهي خلال</span> <span class="of-tm" id="ofChipT">--</span></span></span><span class="of-c-go" aria-hidden="true">‹</span></button>
+<button type="button" class="of-chip" id="ofChip" aria-label="عرض الدورة لفترة محدودة"><span class="of-c-badge">-65%</span><span class="of-c-txt"><span class="of-c-top"><i></i><span data-en="LIMITED OFFER">عرض لفترة محدودة</span></span><span class="of-c-main"><span data-en="Funded Ads course">دورة الإعلانات الممولة بـ</span> <bdi dir="ltr">$35</bdi>&nbsp; <s dir="ltr">$99</s></span><span class="of-c-time"><span data-en="Ends in">ينتهي خلال</span> <span class="of-tm" id="ofChipT">--</span></span></span><span class="of-c-go" aria-hidden="true">‹</span></button>
 <script>
 (function(){
-  var END=Date.parse('2026-10-28T20:59:00Z'); // renewed 5 days: ends 28 Oct 2026, 23:59 Gaza time
+  var END=Date.parse('2026-11-14T21:59:00Z'); // funded-ads launch offer, 5 days: ends 14 Nov 2026, 23:59 Gaza time
   var ov=document.getElementById('ofOv'),chip=document.getElementById('ofChip');
   if(!ov||Date.now()>=END){if(ov)ov.remove();if(chip)chip.remove();return}
   var p=function(n){return (n<10?'0':'')+n};
@@ -1345,14 +1392,14 @@ html[dir=rtl] .of-chip{padding:12px 12px 12px 20px}
     var en=document.documentElement.lang==='en';els.c.innerHTML=(d?'<span>'+d+'</span><em>'+(en?(d>1?'days':'day'):(d>2&&d<11?'أيام':'يوم'))+'</em>':'')+'<span dir="ltr">'+p(h)+':'+p(m)+':'+p(x)+'</span>';
   }
   function open(){ov.hidden=false;requestAnimationFrame(function(){ov.classList.add('on')});chip.classList.remove('on')}
-  function close(){ov.classList.remove('on');setTimeout(function(){ov.hidden=true},350);chip.classList.add('on');try{sessionStorage.setItem('mme-offer-seen','1')}catch(e){}}
+  function close(){ov.classList.remove('on');setTimeout(function(){ov.hidden=true},350);chip.classList.add('on');try{sessionStorage.setItem('mme-offer-fa','1')}catch(e){}}
   tick();var iv=setInterval(tick,1000);
   document.getElementById('ofX').addEventListener('click',close);
   document.getElementById('ofGo').addEventListener('click',function(){setTimeout(close,50)});
   ov.addEventListener('click',function(e){if(e.target===ov)close()});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!ov.hidden)close()});
   chip.addEventListener('click',open);
-  var seen=false;try{seen=sessionStorage.getItem('mme-offer-seen')==='1'}catch(e){}
+  var seen=false;try{seen=sessionStorage.getItem('mme-offer-fa')==='1'}catch(e){}
   if(seen)chip.classList.add('on');else setTimeout(open,2500);
 })();
 </script>

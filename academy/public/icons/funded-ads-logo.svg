@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="256" height="256">
+  <defs>
+    <linearGradient id="faG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f5c451"/><stop offset="1" stop-color="#b8741f"/></linearGradient>
+    <radialGradient id="faB" cx=".3" cy=".2" r="1"><stop offset="0" stop-color="#3a1f6e"/><stop offset="1" stop-color="#120b24"/></radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#faB)" stroke="url(#faG)" stroke-width="2.4"/>
+  <path d="M13 27.5h7.5L38 18v25l-17.5-9.5H13a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z" fill="url(#faG)"/>
+  <path d="M17 34l2.6 9.2a2 2 0 0 0 1.9 1.5h2.6l-2.8-10.7z" fill="url(#faG)" opacity=".85"/>
+  <path d="M43 24.5a8 8 0 0 1 0 12" fill="none" stroke="url(#faG)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M47.5 20.5a14 14 0 0 1 0 20" fill="none" stroke="url(#faG)" stroke-width="2.6" stroke-linecap="round" opacity=".7"/>
+  <path d="M30 53l7-6 5 3.5 9-9" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 41.5h5v5" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

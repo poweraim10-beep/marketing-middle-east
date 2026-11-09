@@ -285,7 +285,20 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 @media (max-width:640px){.paybox{grid-template-columns:1fr}}
 .off70{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#04130a;background:#22D3EE;padding:5px 10px;border-radius:9px}
 /* ---------- course 02: funded ads (royal gold) ---------- */
-.fa-head{margin-top:0}
+.fa-head{margin-top:0;text-align:center}
+.fa-logo{width:100%;height:100%;display:block}
+.cat-ic-logo{background:none!important;border:0!important;width:58px;height:58px;filter:drop-shadow(0 10px 22px rgba(245,196,81,.35))}
+.fa-logo-xl{width:84px;height:84px;margin:0 auto 10px;filter:drop-shadow(0 14px 34px rgba(245,196,81,.45))}
+.fa-logo-s{width:22px;height:22px;flex:none;display:inline-block;vertical-align:-5px}
+.of-t .n-logo{background:none!important;padding:0}
+.fa-cd{padding:14px;border-radius:14px;background:rgba(7,6,15,.6);border:1px solid rgba(245,196,81,.35);text-align:center}
+.fa-cdl{display:block;color:#ffe8a3;font-weight:700;font-size:14px;margin-bottom:10px}
+.fa-cdb{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;direction:ltr}
+.fa-cdb span{padding:8px 4px;border-radius:12px;background:linear-gradient(180deg,rgba(245,196,81,.16),rgba(245,196,81,.04));border:1px solid rgba(245,196,81,.3)}
+.fa-cdb b{display:block;font-family:var(--display);font-size:26px;line-height:1.1;color:#fff}
+.fa-cdb i{font-style:normal;font-size:11.5px;color:#cbb47a}
+.cat-cd{color:#ffe8a3;font-weight:700;font-size:13.5px}
+
 /* ---------- offers: one tab per course ---------- */
 .cat-sep3 span{border-color:rgba(74,222,128,.5);color:#86efac;background:rgba(34,197,94,.08)}
 .offers{margin-top:8px}
@@ -776,7 +789,18 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .bkcard .btn-book{max-width:420px}
 </style>
 </head>
-<body>
+<body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="fa-logo" viewBox="0 0 64 64"><defs>
+    <linearGradient id="faG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f5c451"/><stop offset="1" stop-color="#b8741f"/></linearGradient>
+    <radialGradient id="faB" cx=".3" cy=".2" r="1"><stop offset="0" stop-color="#3a1f6e"/><stop offset="1" stop-color="#120b24"/></radialGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#faB)" stroke="url(#faG)" stroke-width="2.4"/>
+  <path d="M13 27.5h7.5L38 18v25l-17.5-9.5H13a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z" fill="url(#faG)"/>
+  <path d="M17 34l2.6 9.2a2 2 0 0 0 1.9 1.5h2.6l-2.8-10.7z" fill="url(#faG)" opacity=".85"/>
+  <path d="M43 24.5a8 8 0 0 1 0 12" fill="none" stroke="url(#faG)" stroke-width="2.6" stroke-linecap="round"/>
+  <path d="M47.5 20.5a14 14 0 0 1 0 20" fill="none" stroke="url(#faG)" stroke-width="2.6" stroke-linecap="round" opacity=".7"/>
+  <path d="M30 53l7-6 5 3.5 9-9" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 41.5h5v5" fill="none" stroke="#4ade80" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</symbol></svg>
 
 <nav>
   <div class="wrap">
@@ -831,11 +855,12 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
       <a class="cat cat2" href="#funded-ads">
         <span class="cat-n">02</span>
         <span class="cat-k">NEW · إصدار جديد</span>
-        <span class="cat-ic">📢</span>
+        <span class="cat-ic cat-ic-logo"><svg class="fa-logo" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg></span>
         <b class="cat-t">الإعلانات الممولة من الصفر للاحتراف</b>
         <span class="cat-d">موّل إعلاناتك على فيسبوك وإنستغرام صح، وقدّمها كخدمة مدفوعة لزباينك.</span>
         <span class="cat-tags"><i>Meta Ads</i><i>من الصفر</i><i>شهادة MME</i></span>
         <span class="cat-p"><b dir="ltr">$35</b><s dir="ltr">$99</s><em>≈ 100 شيكل</em></span>
+        <span class="cat-cd" data-facdt>⏳ العرض بينتهي خلال 5 أيام</span>
         <span class="cat-go">شوف تفاصيل الدورة ↓</span>
       </a>
     </div>
@@ -897,6 +922,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 
     <div class="cat-sep cat-sep2"><span>تفاصيل الدورة 02</span></div>
     <div class="head fa-head" id="funded-ads">
+      <svg class="fa-logo fa-logo-xl" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg>
       <span class="mono fa-kicker">✦ NEW COURSE · 02 ✦</span>
       <h2><span class="fa-gold">FUNDED ADS</span> <span class="fa-silver">MASTERCLASS</span></h2>
       <p class="ar">الدورة الثانية في الأكاديمية · حوّل كل شيكل بتصرفه على الإعلان لزبون حقيقي</p>
@@ -909,7 +935,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
           <span class="tag">META ADS MANAGER</span>
           <span class="tag">FACEBOOK · INSTAGRAM</span>
         </div>
-        <span class="fa-badge"><span aria-hidden="true">💎</span><span>من أول إعلان ممول… لخدمة مدفوعة بتبيعها لزباينك</span></span>
+        <span class="fa-badge"><svg class="fa-logo fa-logo-s" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg><span>من أول إعلان ممول… لخدمة مدفوعة بتبيعها لزباينك</span></span>
         <h3>الإعلانات الممولة <span class="fa-dash">—</span> من الصفر للاحتراف</h3>
         <div class="en">FUNDED ADS — FROM ZERO TO PRO</div>
         <p class="c-desc">الإعلان الحلو لحاله ما بيكفي، لازم يوصل للناس الصح. بهاي الدورة بتمسك <b>مدير الإعلانات</b> من الصفر، وبتتعلم كيف تموّل إعلانك على فيسبوك وإنستغرام بذكاء: هدف صح، جمهور صح، ميزانية مضبوطة، ونتائج بتقدر تقيسها وتحسّنها.</p>
@@ -926,6 +952,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
         <span class="mono fa-kicker">LAUNCH OFFER · سعر الإطلاق</span>
         <div class="price"><span class="now fa-now">$35</span><span class="was">$99</span><span class="fa-off" dir="ltr">-65%</span></div>
         <div class="fa-ils"><b>≈ 100 شيكل فقط</b><span>بدل <s dir="ltr">$99</s> · لفترة محدودة</span></div>
+        <div class="fa-cd" data-facd><span class="fa-cdl">⏳ عرض الإطلاق بينتهي خلال</span><div class="fa-cdb"><span><b data-u="d">05</b><i>يوم</i></span><span><b data-u="h">00</b><i>ساعة</i></span><span><b data-u="m">00</b><i>دقيقة</i></span><span><b data-u="s">00</b><i>ثانية</i></span></div></div>
         <ul class="meta">
           <li><span>طريقة التعلم</span><b>أونلاين مسجّل</b></li>
           <li><span>الوقت</span><b>على راحتك</b></li>
@@ -944,7 +971,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
       </div>
       <div class="of-tabs" role="tablist">
         <button type="button" role="tab" class="of-t of-t1 on" data-of="1" aria-selected="true"><span class="n">01</span><span><b>صناعة الفيديو الإعلاني</b><small><bdi dir="ltr">$50</bdi> ≈ 150 شيكل</small></span></button>
-        <button type="button" role="tab" class="of-t of-t2" data-of="2" aria-selected="false"><span class="n">02</span><span><b>الإعلانات الممولة</b><small><bdi dir="ltr">$35</bdi> ≈ 100 شيكل</small></span></button>
+        <button type="button" role="tab" class="of-t of-t2" data-of="2" aria-selected="false"><span class="n n-logo"><svg class="fa-logo" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg></span><span><b>الإعلانات الممولة</b><small><bdi dir="ltr">$35</bdi> ≈ 100 شيكل</small></span></button>
       </div>
 
       <div class="vstack of-pane" data-pane="1">
@@ -967,10 +994,10 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 
       <div class="vstack of-pane of2" data-pane="2" hidden>
         <div class="vs-top">
-          <span class="of-chip">📢 الدورة 02 · الإعلانات الممولة من الصفر للاحتراف</span>
+          <span class="of-chip"><svg class="fa-logo fa-logo-s" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg> الدورة 02 · الإعلانات الممولة من الصفر للاحتراف</span>
           <div class="vs-total">القيمة الكلية: <s dir="ltr">$99</s></div>
           <div class="vs-now">ولكن الآن بـ <b dir="ltr">$35</b> <span class="of-ils">≈ 100 شيكل</span></div>
-          <span class="vs-off">خصم 65%</span> <span class="vs-cd">👑 سعر الإطلاق</span>
+          <span class="vs-off">خصم 65%</span> <span class="vs-cd" data-facdt>⏳ العرض بينتهي خلال 5 أيام</span>
         </div>
         <div class="vs-get">
           <h3>شو بتاخد مع هاي الدورة</h3>
@@ -2459,6 +2486,18 @@ document.addEventListener('click',function(ev){
   $$('[data-of]').forEach(function(b){var on=b===t;b.classList.toggle('on',on);b.setAttribute('aria-selected',on?'true':'false')});
   $$('[data-pane]').forEach(function(p){p.hidden=p.getAttribute('data-pane')!==n});
 });
+
+// funded-ads launch offer: 5 days, ends 14 Nov 2026 23:59 Gaza time
+var FA_END=Date.parse('2026-11-14T21:59:00Z');
+function faTick(){
+  var ms=FA_END-Date.now(),z=function(n){return (n<10?'0':'')+n};
+  if(ms<=0){$$('[data-facd]').forEach(function(e){e.hidden=true});$$('[data-facdt]').forEach(function(e){e.hidden=true});return}
+  var t=Math.floor(ms/1000),d=Math.floor(t/86400),h=Math.floor(t%86400/3600),m=Math.floor(t%3600/60),x=t%60;
+  $$('[data-facd] [data-u]').forEach(function(b){var u=b.getAttribute('data-u');b.textContent=z(u==='d'?d:u==='h'?h:u==='m'?m:x)});
+  var txt='⏳ العرض بينتهي خلال '+(d?d+' '+(d>2&&d<11?'أيام':'يوم')+' و':'')+z(h)+':'+z(m)+':'+z(x);
+  $$('[data-facdt]').forEach(function(e){e.textContent=txt});
+}
+faTick();setInterval(faTick,1000);
 window.addEventListener('hashchange',route);
 renderNav();
 renderPayboxes(document);
