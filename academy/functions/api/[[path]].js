@@ -335,8 +335,9 @@ async function markWelcomed(env, req, user) {
 }
 
 async function listCourses(env) {
+  await ensureCourseCols(env);
   const { results } = await env.DB.prepare(
-    `SELECT c.id, c.title, c.title_en, c.description, c.price, c.old_price,
+    `SELECT c.id, c.title, c.title_en, c.description, c.price, c.old_price, c.offer_end,
        (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
      FROM courses c WHERE c.published = 1 ORDER BY c.sort`
   ).all();
@@ -510,12 +511,12 @@ async function adminStats(env) {
       (SELECT COALESCE(SUM(COALESCE(e.paid, c.price)), 0) FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.status = 'approved' AND e.decided_at > ?) AS revenue_week,
       (SELECT COALESCE(SUM(c.price), 0) FROM enrollments e JOIN courses c ON c.id = e.course_id WHERE e.status = 'pending') AS pending_value`
   ).bind(week, week).first();
-  const courses = await env.DB.prepare(`SELECT c.id, c.title, c.price,
+  const courses = await env.DB.prepare(`SELECT c.id, c.title, c.price, c.old_price, c.published,
       (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id AND e.status = 'approved') AS approved,
       (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id AND e.status = 'pending') AS pending,
       (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id) AS lessons
     FROM courses c ORDER BY c.sort`).all();
-  const recent = await env.DB.prepare(`SELECT e.id, e.status, e.created_at, c.title, c.price, u.id AS user_id, u.name, u.phone
+  const recent = await env.DB.prepare(`SELECT e.id, e.course_id, e.status, e.created_at, c.title, c.price, u.id AS user_id, u.name, u.phone
     FROM enrollments e JOIN users u ON u.id = e.user_id JOIN courses c ON c.id = e.course_id
     ORDER BY e.created_at DESC LIMIT 6`).all();
   return json({ stats: s, courses: courses.results, recent: recent.results });
@@ -717,11 +718,53 @@ async function adminDeleteLesson(env, id) {
   await env.DB.prepare('DELETE FROM lessons WHERE id = ?').bind(id).run();
   return json({ ok: true });
 }
+let courseColsOk = false;
+async function ensureCourseCols(env) {
+  if (courseColsOk) return;
+  try { await env.DB.prepare('ALTER TABLE courses ADD COLUMN offer_end INTEGER').run(); } catch (e) {}
+  courseColsOk = true;
+}
+// saving no longer notifies everyone by itself: the admin presses «أرسل إشعار» when the course is ready
 async function adminSaveCourse(env, req, id) {
+  await ensureCourseCols(env);
   const b = await body(req);
-  await env.DB.prepare('UPDATE courses SET title = ?, description = ?, price = ?, old_price = ?, published = ? WHERE id = ?')
-    .bind(clean(b.title, 200), clean(b.description, 4000), Number(b.price) || 0, b.old_price ? Number(b.old_price) : null, b.published ? 1 : 0, id).run();
-  if (b.published) await notifyCourse(env, id);
+  const title = clean(b.title, 200);
+  if (title.length < 3) return err('اكتب اسم الدورة');
+  const oe = b.offer_end ? Math.floor(Date.parse(b.offer_end) / 1000) : null;
+  await env.DB.prepare('UPDATE courses SET title = ?, title_en = ?, description = ?, price = ?, old_price = ?, published = ?, sort = ?, offer_end = ? WHERE id = ?')
+    .bind(title, clean(b.title_en, 200) || null, clean(b.description, 4000), Number(b.price) || 0, b.old_price ? Number(b.old_price) : null, b.published ? 1 : 0,
+      Number.isFinite(Number(b.sort)) ? Number(b.sort) : 0, Number.isFinite(oe) ? oe : null, id).run();
+  return json({ ok: true });
+}
+async function adminNotifyCourse(env, id) {
+  const c = await env.DB.prepare('SELECT id, title, published FROM courses WHERE id = ?').bind(id).first();
+  if (!c) return err('الدورة غير موجودة', 404);
+  if (!c.published) return err('الدورة مخفية. فعّل «ظاهرة للطلاب» أول');
+  await addNotif(env, { kind: 'course', ref: c.id + '@' + now(), title: `🆕 دورة جديدة: ${c.title}`, body: 'نزلت دورة جديدة على أكاديمية MME. شوف التفاصيل واحجز مقعدك.', link: '#/course/' + c.id, course_id: c.id, audience: 'all' });
+  return json({ ok: true });
+}
+async function adminCourseOverview(env, id) {
+  await ensureCourseCols(env);
+  const c = await env.DB.prepare('SELECT * FROM courses WHERE id = ?').bind(id).first();
+  if (!c) return err('الدورة غير موجودة', 404);
+  const s = await env.DB.prepare(`SELECT
+      (SELECT COUNT(*) FROM enrollments WHERE course_id = ? AND status = 'approved') AS approved,
+      (SELECT COUNT(*) FROM enrollments WHERE course_id = ? AND status = 'pending') AS pending,
+      (SELECT COUNT(*) FROM enrollments WHERE course_id = ? AND status = 'rejected') AS rejected,
+      (SELECT COALESCE(SUM(COALESCE(paid, ?)), 0) FROM enrollments WHERE course_id = ? AND status = 'approved') AS revenue,
+      (SELECT COUNT(*) FROM lessons WHERE course_id = ?) AS lessons,
+      (SELECT COUNT(*) FROM lessons WHERE course_id = ? AND (video_key IS NOT NULL OR video_url IS NOT NULL)) AS with_video,
+      (SELECT COALESCE(SUM(minutes), 0) FROM lessons WHERE course_id = ?) AS minutes`)
+    .bind(id, id, id, c.price, id, id, id, id).first();
+  const { results } = await env.DB.prepare(`SELECT e.id AS eid, e.status, e.created_at, e.paid, u.id, u.name, u.phone,
+      (SELECT COUNT(*) FROM progress p JOIN lessons l ON l.id = p.lesson_id WHERE p.user_id = u.id AND l.course_id = e.course_id) AS done
+    FROM enrollments e JOIN users u ON u.id = e.user_id WHERE e.course_id = ? ORDER BY CASE e.status WHEN 'pending' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END, e.created_at DESC LIMIT 300`).bind(id).all();
+  return json({ course: c, stats: s, students: results });
+}
+async function adminReorderLessons(env, req) {
+  const b = await body(req);
+  const ids = Array.isArray(b.ids) ? b.ids.map(Number).filter(Boolean).slice(0, 300) : [];
+  for (let i = 0; i < ids.length; i++) await env.DB.prepare('UPDATE lessons SET sort = ? WHERE id = ?').bind(i + 1, ids[i]).run();
   return json({ ok: true });
 }
 async function adminCreateCourse(env, req) {
@@ -1399,6 +1442,9 @@ export async function onRequest(context) {
         if (method === 'DELETE') return await adminDeleteLesson(env, Number(m[1]));
       }
       if ((m = path.match(/^\/admin\/courses\/([\w-]+)$/)) && method === 'POST') return await adminSaveCourse(env, request, m[1]);
+      if ((m = path.match(/^\/admin\/courses\/([\w-]+)\/overview$/)) && method === 'GET') return await adminCourseOverview(env, m[1]);
+      if ((m = path.match(/^\/admin\/courses\/([\w-]+)\/notify$/)) && method === 'POST') return await adminNotifyCourse(env, m[1]);
+      if (path === '/admin/lessons/reorder' && method === 'POST') return await adminReorderLessons(env, request);
       if (path === '/admin/courses' && method === 'POST') return await adminCreateCourse(env, request);
       if (path === '/admin/notifications' && method === 'GET') return await adminNotifs(env);
       if (path === '/admin/affiliates' && method === 'GET') return await adminAffiliates(env);

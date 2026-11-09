@@ -286,6 +286,49 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 .off70{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#04130a;background:#22D3EE;padding:5px 10px;border-radius:9px}
 /* ---------- course 02: funded ads (royal gold) ---------- */
 .fa-head{margin-top:0;text-align:center}
+.cat-buy{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:6px}
+.cat-buy .cat-p{margin-top:0}
+.cat-book{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;text-decoration:none;font-weight:800;font-size:15px;white-space:nowrap;transition:transform .2s,box-shadow .2s}
+.cat-book:hover{transform:translateY(-2px)}
+.cat1 .cat-book{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 12px 28px -12px rgba(37,99,235,.95)}
+.cat2 .cat-book{background:linear-gradient(100deg,#c8892b,#f5c451 50%,#ffe8a3 62%,#f5c451 75%,#c8892b);color:#1a1033;box-shadow:0 12px 28px -12px rgba(245,196,81,.95)}
+.cat-go{text-decoration:none}
+@media(max-width:420px){.cat-book{width:100%}}
+
+.ctag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.ctag.c1{background:rgba(37,99,235,.18);border:1px solid rgba(59,130,246,.6);color:#bfdbfe}
+.ctag.c2{background:rgba(245,196,81,.14);border:1px solid rgba(245,196,81,.65);color:#ffe8a3}
+.ctag.c0{background:rgba(255,255,255,.06);border:1px solid var(--line-2);color:#e2e8f0}
+.crow.c1{border-inline-start:4px solid #3b82f6!important}
+.crow.c2{border-inline-start:4px solid #f5c451!important;background:linear-gradient(90deg,rgba(245,196,81,.06),transparent 40%)}
+.cfilt{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.cfilt button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:#cbd5e1;cursor:pointer;font:600 13px inherit}
+.cfilt button.on{border-color:#fff;background:rgba(255,255,255,.08);color:#fff}
+.cfilt button>span:last-child{color:#94a3b8}
+
+/* ---------- admin: course management ---------- */
+.cm-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cm-top h2{margin:0 0 4px;color:#fff;font-size:22px}
+.cm-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:14px}
+.cm-card{display:flex;gap:12px;align-items:flex-start;text-align:right;padding:14px;border-radius:18px;border:1.5px solid var(--line-2);background:rgba(255,255,255,.03);color:#fff;cursor:pointer;font:inherit}
+.cm-card.on{border-color:#3b82f6;background:rgba(37,99,235,.14);box-shadow:0 14px 30px -18px rgba(37,99,235,.9)}
+.cm-card.gold.on{border-color:#f5c451;background:rgba(245,196,81,.1);box-shadow:0 14px 30px -18px rgba(245,196,81,.9)}
+.cm-ic{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:24px;background:rgba(255,255,255,.06)}
+.cm-card.gold .cm-ic{background:none}
+.cm-tx{display:flex;flex-direction:column;gap:4px;min-width:0}.cm-tx b{font-size:15px;line-height:1.45}
+.cm-tx small{color:#94a3b8;font-size:12.5px}.cm-tx i{font-style:normal}.cm-tx i.ok{color:#86efac}.cm-tx i.off{color:#fca5a5}
+.cm-mini{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}.cm-mini span{font-size:12px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:#cbd5e1}
+.cm-sub{display:flex;gap:6px;flex-wrap:wrap;padding:6px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid var(--line);margin-bottom:16px}
+.cm-sub button{flex:1;min-width:120px;padding:10px 12px;border-radius:10px;border:0;background:none;color:#94a3b8;font:600 14px inherit;cursor:pointer}
+.cm-sub button.on{background:rgba(37,99,235,.25);color:#fff}
+.cm-kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.cm-info{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:800px){.cm-info{grid-template-columns:1fr}}
+.row-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.cm-warn{margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(250,204,21,.08);border:1px solid rgba(250,204,21,.45);color:#fde68a;font-weight:600;line-height:1.8}
+.cm-pub{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--line);color:#e2e8f0;cursor:pointer}
+.cm-pub input{margin-top:4px}.cm-pub span{display:flex;flex-direction:column;gap:3px}.cm-pub small{color:#94a3b8;line-height:1.7}
+.cm-ord{display:flex;flex-direction:column;gap:4px}.cm-ord .btn{padding:2px 9px;min-width:0}
+
 .fa-logo{width:100%;height:100%;display:block}
 .cat-ic-logo{background:none!important;border:0!important;width:58px;height:58px;filter:drop-shadow(0 10px 22px rgba(245,196,81,.35))}
 .fa-logo-xl{width:84px;height:84px;margin:0 auto 10px;filter:drop-shadow(0 14px 34px rgba(245,196,81,.45))}
@@ -842,27 +885,27 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
       <p>دورتين بيكمّلوا بعض: الأولى بتعلّمك <b>تصنع الإعلان</b>، والثانية بتعلّمك <b>توصّله وتبيع فيه</b>.</p>
     </div>
     <div class="cat-grid">
-      <a class="cat cat1" href="#ai-course">
+      <div class="cat cat1">
         <span class="cat-n">01</span>
         <span class="cat-k">FLAGSHIP · الأكثر طلبًا</span>
         <span class="cat-ic">🎬</span>
         <b class="cat-t">صناعة الفيديو الإعلاني بالذكاء الاصطناعي</b>
         <span class="cat-d">من الفكرة لحد الفيديو الإعلاني الجاهز، بدون كاميرا ولا تصوير.</span>
         <span class="cat-tags"><i>18 محاضرة</i><i>+5 ساعات</i><i>شهادة MME</i></span>
-        <span class="cat-p"><b dir="ltr">$50</b><s dir="ltr">$233</s><em>≈ 150 شيكل</em></span>
-        <span class="cat-go">شوف تفاصيل الدورة ↓</span>
-      </a>
-      <a class="cat cat2" href="#funded-ads">
+        <div class="cat-buy"><span class="cat-p"><b dir="ltr">$50</b><s dir="ltr">$233</s><em>≈ 150 شيكل</em></span><a class="cat-book" href="#/register?enroll=ai-ad-video" data-enroll="ai-ad-video">احجز الدورة الآن</a></div>
+        <a class="cat-go" href="#ai-course">شوف تفاصيل الدورة ↓</a>
+      </div>
+      <div class="cat cat2">
         <span class="cat-n">02</span>
         <span class="cat-k">NEW · إصدار جديد</span>
         <span class="cat-ic cat-ic-logo"><svg class="fa-logo" viewBox="0 0 64 64" aria-hidden="true"><use href="#fa-logo"/></svg></span>
         <b class="cat-t">الإعلانات الممولة من الصفر للاحتراف</b>
         <span class="cat-d">موّل إعلاناتك على فيسبوك وإنستغرام صح، وقدّمها كخدمة مدفوعة لزباينك.</span>
         <span class="cat-tags"><i>Meta Ads</i><i>من الصفر</i><i>شهادة MME</i></span>
-        <span class="cat-p"><b dir="ltr">$35</b><s dir="ltr">$99</s><em>≈ 100 شيكل</em></span>
+        <div class="cat-buy"><span class="cat-p"><b dir="ltr">$35</b><s dir="ltr">$99</s><em>≈ 100 شيكل</em></span><a class="cat-book" href="#/register?enroll=funded-ads" data-enroll="funded-ads">👑 احجز الدورة الآن</a></div>
         <span class="cat-cd" data-facdt>⏳ العرض بينتهي خلال 5 أيام</span>
-        <span class="cat-go">شوف تفاصيل الدورة ↓</span>
-      </a>
+        <a class="cat-go" href="#funded-ads">شوف تفاصيل الدورة ↓</a>
+      </div>
     </div>
     <div class="cat-sep"><span>تفاصيل الدورة 01</span></div>
 
@@ -1252,7 +1295,10 @@ function refCard(r){
 }
 
 // ---------- nav ----------
-var ILS={50:150,35:100,70:210};function ilsOf(p){p=Number(p)||0;return ILS[p]||Math.round(p*3)}
+var ILS={50:150,35:100,70:210};
+// each course has its own colour everywhere in the admin, so orders and students are told apart at a glance
+function ckey(id){return id==='funded-ads'?'c2':id==='ai-ad-video'?'c1':'c0'}
+function cTag(id,title){return '<span class="ctag '+ckey(id)+'">'+(id==='funded-ads'?'📢 الإعلانات الممولة':id==='ai-ad-video'?'🎬 الفيديو الإعلاني':'📘 '+esc(title||id))+'</span>'}function ilsOf(p){p=Number(p)||0;return ILS[p]||Math.round(p*3)}
 function hadAccount(){try{return !!localStorage.getItem('mme_had')}catch(e){return false}}
 function renderNav(){
   var n=$('#navAuth');if(!n)return;
@@ -2070,7 +2116,7 @@ function viewAdmin(params){
   if(params.t)adminTab=params.t;
   app.innerHTML='<div class="adm-head"><div><span class="mono" style="color:var(--cyan)">ADMIN · MME ACADEMY</span><h1>لوحة التحكم</h1></div>'+
     '<div class="acts"><a class="btn btn-g btn-s" href="#/my">حسابي</a><button class="btn btn-g btn-s" id="logoutBtn">خروج</button></div></div>'+
-    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','الدورات والدروس'],['notifs','الإشعارات'],['affs','أكواد الخصم'],['pay','طرق الدفع']].map(function(x){
+    '<div class="tabs">'+[['overview','نظرة عامة'],['orders','الطلبات'],['students','الطلاب'],['comments','التعليقات'],['lessons','🎓 إدارة الدورات'],['notifs','الإشعارات'],['affs','أكواد الخصم'],['pay','طرق الدفع']].map(function(x){
       return '<button data-t="'+x[0]+'" class="'+(adminTab===x[0]&&!params.u?'on':'')+'">'+x[1]+(x[0]==='orders'?'<span class="cnt" id="pendCnt" hidden></span>':'')+(x[0]==='comments'?'<span class="cnt" id="cmtCnt" hidden></span>':'')+'</button>'}).join('')+'</div><div id="adm"></div>';
   $('#logoutBtn').addEventListener('click',logout);
   if(!$('#admPush')){var tb=$('.tabs');if(tb){tb.insertAdjacentHTML('beforebegin','<div id="admPush"></div>');mountPushCard('#admPush')}}
@@ -2092,19 +2138,25 @@ function admOverview(){
       '<div class="kpi"><span>الإيرادات</span><b>'+money(s.revenue)+'</b><i>'+money(s.revenue_week)+' هذا الأسبوع</i></div>'+
     '</div>'+
     '<div class="ov-grid"><div class="card2"><div class="card2-h"><h3>آخر الطلبات</h3><a href="#/admin?t=orders">كل الطلبات ←</a></div>'+
-      (d.recent.length?'<div class="mini">'+d.recent.map(function(e){return '<a class="mini-row" href="#/admin?u='+e.user_id+'"><span><b>#'+e.id+' · '+esc(e.name)+'</b><small>'+esc(e.title)+' · '+ago(e.created_at)+'</small></span>'+badge(e.status)+'</a>'}).join('')+'</div>':'<div class="empty">ما في طلبات لسا.</div>')+
+      (d.recent.length?'<div class="mini">'+d.recent.map(function(e){return '<a class="mini-row crow '+ckey(e.course_id)+'" href="#/admin?u='+e.user_id+'"><span><b>#'+e.id+' · '+esc(e.name)+'</b><small>'+cTag(e.course_id,e.title)+' · '+ago(e.created_at)+'</small></span>'+badge(e.status)+'</a>'}).join('')+'</div>':'<div class="empty">ما في طلبات لسا.</div>')+
     '</div><div class="card2"><div class="card2-h"><h3>الدورات</h3><a href="#/admin?t=lessons">إدارة ←</a></div>'+
       '<div class="mini">'+d.courses.map(function(c){return '<div class="mini-row"><span><b>'+esc(c.title)+'</b><small>'+money(c.price)+' · '+c.lessons+' درس</small></span><span class="pills"><span class="badge approved">'+c.approved+' مفعّل</span><span class="badge pending">'+c.pending+' بانتظار</span></span></div>'}).join('')+'</div>'+
     '</div></div>';
   },function(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
 }
 
+var ordCourse='';
 function admOrders(){
   var box=$('#adm');box.innerHTML='<div class="loading">جاري التحميل…</div>';
   api('/admin/enrollments').then(function(d){
-    var all=d.enrollments,cnt={pending:0,approved:0,rejected:0,'':all.length};all.forEach(function(e){cnt[e.status]++});
+    var all0=d.enrollments,cids=[];all0.forEach(function(e){if(cids.indexOf(e.course_id)<0)cids.push(e.course_id)});
+    if(ordCourse&&cids.indexOf(ordCourse)<0)ordCourse='';
+    var all=all0.filter(function(e){return !ordCourse||e.course_id===ordCourse}),cnt={pending:0,approved:0,rejected:0,'':all.length};all.forEach(function(e){cnt[e.status]++});
     box.innerHTML='<div class="toolbar"><input class="search" id="oQ" type="search" placeholder="ابحث بالاسم، الإيميل، الرقم أو رقم الطلب" value="'+esc(ordQ)+'">'+
-      '<div class="filters">'+[['pending','بانتظار التأكيد'],['approved','مفعّلة'],['rejected','مرفوضة'],['','الكل']].map(function(f){return '<button data-f="'+f[0]+'" class="'+(orderFilter===f[0]?'on':'')+'">'+f[1]+' <span>'+cnt[f[0]]+'</span></button>'}).join('')+'</div></div><div id="ordList" class="list"></div>';
+      '<div class="filters">'+[['pending','بانتظار التأكيد'],['approved','مفعّلة'],['rejected','مرفوضة'],['','الكل']].map(function(f){return '<button data-f="'+f[0]+'" class="'+(orderFilter===f[0]?'on':'')+'">'+f[1]+' <span>'+cnt[f[0]]+'</span></button>'}).join('')+'</div></div>'+
+      (cids.length>1?'<div class="cfilt"><button data-oc="" class="'+(ordCourse?'':'on')+'">كل الدورات <span>'+all0.length+'</span></button>'+cids.map(function(id){var t=(all0.filter(function(e){return e.course_id===id})[0]||{}).title;return '<button data-oc="'+esc(id)+'" class="'+ckey(id)+(ordCourse===id?' on':'')+'">'+cTag(id,t)+' <span>'+all0.filter(function(e){return e.course_id===id}).length+'</span></button>'}).join('')+'</div>':'')+
+      '<div id="ordList" class="list"></div>';
+    $$('[data-oc]',box).forEach(function(b){b.addEventListener('click',function(){ordCourse=b.getAttribute('data-oc');admOrders()})});
     var render=function(){
       var q=ordQ.trim().toLowerCase(),qd=digits(q);
       var rows=all.filter(function(e){return (!orderFilter||e.status===orderFilter)&&(!q||(e.name+' '+e.email+' '+e.title).toLowerCase().indexOf(q)>-1||(qd&&(digits(e.phone).indexOf(qd)>-1||String(e.id)===qd)))});
@@ -2112,7 +2164,7 @@ function admOrders(){
       if(!rows.length){L.innerHTML='<div class="empty">ما في طلبات هون.</div>';return}
       L.innerHTML=rows.map(function(e){
         var ph=digits(e.phone),msg='مرحبًا '+e.name+'، معك أكاديمية MME بخصوص طلبك رقم #'+e.id+' لدورة '+e.title+' ($'+finalPrice(e)+').';
-        return '<div class="row ord"><div class="ord-main"><div class="ord-top"><b class="ord-id">#'+e.id+'</b><a class="ord-name" href="#/admin?u='+e.user_id+'">'+esc(e.name)+'</a>'+badge(e.status)+'</div>'+
+        return '<div class="row ord crow '+ckey(e.course_id)+'"><div class="ord-main"><div class="ord-top"><b class="ord-id">#'+e.id+'</b><a class="ord-name" href="#/admin?u='+e.user_id+'">'+esc(e.name)+'</a>'+cTag(e.course_id,e.title)+badge(e.status)+'</div>'+
           '<div class="muted">'+esc(e.title)+' · '+money(e.status==='approved'&&e.paid!=null?e.paid:finalPrice(e))+(e.status!=='approved'&&e.ref_discount?' <span class="ref-chip">🎁 خصم دعوات '+e.ref_discount+'%</span>':'')+(e.coupon?' <span class="aff-chip">🏷 كود '+esc(e.coupon)+(e.aff_name?' · '+esc(e.aff_name):'')+'</span>':'')+' · '+ago(e.created_at)+'</div>'+(e.referrer?'<div class="muted">👥 جاي بدعوة من '+esc(e.referrer)+'</div>':'')+
           '<div class="muted ltr">'+esc(e.phone)+' · '+esc(mailOf(e.email))+'</div>'+(e.note?'<div class="note">📝 '+esc(e.note)+'</div>':'')+'</div>'+
           '<div class="acts">'+(ph?'<a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/'+ph+'?text='+encodeURIComponent(msg)+'">واتساب</a>':'')+
@@ -2191,7 +2243,7 @@ function admStudent(id){
         '<div class="card2"><div class="card2-h"><h3>الاشتراكات</h3></div>'+
           (ens.length?'<div class="list">'+ens.map(function(e){
             var pct=e.lessons?Math.round(e.done/e.lessons*100):0;
-            return '<div class="sub"><div class="sub-top"><b>#'+e.id+' · '+esc(e.title)+'</b>'+badge(e.status)+'</div>'+
+            return '<div class="sub crow '+ckey(e.course_id)+'"><div class="sub-top"><b>#'+e.id+'</b>'+cTag(e.course_id,e.title)+badge(e.status)+'</div>'+
               '<div class="muted">طلب '+fmtDate(e.created_at)+(e.decided_at?' · آخر تحديث '+fmtDate(e.decided_at):'')+' · '+(e.status==='approved'?'مدفوع '+money(e.paid!=null?e.paid:e.price):'السعر '+money(e.price))+'</div>'+
               (e.status==='approved'?'<div class="prog" style="margin:10px 0 4px"><i style="width:'+pct+'%"></i></div><div class="muted">'+e.done+' من '+e.lessons+' درس ('+pct+'%)</div>':'')+
               (e.note?'<div class="note">📝 '+esc(e.note)+'</div>':'')+
@@ -2274,38 +2326,112 @@ function admStudent(id){
   },function(e){box.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
 }
 
+var lessonCourse=lessonCourse||null,courseSub='overview';
 function admLessons(){
   var box=$('#adm');if(!box)return;box.innerHTML='<div class="loading">جاري التحميل…</div>';
   api('/admin/stats').then(function(cd){
     var courses=cd.courses||[];
-    if(!courses.length){box.innerHTML='<div class="empty">ما في دورات.</div>';return}
-    lessonCourse=lessonCourse||courses[0].id;
-    return api('/course/'+lessonCourse).then(function(d){
-      var c=d.course,ls=d.lessons||[];
+    if(!courses.length){box.innerHTML='<div class="empty">ما في دورات.</div><button class="btn btn-p" id="newCourseBtn">➕ دورة جديدة</button>';$('#newCourseBtn').onclick=newCourseDialog;return}
+    if(!lessonCourse||!courses.some(function(x){return x.id===lessonCourse}))lessonCourse=courses[0].id;
+    var cur=courses.filter(function(x){return x.id===lessonCourse})[0];
+    var ic=function(x){return x.id==='funded-ads'?'<svg class="fa-logo" viewBox="0 0 64 64"><use href="#fa-logo"/></svg>':(x.id==='ai-ad-video'?'🎬':'📘')};
+    box.innerHTML=
+      '<div class="cm-top"><div><h2>🎓 إدارة الدورات</h2><p class="muted">اختار دورة وتحكّم بكل إشي فيها: البيانات، السعر، العرض، المحاضرات، والطلاب.</p></div><button class="btn btn-p" id="newCourseBtn" type="button">➕ دورة جديدة</button></div>'+
+      '<div class="cm-cards">'+courses.map(function(x){return '<button class="cm-card'+(x.id===lessonCourse?' on':'')+(x.id==='funded-ads'?' gold':'')+'" data-c="'+esc(x.id)+'" type="button">'+
+        '<span class="cm-ic">'+ic(x)+'</span><span class="cm-tx"><b>'+esc(x.title)+'</b><small><bdi dir="ltr">$'+x.price+'</bdi> ≈ '+ilsOf(x.price)+' شيكل'+(x.published?' · <i class="ok">ظاهرة</i>':' · <i class="off">مخفية</i>')+'</small>'+
+        '<span class="cm-mini"><span>👥 '+x.approved+' مفعّل</span><span>⏳ '+x.pending+' معلّق</span><span>🎬 '+x.lessons+' محاضرة</span></span></span></button>'}).join('')+'</div>'+
+      '<div class="cm-sub">'+[['overview','📊 نظرة عامة'],['settings','⚙️ الإعدادات والسعر'],['lessons','🎬 المحاضرات'],['students','👥 الطلاب']].map(function(t){return '<button type="button" data-sub="'+t[0]+'" class="'+(courseSub===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div>'+
+      '<div id="cmBody"><div class="loading">جاري التحميل…</div></div>';
+    $('#newCourseBtn').addEventListener('click',newCourseDialog);
+    $$('[data-c]',box).forEach(function(b){b.addEventListener('click',function(){lessonCourse=b.getAttribute('data-c');admLessons()})});
+    $$('[data-sub]',box).forEach(function(b){b.addEventListener('click',function(){courseSub=b.getAttribute('data-sub');$$('[data-sub]',box).forEach(function(x){x.classList.toggle('on',x===b)});cmRender()})});
+    cmRender();
+  }).catch(function(err){box.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
+}
+function cmRender(){
+  var body=$('#cmBody');if(!body)return;body.innerHTML='<div class="loading">جاري التحميل…</div>';
+  var id=lessonCourse;
+  Promise.all([api('/admin/courses/'+encodeURIComponent(id)+'/overview'),api('/course/'+encodeURIComponent(id))]).then(function(r){
+    var o=r[0],c=o.course,st=o.stats,ls=r[1].lessons||[],stu=o.students||[];
+    if(courseSub==='overview')cmOverview(body,c,st,stu,ls);
+    else if(courseSub==='settings')cmSettings(body,c);
+    else if(courseSub==='students')cmStudents(body,c,stu,st);
+    else cmLessons(body,c,ls);
+  }).catch(function(e){body.innerHTML='<div class="empty">'+esc(e.message)+'</div>'});
+}
+function cmOverview(body,c,st,stu,ls){
+  var oe=c.offer_end?c.offer_end*1000:0,live=oe>Date.now(),left=live?Math.ceil((oe-Date.now())/86400000):0;
+  var avg=st.approved?Math.round(stu.filter(function(x){return x.status==='approved'}).reduce(function(t,x){return t+(ls.length?x.done/ls.length:0)},0)/st.approved*100):0;
+  body.innerHTML=
+    '<div class="kpis cm-kpis">'+
+      '<div class="kpi ok"><span>طلاب مفعّلين</span><b>'+st.approved+'</b><i>من '+(st.approved+st.pending+st.rejected)+' طلب</i></div>'+
+      '<div class="kpi"><span>طلبات معلّقة</span><b>'+st.pending+'</b><i>بانتظار الدفع والتفعيل</i></div>'+
+      '<div class="kpi"><span>الإيرادات</span><b dir="ltr">$'+Math.round(st.revenue)+'</b><i>≈ '+ilsOf(Math.round(st.revenue))+' شيكل</i></div>'+
+      '<div class="kpi"><span>المحاضرات</span><b>'+st.lessons+'</b><i>'+st.with_video+' فيها فيديو · '+Math.round(st.minutes/60*10)/10+' ساعة</i></div>'+
+      '<div class="kpi"><span>متوسط إنجاز الطلاب</span><b>'+avg+'%</b><i>من المحاضرات</i></div>'+
+    '</div>'+
+    '<div class="cm-info">'+
+      '<div class="card2"><h3>📌 حالة الدورة</h3>'+
+        '<p class="muted" style="line-height:2">'+(c.published?'<span class="badge approved">ظاهرة للطلاب</span>':'<span class="badge pending">مخفية</span>')+
+        '<br>السعر: <b style="color:#fff"><bdi dir="ltr">$'+c.price+'</bdi> ≈ '+ilsOf(c.price)+' شيكل</b>'+(c.old_price?' بدل <s dir="ltr">$'+c.old_price+'</s> (خصم '+Math.round((1-c.price/c.old_price)*100)+'%)':'')+
+        '<br>العرض والعداد: '+(oe?(live?'<b style="color:#86efac">شغّال، باقي '+left+' '+(left>2&&left<11?'أيام':'يوم')+'</b> · بينتهي '+fmtDT(c.offer_end):'<b style="color:#fca5a5">منتهي</b> ('+fmtDT(c.offer_end)+')'):'ما في عداد')+'</p>'+
+        '<div class="row-acts"><button class="btn btn-g btn-s" data-go="settings">⚙️ تعديل السعر والعرض</button><button class="btn btn-g btn-s" data-go="lessons">🎬 رفع محاضرة</button><a class="btn btn-g btn-s" href="#/course/'+esc(c.id)+'">👁 معاينة كطالب</a><button class="btn btn-p btn-s" id="cmNotify">📣 أرسل إشعار للمشتركين</button></div>'+
+      '</div>'+
+      '<div class="card2"><h3>🔗 روابط الدورة للتسويق</h3>'+
+        cmLink('رابط الحجز المباشر',location.origin+'/#/register?enroll='+c.id)+
+        cmLink('رابط صفحة الدورة',location.origin+'/#'+(c.id==='funded-ads'?'funded-ads':c.id==='ai-ad-video'?'ai-course':'/course/'+c.id))+
+      '</div>'+
+    '</div>'+
+    (st.lessons?'':'<div class="cm-warn">⚠️ الدورة لسا ما فيها محاضرات. الطالب اللي بتفعّله بتطلعله «الدروس رح تنزل قريبًا». ارفع المحاضرات من تبويب «🎬 المحاضرات».</div>');
+  $$('[data-go]',body).forEach(function(b){b.onclick=function(){courseSub=b.getAttribute('data-go');$$('[data-sub]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-sub')===courseSub)});cmRender()}});
+  $$('[data-copy]',body).forEach(function(b){b.onclick=function(){try{navigator.clipboard.writeText(b.getAttribute('data-copy'));toast('تم النسخ ✔')}catch(e){}}});
+  $('#cmNotify').onclick=function(){if(!confirm('بدك تبعت إشعار «🆕 دورة جديدة: '+c.title+'» لكل المشتركين على الموقع والجوال؟'))return;api('/admin/courses/'+c.id+'/notify',{method:'POST',body:{}}).then(function(){toast('تم إرسال الإشعار ✔')},function(e){toast(e.message)})};
+}
+function cmLink(label,url){return '<div class="field"><label>'+label+'</label><div class="rf-link"><input readonly dir="ltr" value="'+esc(url)+'" onclick="this.select()"><button class="btn btn-g btn-s" type="button" data-copy="'+esc(url)+'">نسخ</button></div></div>'}
+function cmSettings(body,c){
+  var dtv=function(t){if(!t)return '';var d=new Date(t*1000),z=function(n){return (n<10?'0':'')+n};return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+'T'+z(d.getHours())+':'+z(d.getMinutes())};
+  body.innerHTML='<div class="card2"><h3>⚙️ بيانات الدورة والسعر</h3><form id="courseForm">'+
+    '<div class="grid2"><div class="field"><label>اسم الدورة (عربي)</label><input name="title" value="'+esc(c.title)+'" required></div><div class="field"><label>الاسم بالإنجليزي</label><input name="title_en" dir="ltr" value="'+esc(c.title_en||'')+'"></div></div>'+
+    '<div class="field"><label>وصف الدورة</label><textarea name="description" rows="4">'+esc(c.description||'')+'</textarea></div>'+
+    '<div class="grid2"><div class="field"><label>السعر الحالي ($)</label><input name="price" type="number" min="0" step="0.01" value="'+c.price+'"><span class="hint" id="cfIls"></span></div><div class="field"><label>السعر قبل الخصم ($)</label><input name="old_price" type="number" min="0" step="0.01" value="'+(c.old_price||'')+'"><span class="hint" id="cfOff"></span></div></div>'+
+    '<div class="grid2"><div class="field"><label>⏳ نهاية العرض والعداد (بتوقيتك)</label><input name="offer_end" type="datetime-local" value="'+dtv(c.offer_end)+'"><span class="hint">العداد على صفحة الدورة بيشتغل لهاد الوقت. فاضي = بدون عداد.</span></div><div class="field"><label>ترتيب الدورة بالموقع</label><input name="sort" type="number" value="'+(c.sort||0)+'"></div></div>'+
+    '<div class="row-acts" style="margin:-4px 0 14px"><button type="button" class="btn btn-g btn-s" data-ext="3">+3 أيام للعرض</button><button type="button" class="btn btn-g btn-s" data-ext="5">+5 أيام</button><button type="button" class="btn btn-g btn-s" data-ext="7">+7 أيام</button><button type="button" class="btn btn-g btn-s" data-ext="0">إلغاء العداد</button></div>'+
+    '<label class="cm-pub"><input type="checkbox" name="published" '+(c.published?'checked':'')+'><span><b>الدورة ظاهرة للطلاب</b><small>إذا شلت الصح، الدورة بتختفي من «دورات متاحة» وما حدا بيقدر يطلبها. الطلاب المفعّلين بيضلوا يشوفوها.</small></span></label>'+
+    '<button class="btn btn-p" type="submit">💾 حفظ التعديلات</button></form></div>'+
+    (c.id==='ai-ad-video'?introAdminCard():'');
+  var f=$('#courseForm'),E=f.elements;
+  var upd=function(){var p=Number(E.price.value)||0,o=Number(E.old_price.value)||0;$('#cfIls').textContent='≈ '+ilsOf(p)+' شيكل';$('#cfOff').textContent=o>p&&p?'خصم '+Math.round((1-p/o)*100)+'%':''};
+  E.price.oninput=upd;E.old_price.oninput=upd;upd();
+  $$('[data-ext]',body).forEach(function(b){b.onclick=function(){var n=Number(b.getAttribute('data-ext'));if(!n){E.offer_end.value='';return}var base=E.offer_end.value?new Date(E.offer_end.value):new Date();if(base<new Date())base=new Date();base.setDate(base.getDate()+n);base.setHours(23,59,0,0);E.offer_end.value=dtv(Math.floor(base.getTime()/1000));toast('اضغط «حفظ التعديلات» عشان يتثبّت')}});
+  f.addEventListener('submit',function(ev){ev.preventDefault();
+    api('/admin/courses/'+c.id,{method:'POST',body:{title:E.title.value,title_en:E.title_en.value,description:E.description.value,price:E.price.value,old_price:E.old_price.value,published:E.published.checked,sort:E.sort.value,offer_end:E.offer_end.value?new Date(E.offer_end.value).toISOString():''}})
+      .then(function(){toast('تم الحفظ ✔');admLessons()},function(e){toast(e.message)})});
+  if(c.id==='ai-ad-video')bindIntroAdmin();
+}
+function cmStudents(body,c,stu,st){
+  var f='all';
+  var draw=function(){
+    var L=stu.filter(function(x){return f==='all'||x.status===f});
+    $('#cmStuList').innerHTML=L.length?L.map(function(x){return '<div class="row"><div><h3><a href="#/admin?u='+x.id+'" style="color:#fff">'+esc(x.name)+'</a></h3><div class="muted"><bdi dir="ltr">'+esc(x.phone||'')+'</bdi> · طلب #'+x.eid+' · '+fmtDate(x.created_at)+(x.status==='approved'?' · أنجز '+x.done+' محاضرة'+(x.paid!=null?' · دفع <bdi dir="ltr">$'+x.paid+'</bdi>':''):'')+'</div></div><div class="acts">'+badge(x.status)+'<a class="btn btn-wa btn-s" target="_blank" rel="noopener" href="https://wa.me/'+String(x.phone||'').replace(/\D/g,'')+'">واتساب</a><a class="btn btn-g btn-s" href="#/admin?u='+x.id+'">الملف</a></div></div>'}).join(''):'<div class="empty">ما في طلاب هون.</div>';
+  };
+  body.innerHTML='<div class="filters">'+[['all','الكل ('+stu.length+')'],['approved','مفعّل ('+st.approved+')'],['pending','معلّق ('+st.pending+')'],['rejected','مرفوض ('+st.rejected+')']].map(function(t){return '<button type="button" data-f="'+t[0]+'" class="'+(t[0]==='all'?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div><p class="muted" style="margin:-4px 0 12px">التفعيل والرفض من تبويب «الطلبات».</p><div class="list" id="cmStuList"></div>';
+  $$('[data-f]',body).forEach(function(b){b.onclick=function(){f=b.getAttribute('data-f');$$('[data-f]',body).forEach(function(x){x.classList.toggle('on',x===b)});draw()}});
+  draw();
+}
+function cmLessons(box,c,ls){
       box.innerHTML=
-        (courses.length>1?'<div class="filters">'+courses.map(function(x){return '<button data-c="'+esc(x.id)+'" class="'+(x.id===lessonCourse?'on':'')+'">'+esc(x.title)+'</button>'}).join('')+'</div>':'')+
-        '<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-p" id="newCourseBtn" type="button">➕ دورة جديدة</button></div>'+
-        introAdminCard()+
-        '<div class="card2"><h3>بيانات الدورة</h3><form id="courseForm">'+
-          '<div class="field"><label>اسم الدورة</label><input name="title" value="'+esc(c.title)+'"></div>'+
-          '<div class="field"><label>الوصف</label><textarea name="description" rows="3">'+esc(c.description||'')+'</textarea></div>'+
-          '<div class="grid2"><div class="field"><label>السعر ($)</label><input name="price" type="number" min="0" step="0.01" value="'+c.price+'"></div><div class="field"><label>السعر قبل الخصم ($) — اختياري</label><input name="old_price" type="number" min="0" step="0.01" value="'+(c.old_price||'')+'"></div></div>'+
-          '<label style="display:flex;gap:8px;align-items:center;margin-bottom:14px;color:var(--silver)"><input type="checkbox" name="published" '+(c.published?'checked':'')+'> الدورة ظاهرة للطلاب <small style="color:var(--mute)">(أول ما تظهر بينبعت إشعار «دورة جديدة» لكل المشتركين)</small></label>'+
-          '<button class="btn btn-p" type="submit">حفظ</button></form></div>'+
-        '<div class="card2"><h3 id="lfTitle">إضافة درس جديد</h3><form id="lessonForm"><input type="hidden" name="lid">'+
-          '<div class="field"><label>عنوان الدرس</label><input name="title" required></div>'+
-          '<div class="field upf"><label>🎬 فيديو الدرس — ارفعه من جهازك</label><label class="drop" id="dropZ"><input type="file" name="vfile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.m4v,.webm" hidden><span id="dropT">اضغط لاختيار ملف الفيديو (MP4) أو اسحبه هون</span></label><div class="upbar" id="upBar" hidden><i></i><span>0%</span></div><span class="hint">الفيديو بينحفظ على سيرفر الأكاديمية، وما بيقدر يشوفه إلا الطالب المفعّل.</span></div>'+
+        '<div class="card2"><h3 id="lfTitle">➕ إضافة محاضرة جديدة لدورة «'+esc(c.title)+'»</h3><form id="lessonForm"><input type="hidden" name="lid">'+
+          '<div class="field"><label>عنوان المحاضرة</label><input name="title" required></div>'+
+          '<div class="field upf"><label>🎬 فيديو المحاضرة — ارفعه من جهازك</label><label class="drop" id="dropZ"><input type="file" name="vfile" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.m4v,.webm" hidden><span id="dropT">اضغط لاختيار ملف الفيديو (MP4) أو اسحبه هون</span></label><div class="upbar" id="upBar" hidden><i></i><span>0%</span></div><span class="hint">الفيديو بينحفظ على سيرفر الأكاديمية، وما بيقدر يشوفه إلا الطالب المفعّل. بتتعمل منه نسخة خفيفة للنت الضعيف لحالها.</span></div>'+
           '<details class="field"><summary style="cursor:pointer;color:var(--mute);font-size:13.5px">أو استخدم رابط خارجي بدل الرفع</summary><input name="video_url" dir="ltr" style="margin-top:8px" placeholder="YouTube (غير مدرج) / Vimeo / Bunny / Google Drive"></details>'+
-          '<div class="grid2"><div class="field"><label>الترتيب</label><input name="sort" type="number" value="'+(ls.length+1)+'"></div><div class="field"><label>المدة بالدقائق</label><input name="minutes" type="number" min="0" step="0.01"></div></div>'+
-          '<div class="field"><label>ملاحظات / روابط مواد الدرس</label><textarea name="notes" rows="3"></textarea></div>'+
-          '<div style="display:flex;gap:8px"><button class="btn btn-p" type="submit">حفظ الدرس</button><button class="btn btn-g" type="reset" id="lfReset">جديد</button></div></form></div>'+
-        '<h3 style="color:#fff;margin:6px 0 12px">الدروس ('+ls.length+')</h3>'+
-        (ls.length?'<div class="list">'+ls.map(function(l){return '<div class="row"><div><h3>'+l.sort+'. '+esc(l.title)+'</h3><div class="muted" style="word-break:break-all">'+(l.has_video?'<span class="badge approved">🎬 فيديو مرفوع'+(l.video_size?' · '+fmtSize(l.video_size):'')+'</span>':(l.video_url?'<span dir="ltr">'+esc(l.video_url)+'</span>':'<span class="badge pending">بدون فيديو</span>'))+'</div></div><div class="acts">'+(l.has_video?'<button class="btn btn-no btn-s" data-delv="'+l.id+'">حذف الفيديو</button>':'')+'<a class="btn btn-g btn-s" href="#/course/'+esc(c.id)+'?l='+l.id+'">معاينة</a><button class="btn btn-g btn-s" data-edit="'+l.id+'">تعديل</button><button class="btn btn-no btn-s" data-del="'+l.id+'">حذف</button></div></div>'}).join('')+'</div>':'<div class="empty">ما في دروس لسا. ضيف أول درس من الفورم فوق.</div>');
-      $$('[data-c]',box).forEach(function(b){b.addEventListener('click',function(){lessonCourse=b.getAttribute('data-c');admLessons()})});
-      $('#courseForm').addEventListener('submit',function(ev){ev.preventDefault();var f=ev.target.elements;
-        api('/admin/courses/'+c.id,{method:'POST',body:{title:f.title.value,description:f.description.value,price:f.price.value,old_price:f.old_price.value,published:f.published.checked}}).then(function(){toast('تم الحفظ ✔')},function(e){toast(e.message)})});
-      bindIntroAdmin();
-      $('#newCourseBtn').addEventListener('click',newCourseDialog);
+          '<div class="grid2"><div class="field"><label>الترتيب</label><input name="sort" type="number" value="'+(ls.length+1)+'"></div><div class="field"><label>المدة بالدقائق (اختياري)</label><input name="minutes" type="number" min="0" step="0.01"></div></div>'+
+          '<div class="field"><label>وصف المحاضرة / روابط المواد</label><textarea name="notes" rows="3"></textarea></div>'+
+          '<div style="display:flex;gap:8px"><button class="btn btn-p" type="submit">💾 حفظ المحاضرة</button><button class="btn btn-g" type="reset" id="lfReset">جديد</button></div></form></div>'+
+        '<h3 style="color:#fff;margin:6px 0 12px">المحاضرات ('+ls.length+') <small class="muted" style="font-weight:400">· رتّبها بالأسهم ↑↓</small></h3>'+
+        (ls.length?'<div class="list">'+ls.map(function(l,i){return '<div class="row"><div style="display:flex;gap:10px;align-items:flex-start"><span class="cm-ord"><button type="button" class="btn btn-g btn-s" data-up="'+i+'" '+(i?'':'disabled')+'>↑</button><button type="button" class="btn btn-g btn-s" data-dn="'+i+'" '+(i<ls.length-1?'':'disabled')+'>↓</button></span><div><h3>'+(i+1)+'. '+esc(l.title)+'</h3><div class="muted" style="word-break:break-all">'+(l.has_video?'<span class="badge approved">🎬 فيديو مرفوع'+(l.video_size?' · '+fmtSize(l.video_size):'')+'</span>'+(l.has_low?' <span class="badge approved">⚡ نسخة خفيفة</span>':' <span class="badge pending">⚡ الخفيفة قيد التجهيز</span>'):(l.video_url?'<span dir="ltr">'+esc(l.video_url)+'</span>':'<span class="badge pending">بدون فيديو</span>'))+'</div></div></div><div class="acts">'+(l.has_video?'<button class="btn btn-no btn-s" data-delv="'+l.id+'">حذف الفيديو</button>':'')+'<a class="btn btn-g btn-s" href="#/course/'+esc(c.id)+'?l='+l.id+'">معاينة</a><button class="btn btn-g btn-s" data-edit="'+l.id+'">تعديل</button><button class="btn btn-no btn-s" data-del="'+l.id+'">حذف</button></div></div>'}).join('')+'</div>':'<div class="empty">ما في محاضرات لسا. ضيف أول محاضرة من الفورم فوق.</div>');
+      var move=function(i,d){var ids=ls.map(function(l){return l.id});var t=ids[i];ids[i]=ids[i+d];ids[i+d]=t;api('/admin/lessons/reorder',{method:'POST',body:{ids:ids}}).then(function(){toast('تم تغيير الترتيب ✔');cmRender()},function(e){toast(e.message)})};
+      $$('[data-up]',box).forEach(function(b){b.onclick=function(){move(Number(b.getAttribute('data-up')),-1)}});
+      $$('[data-dn]',box).forEach(function(b){b.onclick=function(){move(Number(b.getAttribute('data-dn')),1)}});
       var lf=$('#lessonForm'),E=lf.elements;
       lf.addEventListener('submit',function(ev){ev.preventDefault();
         var id=E.lid.value,b={course_id:c.id,title:E.title.value,video_url:E.video_url.value,sort:E.sort.value,minutes:E.minutes.value,notes:E.notes.value};
@@ -2315,29 +2441,26 @@ function admLessons(){
           return api('/admin/lessons'+(id?'/'+id:''),{method:'POST',body:b});
         }).then(function(r){
           if(r&&r.id){E.lid.value=r.id;$('#lfTitle').textContent='تعديل: '+b.title}
-          if(!file){toast('تم حفظ الدرس ✔');admLessons();return}
-          return uploadVideo(r.id,file,function(p){var bar=$('#upBar');bar.hidden=false;$('i',bar).style.width=p+'%';$('span',bar).textContent=p<100?'جاري الرفع… '+p+'% — لا تسكّر الصفحة':'جاري المعالجة…'}).then(function(){toast('تم رفع الفيديو وحفظ الدرس ✔');admLessons()});
+          if(!file){toast('تم حفظ المحاضرة ✔');cmRender();return}
+          return uploadVideo(r.id,file,function(p){var bar=$('#upBar');bar.hidden=false;$('i',bar).style.width=p+'%';$('span',bar).textContent=p<100?'جاري الرفع… '+p+'% — لا تسكّر الصفحة':'جاري المعالجة…'}).then(function(){toast('تم رفع الفيديو وحفظ المحاضرة ✔');cmRender()});
         }).catch(function(e){toast(e.message);sb.disabled=false;var bar=$('#upBar');if(bar)$('span',bar).textContent='فشل الرفع: '+e.message});});
       var dz=$('#dropZ'),dt=$('#dropT');
       E.vfile.addEventListener('change',function(){var f=E.vfile.files[0];dt.textContent=f?('✔ '+f.name+' · '+fmtSize(f.size)):'اضغط لاختيار ملف الفيديو (MP4) أو اسحبه هون';dz.classList.toggle('has',!!f)});
       ['dragover','dragenter'].forEach(function(n){dz.addEventListener(n,function(e){e.preventDefault();dz.classList.add('over')})});
       ['dragleave','drop'].forEach(function(n){dz.addEventListener(n,function(e){e.preventDefault();dz.classList.remove('over')})});
       dz.addEventListener('drop',function(e){if(e.dataTransfer.files.length){E.vfile.files=e.dataTransfer.files;E.vfile.dispatchEvent(new Event('change'))}});
-      $$('[data-delv]',box).forEach(function(b){b.addEventListener('click',function(){if(!confirm('حذف الفيديو من هذا الدرس؟'))return;api('/admin/lessons/'+b.getAttribute('data-delv')+'/video',{method:'DELETE'}).then(function(){toast('تم حذف الفيديو');admLessons()},function(e){toast(e.message)})})});
-      $('#lfReset').addEventListener('click',function(){$('#lfTitle').textContent='إضافة درس جديد';setTimeout(function(){E.lid.value='';E.sort.value=ls.length+1},0)});
+      $$('[data-delv]',box).forEach(function(b){b.addEventListener('click',function(){if(!confirm('حذف الفيديو من هذه المحاضرة؟'))return;api('/admin/lessons/'+b.getAttribute('data-delv')+'/video',{method:'DELETE'}).then(function(){toast('تم حذف الفيديو');cmRender()},function(e){toast(e.message)})})});
+      $('#lfReset').addEventListener('click',function(){$('#lfTitle').textContent='➕ إضافة محاضرة جديدة';setTimeout(function(){E.lid.value='';E.sort.value=ls.length+1},0)});
       $$('[data-edit]',box).forEach(function(b){b.addEventListener('click',function(){
         var l=ls.filter(function(x){return String(x.id)===b.getAttribute('data-edit')})[0];
         E.lid.value=l.id;E.title.value=l.title;E.video_url.value=l.video_url||'';E.sort.value=l.sort;E.minutes.value=l.minutes||'';E.notes.value=l.notes||'';
         $('#lfTitle').textContent='تعديل: '+l.title;lf.scrollIntoView({behavior:'smooth',block:'center'});
       })});
       $$('[data-del]',box).forEach(function(b){b.addEventListener('click',function(){
-        if(!confirm('حذف الدرس نهائيًا؟'))return;
-        api('/admin/lessons/'+b.getAttribute('data-del'),{method:'DELETE'}).then(function(){toast('تم الحذف');admLessons()},function(e){toast(e.message)});
+        if(!confirm('حذف المحاضرة نهائيًا؟'))return;
+        api('/admin/lessons/'+b.getAttribute('data-del'),{method:'DELETE'}).then(function(){toast('تم الحذف');cmRender()},function(e){toast(e.message)});
       })});
-    });
-  }).catch(function(err){box.innerHTML='<div class="empty">'+esc(err.message)+'</div>'});
 }
-
 
 var cmtFilter='pending';
 function admComments(){
@@ -2498,6 +2621,7 @@ function faTick(){
   $$('[data-facdt]').forEach(function(e){e.textContent=txt});
 }
 faTick();setInterval(faTick,1000);
+api('/courses').then(function(d){(d.courses||[]).forEach(function(c){if(!c.offer_end)return;if(c.id==='funded-ads')FA_END=c.offer_end*1000;if(c.id===BOOK_COURSE)OFFER_END=c.offer_end*1000});faTick()},function(){});
 window.addEventListener('hashchange',route);
 renderNav();
 renderPayboxes(document);
