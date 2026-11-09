@@ -285,7 +285,42 @@ html[dir=ltr] .cert{transform:rotateY(8deg) rotateX(4deg)}
 @media (max-width:640px){.paybox{grid-template-columns:1fr}}
 .off70{align-self:center;font-family:var(--display);font-weight:700;font-size:15px;color:#04130a;background:#22D3EE;padding:5px 10px;border-radius:9px}
 /* ---------- course 02: funded ads (royal gold) ---------- */
-.fa-head{margin-top:72px}
+.fa-head{margin-top:0}
+/* ---------- courses catalog ---------- */
+.cat-head{text-align:center;margin-bottom:28px}
+.cat-head .mono{color:var(--cyan);letter-spacing:.22em}
+.cat-head h2{margin:8px 0 8px;font-size:clamp(28px,4.4vw,44px);color:#fff}
+.cat-head p{margin:0 auto;max-width:620px;color:#b8c2d6;font-size:16.5px;line-height:1.8}
+.cat-head p b{color:#fff}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:760px){.cat-grid{grid-template-columns:1fr}}
+.cat{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:10px;padding:26px 24px 22px;border-radius:24px;text-decoration:none;color:#fff;transition:transform .3s,box-shadow .3s}
+.cat:hover{transform:translateY(-4px)}
+.cat1{background:radial-gradient(70% 60% at 100% 0%,rgba(34,211,238,.18),transparent 60%),linear-gradient(160deg,#0f1f4a,#0a1024 70%);border:1px solid rgba(59,130,246,.45);box-shadow:0 30px 70px -40px rgba(37,99,235,.9)}
+.cat2{background:radial-gradient(70% 60% at 100% 0%,rgba(245,196,81,.2),transparent 60%),linear-gradient(160deg,#241443,#0d0a1c 70%);border:1px solid rgba(245,196,81,.5);box-shadow:0 30px 70px -40px rgba(245,196,81,.75)}
+.cat-n{position:absolute;top:10px;inset-inline-end:18px;font-family:var(--display);font-size:72px;font-weight:800;line-height:1;opacity:.12}
+.cat-k{font-family:var(--mono,monospace);font-size:12px;letter-spacing:.14em;font-weight:700}
+.cat1 .cat-k{color:#67e8f9}.cat2 .cat-k{color:#f5c451}
+.cat-ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:26px}
+.cat1 .cat-ic{background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.4)}
+.cat2 .cat-ic{background:rgba(245,196,81,.12);border:1px solid rgba(245,196,81,.5)}
+.cat-t{font-size:clamp(19px,2.2vw,23px);line-height:1.45}
+.cat-d{color:#b8c2d6;font-size:14.5px;line-height:1.75}
+.cat-tags{display:flex;flex-wrap:wrap;gap:6px}
+.cat-tags i{font-style:normal;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#e2e8f0}
+.cat-p{display:flex;align-items:baseline;gap:10px;margin-top:6px}
+.cat-p b{font-family:var(--display);font-size:36px;line-height:1}
+.cat1 .cat-p b{color:#fff}
+.cat2 .cat-p b{background:linear-gradient(180deg,#fff3c4,#f5c451 55%,#c8892b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cat-p s{color:#7c869b}.cat-p em{font-style:normal;color:#cbd5e1;font-size:14px;font-weight:600}
+.cat-go{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.08);font-weight:700;font-size:14.5px}
+.cat1 .cat-go{color:#67e8f9}.cat2 .cat-go{color:#f5c451}
+.cat-sep{display:flex;align-items:center;gap:14px;margin:56px 0 30px;color:#94a3b8;font-weight:700;font-size:14px;letter-spacing:.04em}
+.cat-sep::before,.cat-sep::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(148,163,184,.4),transparent)}
+.cat-sep span{padding:7px 16px;border-radius:999px;border:1px solid rgba(59,130,246,.45);color:#93c5fd;background:rgba(37,99,235,.08)}
+.cat-sep2{margin-top:84px}
+.cat-sep2 span{border-color:rgba(245,196,81,.55);color:#f5c451;background:rgba(245,196,81,.08)}
+#ai-course,#funded-ads{scroll-margin-top:90px}
 .fa-kicker{color:#f5c451!important;letter-spacing:.2em}
 .fa-gold{background:linear-gradient(100deg,#fff3c4 0%,#f5c451 35%,#c8892b 60%,#ffe8a3 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 22px rgba(245,196,81,.35))}
 .fa-silver{background:linear-gradient(180deg,#fff,#a8b3c7);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -753,7 +788,37 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 
 <section class="sec" id="course">
   <div class="wrap">
-    <div class="head">
+    <!-- catalog: both courses side by side, each opens its own details below -->
+    <div class="cat-head">
+      <span class="mono">MME ACADEMY · COURSES</span>
+      <h2>دورات الأكاديمية</h2>
+      <p>دورتين بيكمّلوا بعض: الأولى بتعلّمك <b>تصنع الإعلان</b>، والثانية بتعلّمك <b>توصّله وتبيع فيه</b>.</p>
+    </div>
+    <div class="cat-grid">
+      <a class="cat cat1" href="#ai-course">
+        <span class="cat-n">01</span>
+        <span class="cat-k">FLAGSHIP · الأكثر طلبًا</span>
+        <span class="cat-ic">🎬</span>
+        <b class="cat-t">صناعة الفيديو الإعلاني بالذكاء الاصطناعي</b>
+        <span class="cat-d">من الفكرة لحد الفيديو الإعلاني الجاهز، بدون كاميرا ولا تصوير.</span>
+        <span class="cat-tags"><i>18 محاضرة</i><i>+5 ساعات</i><i>شهادة MME</i></span>
+        <span class="cat-p"><b dir="ltr">$50</b><s dir="ltr">$233</s><em>≈ 150 شيكل</em></span>
+        <span class="cat-go">شوف تفاصيل الدورة ↓</span>
+      </a>
+      <a class="cat cat2" href="#funded-ads">
+        <span class="cat-n">02</span>
+        <span class="cat-k">NEW · إصدار جديد</span>
+        <span class="cat-ic">📢</span>
+        <b class="cat-t">الإعلانات الممولة من الصفر للاحتراف</b>
+        <span class="cat-d">موّل إعلاناتك على فيسبوك وإنستغرام صح، وقدّمها كخدمة مدفوعة لزباينك.</span>
+        <span class="cat-tags"><i>Meta Ads</i><i>من الصفر</i><i>شهادة MME</i></span>
+        <span class="cat-p"><b dir="ltr">$35</b><s dir="ltr">$99</s><em>≈ 100 شيكل</em></span>
+        <span class="cat-go">شوف تفاصيل الدورة ↓</span>
+      </a>
+    </div>
+    <div class="cat-sep"><span>تفاصيل الدورة 01</span></div>
+
+    <div class="head" id="ai-course">
       <span class="mono">FLAGSHIP COURSE · 01</span>
       <h2><span class="metal">AI AD VIDEO</span> <span class="blue">MASTERCLASS</span></h2>
       <p class="ar">الدورة الأولى في الأكاديمية</p>
@@ -807,6 +872,7 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
       </div>
     </article>
 
+    <div class="cat-sep cat-sep2"><span>تفاصيل الدورة 02</span></div>
     <div class="head fa-head" id="funded-ads">
       <span class="mono fa-kicker">✦ NEW COURSE · 02 ✦</span>
       <h2><span class="fa-gold">FUNDED ADS</span> <span class="fa-silver">MASTERCLASS</span></h2>
