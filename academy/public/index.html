@@ -874,6 +874,13 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .wl-pickh{color:#fff;margin:16px 0 0;font-size:16px}
 .bk-sub{color:#94a3b8;font-size:13.5px;margin:4px 0 0}
 @media (max-width:640px){.pk-grid{grid-template-columns:1fr}.pk-hd b{font-size:15px}.pk-pr b{font-size:25px}}
+
+.kitv{position:fixed;inset:0;z-index:9999;background:#05070d;display:flex;flex-direction:column}
+.kitv-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#0b1220;border-bottom:1px solid rgba(255,255,255,.1);color:#fff}
+.kitv-x{width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:16px;cursor:pointer}
+.kitv-pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;display:flex;flex-direction:column;align-items:center;gap:12px}
+.kitv-pages img{width:100%;max-width:820px;height:auto;aspect-ratio:595/842;border-radius:10px;background:#111827;box-shadow:0 8px 24px -12px #000}
+.kitv-foot{text-align:center;padding:10px 0 30px;color:#94a3b8;font-size:13px;max-width:520px}
 </style>
 </head>
 <body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="fa-logo" viewBox="0 0 64 64"><defs>
@@ -2073,10 +2080,25 @@ var GIFT_URL='/gift/student-kit.pdf';
 // lands on the sign-up page; so we ask for a short-lived signed link and open that instead
 document.addEventListener('click',function(ev){
   var a=ev.target.closest('a[href="'+GIFT_URL+'"]');if(!a)return;
-  ev.preventDefault();if(a.__busy)return;a.__busy=true;var t=a.textContent;a.textContent='جاري التحميل…';
-  api('/gift/link').then(function(d){location.href=d.url;toast('بلّش التحميل ✔ بتلاقي الشنطة بالتنزيلات')},function(e){toast(/دخول/.test(e.message)?'سجّل دخول أول عشان تحمّل الشنطة':e.message)})
-  .then(function(){setTimeout(function(){a.__busy=false;a.textContent=t},1500)});
+  ev.preventDefault();if(a.__busy)return;a.__busy=true;var t=a.textContent;a.textContent='جاري الفتح…';
+  api('/gift/link').then(function(d){kitViewer(d.url)},function(e){toast(/دخول/.test(e.message)?'سجّل دخول أول عشان تفتح الشنطة':e.message)})
+  .then(function(){setTimeout(function(){a.__busy=false;a.textContent=t},800)});
 });
+// some phones can't open a downloaded PDF (no PDF app, or the academy was opened inside WhatsApp/Instagram),
+// so the kit opens right here as page images; the PDF download stays at the bottom for whoever wants the file
+var KIT_PAGES=11;
+function kitViewer(pdfUrl){
+  var q=pdfUrl.split('?')[1]||'',imgs='';
+  for(var i=1;i<=KIT_PAGES;i++)imgs+='<img loading="'+(i<3?'eager':'lazy')+'" alt="صفحة '+i+'" src="/gift/pages/p-'+(i<10?'0':'')+i+'.jpg?'+q+'">';
+  var ov=document.createElement('div');ov.className='kitv';
+  ov.innerHTML='<div class="kitv-bar"><b>🎁 شنطة أدوات الطالب</b><button type="button" class="kitv-x" aria-label="إغلاق">✕</button></div>'+
+    '<div class="kitv-pages">'+imgs+
+    '<div class="kitv-foot"><a class="btn btn-p" href="'+pdfUrl+'" data-kitdl>⬇️ نزّل الشنطة كملف PDF</a><p>إذا الملف ما فتح عندك بعد التنزيل، تقدر تتصفّح الشنطة من هون بأي وقت.</p></div></div>';
+  document.body.appendChild(ov);document.documentElement.style.overflow='hidden';
+  function close(){ov.remove();document.documentElement.style.overflow='';window.removeEventListener('popstate',close)}
+  $('.kitv-x',ov).addEventListener('click',function(){history.back()});
+  history.pushState({kit:1},'');window.addEventListener('popstate',close);
+}
 var OFFER_END=Date.parse('2026-10-28T20:59:00Z'),BOOK_COURSE='ai-ad-video';
 function hasBooked(){return (state.enrollments||[]).some(function(e){return e.course_id===BOOK_COURSE&&e.status!=='rejected'})}
 function isActive(){return (state.enrollments||[]).some(function(e){return e.status==='approved'})}

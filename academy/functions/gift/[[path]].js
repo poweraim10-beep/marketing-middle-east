@@ -45,6 +45,6 @@ export async function onRequest({ request, env }) {
   const res = await env.ASSETS.fetch(request);
   const h = new Headers(res.headers);
   h.set('cache-control', 'private, no-store');
-  h.set('content-disposition', 'attachment; filename="MME-Student-Kit.pdf"');
+  if (/\.pdf$/i.test(new URL(request.url).pathname)) h.set('content-disposition', 'attachment; filename="MME-Student-Kit.pdf"');
   return new Response(res.body, { status: res.status, headers: h });
 }
