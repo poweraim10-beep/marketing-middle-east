@@ -470,7 +470,7 @@ function planCard(c){const ps=planStatus(c);
     <label for="plS">أول دفعة بتاريخ<input id="plS" type="date" value="${new Date(Date.now()+7*DAY).toISOString().slice(0,10)}"></label><button class="btn primary" data-act="makePlan" data-id="${c.id}">عمل جدول تقسيط لـ ${fx(balance(c))} ₪</button></div>`;
   return `<div class="card"><div class="row"><h2>جدول التقسيط</h2><span class="pill ${ps.late?'bad':'ok'}">${ps.late?ps.late+' متأخرة':'منتظم'}</span></div><div class="list">${ps.rows.map((r,k)=>`<div class="li"><span>الدفعة ${k+1} · ${new Date(r.due).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})}</span><span>${money(r.amt)} <span class="pill ${r.ok?'ok':r.late?'bad':'warn'}">${r.ok?'مدفوعة':r.late?'متأخرة':'قادمة'}</span></span></div>`).join('')}</div>
     <button class="btn sm danger" data-act="dropPlan" data-id="${c.id}">إلغاء الجدول</button></div>`}
-const hm=ts=>{const d=new Date(ts),z=n=>String(n).padStart(2,'0');return `${z(d.getHours())}:${z(d.getMinutes())}`};
+const hm=ts=>{const d=new Date(ts),H=d.getHours();return `${H%12||12}:${String(d.getMinutes()).padStart(2,'0')} ${H<12?'ص':'م'}`};
 function lastPunch(sid){for(let i=S.punches.length-1;i>=0;i--) if(S.punches[i].staffId===sid) return S.punches[i]; return null}
 function attDays(sid,from,to=Infinity){ /* pair in/out per day */
   const ps=S.punches.filter(p=>p.staffId===sid&&p.ts>=from&&p.ts<to).sort((a,b)=>a.ts-b.ts), out=[]; let cur=null;
@@ -501,13 +501,29 @@ async function camSheet(title,hint,auto,cb){
     if(auto){let n=3; const c=$('#camCount'); c.textContent=n; CAM.timer=setInterval(()=>{n--; if(n>0){c.textContent=n; beep(true)} else {clearInterval(CAM.timer); c.textContent=''; A.camShot()}},800)}}
   catch(e){const m=$('#camMsg'); if(m) m.textContent='الكاميرا المباشرة مش متاحة. اضغط الزر وصوّر بكاميرا الجوال.'}
 }
-async function punchFor(st,cv){
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64u=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4)),c=>c.charCodeAt(0));
+async function fingerReady(){try{return !!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())}catch(e){return false}}
+async function fingerEnroll(st){
+  const cred=await navigator.credentials.create({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),rp:{name:'كاشيرك الذكي'},
+    user:{id:crypto.getRandomValues(new Uint8Array(16)),name:`${S.shop} - ${st.name}`,displayName:st.name},
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000,attestation:'none'}});
+  return b64u(cred.rawId);
+}
+async function fingerCheck(st){
+  const a=await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:unb64u(st.cred)}],userVerification:'required',timeout:60000}});
+  return !!a;
+}
+async function punchFor(st,cv,method='photo'){
   const lp=lastPunch(st.id), type=lp&&lp.type==='in'&&sod(lp.ts)===sod()?'out':'in';
-  const id='p'+Date.now(), data=cv.toDataURL('image/jpeg',.72); await idb('readwrite',s=>s.put(data,id));
-  const punch={id:Date.now(),staffId:st.id,type,ts:Date.now(),photo:id,lat:null,lng:null,dist:null,far:false};
+  let id='', data='';
+  if(cv){id='p'+Date.now(); data=cv.toDataURL('image/jpeg',.72); await idb('readwrite',s=>s.put(data,id))}
+  else data=REFS[st.ref]||(st.ref?await idb('readonly',s=>s.get(st.ref)):'')||'';
+  const punch={id:Date.now(),staffId:st.id,type,ts:Date.now(),photo:id,method,lat:null,lng:null,dist:null,far:false};
   S.punches.push(punch); save(); beep(true);
   const hrs=type==='out'&&lp?r2((punch.ts-lp.ts)/36e5):0, hh=Math.floor(hrs), mm=Math.round((hrs-hh)*60);
-  openSheet(`<div class="okshot"><img src="${data}" alt=""><div class="big" style="color:var(--good)">✓ ${esc(st.name)}</div>
+  openSheet(`<div class="okshot">${data?`<img src="${data}" alt="">`:''}<div class="big" style="color:var(--good)">✓ ${esc(st.name)}${method==='finger'?' · بصمة إصبع':''}</div>
     <div class="big">${type==='in'?'دخل':'روّح'} الساعة <span class="num">${hm(punch.ts)}</span></div>
     ${type==='out'?`<p class="muted" style="margin:0">اشتغل اليوم <span class="num">${hh}:${String(mm).padStart(2,'0')}</span> ساعة</p>`:`<p class="muted" style="margin:0">${type==='in'?'يعطيك العافية، دوام موفّق':''}</p>`}
     <button class="btn danger" data-act="punchUndo" data-id="${punch.id}">مش أنا، إلغاء البصمة</button></div>`);
@@ -662,7 +678,7 @@ items(){
 },
 staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
   const cards=S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===t0, img=refImg(st);
-    return `<button class="wcard ${inNow?'in':''}" data-act="staffTap" data-id="${st.id}"><span class="wimg">${img?`<img src="${img}" alt="">`:`<span>${esc(st.name.trim()[0]||'؟')}</span>`}</span><b>${esc(st.name)}</b><span class="pill ${inNow?'ok':'warn'}">${inNow?'داوم من '+hm(lp.ts):'مش داوم'}</span></button>`}).join('');
+    return `<button class="wcard ${inNow?'in':''}" data-act="staffTap" data-id="${st.id}"><span class="wimg">${img?`<img src="${img}" alt="">`:`<span>${esc(st.name.trim()[0]||'؟')}</span>`}</span><b>${esc(st.name)}</b>${S.attMode==='finger'&&st.cred?'<span class="muted" style="font-size:12px">بصمة إصبع</span>':''}<span class="pill ${inNow?'ok':'warn'}">${inNow?'داوم من '+hm(lp.ts):'مش داوم'}</span></button>`}).join('');
   return `<div class="card" style="text-align:center;gap:4px"><h2>بصمة العمال</h2><p class="muted" style="margin:0">اضغط على صورتك، والكاميرا بتصوّرك لحالها وبتسجّل الدخول أو الخروج.</p></div>
   ${S.staff.length?`<div class="wgrid">${cards}</div>`:`<div class="empty">${isOwner()?'ضيف أول عامل من تحت':'ما في عمال مضافين. خلي صاحب المحل يضيفهم.'}</div>`}
   ${isOwner()?`<button class="btn accent block" data-act="staffNew">إضافة عامل</button>
@@ -671,7 +687,9 @@ staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
     return `<div class="li"><span><span class="t">${esc(st.name)}</span><br><span class="muted">${ds.filter(x=>x.inP).length} يوم دوام</span></span><span><span class="num" style="font-weight:700">${fx(hr)}</span> ساعة${st.wage?`<br>${money(hr*st.wage)}`:''}</span></div>`}).join('')||'<div class="empty">—</div>'}</div>
     <button class="btn" data-act="pdfGo" data-sel="att" data-per="week">تقرير الدوام PDF</button></div>
   <div class="card"><h2>إعدادات البصمة</h2>
-    <label class="chk" for="attPin"><input type="checkbox" id="attPin" ${S.attPin?'checked':''}>اطلب رمز العامل قبل التصوير</label>
+    <div><div class="muted" style="margin-bottom:6px">طريقة البصمة الأساسية</div><div class="seg"><button data-act="attMode" data-m="photo" aria-pressed="${S.attMode!=='finger'}">صورة سيلفي</button><button data-act="attMode" data-m="finger" aria-pressed="${S.attMode==='finger'}">بصمة إصبع</button></div>
+      <p class="muted" style="margin:6px 0 0">${S.attMode==='finger'?'العامل اللي إله بصمة مسجّلة بيبصم بإصبعه، ولو ما زبطت بيتحوّل للسيلفي. اللي ما إله بصمة بيصوّر سيلفي.':'كل العمال بيصوّروا سيلفي.'}</p></div>
+    <label class="chk" for="attPin"><input type="checkbox" id="attPin" ${S.attPin?'checked':''}>اطلب رمز العامل قبل البصمة</label>
     <p class="muted" style="margin:0">${S.shopLoc?'موقع المحل محفوظ. البصمة من أبعد من 150 متر بتنعلّم.':'احفظ موقع المحل وانت فيه، عشان نعرف إذا حدا بصم من برّا.'}</p>
     <button class="btn" data-act="setLoc">${S.shopLoc?'تحديث موقع المحل':'حفظ موقع المحل الحالي'}</button></div>`:''}`;
 },
@@ -1045,7 +1063,7 @@ function docPages(title,sub,blocks){
     g.fillText(`${S.shop} · صفحة ${i+1} من ${pages.length} · أُنشئ ${fdate(Date.now())} · كاشيرك الذكي`,W/2,H-50,W-2*M)});
   return pages.map(cv=>({cv,wpt:595.28,hpt:841.89}));
 }
-const tnum=ts=>{const d=new Date(ts),z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}/${z(d.getMonth()+1)} ${z(d.getHours())}:${z(d.getMinutes())}`};
+const tnum=ts=>{const d=new Date(ts),z=n=>String(n).padStart(2,'0'),H=d.getHours();return `${z(d.getDate())}/${z(d.getMonth()+1)} ${H%12||12}:${z(d.getMinutes())} ${H<12?'ص':'م'}`};
 function periodRange(p){const now=Date.now(), f=t=>new Date(t).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'});
   if(p==='today') return {from:sod(),to:Infinity,label:'اليوم · '+f(now)};
   if(p==='yesterday') return {from:sod(now-DAY),to:sod(),label:'أمس · '+f(now-DAY)};
@@ -1292,13 +1310,29 @@ bkOut(){const t=$('#bk'); t.value=JSON.stringify(S); copyBox('bk')},
 bkIn(){try{const o=JSON.parse($('#bk').value); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)||!Array.isArray(o.suppliers)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('النص ليس نسخة احتياطية صالحة')}},
 testBeep(){beep(true)},
 staffTap(d){const st=S.staff.find(x=>x.id===+d.id); if(!st) return;
-  const go=()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod(); camSheet(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`,'انظر للكاميرا، بتصوّرك لحالها بعد 3 ثواني',true,cv=>punchFor(st,cv))};
+  const photo=()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod(); camSheet(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`,'انظر للكاميرا، بتصوّرك لحالها بعد 3 ثواني',true,cv=>punchFor(st,cv,'photo'))};
+  const finger=async()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod();
+    openSheet(`${sheetHead(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`)}<div class="okshot"><div class="wimg" style="width:120px;height:120px"><svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#E6C878" stroke-width="1.6" stroke-linecap="round"><path d="M12 11v3a6 6 0 0 1-1 3.3M8.5 7.6A5 5 0 0 1 17 11v1.5M7 11a5 5 0 0 1 .4-2M5 15.5c.5-1.5.5-3 .5-4.5a6.5 6.5 0 0 1 11-4.7M12 21c1.5-2 2.5-4.5 2.5-7.5M9 20.5c1.3-1.9 2-4.1 2-6.5v-1"/></svg></div>
+      <div class="big">حط إصبعك على حسّاس البصمة</div><p class="muted" style="margin:0" id="fpMsg">بيطلعلك طلب البصمة من الجوال</p></div>
+      <button class="btn block" data-act="fpToPhoto" data-id="${st.id}">البصمة ما زبطت؟ استعمل الصورة</button>`);
+    try{ if(await fingerCheck(st)) {await punchFor(st,null,'finger'); return} }catch(e){}
+    beep(false); const m=$('#fpMsg'); if(m) m.textContent='البصمة ما زبطت. جرّب كمان مرة أو استعمل الصورة.';
+    const sh=$('#sheetBox'); if(sh&&!$('[data-act=fpRetry]')) sh.insertAdjacentHTML('beforeend',`<button class="btn accent block" data-act="fpRetry" data-id="${st.id}">جرّب البصمة مرة ثانية</button>`)};
+  A._fp={photo,finger};
+  const go=()=>{ if(S.attMode==='finger'&&st.cred) finger(); else photo() };
   if(S.attPin&&st.pin){openSheet(`${sheetHead(st.name)}<label for="punPin">رمزك<input id="punPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label><button class="btn accent block" data-act="pinGo" data-id="${st.id}">متابعة</button>`); setTimeout(()=>{const f=$('#punPin'); if(f) f.focus()},60); A._pinNext=go; return}
   go()},
+fpToPhoto(){if(A._fp) A._fp.photo()},
+fpRetry(){if(A._fp) A._fp.finger()},
+async fpEnroll(d){const st=S.staff.find(x=>x.id===+d.id); if(!st) return;
+  if(!(await fingerReady())){toast('هالجهاز ما بيدعم البصمة من المتصفح. افتح التطبيق المثبّت من كروم');return}
+  try{st.cred=await fingerEnroll(st); audit(`تسجيل بصمة إصبع لـ ${st.name}`); save(); toast(`تسجّلت بصمة ${st.name}`); A.staffView({id:st.id})}catch(e){toast('ما تسجّلت البصمة. جرّب ثاني')}},
+fpRemove(d){const st=S.staff.find(x=>x.id===+d.id); delete st.cred; save(); A.staffView({id:st.id}); toast('انشالت بصمة الإصبع')},
+attMode(d){S.attMode=d.m; save(); render()},
 pinGo(d){const st=S.staff.find(x=>x.id===+d.id); if($('#punPin').value!==st.pin){beep(false); toast('الرمز غلط'); return} const g=A._pinNext; A._pinNext=null; if(g) g()},
 camShot(){const v=$('#camVid'); if(!v||!v.videoWidth){toast('الكاميرا لسا ما اشتغلت');return} const cv=canvasFrom(v,v.videoWidth,v.videoHeight,true); camStop(); const cb=CAM.cb; CAM.cb=null; if(cb) cb(cv)},
 camCancel(){camStop(); CAM.cb=null; closeSheet(); syncLive()},
-punchUndo(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p) idb('readwrite',s=>s.delete(p.photo)); save(); closeSheet(); render(); syncLive(); toast('انلغت البصمة، جرّب مرة ثانية')},
+punchUndo(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p&&p.photo) idb('readwrite',s=>s.delete(p.photo)); save(); closeSheet(); render(); syncLive(); toast('انلغت البصمة، جرّب مرة ثانية')},
 staffNew(){openSheet(`${sheetHead('عامل جديد')}<label for="stfN">اسم العامل<input id="stfN" autocomplete="off"></label>
   <div class="grid2"><label for="stfW">أجرة الساعة ₪<input id="stfW" type="number" inputmode="decimal" min="0" placeholder="اختياري"></label><label for="stfP">رمز 4 أرقام<input id="stfP" type="password" inputmode="numeric" maxlength="4" placeholder="اختياري" autocomplete="off"></label></div>
   <p class="muted" style="margin:0">الخطوة الجاية: صورة مرجعية لوجه العامل، بتظهر على بطاقته وبتقارن فيها صور البصمة.</p>
@@ -1309,11 +1343,13 @@ staffRef(){const n=$('#stfN').value.trim(), w=parseFloat($('#stfW').value)||0, p
     S.staff.push({id:S.nextId++,name:n,pin,wage:r2(w),ref:id}); audit(`إضافة عامل ${n}`); save(); closeSheet(); tab='staff'; render(); syncLive(); toast(`انضاف ${n}. هلأ بيقدر يبصم`)})},
 staffPhoto(d){const st=S.staff.find(x=>x.id===+d.id); camSheet(`صورة ${st.name}`,'صورة مرجعية جديدة',false,async cv=>{const id='r'+Date.now(), data=cv.toDataURL('image/jpeg',.75); await idb('readwrite',s=>s.put(data,id)); REFS[id]=data; st.ref=id; save(); closeSheet(); render(); toast('انحدّثت الصورة')})},
 async staffView(d){const st=S.staff.find(x=>x.id===+d.id), ps=S.punches.filter(p=>p.staffId===st.id).slice(-30).reverse(), ref=await idb('readonly',s=>s.get(st.ref||'-')), imgs={};
-  await Promise.all(ps.map(async p=>{imgs[p.photo]=await idb('readonly',s=>s.get(p.photo))}));
+  await Promise.all(ps.filter(p=>p.photo).map(async p=>{imgs[p.photo]=await idb('readonly',s=>s.get(p.photo))}));
   openSheet(`${sheetHead(st.name)}<div class="row">${ref?`<img src="${ref}" alt="الصورة المرجعية" style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)">`:''}<span class="muted" style="flex:1">قارن صورة كل بصمة بالصورة المرجعية. لو في بصمة مش إله احذفها.</span></div>
-    <div class="list">${ps.map(p=>`<div class="li"><span class="pair">${imgs[p.photo]?`<img src="${imgs[p.photo]}" alt="">`:''}</span><span style="flex:1"><span class="t">${p.type==='in'?'دخول':'خروج'} · <span class="num">${hm(p.ts)}</span></span><br><span class="muted">${new Date(p.ts).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}${p.dist!=null?` · ${p.far?'⚠ بعيد':'بالمحل'} (${p.dist} م)`:''}</span></span><button class="btn sm danger" data-act="punchDel" data-id="${p.id}" data-s="${st.id}">حذف</button></div>`).join('')||'<div class="empty">لا بصمات</div>'}</div>
+    <div class="list">${ps.map(p=>`<div class="li"><span class="pair">${imgs[p.photo]?`<img src="${imgs[p.photo]}" alt="">`:''}</span><span style="flex:1"><span class="t">${p.type==='in'?'دخول':'خروج'} · <span class="num">${hm(p.ts)}</span>${p.method==='finger'?' · بصمة إصبع':''}</span><br><span class="muted">${new Date(p.ts).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}${p.dist!=null?` · ${p.far?'⚠ بعيد':'بالمحل'} (${p.dist} م)`:''}</span></span><button class="btn sm danger" data-act="punchDel" data-id="${p.id}" data-s="${st.id}">حذف</button></div>`).join('')||'<div class="empty">لا بصمات</div>'}</div>
+    <div class="card" style="gap:8px"><div class="row"><h2>بصمة الإصبع</h2><span class="pill ${st.cred?'ok':'warn'}">${st.cred?'مسجّلة':'مش مسجّلة'}</span></div>
+      ${st.cred?`<button class="btn sm" data-act="fpRemove" data-id="${st.id}">إزالة البصمة</button>`:`<button class="btn accent" data-act="fpEnroll" data-id="${st.id}">تسجيل بصمة ${esc(st.name)}</button><p class="muted" style="margin:0">العامل بيحط إصبعه على جوال المحل. لازم تكون بصمته مضافة على الجوال من إعدادات الأمان.</p>`}</div>
     <div class="grid2"><button class="btn" data-act="staffPhoto" data-id="${st.id}">تغيير الصورة</button><button class="btn danger" data-act="delStaff" data-id="${st.id}">حذف العامل</button></div>`)},
-punchDel(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p){idb('readwrite',s=>s.delete(p.photo)); audit(`حذف بصمة ${p.type==='in'?'دخول':'خروج'} ${hm(p.ts)}`)} save(); render(); A.staffView({id:d.s})},
+punchDel(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p){if(p.photo) idb('readwrite',s=>s.delete(p.photo)); audit(`حذف بصمة ${p.type==='in'?'دخول':'خروج'} ${hm(p.ts)}`)} save(); render(); A.staffView({id:d.s})},
 addStaff(){const n=$('#stfN').value.trim(), pin=$('#stfP').value.trim(), w=parseFloat($('#stfW').value)||0;
   if(!n){toast('اكتب اسم العامل');return} if(!/^\d{4}$/.test(pin)){toast('رمز العامل 4 أرقام');return} if(S.staff.some(x=>x.pin===pin)){toast('هالرمز مستخدم لعامل ثاني');return}
   S.staff.push({id:S.nextId++,name:n,pin,wage:r2(w)}); audit(`إضافة عامل ${n}`); save(); render(); toast(`انضاف ${n}`)},
@@ -1441,7 +1477,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','staffNew','staffRef','staffPhoto','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
