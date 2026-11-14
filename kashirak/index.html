@@ -52,7 +52,7 @@ header h1 b{color:#E6C878;font-weight:700}
 header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .modebtn{background:rgba(255,255,255,.08);color:#F7F1E1;border:1px solid rgba(230,200,120,.6);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap}
 main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
-nav{display:grid;grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav{display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 nav button{background:none;border:0;padding:8px 2px 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:var(--muted);cursor:pointer}
 nav button svg{width:22px;height:22px}
 nav button[aria-current="page"]{color:var(--gold-deep);font-weight:600}
@@ -169,6 +169,20 @@ video{width:100%;border-radius:12px;background:#000;max-height:260px;object-fit:
 .card2{border:1px solid var(--line);border-radius:12px;padding:10px 12px;align-items:flex-start!important;cursor:pointer}
 .card2:has(input:checked){border-color:var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--surface))}
 .card2 input{margin-top:2px;flex:none}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.wcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;box-shadow:var(--shadow);font:inherit;color:var(--ink)}
+.wcard.in{border:2px solid var(--good)}
+.wimg{width:92px;height:92px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#16325A,#0B1F3A);display:flex;align-items:center;justify-content:center;border:3px solid var(--gold)}
+.wimg img{width:100%;height:100%;object-fit:cover}
+.wimg span{color:#E6C878;font-family:var(--display);font-size:36px;font-weight:700}
+.wcard b{font-family:var(--display);font-size:16px}
+.camwrap{position:relative}
+.camwrap video{transform:scaleX(-1);width:100%;max-height:360px;border-radius:18px;border:3px solid var(--gold);object-fit:cover;background:#000}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:96px;font-weight:700;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);pointer-events:none}
+.okshot{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.okshot img{width:200px;height:200px;object-fit:cover;border-radius:50%;border:5px solid var(--good)}
+.okshot .big{font-family:var(--display);font-size:24px;font-weight:700}
+.pair{display:flex;gap:6px}.pair img{width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid var(--line)}
 #printArea{display:none}
 @media print{
   @page{size:58mm auto;margin:0}
@@ -222,14 +236,15 @@ const ICON={
  sell:'<path d="M3 5h2l2.5 11h10L20 8H7M9 20a1 1 0 1 0 0-.01M17 20a1 1 0 1 0 0-.01"/>',
  items:'<path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8"/>',
  debts:'<path d="M5 3h12a2 2 0 0 1 2 2v16l-4-2-4 2-4-2-2 1zM9 8h6M9 12h6"/>',
- more:'<path d="M4 6h16M4 12h16M4 18h16"/>'
+ more:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ staff:'<circle cx="10" cy="8" r="4"/><path d="M3 21c1.2-4 4-6 7-6 1.6 0 3 .5 4.2 1.4M15.5 18.5l2 2 4-4"/>'
 };
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
  users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',tag:'<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
  cash:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',wallet:'<path d="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><path d="M16 14h.01"/>',
  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
-const TABS=[['home','الرئيسية'],['items','الأصناف'],['sell','بيع'],['debts','الديون'],['more','المزيد']];
+const TABS=[['home','الرئيسية'],['items','الأصناف'],['sell','بيع'],['staff','العمال'],['debts','الديون'],['more','المزيد']];
 
 /* ---------- barcode: EAN-13 maths and drawing (pure) ---------- */
 const EAN_L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
@@ -470,6 +485,36 @@ const distM=(a,b)=>{const R=6371e3,t=x=>x*Math.PI/180,dl=t(b.lat-a.lat),dn=t(b.l
 const getPos=()=>new Promise(res=>{try{navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)}),()=>res(null),{enableHighAccuracy:true,timeout:8000,maximumAge:60000})}catch(e){res(null)}});
 const SELF={stream:null,staff:null};
 function stopSelf(){if(SELF.stream){SELF.stream.getTracks().forEach(t=>t.stop());SELF.stream=null}}
+const REFS={};
+function refImg(st){ if(!st.ref) return ''; if(REFS[st.ref]!==undefined) return REFS[st.ref]||'';
+  REFS[st.ref]=null; idb('readonly',s=>s.get(st.ref)).then(d=>{REFS[st.ref]=d||''; if(tab==='staff') render()}); return ''}
+const CAM={stream:null,cb:null,timer:null};
+function camStop(){clearInterval(CAM.timer);CAM.timer=null;if(CAM.stream){CAM.stream.getTracks().forEach(t=>t.stop());CAM.stream=null}}
+function canvasFrom(src,w,h,mirror){const k=Math.min(1,560/w),c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);const g=c.getContext('2d');if(mirror){g.translate(c.width,0);g.scale(-1,1)}g.drawImage(src,0,0,c.width,c.height);return c}
+async function camSheet(title,hint,auto,cb){
+  stopLive(); camStop(); CAM.cb=cb;
+  openSheet(`${sheetHead(title,'camCancel')}<div class="camwrap"><video id="camVid" playsinline muted autoplay></video><div class="count" id="camCount"></div></div>
+    <p class="muted" id="camMsg" style="margin:0;text-align:center">${hint}</p>
+    ${auto?'':'<button class="btn accent block" data-act="camShot">التقاط الصورة</button>'}
+    <label class="btn block" for="camFile" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center">الكاميرا ما اشتغلت؟ صوّر من هون</label><input id="camFile" type="file" accept="image/*" capture="user" hidden>`);
+  try{CAM.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720}},audio:false}); const v=$('#camVid'); if(!v){camStop();return} v.srcObject=CAM.stream; await v.play();
+    if(auto){let n=3; const c=$('#camCount'); c.textContent=n; CAM.timer=setInterval(()=>{n--; if(n>0){c.textContent=n; beep(true)} else {clearInterval(CAM.timer); c.textContent=''; A.camShot()}},800)}}
+  catch(e){const m=$('#camMsg'); if(m) m.textContent='الكاميرا المباشرة مش متاحة. اضغط الزر وصوّر بكاميرا الجوال.'}
+}
+async function punchFor(st,cv){
+  const lp=lastPunch(st.id), type=lp&&lp.type==='in'&&sod(lp.ts)===sod()?'out':'in';
+  const id='p'+Date.now(), data=cv.toDataURL('image/jpeg',.72); await idb('readwrite',s=>s.put(data,id));
+  const punch={id:Date.now(),staffId:st.id,type,ts:Date.now(),photo:id,lat:null,lng:null,dist:null,far:false};
+  S.punches.push(punch); save(); beep(true);
+  const hrs=type==='out'&&lp?r2((punch.ts-lp.ts)/36e5):0, hh=Math.floor(hrs), mm=Math.round((hrs-hh)*60);
+  openSheet(`<div class="okshot"><img src="${data}" alt=""><div class="big" style="color:var(--good)">✓ ${esc(st.name)}</div>
+    <div class="big">${type==='in'?'دخل':'روّح'} الساعة <span class="num">${hm(punch.ts)}</span></div>
+    ${type==='out'?`<p class="muted" style="margin:0">اشتغل اليوم <span class="num">${hh}:${String(mm).padStart(2,'0')}</span> ساعة</p>`:`<p class="muted" style="margin:0">${type==='in'?'يعطيك العافية، دوام موفّق':''}</p>`}
+    <button class="btn danger" data-act="punchUndo" data-id="${punch.id}">مش أنا، إلغاء البصمة</button></div>`);
+  clearTimeout(punchFor.t); punchFor.t=setTimeout(()=>{if($('#sheet').classList.contains('open')&&$('[data-act=punchUndo]')){closeSheet(); render(); syncLive()}},4000);
+  getPos().then(pos=>{if(!pos) return; punch.lat=pos.lat; punch.lng=pos.lng; if(S.shopLoc){punch.dist=distM(pos,S.shopLoc); punch.far=punch.dist>150} save(); if(tab==='staff') render()});
+  render();
+}
 async function savePunch(type,canvas){
   const st=S.staff.find(x=>x.id===SELF.staff); stopSelf(); const msg=$('#selfMsg'); if(msg) msg.textContent='جارٍ تسجيل البصمة…';
   const id='p'+Date.now(), data=canvas.toDataURL('image/jpeg',.7); await idb('readwrite',s=>s.put(data,id));
@@ -489,7 +534,7 @@ function smart(){
   S.customers.forEach(c=>{const ps=planStatus(c); if(ps&&ps.late&&balance(c)>0) out.push({p:1,ic:'users',t:`قسط متأخر على ${esc(c.name)}`,d:`${ps.late} دفعة متأخرة`,act:`data-act="party" data-kind="customers" data-id="${c.id}"`})});
   S.cheques.filter(q=>q.status==='pending').forEach(q=>{const t=new Date(q.due+'T00:00').getTime(); if(t<=now+3*DAY) out.push({p:t<now?0:1,ic:'wallet',t:`شيك ${q.dir==='in'?'وارد':'صادر'} ${t<now?'متأخر':'قرّب موعده'}`,d:`${esc(q.partyName||q.bank)} · ${money(q.amount)} · ${esc(q.due)}`,act:'data-act="openSub" data-s="chq"'})});
   if(isOwner()&&S.sales.some(s=>s.ts>now-7*DAY)&&(!S.lastWeekly||S.lastWeekly<now-7*DAY)) out.push({p:2,ic:'pdf',t:'تقرير الأسبوع جاهز',d:'كل يوم وكل سلة بأصنافها وأرباحها',act:'data-act="pdfGo" data-sel="summary,items,daily,att" data-per="week"'});
-  S.staff.forEach(st=>{const lp=lastPunch(st.id); if(lp&&lp.type==='in'&&sod(lp.ts)<sod()) out.push({p:2,ic:'users',t:`${esc(st.name)} ما بصم خروج`,d:`آخر دخول ${new Date(lp.ts).toLocaleDateString('ar',{weekday:'long'})} ${hm(lp.ts)}`,act:'data-act="openSub" data-s="att"'})});
+  S.staff.forEach(st=>{const lp=lastPunch(st.id); if(lp&&lp.type==='in'&&sod(lp.ts)<sod()) out.push({p:2,ic:'users',t:`${esc(st.name)} ما بصم خروج`,d:`آخر دخول ${new Date(lp.ts).toLocaleDateString('ar',{weekday:'long'})} ${hm(lp.ts)}`,act:'data-act="go" data-tab="staff"'})});
   const pend=S.sales.filter(s=>s.confirmed===false).length; if(pend&&isOwner()) out.push({p:1,ic:'wallet',t:`${pend} تحويل بانتظار التأكيد`,d:'تأكد إنها وصلت حسابك',act:'data-act="openSub" data-s="cash"'});
   if(isOwner()&&(!S.lastBackup||S.lastBackup<now-7*DAY)&&S.sales.length) out.push({p:3,ic:'gear',t:'نزّل نسخة احتياطية',d:S.lastBackup?`آخر نسخة من ${Math.floor((now-S.lastBackup)/DAY)} يوم`:'ما في نسخة لسا',act:'data-act="bkFile"'});
   return out.sort((a,b)=>a.p-b.p).slice(0,6);
@@ -526,7 +571,7 @@ let iq='', tab='home', carts=[0,1,2].map(()=>newCart()), ci=0, period='today', s
 const cart=()=>carts[ci];
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400)}
 function openSheet(html){$('#sheetBox').innerHTML=html;$('#sheet').classList.add('open')}
-function closeSheet(){$('#sheet').classList.remove('open'); if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
+function closeSheet(){$('#sheet').classList.remove('open'); if(typeof CAM!=='undefined'&&CAM.stream){camStop(); setTimeout(syncLive,50)} if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
 const sheetHead=(t,act='close')=>`<div class="row"><h2>${esc(t)}</h2><button class="btn sm" data-act="${act}">إغلاق</button></div>`;
 const stat=(l,v)=>`<div class="li"><span>${l}</span>${v}</div>`;
 const back=t=>`<div class="row"><h2>${t}</h2><button class="btn sm" data-act="sub" data-s="menu">رجوع</button></div>`;
@@ -542,7 +587,7 @@ home(){
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
   return `${installCard()}${ban}
-  ${S.staff.length?`<button class="pdfhero" data-act="punchStart"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>دخول أو خروج بسيلفي ورمز العامل</span></span><span class="chev">‹</span></button>`:''}
+  ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl"><div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
     ${isOwner()?`<div class="tile"><div class="lbl">ربح اليوم بعد المصروفات</div><div class="val">${money(t.net)}</div></div>`:`<div class="tile"><div class="lbl">وضع الكاشير</div><div class="val" style="font-size:16px">الأرباح مخفية</div></div>`}
@@ -614,6 +659,21 @@ items(){
     return `<button class="li" data-act="editItem" data-id="${i.id}">
       <span><span class="t">${esc(i.name)}</span><br><span class="muted">${isOwner()?`تكلفة ${fx(i.cost)} · `:''}بيع ${fx(i.price)} ₪${i.cartonSize>1?` · كرتونة ${i.cartonSize}`:''}${i.barcode?'':' · بدون باركود'}<br>مبيع آخر 30 يوم: <span class="num">${sold[i.id]||0}</span>${isOwner()&&sold[i.id]?` · ربح <span class="num">${fx(sold[i.id]*(i.price-i.cost))}</span> ₪`:''}</span></span>
       <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span><br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`;
+},
+staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
+  const cards=S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===t0, img=refImg(st);
+    return `<button class="wcard ${inNow?'in':''}" data-act="staffTap" data-id="${st.id}"><span class="wimg">${img?`<img src="${img}" alt="">`:`<span>${esc(st.name.trim()[0]||'؟')}</span>`}</span><b>${esc(st.name)}</b><span class="pill ${inNow?'ok':'warn'}">${inNow?'داوم من '+hm(lp.ts):'مش داوم'}</span></button>`}).join('');
+  return `<div class="card" style="text-align:center;gap:4px"><h2>بصمة العمال</h2><p class="muted" style="margin:0">اضغط على صورتك، والكاميرا بتصوّرك لحالها وبتسجّل الدخول أو الخروج.</p></div>
+  ${S.staff.length?`<div class="wgrid">${cards}</div>`:`<div class="empty">${isOwner()?'ضيف أول عامل من تحت':'ما في عمال مضافين. خلي صاحب المحل يضيفهم.'}</div>`}
+  ${isOwner()?`<button class="btn accent block" data-act="staffNew">إضافة عامل</button>
+  <div class="card"><h2>دوام اليوم</h2><div class="list">${S.staff.map(st=>{const d=attDays(st.id,t0)[0];return `<button class="li" data-act="staffView" data-id="${st.id}"><span><span class="t">${esc(st.name)}</span><br><span class="muted">${d?`دخول ${d.inP?hm(d.inP.ts):'—'} · خروج ${d.outP?hm(d.outP.ts):'—'}${d.hrs?` · ${fx(d.hrs)} ساعة`:''}`:'ما بصم اليوم'}</span></span><span class="chev" style="color:var(--gold-deep)">‹</span></button>`}).join('')||'<div class="empty">—</div>'}</div></div>
+  <div class="card"><h2>ساعات آخر 7 أيام</h2><div class="list">${S.staff.map(st=>{const ds=attDays(st.id,wk), hr=r2(ds.reduce((a,x)=>a+x.hrs,0));
+    return `<div class="li"><span><span class="t">${esc(st.name)}</span><br><span class="muted">${ds.filter(x=>x.inP).length} يوم دوام</span></span><span><span class="num" style="font-weight:700">${fx(hr)}</span> ساعة${st.wage?`<br>${money(hr*st.wage)}`:''}</span></div>`}).join('')||'<div class="empty">—</div>'}</div>
+    <button class="btn" data-act="pdfGo" data-sel="att" data-per="week">تقرير الدوام PDF</button></div>
+  <div class="card"><h2>إعدادات البصمة</h2>
+    <label class="chk" for="attPin"><input type="checkbox" id="attPin" ${S.attPin?'checked':''}>اطلب رمز العامل قبل التصوير</label>
+    <p class="muted" style="margin:0">${S.shopLoc?'موقع المحل محفوظ. البصمة من أبعد من 150 متر بتنعلّم.':'احفظ موقع المحل وانت فيه، عشان نعرف إذا حدا بصم من برّا.'}</p>
+    <button class="btn" data-act="setLoc">${S.shopLoc?'تحديث موقع المحل':'حفظ موقع المحل الحالي'}</button></div>`:''}`;
 },
 debts(){
   const total=r2(S.customers.reduce((a,c)=>a+balance(c),0));
@@ -1219,7 +1279,7 @@ savePhone(d){const c=S[d.kind].find(x=>x.id===+d.id); c.phone=$('#pPhone').value
 debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]), tot=r2(list.reduce((a,x)=>a+x[1],0));
   const txt=[`كشف ديون ${S.shop} · ${fdate(Date.now())}`,'',...list.map(([n,v])=>`${n}: ${fx(v)} ₪`),'',`المجموع: ${fx(tot)} ₪`].join('\n');
   openSheet(`${sheetHead('كشف الديون')}<textarea id="dlTxt" rows="10" readonly>${esc(txt)}</textarea><button class="btn primary block" data-act="copy" data-id="dlTxt">نسخ الكشف</button>`)},
-sub(d){sub=d.s; render(); $('#view').scrollTop=0},
+sub(d){if(d.s==='att'){tab='staff'; render(); $('#view').scrollTop=0; return} sub=d.s; render(); $('#view').scrollTop=0},
 period(d){period=d.p; render()},
 addExp(){const n=$('#exName').value.trim(), a=r2(parseFloat($('#exAmt').value)||0);
   if(!n||a<=0){toast('اكتب البيان والمبلغ');return} S.expenses.push({id:S.nextId++,ts:Date.now(),name:n,amt:a}); save(); render(); toast('تم حفظ المصروف')},
@@ -1231,29 +1291,33 @@ saveSet(){S.shop=$('#stShop').value.trim()||S.shop; const r=parseFloat($('#stRat
 bkOut(){const t=$('#bk'); t.value=JSON.stringify(S); copyBox('bk')},
 bkIn(){try{const o=JSON.parse($('#bk').value); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)||!Array.isArray(o.suppliers)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('النص ليس نسخة احتياطية صالحة')}},
 testBeep(){beep(true)},
+staffTap(d){const st=S.staff.find(x=>x.id===+d.id); if(!st) return;
+  const go=()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod(); camSheet(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`,'انظر للكاميرا، بتصوّرك لحالها بعد 3 ثواني',true,cv=>punchFor(st,cv))};
+  if(S.attPin&&st.pin){openSheet(`${sheetHead(st.name)}<label for="punPin">رمزك<input id="punPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label><button class="btn accent block" data-act="pinGo" data-id="${st.id}">متابعة</button>`); setTimeout(()=>{const f=$('#punPin'); if(f) f.focus()},60); A._pinNext=go; return}
+  go()},
+pinGo(d){const st=S.staff.find(x=>x.id===+d.id); if($('#punPin').value!==st.pin){beep(false); toast('الرمز غلط'); return} const g=A._pinNext; A._pinNext=null; if(g) g()},
+camShot(){const v=$('#camVid'); if(!v||!v.videoWidth){toast('الكاميرا لسا ما اشتغلت');return} const cv=canvasFrom(v,v.videoWidth,v.videoHeight,true); camStop(); const cb=CAM.cb; CAM.cb=null; if(cb) cb(cv)},
+camCancel(){camStop(); CAM.cb=null; closeSheet(); syncLive()},
+punchUndo(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p) idb('readwrite',s=>s.delete(p.photo)); save(); closeSheet(); render(); syncLive(); toast('انلغت البصمة، جرّب مرة ثانية')},
+staffNew(){openSheet(`${sheetHead('عامل جديد')}<label for="stfN">اسم العامل<input id="stfN" autocomplete="off"></label>
+  <div class="grid2"><label for="stfW">أجرة الساعة ₪<input id="stfW" type="number" inputmode="decimal" min="0" placeholder="اختياري"></label><label for="stfP">رمز 4 أرقام<input id="stfP" type="password" inputmode="numeric" maxlength="4" placeholder="اختياري" autocomplete="off"></label></div>
+  <p class="muted" style="margin:0">الخطوة الجاية: صورة مرجعية لوجه العامل، بتظهر على بطاقته وبتقارن فيها صور البصمة.</p>
+  <button class="btn accent block" data-act="staffRef">متابعة لتصوير العامل</button>`)},
+staffRef(){const n=$('#stfN').value.trim(), w=parseFloat($('#stfW').value)||0, pin=$('#stfP').value.trim();
+  if(!n){toast('اكتب اسم العامل');return} if(pin&&!/^\d{4}$/.test(pin)){toast('الرمز 4 أرقام');return} if(pin&&S.staff.some(x=>x.pin===pin)){toast('الرمز مستخدم لعامل ثاني');return}
+  camSheet(`صورة ${n}`,'خلّي وجه العامل بنص الصورة واضغط التقاط',false,async cv=>{const id='r'+Date.now(), data=cv.toDataURL('image/jpeg',.75); await idb('readwrite',s=>s.put(data,id)); REFS[id]=data;
+    S.staff.push({id:S.nextId++,name:n,pin,wage:r2(w),ref:id}); audit(`إضافة عامل ${n}`); save(); closeSheet(); tab='staff'; render(); syncLive(); toast(`انضاف ${n}. هلأ بيقدر يبصم`)})},
+staffPhoto(d){const st=S.staff.find(x=>x.id===+d.id); camSheet(`صورة ${st.name}`,'صورة مرجعية جديدة',false,async cv=>{const id='r'+Date.now(), data=cv.toDataURL('image/jpeg',.75); await idb('readwrite',s=>s.put(data,id)); REFS[id]=data; st.ref=id; save(); closeSheet(); render(); toast('انحدّثت الصورة')})},
+async staffView(d){const st=S.staff.find(x=>x.id===+d.id), ps=S.punches.filter(p=>p.staffId===st.id).slice(-30).reverse(), ref=await idb('readonly',s=>s.get(st.ref||'-')), imgs={};
+  await Promise.all(ps.map(async p=>{imgs[p.photo]=await idb('readonly',s=>s.get(p.photo))}));
+  openSheet(`${sheetHead(st.name)}<div class="row">${ref?`<img src="${ref}" alt="الصورة المرجعية" style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)">`:''}<span class="muted" style="flex:1">قارن صورة كل بصمة بالصورة المرجعية. لو في بصمة مش إله احذفها.</span></div>
+    <div class="list">${ps.map(p=>`<div class="li"><span class="pair">${imgs[p.photo]?`<img src="${imgs[p.photo]}" alt="">`:''}</span><span style="flex:1"><span class="t">${p.type==='in'?'دخول':'خروج'} · <span class="num">${hm(p.ts)}</span></span><br><span class="muted">${new Date(p.ts).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}${p.dist!=null?` · ${p.far?'⚠ بعيد':'بالمحل'} (${p.dist} م)`:''}</span></span><button class="btn sm danger" data-act="punchDel" data-id="${p.id}" data-s="${st.id}">حذف</button></div>`).join('')||'<div class="empty">لا بصمات</div>'}</div>
+    <div class="grid2"><button class="btn" data-act="staffPhoto" data-id="${st.id}">تغيير الصورة</button><button class="btn danger" data-act="delStaff" data-id="${st.id}">حذف العامل</button></div>`)},
+punchDel(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p){idb('readwrite',s=>s.delete(p.photo)); audit(`حذف بصمة ${p.type==='in'?'دخول':'خروج'} ${hm(p.ts)}`)} save(); render(); A.staffView({id:d.s})},
 addStaff(){const n=$('#stfN').value.trim(), pin=$('#stfP').value.trim(), w=parseFloat($('#stfW').value)||0;
   if(!n){toast('اكتب اسم العامل');return} if(!/^\d{4}$/.test(pin)){toast('رمز العامل 4 أرقام');return} if(S.staff.some(x=>x.pin===pin)){toast('هالرمز مستخدم لعامل ثاني');return}
   S.staff.push({id:S.nextId++,name:n,pin,wage:r2(w)}); audit(`إضافة عامل ${n}`); save(); render(); toast(`انضاف ${n}`)},
 async setLoc(){toast('جارٍ تحديد الموقع…'); const p=await getPos(); if(!p){toast('ما قدرنا نحدد الموقع. اسمح بالموقع وجرّب ثاني');return} S.shopLoc=p; audit('تحديث موقع المحل'); save(); render(); toast(`انحفظ موقع المحل (دقة ${p.acc} متر)`)},
-punchStart(){if(!S.staff.length){tab='more';sub='att';render();toast('ضيف العمال أولًا');return}
-  openSheet(`${sheetHead('بصمة العمال')}<p class="muted" style="margin:0">اختار اسمك واكتب رمزك.</p><div class="chips">${S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===sod();return `<button class="chip" data-act="punchWho" data-id="${st.id}" aria-pressed="${SELF.staff===st.id}">${esc(st.name)}${inNow?' ·  داوم':''}</button>`}).join('')}</div>
-    <label for="punPin">رمز العامل<input id="punPin" type="password" inputmode="numeric" autocomplete="off" maxlength="4"></label><button class="btn accent block" data-act="punchCam">متابعة للسيلفي</button>`)},
-punchWho(d){SELF.staff=+d.id; document.querySelectorAll('[data-act=punchWho]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===d.id)); const f=$('#punPin'); if(f) f.focus()},
-async punchCam(){const st=S.staff.find(x=>x.id===SELF.staff); if(!st){toast('اختار اسمك');return} if($('#punPin').value!==st.pin){toast('الرمز غلط');beep(false);return}
-  const lp=lastPunch(st.id), type=lp&&lp.type==='in'&&sod(lp.ts)===sod()?'out':'in';
-  stopLive();
-  openSheet(`${sheetHead(`${type==='in'?'بصمة دخول':'بصمة خروج'} · ${st.name}`,'punchCancel')}
-    <video id="selfVid" playsinline muted autoplay style="transform:scaleX(-1);max-height:340px;border-radius:16px;border:3px solid var(--gold)"></video>
-    <p class="muted" id="selfMsg" style="margin:0;text-align:center">خلّي وجهك بنص الصورة</p>
-    <button class="btn accent block" data-act="punchShot" data-type="${type}">التقاط وتسجيل ${type==='in'?'الدخول':'الخروج'}</button>
-    <label class="btn block" for="selfFile" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center">أو صوّر بكاميرا الجوال</label><input id="selfFile" type="file" accept="image/*" capture="user" hidden data-type="${type}">`);
-  try{SELF.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640}},audio:false}); const v=$('#selfVid'); v.srcObject=SELF.stream; await v.play()}catch(e){const m=$('#selfMsg'); if(m) m.textContent='الكاميرا المباشرة مش متاحة، استعمل زر «صوّر بكاميرا الجوال»'}},
-punchCancel(){stopSelf(); closeSheet(); syncLive()},
-punchShot(d){const v=$('#selfVid'); if(!v||!v.videoWidth){toast('الكاميرا لسا ما اشتغلت');return} const c=document.createElement('canvas'), k=Math.min(1,480/v.videoWidth); c.width=Math.round(v.videoWidth*k); c.height=Math.round(v.videoHeight*k);
-  const g=c.getContext('2d'); g.translate(c.width,0); g.scale(-1,1); g.drawImage(v,0,0,c.width,c.height); savePunch(d.type,c)},
-staffView(d){const st=S.staff.find(x=>x.id===+d.id), ps=S.punches.filter(p=>p.staffId===st.id).slice(-30).reverse();
-  openSheet(`${sheetHead(st.name)}<div class="list">${ps.map(p=>`<div class="li"><span><span class="t">${p.type==='in'?'دخول':'خروج'} · ${hm(p.ts)}</span><br><span class="muted">${new Date(p.ts).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}${p.dist!=null?` · ${p.far?'⚠ ':''}بعيد ${p.dist} م`:' · بدون موقع'}</span></span>${p.photo?`<button class="btn sm" data-act="viewPhoto" data-id="${p.photo}">السيلفي</button>`:''}</div>`).join('')||'<div class="empty">لا بصمات</div>'}</div>
-    ${isOwner()?`<button class="btn danger" data-act="delStaff" data-id="${st.id}">حذف العامل</button>`:''}`)},
 delStaff(d){const st=S.staff.find(x=>x.id===+d.id); S.staff=S.staff.filter(x=>x.id!==+d.id); audit(`حذف عامل ${st.name}`); save(); closeSheet(); render()},
 install(){ if(INSTALL){INSTALL.prompt(); INSTALL.userChoice.then(r=>{if(r&&r.outcome==='accepted') toast('جارٍ التثبيت…'); INSTALL=null; render()}).catch(()=>{}); return}
   const ua=navigator.userAgent||'', ios=/iPhone|iPad|iPod/i.test(ua), inApp=/FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)|Snapchat|TikTok/i.test(ua), url=location.href.split('#')[0];
@@ -1377,7 +1441,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','staffNew','staffRef','staffPhoto','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -1402,6 +1466,8 @@ document.addEventListener('change',e=>{
     if(w<=0) toast('اكتب وزنًا أكبر من صفر'); else if(w>it.qty) toast(`المتوفر ${qtyTxt(it)} فقط`); else l.count=w; render()}
   if(t.classList&&t.classList.contains('pdfchk')){t.checked?pdfSel.add(t.dataset.k):pdfSel.delete(t.dataset.k); render(); return}
   if(t.id==='pdfFrom'||t.id==='pdfTo'){if(t.id==='pdfFrom')pdfFrom=t.value;else pdfTo=t.value; render(); return}
+  if(t.id==='attPin'){S.attPin=t.checked; save(); return}
+  if(t.id==='camFile'&&t.files&&t.files[0]){const im=new Image(),u=URL.createObjectURL(t.files[0]); im.onload=()=>{const cv=canvasFrom(im,im.width,im.height,false); URL.revokeObjectURL(u); camStop(); const cb=CAM.cb; CAM.cb=null; if(cb) cb(cv)}; im.src=u; t.value=''; return}
   if(t.id==='selfFile'&&t.files&&t.files[0]){const im=new Image(),u=URL.createObjectURL(t.files[0]),type=t.dataset.type; im.onload=()=>{const k=Math.min(1,480/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);savePunch(type,c)};im.src=u;return}
   if(t.id==='pPhoto'&&t.files&&t.files[0]){const im=new Image(), u=URL.createObjectURL(t.files[0]); im.onload=()=>{const k=Math.min(1,1400/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
       c.getContext('2d').drawImage(im,0,0,c.width,c.height); PHOTO.data=c.toDataURL('image/jpeg',.72); PHOTO.id=''; URL.revokeObjectURL(u); render(); toast('تم حفظ صورة الفاتورة')}; im.src=u; t.value=''; return}
