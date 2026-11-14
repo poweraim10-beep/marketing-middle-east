@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>درع المجد</title>
+<title>توصيلة المجد</title>
 <link rel="manifest" href="/majd/manifest.webmanifest">
 <meta name="theme-color" content="#34486a">
 <link rel="icon" type="image/png" href="/majd/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/majd/icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="درع المجد">
+<meta name="apple-mobile-web-app-title" content="توصيلة المجد">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -470,11 +470,12 @@ nav.tabbar.nofab .in{padding-inline-start:0}
         <div class="brand">
           <svg class="logo" viewBox="0 0 48 48" aria-hidden="true">
             <rect width="48" height="48" rx="15" fill="#34486a"/>
-            <path d="M24 7l13 4.5V23c0 2.4-.5 4.8-1.5 7-1.2 2.4-3 4.4-5 6L24 41l-6.5-5c-2-1.6-3.8-3.6-5-6-1-2.2-1.5-4.6-1.5-7V11.5z" fill="#f5891f"/>
-            <path d="M24 10.5l9.8 3.5V23c0 1.9-.4 3.8-1.2 5.6-.9 1.8-2.3 3.4-4 4.8L24 37l-4.6-3.6c-1.7-1.4-3.1-3-4-4.8-.8-1.8-1.2-3.7-1.2-5.6v-9z" fill="#34486a"/>
-            <path d="M18.6 23.6l3.8 4 7.2-8.8" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M33 35 C 24 35, 27 24, 20 24 S 14 22, 14 20" fill="none" stroke="#f5b31f" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="0.01 5.4"/>
+            <rect x="30" y="30" width="10" height="10" rx="3" fill="#f5891f"/>
+            <path d="M14 6.5a6.6 6.6 0 0 0-6.6 6.6c0 4.9 6.6 11.2 6.6 11.2s6.6-6.3 6.6-11.2A6.6 6.6 0 0 0 14 6.5z" fill="#ffffff"/>
+            <circle cx="14" cy="13.1" r="2.4" fill="#34486a"/>
           </svg>
-          <div class="wordmark"><span id="brandName">درع المجد</span><span class="dot">.</span><small id="storeTitle">شركة المجد لمكافحة الحشرات</small></div>
+          <div class="wordmark"><span id="brandName">توصيلة المجد</span><span class="dot">.</span><small id="storeTitle">شركة المجد لمكافحة الحشرات</small></div>
         </div>
         <div class="seg" id="roleSeg" hidden>
           <button type="button" data-role="seller" id="roleSeller">البائع</button>
@@ -849,10 +850,10 @@ function render(){
 
 function setBrand(){
   const n=S.settings.storeName||"";
-  $("#brandName").textContent = "درع المجد";
+  $("#brandName").textContent = "توصيلة المجد";
   document.querySelector(".wordmark").classList.remove("long");
   $("#storeTitle").textContent = n || "شركة المجد لمكافحة الحشرات";
-  document.title = "درع المجد";
+  document.title = "توصيلة المجد";
 }
 function renderDriverGate(){
   $("#fab").hidden=true;
@@ -882,10 +883,10 @@ function renderLogin(){
   $("#fab").hidden=true;
   document.querySelector("nav.tabbar").hidden=true; $("#strip").hidden=true; $("#roleSeg").hidden=true;
   const p=S.pub;
-  $("#brandName").textContent="درع المجد";
+  $("#brandName").textContent="توصيلة المجد";
   document.querySelector(".wordmark").classList.remove("long");
   $("#storeTitle").textContent=(p&&p.storeName)||"شركة المجد لمكافحة الحشرات";
-  $("#hello").innerHTML='أهلاً في «درع المجد»<span>نظام الطلبات والتوصيل والمخزون</span>';
+  $("#hello").innerHTML='أهلاً في «توصيلة المجد»<span>نظام الطلبات والتوصيل والمخزون</span>';
   const sig="login|"+(S.resetMode?1:0)+"|"+(S.lmode||"")+"|"+(S.dgSel||"")+"|"+(S.gateErr||"")+"|"+(p?JSON.stringify(p):"")+"|"+(S.busy?1:0);
   if(S.gateSig===sig && $("#main .login")) return; S.gateSig=sig;
   let h='<div class="login">';
@@ -1596,7 +1597,7 @@ function renderInstall(){
   const box=$("#installBox"); if(!box) return;
   let dismissed=false; try{ dismissed=localStorage.getItem("majd_install_x")==="1"; }catch(e){}
   if(isStandalone()||dismissed||(!deferredInstall&&!isIOS())){ box.innerHTML=""; return; }
-  box.innerHTML='<div class="install"><img src="/majd/icons/icon-192.png" alt=""><div><b>ثبّت تطبيق «درع المجد»</b><small>'+(deferredInstall?"بيصير على شاشة جوالك متل أي تطبيق":"من زر المشاركة ⬆️ اختار «إضافة إلى الشاشة الرئيسية»")+'</small></div>'+(deferredInstall?'<button type="button" class="ibtn" data-install="1">تثبيت</button>':'')+'<button type="button" class="ix" data-installx="1" aria-label="إخفاء">×</button></div>';
+  box.innerHTML='<div class="install"><img src="/majd/icons/icon-192.png" alt=""><div><b>ثبّت تطبيق «توصيلة المجد»</b><small>'+(deferredInstall?"بيصير على شاشة جوالك متل أي تطبيق":"من زر المشاركة ⬆️ اختار «إضافة إلى الشاشة الرئيسية»")+'</small></div>'+(deferredInstall?'<button type="button" class="ibtn" data-install="1">تثبيت</button>':'')+'<button type="button" class="ix" data-installx="1" aria-label="إخفاء">×</button></div>';
 }
 window.addEventListener("beforeinstallprompt",e=>{ e.preventDefault(); deferredInstall=e; renderInstall(); });
 window.addEventListener("appinstalled",()=>{ deferredInstall=null; renderInstall(); toast("تم تثبيت التطبيق 👌"); });
