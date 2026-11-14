@@ -459,6 +459,9 @@ nav.tabbar.nofab .in{padding-inline-start:0}
 #installBox:empty{display:none}
 #installBox{margin-top:52px}
 #installBox:not(:empty)+#banner{margin-top:10px}
+.dhead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dhead .btn{padding:6px 10px;font-size:.8rem}
+.addp{border:1.5px dashed var(--orange);background:#fffaf4}
 </style>
 </head>
 <body>
@@ -509,12 +512,7 @@ const STATUS = {
   cancelled: {t:"ملغي",            c:"var(--grey)"}
 };
 const ACTIVE = ["new","picked","onway","postponed"];
-const DEFAULT_AREAS = [
-  {name:"غزة - الرمال",fee:10},{name:"غزة - الشيخ رضوان",fee:10},{name:"غزة - الشجاعية",fee:10},
-  {name:"شمال غزة - جباليا",fee:15},{name:"شمال غزة - بيت لاهيا",fee:15},
-  {name:"الوسطى - النصيرات",fee:15},{name:"الوسطى - دير البلح",fee:15},{name:"الوسطى - الزوايدة",fee:15},
-  {name:"خانيونس",fee:20},{name:"خانيونس - المواصي",fee:20},{name:"رفح",fee:20}
-];
+const DEFAULT_AREAS = [{name:"غزة والشمال",fee:10},{name:"الجنوب",fee:12}];
 const PM = {bop:"بنك فلسطين", jawwal:"جوال باي", palpay:"بال باي", cash:"كاش معي (ما حوّلت)", bank:"تحويل بنكي", direct:"الزبون حوّل للمحل", other:"غير ذلك"};
 const PM_PICK = ["bop","jawwal","palpay","cash"];
 function paidIn(o){ if(!o.payMethod||o.payMethod==="cash") return 0; return o.transferAmount!=null&&o.transferAmount!=="" ? num(o.transferAmount) : calc(o).collect; }
@@ -698,7 +696,7 @@ function apiStore(){
       const st=await api("/state");
       const so=JSON.stringify(st.settings), po=JSON.stringify(st.products), oo=JSON.stringify(st.orders);
       const ch=(so!==last.s)||(po!==last.p)||(oo!==last.o)||!last.o;
-      if(so!==last.s){ last.s=so; S.settings=st.settings||{}; }
+      if(so!==last.s){ last.s=so; S.settings=st.settings||{}; const typing=document.activeElement&&document.activeElement.matches("input,textarea,select"); if(!(typing&&S.tab==="settings")) S.setAreas=null; }
       if(po!==last.p){ last.p=po; S.prodList=st.products||[]; }
       if(oo!==last.o||!last.o){ last.o=oo; cbs[0](st.orders); }
       else if(ch){ const typing=document.activeElement&&document.activeElement.matches("input,textarea,select"); if(!(typing&&(S.tab==="new"||S.tab==="settings"||S.tab==="products"))) render(); }
@@ -1274,24 +1272,36 @@ function renderSettings(){
   h+='<button type="button" class="btn ghost" data-addar="1">'+I("plus")+'منطقة</button>';
   h+='<button type="submit" class="btn dark big">'+I("check")+'حفظ الإعدادات</button>';
   h+='</form>';
-  if(drivers().length){
-    h+='<form class="card form" id="drvForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("bike")+'</span>الدليفري</h3>';
+  {
+    h+='<form class="card form" id="drvForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("bike")+'</span>الكباتن ('+drivers().length+')</h3>';
+    if(!drivers().length) h+='<p class="hint" style="margin:0">ما في كباتن لسا. أضف أول كابتن من تحت.</p>';
     drivers().forEach(d=>{
-      h+='<div class="dedit"><label for="dn_'+d.id+'">الاسم الكامل<input id="dn_'+d.id+'" name="dn_'+d.id+'" value="'+esc(d.name)+'"></label>';
+      h+='<div class="dedit"><div class="dhead"><b>'+esc(d.short||d.name)+'</b>'+(S.confirmDelP==="d:"+d.id?'<span class="row"><button type="button" class="btn danger" data-delp="d:'+esc(d.id)+'">تأكيد الحذف</button><button type="button" class="btn ghost" data-delpno="1">لا</button></span>':'<button type="button" class="btn danger" data-delp="d:'+esc(d.id)+'">'+I("trash")+'حذف</button>')+'</div><label for="dn_'+d.id+'">الاسم الكامل<input id="dn_'+d.id+'" name="dn_'+d.id+'" value="'+esc(d.name)+'"></label>';
       h+='<div class="grid2"><label for="ds_'+d.id+'">الاسم المختصر<input id="ds_'+d.id+'" name="ds_'+d.id+'" value="'+esc(d.short||"")+'"></label>';
       h+='<label for="dp_'+d.id+'">واتساب<input id="dp_'+d.id+'" name="dp_'+d.id+'" dir="ltr" inputmode="tel" placeholder="059xxxxxxx" value="'+esc(d.phone||"")+'"></label></div>';
       h+='<div class="grid2"><label for="dz_'+d.id+'">مسؤول عن<select id="dz_'+d.id+'" name="dz_'+d.id+'">'+areas().map(a=>'<option '+(d.zone===a.name?"selected":"")+'>'+esc(a.name)+'</option>').join("")+'</select></label>';
       h+='<label for="dpin_'+d.id+'">رقم سري '+(d.hasPin?"(مفعّل، اكتب جديد للتغيير)":"(لازم تحدده)")+'<input id="dpin_'+d.id+'" name="dpin_'+d.id+'" type="password" inputmode="numeric" autocomplete="new-password"></label></div></div>';
     });
-    h+='<button type="submit" class="btn dark">'+I("check")+'حفظ بيانات الدليفري</button></form>';
+    if(drivers().length) h+='<button type="submit" class="btn dark">'+I("check")+'حفظ تعديلات الكباتن</button>';
+    h+='</form>';
+    h+='<form class="card form addp" id="addDrvForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("plus")+'</span>إضافة كابتن جديد</h3>';
+    h+='<div class="grid2"><label for="nd_name">الاسم الكامل *<input id="nd_name" name="name" required></label><label for="nd_short">الاسم المختصر<input id="nd_short" name="short" placeholder="مثلاً: أبو محمد"></label></div>';
+    h+='<div class="grid2"><label for="nd_phone">واتساب<input id="nd_phone" name="phone" dir="ltr" inputmode="tel" placeholder="059xxxxxxx"></label><label for="nd_zone">مسؤول عن<select id="nd_zone" name="zone">'+areas().map(a=>'<option>'+esc(a.name)+'</option>').join("")+'</select></label></div>';
+    h+='<label for="nd_pin">الرقم السري * (4 أرقام أو أكثر)<input id="nd_pin" name="pin" type="password" inputmode="numeric" minlength="4" required autocomplete="new-password"></label>';
+    h+='<button type="submit" class="btn sf">'+I("plus")+'إضافة الكابتن</button></form>';
   }
   const stf=Array.isArray(S.settings.staff)?S.settings.staff:[];
-  h+='<form class="card form" id="stfForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("tag")+'</span>أصحاب الصفحات</h3>';
+  h+='<form class="card form" id="stfForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("tag")+'</span>أصحاب الصفحات ('+stf.length+')</h3>';
+  if(!stf.length) h+='<p class="hint" style="margin:0">ما في أصحاب صفحات لسا.</p>';
   stf.forEach(d=>{
-    h+='<div class="dedit"><div class="grid2"><label for="sn_'+d.id+'">الاسم<input id="sn_'+d.id+'" name="sn_'+d.id+'" value="'+esc(d.name)+'"></label>';
+    h+='<div class="dedit"><div class="dhead"><b>'+esc(d.name)+'</b>'+(S.confirmDelP==="s:"+d.id?'<span class="row"><button type="button" class="btn danger" data-delp="s:'+esc(d.id)+'">تأكيد الحذف</button><button type="button" class="btn ghost" data-delpno="1">لا</button></span>':'<button type="button" class="btn danger" data-delp="s:'+esc(d.id)+'">'+I("trash")+'حذف</button>')+'</div><div class="grid2"><label for="sn_'+d.id+'">الاسم<input id="sn_'+d.id+'" name="sn_'+d.id+'" value="'+esc(d.name)+'"></label>';
     h+='<label for="spin_'+d.id+'">رقم سري '+(d.hasPin?"(مفعّل، اكتب جديد للتغيير)":"(لازم تحدده)")+'<input id="spin_'+d.id+'" name="spin_'+d.id+'" type="password" inputmode="numeric" autocomplete="new-password"></label></div></div>';
   });
-  h+='<button type="submit" class="btn dark">'+I("check")+'حفظ أصحاب الصفحات</button></form>';
+  if(stf.length) h+='<button type="submit" class="btn dark">'+I("check")+'حفظ تعديلات أصحاب الصفحات</button>';
+  h+='</form>';
+  h+='<form class="card form addp" id="addStfForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("plus")+'</span>إضافة صاحب صفحة</h3>';
+  h+='<div class="grid2"><label for="ns_name">الاسم *<input id="ns_name" name="name" required></label><label for="ns_pin">الرقم السري *<input id="ns_pin" name="pin" type="password" inputmode="numeric" minlength="4" required autocomplete="new-password"></label></div>';
+  h+='<button type="submit" class="btn sf">'+I("plus")+'إضافة صاحب الصفحة</button></form>';
   h+='<form class="card form" id="pwForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("lock")+'</span>كلمة سر الأدمن</h3>';
   h+='<div class="grid2"><label for="pw_old">كلمة السر الحالية<input id="pw_old" name="oldpw" type="password" autocomplete="current-password"></label><label for="pw_new">كلمة السر الجديدة<input id="pw_new" name="newpw" type="password" autocomplete="new-password"></label></div>';
   h+='<button type="submit" class="btn dark">'+I("check")+'تغيير كلمة السر</button>';
@@ -1372,6 +1382,17 @@ document.addEventListener("click",async e=>{
   if(D.reset){ S.resetMode=!S.resetMode; S.gateErr=""; render(); return; }
   if(D.lmode){ S.lmode=D.lmode; S.dgSel=null; S.gateErr=""; render(); return; }
   if(D.retry){ S.pubErr=""; S.pub=null; render(); await loadPublic(); render(); return; }
+  if(D.delpno){ S.confirmDelP=null; render(); return; }
+  if(D.delp){
+    if(S.confirmDelP!==D.delp){ S.confirmDelP=D.delp; render(); return; }
+    S.confirmDelP=null;
+    const [kind,id]=[D.delp.slice(0,1),D.delp.slice(2)];
+    const strip=x=>{ const y=Object.assign({},x); delete y.hasPin; return y; };
+    const s=Object.assign({},S.settings, kind==="d" ? {drivers:drivers().filter(x=>x.id!==id).map(strip)} : {staff:staffList().filter(x=>x.id!==id).map(strip)});
+    const nm = kind==="d" ? dShort(id) : stName(id);
+    if(await safe(()=>store.saveSettings(s))){ await store.refresh(); toast("تم حذف "+nm); render(); }
+    return;
+  }
   if(D.accv){ S.accView=D.accv; S.confirmSettle=false; S.confirmSpay=null; if(S.tab!=="account"){ S.tab="account"; } render(); window.scrollTo(0,0); return; }
   if(D.src!==undefined){ S.srcFilter=D.src; render(); return; }
   if(D.spay){ S.confirmSpay=D.spay; render(); return; }
@@ -1522,6 +1543,20 @@ document.addEventListener("submit",async e=>{
     if(!(await safe(()=>store.saveSettings(s)))) return;
     for(const [id,pin] of pins){ if(!(await safe(()=>api("/driver-pin",{method:"PUT",body:{driverId:id,pin}})))) return; }
     await store.refresh(); toast(pins.length?"تم حفظ البيانات والأرقام السرية":"تم حفظ بيانات الدليفري"); render();
+    return;
+  }
+  if(e.target.id==="addDrvForm"||e.target.id==="addStfForm"){
+    const f=e.target, isD=f.id==="addDrvForm", name=f.name.value.trim(), pin=f.pin.value.trim();
+    if(!name){ toast("اكتب الاسم"); return; }
+    if(pin.length<4){ toast("الرقم السري لازم يكون 4 أرقام على الأقل"); return; }
+    const id=(isD?"d":"s")+Math.random().toString(36).slice(2,8);
+    const strip=x=>{ const y=Object.assign({},x); delete y.hasPin; return y; };
+    let s;
+    if(isD) s=Object.assign({},S.settings,{drivers:drivers().map(strip).concat([{id,name,short:f.short.value.trim()||name,phone:f.phone.value.trim(),zone:f.zone.value}])});
+    else s=Object.assign({},S.settings,{staff:staffList().map(strip).concat([{id,name}])});
+    if(!(await safe(()=>store.saveSettings(s)))) return;
+    if(!(await safe(()=>api("/driver-pin",{method:"PUT",body:isD?{driverId:id,pin}:{staffId:id,pin}})))) return;
+    await store.refresh(); f.reset(); toast("تمت إضافة "+name+" ✓"); render();
     return;
   }
   if(e.target.id==="stfForm"){
