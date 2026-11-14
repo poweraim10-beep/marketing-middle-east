@@ -881,6 +881,17 @@ a.mini-row:hover{background:rgba(37,99,235,.07)}
 .kitv-pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px;display:flex;flex-direction:column;align-items:center;gap:12px}
 .kitv-pages img{width:100%;max-width:820px;height:auto;aspect-ratio:595/842;border-radius:10px;background:#111827;box-shadow:0 8px 24px -12px #000}
 .kitv-foot{text-align:center;padding:10px 0 30px;color:#94a3b8;font-size:13px;max-width:520px}
+
+.inst-fab{position:fixed;bottom:16px;left:16px;z-index:60;display:flex;align-items:center;gap:6px;animation:fabIn .4s ease .8s both}
+.inst-fab [data-install]{border:0;cursor:pointer;font:inherit;font-weight:800;font-size:14px;color:#fff;padding:11px 16px;border-radius:999px;background:linear-gradient(90deg,#22d3ee,#2563eb);box-shadow:0 10px 28px -8px rgba(37,99,235,.9)}
+.inst-fab.mini [data-install]{padding:0;width:48px;height:48px;font-size:22px}.inst-fab.mini [data-install] span,.inst-fab.mini .inst-x{display:none}
+.inst-x{width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(6,10,22,.85);color:#cbd5e1;cursor:pointer;font-size:12px}
+@keyframes fabIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@media (min-width:900px){.inst-fab{display:none}}
+.ig{text-align:center}.ig-ic{width:64px;height:64px;border-radius:16px;margin:0 auto 8px;display:block}
+.ig-steps{text-align:right;margin:14px 0 6px;padding-right:22px;line-height:2.1;color:#e2e8f0}
+.ig-warn{background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.45);color:#fde68a;border-radius:12px;padding:10px 12px;margin-top:10px;font-size:14px;line-height:1.8;text-align:right}
+.ig-note{color:var(--mute);font-size:13px;margin-top:12px}
 </style>
 </head>
 <body><svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="fa-logo" viewBox="0 0 64 64"><defs>
@@ -1437,7 +1448,34 @@ function installCardHtml(){
     '<p style="margin-top:4px;font-size:12.5px;color:var(--mute)">إذا ما ظهر الزر: من كروم اضغط ⋮ ← «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</p></div>'+
     '<button class="btn-push" style="background:linear-gradient(90deg,#22d3ee,#2563eb);animation:none" data-install'+(INSTALL_EVT?'':' hidden')+'>📲 ثبّت التطبيق</button></div>';
 }
-document.addEventListener('click',function(ev){var b=ev.target.closest('[data-install]');if(!b||!INSTALL_EVT)return;ev.preventDefault();INSTALL_EVT.prompt();INSTALL_EVT.userChoice.then(function(){INSTALL_EVT=null})});
+document.addEventListener('click',function(ev){var b=ev.target.closest('[data-install]');if(!b)return;ev.preventDefault();if(!INSTALL_EVT){installGuide();return}INSTALL_EVT.prompt();INSTALL_EVT.userChoice.then(function(){INSTALL_EVT=null})});
+// install guide for everyone (also reachable as academy…/#/install): Android gets the real install prompt when the
+// browser offers one, otherwise the steps; iPhone gets the Safari steps; in-app browsers are told to open in Chrome/Safari
+var IN_APP=/FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Snapchat|TikTok|Line\/|; wv\)/i.test(navigator.userAgent);
+function installGuide(){
+  if(IS_STANDALONE){toast('التطبيق مثبّت عندك ومفتوح هلأ ✔');return}
+  var body;
+  if(IN_APP)body='<div class="ig-warn">⚠️ إنت فاتح الأكاديمية من جوا تطبيق ثاني (واتساب/إنستغرام)، ومن هون ما بينفع التثبيت.</div>'+
+    '<ol class="ig-steps"><li>اضغط <b>⋮</b> أو <b>…</b> فوق بالزاوية</li><li>اختار <b>«فتح في المتصفح»</b> أو <b>«Open in Chrome / Safari»</b></li><li>من هناك اضغط زر <b>«📲 ثبّت التطبيق»</b> مرة ثانية</li></ol>'+
+    '<button type="button" class="btn btn-g full" data-copylink>📋 انسخ رابط الأكاديمية</button>';
+  else if(IS_IOS)body='<ol class="ig-steps"><li>افتح الأكاديمية من متصفح <b>Safari</b></li><li>اضغط زر المشاركة <b>⬆️</b> بأسفل الشاشة</li><li>انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>اضغط <b>«إضافة»</b>، وبيصير عندك أيقونة الأكاديمية زي أي تطبيق ✅</li></ol>';
+  else if(INSTALL_EVT)body='<p class="mdl-sub">بضغطة وحدة بيصير عندك تطبيق الأكاديمية على شاشة جوالك، وبتفتح دوراتك منه على طول.</p><button type="button" class="btn-lux full" data-install style="margin-top:12px">📲 ثبّت التطبيق الآن</button>';
+  else body='<ol class="ig-steps"><li>افتح الأكاديمية من متصفح <b>Chrome</b></li><li>اضغط <b>⋮</b> فوق بالزاوية</li><li>اختار <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b></li><li>اضغط <b>«تثبيت»</b>، وبيصير عندك أيقونة الأكاديمية زي أي تطبيق ✅</li></ol>';
+  modal('<div class="ig"><img src="/icons/icon-192.png" alt="" class="ig-ic"><h3>📲 ثبّت تطبيق الأكاديمية على جوالك</h3>'+body+
+    '<p class="ig-note">التطبيق مجاني وما بياخذ مساحة، وبيوصلك عليه إشعار أول ما تنزل محاضرة جديدة 🔔</p></div>',function(ov,close){
+    var c=$('[data-copylink]',ov);if(c)c.addEventListener('click',function(){var u='https://academy.marketingmiddleeast.com';(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){toast('تم نسخ الرابط ✔ الصقه بكروم أو سفاري')},function(){prompt('انسخ الرابط:',u)})});
+    var i=$('[data-install]',ov);if(i)i.addEventListener('click',function(){close()});
+  });
+}
+function mountInstallFab(){
+  if(IS_STANDALONE||document.querySelector('.inst-fab'))return;
+  try{if(sessionStorage.getItem('mme_fab_off'))return}catch(e){}
+  var f=document.createElement('div');f.className='inst-fab';
+  f.innerHTML='<button type="button" data-install aria-label="ثبّت تطبيق الأكاديمية">📲<span> ثبّت تطبيق الأكاديمية</span></button><button type="button" class="inst-x" aria-label="إخفاء">✕</button>';
+  document.body.appendChild(f);setTimeout(function(){f.classList.add('mini')},9000);
+  $('.inst-x',f).addEventListener('click',function(){f.remove();try{sessionStorage.setItem('mme_fab_off','1')}catch(e){}});
+}
+mountInstallFab();
 function mountPushCard(where){
   if(!state.user)return;
   pushStatus().then(function(st){var el=$(where);if(!el)return;var h=pushCardHtml(st)+(where==='#nfPush'?'':installCardHtml());if(h)el.insertAdjacentHTML('afterbegin',h)});
@@ -2691,6 +2729,7 @@ function route(){
       case 'course':return viewCourse(r.arg,r.params);
       case 'admin':return viewAdmin(r.params);
       case 'terms':return viewTerms();
+      case 'install':go('#');setTimeout(installGuide,350);return;
       default:go('#');
     }
   };
