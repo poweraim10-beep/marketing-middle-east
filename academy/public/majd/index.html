@@ -484,6 +484,20 @@ nav.tabbar.nofab .in{padding-inline-start:0}
 .stepper.sm{border:0;background:#fff;border-radius:10px}
 .stepper.sm button{width:34px;height:32px}
 .stepper.sm b{min-width:22px;text-align:center}
+.today .tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.today .tgrid div{background:var(--surface2);border-radius:12px;padding:8px 2px}
+.today .tgrid b{display:block;font-size:.98rem}
+.today .tgrid span{font-size:.72rem;color:var(--muted)}
+.dayc{border-inline-start:5px solid var(--orange)}
+.dayc.done{border-inline-start-color:#16a34a}
+.dayh{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:none;border:0;padding:14px 16px;cursor:pointer;text-align:right}
+.dayh small{display:block;color:var(--muted);font-size:.76rem;font-weight:500}
+.dayv{text-align:left} .dayv b{font-size:1.05rem}
+.dayc.done .dayv small{color:#16a34a;font-weight:700}
+.dayb{padding:0 16px 14px;display:grid;gap:8px;border-top:1px solid var(--line)}
+.daysum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:.8rem;color:var(--muted);text-align:center}
+.daysum span{background:var(--surface2);border-radius:10px;padding:7px 2px}
+.daysum b{display:block;color:var(--ink);font-size:.95rem}
 </style>
 </head>
 <body>
@@ -555,7 +569,10 @@ function stockLeft(p){
 }
 function pkgText(p){ return (p.components||[]).filter(c=>num(c.qty)>0).map(c=>{ const q=products().find(x=>x.id===c.pid); return num(c.qty)+"× "+(q?q.name:"؟"); }).join(" + "); }
 function sumBy(list,f){ return list.reduce((s,o)=>s+f(o),0); }
-function owedOf(o){ return calc(o).collect - calc(o).fee - paidIn(o); }
+function dayKey(ts){ const d=new Date(ts||0); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function dayLabel(k){ const [y,m,d]=k.split("-").map(Number); const dt=new Date(y,m-1,d); const t=dayKey(Date.now()), yd=dayKey(Date.now()-864e5); return (k===t?"اليوم · ":k===yd?"مبارح · ":"")+dt.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}); }
+function owedOf(o){ return calc(o).collect - calc(o).fee; }
+function owedOfOld(o){ return calc(o).collect - calc(o).fee - paidIn(o); }
 const PAY = {cod:"نقداً عند الاستلام", prepaid:"مدفوع مسبقاً (جوال باي / تحويل)"};
 
 const P={
@@ -935,8 +952,19 @@ function renderLogin(){
   if(S.gateSig===sig && $("#main .login")) return; S.gateSig=sig;
   let h='<div class="login">';
   if(!p){ h+='<div class="card empty"><p>'+esc(S.pubErr?("ما قدرنا نوصل للسيرفر: "+S.pubErr):"جارِ التحميل…")+'</p>'+(S.pubErr?'<button type="button" class="btn sf" data-retry="1">إعادة المحاولة</button>':'')+'</div></div>'; $("#main").innerHTML=h; return; }
-  const mode=S.lmode||"driver";
-  h+='<div class="mode m3"><button type="button" class="'+(mode==="staff"?"on":"")+'" data-lmode="staff">أصحاب الصفحات</button><button type="button" class="'+(mode==="driver"?"on":"")+'" data-lmode="driver">الكباتن</button><button type="button" class="'+(mode==="admin"?"on":"")+'" data-lmode="admin">الإدارة</button></div>';
+  if(!S.lmode || S.lmode==="user"){
+    h+='<form class="card form gate" id="userForm" autocomplete="on"><div class="gicon">'+I("lock")+'</div><h2 class="gt">تسجيل الدخول</h2>';
+    h+='<label for="u_name">اسم المستخدم<input id="u_name" name="username" dir="ltr" autocapitalize="none" autocorrect="off" spellcheck="false" autocomplete="username" required></label>';
+    h+='<label for="u_pw">كلمة السر<input id="u_pw" name="password" type="password" dir="ltr" autocomplete="current-password" required></label>';
+    if(S.gateErr) h+='<div class="gerr">'+esc(S.gateErr)+'</div>';
+    h+='<button type="submit" class="btn sf big"'+(S.busy?" disabled":"")+'>'+I("lock")+(S.busy?"لحظة…":"دخول")+'</button>';
+    h+='<p class="hint" style="margin:0;text-align:center">اسم المستخدم وكلمة السر بتاخذهم من أبو عمر.</p></form>';
+    h+='<button type="button" class="btn ghost" data-lmode="admin">'+(p.adminSet?"نسيت كلمة سر الأدمن؟":"أول مرة: إنشاء كلمة سر الأدمن")+'</button>';
+    h+='</div>'; $("#main").innerHTML=h; const f=$("#u_name"); if(f&&!f.value) f.focus(); return;
+  }
+  const mode=S.lmode;
+  h+='<button type="button" class="btn ghost" data-lmode="user">'+I("back")+'رجوع لتسجيل الدخول</button>';
+  if(mode==="admin") S.resetMode=!!p.adminSet;
   if(mode==="admin"){
     const mg=p.manager||{name:"د. أيمن نصرالله"};
     const aw=S.adminWho||"admin";
@@ -1260,7 +1288,8 @@ function renderOverview(){
   h+='</div></div>';
   h+='<div class="card form"><h3 class="sec">'+I("bike")+'الكباتن</h3><div>';
   h+=drivers().map(d=>{ const L=S.orders.filter(o=>orderDriver(o)===d.id), open=L.filter(o=>o.status==="delivered"&&!o.settled);
-    return '<button type="button" class="prow3" data-accv="d:'+esc(d.id)+'"><span><b>'+esc(d.short||d.name)+'</b><small>'+esc(d.zone||"")+' · '+L.filter(o=>ACTIVE.includes(o.status)).length+' نشط · '+L.filter(o=>o.status==="delivered").length+' مسلّم</small></span><span class="pv"><b>'+money(sumBy(open,owedOf))+'</b><small>عليه للمحل</small></span></button>'; }).join("");
+    const td=L.filter(o=>o.status==="delivered"&&dayKey(o.deliveredAt)===dayKey(Date.now()));
+    return '<button type="button" class="prow3" data-accv="d:'+esc(d.id)+'"><span><b>'+esc(d.short||d.name)+'</b><small>'+esc(d.zone||"")+' · اليوم '+td.length+' طلب ('+money(sumBy(td,o=>calc(o).collect))+') · '+L.filter(o=>ACTIVE.includes(o.status)).length+' نشط</small></span><span class="pv"><b>'+money(sumBy(open,owedOf))+'</b><small>مطلوب منه (تراكمي)</small></span></button>'; }).join("");
   h+='</div></div>';
 
   return h;
@@ -1306,34 +1335,52 @@ function renderAccount(){
     const head='<div class="pagehead"><h2>الحسابات</h2><span>'+dateStr+'</span></div>'+accChips();
     if(v==="all") return head+renderOverview();
     if(v.startsWith("s:")) return head+renderStaffReport(v.slice(2));
-    S.accDriver=v.slice(2);
+    return head+renderDriverAccount(v.slice(2));
   }
-  const open=accOrders();
-  const collectedAll=open.reduce((s,o)=>s+calc(o).collect,0);
-  const transferred=open.reduce((s,o)=>s+paidIn(o),0);
-  const fees=open.reduce((s,o)=>s+calc(o).fee,0);
-  const net=collectedAll-fees-transferred;
-  const collected=collectedAll;
-  const accBase = seller ? (S.accDriver ? S.orders.filter(o=>orderDriver(o)===S.accDriver) : S.orders) : scoped();
-  const today=accBase.filter(o=>isToday(o.createdAt));
-  const tDel=accBase.filter(o=>o.status==="delivered"&&isToday(o.deliveredAt)).length;
-  let h=seller?('<div class="pagehead"><h2>الحسابات</h2><span>'+dateStr+'</span></div>'+accChips()):('<div class="pagehead"><h2>حسابي</h2><span>'+dateStr+'</span></div>');
-  h+='<div class="tiles">';
-  h+='<div class="tile hl"><div class="l">'+(seller?(net>=0?"المطلوب من "+esc(dShort(S.accDriver))+" للمحل":"المطلوب من المحل لـ "+esc(dShort(S.accDriver))):(net>=0?"المطلوب مني للمحل":"المطلوب لي من المحل"))+'</div><div class="n">'+money(Math.abs(net))+'</div><div class="l">عن '+open.length+' طلب مسلّم لم يُحاسَب</div></div>';
-  h+='<div class="tile"><div class="n">'+money(collected)+'</div><div class="l">محصّل من الزبائن</div></div>';
-  h+='<div class="tile"><div class="n">'+money(transferred)+'</div><div class="l">حوّلها للمحل</div></div>';
-  h+='<div class="tile" style="grid-column:1 / -1"><div class="n">'+money(fees)+'</div><div class="l">أجرة الدليفري</div></div>';
-  h+='</div>';
-  h+='<div class="card form"><h3 class="sec">اليوم</h3><div><div class="listrow"><span>طلبات أُضيفت</span><b>'+today.length+'</b></div><div class="listrow"><span>تم تسليمها</span><b>'+tDel+'</b></div><div class="listrow"><span>ما زالت نشطة</span><b>'+accBase.filter(o=>ACTIVE.includes(o.status)).length+'</b></div><div class="listrow"><span>مرتجعات (الكل)</span><b>'+accBase.filter(o=>o.status==="returned").length+'</b></div></div></div>';
-  if(open.length){
-    h+='<div class="card form"><h3 class="sec">تفاصيل المحاسبة</h3><div>';
-    h+=open.map(o=>'<div class="listrow"><span>#'+esc(o.num)+' '+esc(o.customer)+'<small class="hint" style="display:block">'+esc(PM[o.payMethod||"cash"])+(paidIn(o)?" "+money(paidIn(o)):"")+(o.transferShop?" · "+esc(o.transferShop):"")+(o.hasReceipt?" · فيه إشعار":"")+'</small></span><span>'+money(owedOf(o))+'</span></div>').join("");
-    h+='</div><button type="button" class="btn ghost" data-copyacc="1">'+I("copy")+'نسخ كشف الحساب</button>';
-    if(seller) h+='<button type="button" class="btn sf big" data-settle="1">'+I("check")+'تمت المحاسبة واستلمت المبلغ</button>';
-    if(S.confirmSettle) h+='<div class="row"><span class="hint">سيتم تعليم '+open.length+' طلب كمحاسَب. متأكد؟</span><button type="button" class="btn dark" data-settleyes="1">نعم</button><button type="button" class="btn ghost" data-settleno="1">لا</button></div>';
-    h+='</div>';
-  } else h+='<div class="card empty"><p>لا يوجد حساب مفتوح. كل الطلبات المسلّمة تمت محاسبتها.</p></div>';
-  if(!seller && drivers().length) h+='<button type="button" class="btn ghost big" data-dlogout="1">'+I("back")+'تسجيل خروج ('+esc(dShort(S.driverId))+')</button>';
+  return '<div class="pagehead"><h2>حسابي</h2><span>'+dateStr+'</span></div>'+renderDriverAccount(S.driverId)+(drivers().length?'<button type="button" class="btn ghost big" data-lockout="1">'+I("back")+'تسجيل خروج ('+esc(dShort(S.driverId))+')</button>':'');
+}
+function driverDays(did){
+  const D=S.orders.filter(o=>orderDriver(o)===did&&o.status==="delivered");
+  const days={};
+  D.forEach(o=>{ const k=dayKey(o.deliveredAt||o.updatedAt||o.createdAt); (days[k]=days[k]||[]).push(o); });
+  return Object.keys(days).sort().reverse().map(k=>{ const L=days[k].sort((a,b)=>(a.deliveredAt||0)-(b.deliveredAt||0));
+    return {k,L,n:L.length,col:sumBy(L,o=>calc(o).collect),fee:sumBy(L,o=>calc(o).fee),net:sumBy(L,owedOf),open:L.filter(o=>!o.settled),settledAt:Math.max.apply(null,[0].concat(L.map(o=>o.settledAt||0)))}; });
+}
+function renderDriverAccount(did){
+  const admin=S.role==="seller";
+  const name=dShort(did);
+  const days=driverDays(did);
+  const unsettled=sumBy(days,d=>sumBy(d.open,owedOf)), openDays=days.filter(d=>d.open.length);
+  const tk=dayKey(Date.now()), td=days.find(d=>d.k===tk)||{n:0,col:0,fee:0,net:0};
+  const active=S.orders.filter(o=>orderDriver(o)===did&&ACTIVE.includes(o.status)).length;
+  const allFees=sumBy(days,d=>d.fee);
+  let h='<div class="tiles"><div class="tile hl"><div class="l">'+(admin?"المطلوب من "+esc(name)+" (تراكمي غير مخلّص)":"المطلوب مني للمحل (تراكمي)")+'</div><div class="n">'+money(unsettled)+'</div><div class="l">'+(openDays.length?openDays.length+" يوم ما تخلّص":"كل الأيام مخلّصة ✓")+' · '+active+' طلب لسا للتوصيل</div></div></div>';
+  h+='<div class="card form today"><h3 class="sec">'+I("bike")+'اليوم</h3><div class="tgrid"><div><b>'+td.n+'</b><span>طلب توصّل</span></div><div><b>'+money(td.col)+'</b><span>المبلغ</span></div><div><b>'+money(td.fee)+'</b><span>'+(admin?"للكابتن":"إلي")+'</span></div><div><b>'+money(td.net)+'</b><span>للمحل</span></div></div></div>';
+  if(!days.length) return h+'<div class="card empty"><p>ما في طلبات متوصّلة لسا.</p></div>';
+  h+='<div class="pagehead" style="margin-top:4px"><h2 style="font-size:1rem">الحساب يوم بيوم</h2><span>مجموع أجرته: '+money(allFees)+'</span></div>';
+  let run=0; const cum={};
+  days.slice().reverse().forEach(d=>{ run+=sumBy(d.open,owedOf); cum[d.k]=run; });
+  h+=days.map(d=>{
+    const done=!d.open.length, open=S.openDay===did+"|"+d.k;
+    let x='<div class="card dayc'+(done?" done":"")+'"><button type="button" class="dayh" data-dday="'+esc(did+"|"+d.k)+'"><span><b>'+esc(dayLabel(d.k))+'</b><small>'+d.n+' طلب · مبلغ '+money(d.col)+' · للكابتن '+money(d.fee)+'</small></span><span class="dayv"><b>'+money(done?d.net:sumBy(d.open,owedOf))+'</b><small>'+(done?"تم التخليص ✓":"مطلوب للمحل")+'</small></span></button>';
+    if(open){
+      x+='<div class="dayb">'+d.L.map(o=>'<div class="listrow"><span>#'+esc(o.num)+' '+esc(o.customer)+'<small class="hint" style="display:block">'+esc(stName(srcOf(o)))+' · '+esc(PM[o.payMethod||"cash"]||"")+(o.transferName?" · باسم "+esc(o.transferName):"")+(o.hasReceipt?" · فيه إشعار":"")+'</small></span><span style="text-align:left">'+money(calc(o).collect)+'<small class="hint" style="display:block">أجرة '+money(calc(o).fee)+(o.settled?" · ✓":"")+'</small></span></div>').join("");
+      x+='<div class="daysum"><span>المجموع <b>'+money(d.col)+'</b></span><span>للكابتن <b>'+money(d.fee)+'</b></span><span>للمحل <b>'+money(d.net)+'</b></span></div>';
+      if(!done) x+='<div class="hint">التراكمي غير المخلّص لحد هاليوم: <b>'+money(cum[d.k])+'</b></div>';
+      x+='<div class="row"><button type="button" class="btn ghost" data-dcopy="'+esc(did+"|"+d.k)+'">'+I("copy")+'نسخ كشف اليوم</button></div>';
+      if(admin && !done){
+        if(S.confirmDay===did+"|"+d.k) x+='<div class="row"><span class="hint">تأكيد: استلمت '+money(sumBy(d.open,owedOf))+' من '+esc(name)+' وتخلّص حساب '+esc(dayLabel(d.k))+'؟</span><button type="button" class="btn ok" data-dsettleyes="'+esc(did+"|"+d.k)+'">نعم، تم</button><button type="button" class="btn ghost" data-dsettleno="1">لا</button></div>';
+        else x+='<button type="button" class="btn ok big" data-dsettle="'+esc(did+"|"+d.k)+'">'+I("check")+'تم التحويل والتخليص</button>';
+      }
+      if(done && d.settledAt) x+='<div class="hint">تخلّص بتاريخ '+fmtTime(d.settledAt)+'</div>';
+      x+='</div>';
+    }
+    return x+'</div>';
+  }).join("");
+  if(admin && openDays.length>1){
+    if(S.confirmDay===did+"|all") h+='<div class="row"><span class="hint">تخليص كل الأيام ('+money(unsettled)+')؟</span><button type="button" class="btn ok" data-dsettleyes="'+esc(did+"|all")+'">نعم</button><button type="button" class="btn ghost" data-dsettleno="1">لا</button></div>';
+    else h+='<button type="button" class="btn dark big" data-dsettle="'+esc(did+"|all")+'">'+I("check")+'تخليص كل الأيام ('+money(unsettled)+')</button>';
+  }
   return h;
 }
 
@@ -1343,7 +1390,7 @@ function renderSettings(){
   let h='<div class="pagehead"><h2>الإعدادات</h2></div>';
   h+='<form class="card form" id="setForm" autocomplete="off">';
   h+='<h3 class="sec"><span class="n">1</span>المحل والدليفري</h3>';
-  h+='<label for="s_admin">اسم الأدمن<input id="s_admin" name="adminName" value="'+esc(s.adminName||"")+'"></label>';
+  h+='<div class="grid2"><label for="s_admin">اسم الأدمن<input id="s_admin" name="adminName" value="'+esc(s.adminName||"")+'"></label><label for="s_auser">اسم مستخدم الأدمن<input id="s_auser" name="adminUser" dir="ltr" autocapitalize="none" value="'+esc(s.adminUser||"abuomar")+'"></label></div>';
   h+='<label for="s_page">اسم صفحتك (واجهة «صفحتي»)<input id="s_page" name="adminPageName" value="'+esc(s.adminPageName||"صفحة أبو عمر")+'"></label>';
   h+='<label for="s_store">اسم الشركة / المحل<input id="s_store" name="storeName" value="'+esc(s.storeName||"")+'"></label>';
   h+='<label for="s_tag">الوصف تحت الاسم<input id="s_tag" name="storeTagline" value="'+esc(s.storeTagline||"")+'"></label>';
@@ -1360,7 +1407,7 @@ function renderSettings(){
     h+='<form class="card form" id="drvForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("bike")+'</span>الكباتن ('+drivers().length+')</h3>';
     if(!drivers().length) h+='<p class="hint" style="margin:0">ما في كباتن لسا. أضف أول كابتن من تحت.</p>';
     drivers().forEach(d=>{
-      h+='<div class="dedit"><div class="dhead"><b>'+esc(d.short||d.name)+'</b>'+(S.confirmDelP==="d:"+d.id?'<span class="row"><button type="button" class="btn danger" data-delp="d:'+esc(d.id)+'">تأكيد الحذف</button><button type="button" class="btn ghost" data-delpno="1">لا</button></span>':'<button type="button" class="btn danger" data-delp="d:'+esc(d.id)+'">'+I("trash")+'حذف</button>')+'</div><label for="dn_'+d.id+'">الاسم الكامل<input id="dn_'+d.id+'" name="dn_'+d.id+'" value="'+esc(d.name)+'"></label>';
+      h+='<div class="dedit"><div class="dhead"><b>'+esc(d.short||d.name)+(d.user?' <small class="hint" dir="ltr">@'+esc(d.user)+'</small>':'')+'</b>'+(S.confirmDelP==="d:"+d.id?'<span class="row"><button type="button" class="btn danger" data-delp="d:'+esc(d.id)+'">تأكيد الحذف</button><button type="button" class="btn ghost" data-delpno="1">لا</button></span>':'<button type="button" class="btn danger" data-delp="d:'+esc(d.id)+'">'+I("trash")+'حذف</button>')+'</div><label for="du_'+d.id+'">اسم المستخدم<input id="du_'+d.id+'" name="du_'+d.id+'" dir="ltr" autocapitalize="none" value="'+esc(d.user||"")+'"></label><label for="dn_'+d.id+'">الاسم الكامل<input id="dn_'+d.id+'" name="dn_'+d.id+'" value="'+esc(d.name)+'"></label>';
       h+='<div class="grid2"><label for="ds_'+d.id+'">الاسم المختصر<input id="ds_'+d.id+'" name="ds_'+d.id+'" value="'+esc(d.short||"")+'"></label>';
       h+='<label for="dp_'+d.id+'">واتساب<input id="dp_'+d.id+'" name="dp_'+d.id+'" dir="ltr" inputmode="tel" placeholder="059xxxxxxx" value="'+esc(d.phone||"")+'"></label></div>';
       h+='<div class="grid2"><label for="dz_'+d.id+'">مسؤول عن<select id="dz_'+d.id+'" name="dz_'+d.id+'">'+areas().map(a=>'<option '+(d.zone===a.name?"selected":"")+'>'+esc(a.name)+'</option>').join("")+'</select></label>';
@@ -1369,6 +1416,7 @@ function renderSettings(){
     if(drivers().length) h+='<button type="submit" class="btn dark">'+I("check")+'حفظ تعديلات الكباتن</button>';
     h+='</form>';
     h+='<form class="card form addp" id="addDrvForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("plus")+'</span>إضافة كابتن جديد</h3>';
+    h+='<label for="nd_user">اسم المستخدم * (إنجليزي بدون مسافات)<input id="nd_user" name="user" dir="ltr" autocapitalize="none" required></label>';
     h+='<div class="grid2"><label for="nd_name">الاسم الكامل *<input id="nd_name" name="name" required></label><label for="nd_short">الاسم المختصر<input id="nd_short" name="short" placeholder="مثلاً: أبو محمد"></label></div>';
     h+='<div class="grid2"><label for="nd_phone">واتساب<input id="nd_phone" name="phone" dir="ltr" inputmode="tel" placeholder="059xxxxxxx"></label><label for="nd_zone">مسؤول عن<select id="nd_zone" name="zone">'+areas().map(a=>'<option>'+esc(a.name)+'</option>').join("")+'</select></label></div>';
     h+='<label for="nd_pin">الرقم السري * (4 أرقام أو أكثر)<input id="nd_pin" name="pin" type="password" inputmode="numeric" minlength="4" required autocomplete="new-password"></label>';
@@ -1376,6 +1424,7 @@ function renderSettings(){
   }
   const mg=S.settings.manager||{name:"د. أيمن نصرالله"};
   h+='<form class="card form" id="mgrForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("tag")+'</span>صاحب البضاعة (المخزن)</h3>';
+  h+='<label for="mg_user">اسم المستخدم<input id="mg_user" name="user" dir="ltr" autocapitalize="none" value="'+esc(mg.user||"")+'"></label>';
   h+='<div class="grid2"><label for="mg_name">الاسم<input id="mg_name" name="name" value="'+esc(mg.name||"")+'"></label><label for="mg_newpin">رقم سري '+(mg.hasPin?"(مفعّل، اكتب جديد للتغيير)":"(لازم تحدده)")+'<input id="mg_newpin" name="pin" type="password" inputmode="numeric" autocomplete="new-password"></label></div>';
   h+='<p class="hint" style="margin:0">بيدخل من «الإدارة» ← '+esc(mg.name||"")+'. بيشوف المخزن والحركة وحسابات الصفحات، وبيضيف أصناف وبضاعة وباكجات.</p>';
   h+='<button type="submit" class="btn dark">'+I("check")+'حفظ</button></form>';
@@ -1383,12 +1432,13 @@ function renderSettings(){
   h+='<form class="card form" id="stfForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("tag")+'</span>أصحاب الصفحات ('+stf.length+')</h3>';
   if(!stf.length) h+='<p class="hint" style="margin:0">ما في أصحاب صفحات لسا.</p>';
   stf.forEach(d=>{
-    h+='<div class="dedit"><div class="dhead"><b>'+esc(d.name)+'</b>'+(S.confirmDelP==="s:"+d.id?'<span class="row"><button type="button" class="btn danger" data-delp="s:'+esc(d.id)+'">تأكيد الحذف</button><button type="button" class="btn ghost" data-delpno="1">لا</button></span>':'<button type="button" class="btn danger" data-delp="s:'+esc(d.id)+'">'+I("trash")+'حذف</button>')+'</div><div class="grid2"><label for="sn_'+d.id+'">الاسم<input id="sn_'+d.id+'" name="sn_'+d.id+'" value="'+esc(d.name)+'"></label>';
+    h+='<div class="dedit"><div class="dhead"><b>'+esc(d.name)+(d.user?' <small class="hint" dir="ltr">@'+esc(d.user)+'</small>':'')+'</b>'+(S.confirmDelP==="s:"+d.id?'<span class="row"><button type="button" class="btn danger" data-delp="s:'+esc(d.id)+'">تأكيد الحذف</button><button type="button" class="btn ghost" data-delpno="1">لا</button></span>':'<button type="button" class="btn danger" data-delp="s:'+esc(d.id)+'">'+I("trash")+'حذف</button>')+'</div><div class="grid2"><label for="sn_'+d.id+'">الاسم<input id="sn_'+d.id+'" name="sn_'+d.id+'" value="'+esc(d.name)+'"></label><label for="su_'+d.id+'">اسم المستخدم<input id="su_'+d.id+'" name="su_'+d.id+'" dir="ltr" autocapitalize="none" value="'+esc(d.user||"")+'"></label></div><div class="grid2">';
     h+='<label for="spin_'+d.id+'">رقم سري '+(d.hasPin?"(مفعّل، اكتب جديد للتغيير)":"(لازم تحدده)")+'<input id="spin_'+d.id+'" name="spin_'+d.id+'" type="password" inputmode="numeric" autocomplete="new-password"></label></div></div>';
   });
   if(stf.length) h+='<button type="submit" class="btn dark">'+I("check")+'حفظ تعديلات أصحاب الصفحات</button>';
   h+='</form>';
   h+='<form class="card form addp" id="addStfForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("plus")+'</span>إضافة صاحب صفحة</h3>';
+  h+='<label for="ns_user">اسم المستخدم * (إنجليزي بدون مسافات)<input id="ns_user" name="user" dir="ltr" autocapitalize="none" required></label>';
   h+='<div class="grid2"><label for="ns_name">الاسم *<input id="ns_name" name="name" required></label><label for="ns_pin">الرقم السري *<input id="ns_pin" name="pin" type="password" inputmode="numeric" minlength="4" required autocomplete="new-password"></label></div>';
   h+='<button type="submit" class="btn sf">'+I("plus")+'إضافة صاحب الصفحة</button></form>';
   h+='<form class="card form" id="pwForm" autocomplete="off"><h3 class="sec"><span class="n">'+I("lock")+'</span>كلمة سر الأدمن</h3>';
@@ -1487,6 +1537,22 @@ document.addEventListener("click",async e=>{
     const s=Object.assign({},S.settings, kind==="d" ? {drivers:drivers().filter(x=>x.id!==id).map(strip)} : {staff:staffList().filter(x=>x.id!==id).map(strip)});
     const nm = kind==="d" ? dShort(id) : stName(id);
     if(await safe(()=>store.saveSettings(s))){ await store.refresh(); toast("تم حذف "+nm); render(); }
+    return;
+  }
+  if(D.dday){ S.openDay = S.openDay===D.dday ? null : D.dday; S.confirmDay=null; render(); return; }
+  if(D.dsettle){ S.confirmDay=D.dsettle; render(); return; }
+  if(D.dsettleno){ S.confirmDay=null; render(); return; }
+  if(D.dsettleyes){
+    const [did,k]=D.dsettleyes.split("|"); S.confirmDay=null;
+    const L=S.orders.filter(o=>orderDriver(o)===did&&o.status==="delivered"&&!o.settled&&(k==="all"||dayKey(o.deliveredAt||o.updatedAt||o.createdAt)===k));
+    const t=Date.now();
+    for(const o of L){ const n=Object.assign({},o); delete n.id; n.settled=true; n.settledAt=t; n.settledBy=S.settings.adminName||"الإدارة"; if(!(await safe(()=>store.setOrder(o.id,n)))) return; }
+    toast("تم التخليص مع "+dShort(did)+" ✓"); return;
+  }
+  if(D.dcopy){
+    const [did,k]=D.dcopy.split("|"); const d=driverDays(did).find(x=>x.k===k); if(!d) return;
+    const t=["كشف حساب الكابتن "+dName(did),dayLabel(k),""].concat(d.L.map(o=>"#"+o.num+" "+o.customer+": "+money(calc(o).collect)+" (أجرة "+money(calc(o).fee)+")"+(o.payMethod?" · "+PM[o.payMethod]:"")+(o.transferName?" باسم "+o.transferName:""))).concat(["","عدد الطلبات: "+d.n,"المجموع: "+money(d.col),"للكابتن: "+money(d.fee),"المطلوب للمحل: "+money(d.net),d.open.length?"الحالة: لسا ما تخلّص":"الحالة: تم التخليص ✓"]).join("\n");
+    try{ await navigator.clipboard.writeText(t); toast("تم نسخ كشف اليوم"); }catch(err){ toast("ما سمح المتصفح بالنسخ"); }
     return;
   }
   if(D.accv){ S.accView=D.accv; S.confirmSettle=false; S.confirmSpay=null; if(S.tab!=="account"){ S.tab="account"; } render(); window.scrollTo(0,0); return; }
@@ -1612,6 +1678,12 @@ document.addEventListener("submit",async e=>{
     if(ok){ S.editId=null; S.draft=blankDraft(); S.tab="orders"; S.filter="active"; render(); window.scrollTo(0,0); }
     return;
   }
+  if(e.target.id==="userForm"){
+    if(S.busy) return; const f=e.target; S.busy=true; const un=f.username.value, pw=f.password.value; render();
+    try{ const r=await api("/login",{method:"POST",body:{username:un,password:pw},noLogout:true}); S.busy=false; await afterLogin(r); toast("أهلاً فيك 👋"); }
+    catch(err){ S.busy=false; S.gateErr=err.message; S.gateSig=null; render(); const a=$("#u_name"), b=$("#u_pw"); if(a) a.value=un; if(b){ b.focus(); } }
+    return;
+  }
   if(e.target.id==="mgForm"){
     if(S.busy) return; S.busy=true; render();
     try{ const r=await api("/login",{method:"POST",body:{role:"manager",pin:e.target.pin.value},noLogout:true}); S.busy=false; await afterLogin(r); }
@@ -1640,7 +1712,7 @@ document.addEventListener("submit",async e=>{
   if(e.target.id==="drvForm"){
     const f=e.target; const list=drivers().map(x=>Object.assign({},x)); const pins=[];
     for(const d of list){
-      d.name=f["dn_"+d.id].value.trim(); d.short=f["ds_"+d.id].value.trim(); d.phone=f["dp_"+d.id].value.trim(); d.zone=f["dz_"+d.id].value;
+      d.user=f["du_"+d.id].value.trim().toLowerCase(); d.name=f["dn_"+d.id].value.trim(); d.short=f["ds_"+d.id].value.trim(); d.phone=f["dp_"+d.id].value.trim(); d.zone=f["dz_"+d.id].value;
       const pin=f["dpin_"+d.id].value.trim(); if(pin) pins.push([d.id,pin]);
       delete d.hasPin;
     }
@@ -1655,28 +1727,29 @@ document.addEventListener("submit",async e=>{
     const f=e.target, name=f.name.value.trim(), pin=f.pin.value.trim();
     if(pin && pin.length<4){ toast("الرقم السري لازم يكون 4 أرقام على الأقل"); return; }
     const strip=x=>{ const y=Object.assign({},x); delete y.hasPin; return y; };
-    const s=Object.assign({},S.settings,{manager:{name:name||"د. أيمن نصرالله"},drivers:drivers().map(strip),staff:staffList().map(strip)});
+    const s=Object.assign({},S.settings,{manager:{name:name||"د. أيمن نصرالله",user:f.user.value.trim().toLowerCase()},drivers:drivers().map(strip),staff:staffList().map(strip)});
     if(!(await safe(()=>store.saveSettings(s)))) return;
     if(pin && !(await safe(()=>api("/driver-pin",{method:"PUT",body:{manager:true,pin}})))) return;
     await store.refresh(); f.reset(); toast("تم الحفظ"); render(); return;
   }
   if(e.target.id==="addDrvForm"||e.target.id==="addStfForm"){
-    const f=e.target, isD=f.id==="addDrvForm", name=f.name.value.trim(), pin=f.pin.value.trim();
+    const f=e.target, isD=f.id==="addDrvForm", name=f.name.value.trim(), pin=f.pin.value.trim(), user=f.user.value.trim().toLowerCase().replace(/\s+/g,"");
+    if(!/^[a-z0-9._-]{3,30}$/.test(user)){ toast("اسم المستخدم لازم يكون إنجليزي (حروف وأرقام) 3 أحرف على الأقل"); return; }
     if(!name){ toast("اكتب الاسم"); return; }
     if(pin.length<4){ toast("الرقم السري لازم يكون 4 أرقام على الأقل"); return; }
     const id=(isD?"d":"s")+Math.random().toString(36).slice(2,8);
     const strip=x=>{ const y=Object.assign({},x); delete y.hasPin; return y; };
     let s;
-    if(isD) s=Object.assign({},S.settings,{drivers:drivers().map(strip).concat([{id,name,short:f.short.value.trim()||name,phone:f.phone.value.trim(),zone:f.zone.value}])});
-    else s=Object.assign({},S.settings,{staff:staffList().map(strip).concat([{id,name}])});
+    if(isD) s=Object.assign({},S.settings,{drivers:drivers().map(strip).concat([{id,user,name,short:f.short.value.trim()||name,phone:f.phone.value.trim(),zone:f.zone.value}])});
+    else s=Object.assign({},S.settings,{staff:staffList().map(strip).concat([{id,user,name}])});
     if(!(await safe(()=>store.saveSettings(s)))) return;
     if(!(await safe(()=>api("/driver-pin",{method:"PUT",body:isD?{driverId:id,pin}:{staffId:id,pin}})))) return;
-    await store.refresh(); f.reset(); toast("تمت إضافة "+name+" ✓"); render();
+    await store.refresh(); f.reset(); toast("تمت إضافة "+name+" · @"+user+" ✓"); render();
     return;
   }
   if(e.target.id==="stfForm"){
     const f=e.target; const list=(S.settings.staff||[]).map(x=>Object.assign({},x)); const pins=[];
-    for(const d of list){ d.name=f["sn_"+d.id].value.trim(); const pin=f["spin_"+d.id].value.trim(); if(pin) pins.push([d.id,pin]); delete d.hasPin; }
+    for(const d of list){ d.name=f["sn_"+d.id].value.trim(); d.user=f["su_"+d.id].value.trim().toLowerCase(); const pin=f["spin_"+d.id].value.trim(); if(pin) pins.push([d.id,pin]); delete d.hasPin; }
     for(const [id,pin] of pins){ if(pin.length<4){ toast("الرقم السري لازم يكون 4 أرقام على الأقل"); return; } }
     const s=Object.assign({},S.settings,{staff:list});
     if(!(await safe(()=>store.saveSettings(s)))) return;
@@ -1716,7 +1789,7 @@ document.addEventListener("submit",async e=>{
     syncSettingsLists();
     const f=e.target;
     const s=Object.assign({},S.settings,{
-      adminName:f.adminName.value.trim(), adminPageName:f.adminPageName.value.trim(), storeName:f.storeName.value.trim(), storeTagline:f.storeTagline.value.trim(), driverName:f.driverName?f.driverName.value.trim():(S.settings.driverName||""),
+      adminName:f.adminName.value.trim(), adminUser:f.adminUser.value.trim().toLowerCase(), adminPageName:f.adminPageName.value.trim(), storeName:f.storeName.value.trim(), storeTagline:f.storeTagline.value.trim(), driverName:f.driverName?f.driverName.value.trim():(S.settings.driverName||""),
       driverPhone:f.driverPhone?f.driverPhone.value.trim():(S.settings.driverPhone||""), countryCode:f.countryCode.value, feeIncluded:f.feeIncluded.checked,
       areas:S.setAreas.filter(a=>String(a.name).trim()).map(a=>({name:String(a.name).trim(),fee:num(a.fee)}))
     });

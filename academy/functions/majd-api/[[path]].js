@@ -113,6 +113,7 @@ function publicSettings(s) {
     drivers: (s.drivers || []).map(({ pinHash, pinSalt, pinVer, ...d }) => ({ ...d, hasPin: !!pinHash })),
     staff: (s.staff || []).map(({ pinHash, pinSalt, ...d }) => ({ ...d, hasPin: !!pinHash })),
     manager: (({ pinHash, pinSalt, ...d }) => ({ ...d, hasPin: !!pinHash }))(s.manager || { name: 'د. أيمن نصرالله' }),
+    adminUser: s.adminUser || 'abuomar',
   };
 }
 function driverForArea(s, area) { return (s.drivers || []).find((d) => d.zone === area) || null; }
@@ -305,6 +306,35 @@ export async function onRequest({ request, env, params, waitUntil }) {
     if (a === 'login' && m === 'POST') {
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة، استنى ربع ساعة وجرّب', 429);
       const bd = await body(request);
+      if (bd.username) {
+        const u = String(bd.username).trim().toLowerCase().replace(/\s+/g, '');
+        const pw = String(bd.password || '');
+        const s = await settings(env);
+        const bad = async () => { await noteFail(env, ip); return err('اسم المستخدم أو كلمة السر غلط', 401); };
+        if (u === String(s.adminUser || 'abuomar').toLowerCase()) {
+          const ad = await kvGet(env, 'admin');
+          if (!ad || !same(await hashSecret(pw, ad.salt), ad.hash)) return bad();
+          return json({ token: await makeToken(env, 'admin', '', ad.salt), role: 'admin' });
+        }
+        const lc = (x) => String(x || '').toLowerCase();
+        const mg = s.manager || {};
+        if (lc(mg.user) === u && mg.pinHash) {
+          if (!same(await hashSecret(pw, mg.pinSalt), mg.pinHash)) return bad();
+          return json({ token: await makeToken(env, 'manager', '', mg.pinSalt), role: 'manager' });
+        }
+        const d = (s.drivers || []).find((x) => lc(x.user) === u && x.pinHash);
+        if (d) {
+          if (!same(await hashSecret(pw, d.pinSalt), d.pinHash)) return bad();
+          return json({ token: await makeToken(env, 'driver', d.id, d.pinSalt), role: 'driver', driverId: d.id });
+        }
+        const st = (s.staff || []).find((x) => lc(x.user) === u && x.pinHash);
+        if (st) {
+          if (!same(await hashSecret(pw, st.pinSalt), st.pinHash)) return bad();
+          return json({ token: await makeToken(env, 'staff', st.id, st.pinSalt), role: 'staff', staffId: st.id });
+        }
+        await hashSecret(pw, '00112233445566778899aabbccddeeff'); // same timing for unknown users
+        return bad();
+      }
       if (bd.role === 'admin') {
         const ad = await kvGet(env, 'admin');
         if (!ad) return err('ما في كلمة سر للأدمن بعد', 409);
@@ -372,26 +402,29 @@ export async function onRequest({ request, env, params, waitUntil }) {
       const drivers = (Array.isArray(ns.drivers) ? ns.drivers : old.drivers || []).slice(0, 20).map((d) => {
         const o = oldDrivers[d.id] || {};
         return {
-          id: clean(d.id, 40) || randomHex(4), name: clean(d.name, 80), short: clean(d.short, 40), zone: clean(d.zone, 80), phone: clean(d.phone, 30),
+          id: clean(d.id, 40) || randomHex(4), name: clean(d.name, 80), short: clean(d.short, 40), zone: clean(d.zone, 80), phone: clean(d.phone, 30), user: clean(d.user, 30).toLowerCase(),
           ...(o.pinHash ? { pinHash: o.pinHash, pinSalt: o.pinSalt } : {}),
         };
       });
       const oldStaff = Object.fromEntries((old.staff || []).map((d) => [d.id, d]));
       const staff = (Array.isArray(ns.staff) ? ns.staff : old.staff || []).slice(0, 30).map((d) => {
         const o = oldStaff[d.id] || {};
-        return { id: clean(d.id, 40) || randomHex(4), name: clean(d.name, 80), ...(o.pinHash ? { pinHash: o.pinHash, pinSalt: o.pinSalt } : {}) };
+        return { id: clean(d.id, 40) || randomHex(4), name: clean(d.name, 80), user: clean(d.user, 30).toLowerCase(), ...(o.pinHash ? { pinHash: o.pinHash, pinSalt: o.pinSalt } : {}) };
       }).filter((d) => d.name);
       const om = old.manager || {};
       const nm = ns.manager && typeof ns.manager === 'object' ? ns.manager : {};
-      const manager = { name: clean(nm.name, 80) || om.name || 'د. أيمن نصرالله', ...(om.pinHash ? { pinHash: om.pinHash, pinSalt: om.pinSalt } : {}) };
+      const manager = { name: clean(nm.name, 80) || om.name || 'د. أيمن نصرالله', user: (clean(nm.user, 30) || om.user || '').toLowerCase(), ...(om.pinHash ? { pinHash: om.pinHash, pinSalt: om.pinSalt } : {}) };
       const s = {
         adminName: clean(ns.adminName, 80) || old.adminName || '', staff, manager,
         adminPageName: clean(ns.adminPageName, 80) || old.adminPageName || 'صفحة أبو عمر',
+        adminUser: (clean(ns.adminUser, 30) || old.adminUser || 'abuomar').toLowerCase(),
         storeName: clean(ns.storeName, 80), storeTagline: clean(ns.storeTagline, 120), countryCode: clean(ns.countryCode, 4) || '970',
         feeIncluded: !!ns.feeIncluded, driverName: clean(ns.driverName, 60), driverPhone: clean(ns.driverPhone, 30),
         areas: (Array.isArray(ns.areas) ? ns.areas : []).slice(0, 40).map((x) => ({ name: clean(x.name, 80), fee: num(x.fee) })).filter((x) => x.name),
         drivers,
       };
+      const names = [s.adminUser, s.manager.user, ...drivers.map((d) => d.user), ...staff.map((d) => d.user)].filter(Boolean);
+      if (new Set(names).size !== names.length) return err('في اسم مستخدم مكرر، كل حساب لازم يكون اسمه مختلف');
       await kvSet(env, 'settings', s);
       return json({ ok: true, settings: publicSettings(s) });
     }

@@ -1,6 +1,6 @@
 // «توصيلة المجد» service worker: app shell offline + phone notifications.
 // Pushes carry no payload; the text is fetched from /majd-api/notif with the signed-in token kept in Cache Storage.
-const CACHE = 'majd-v4';
+const CACHE = 'majd-v5';
 const SHELL = ['/majd/', '/majd/manifest.webmanifest', '/majd/icons/icon-192.png'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {})); self.skipWaiting(); });
