@@ -178,6 +178,36 @@ function sanitizeOrder(o) {
   return d;
 }
 
+// wholesale cost (what a page owner owes per unit) is stamped from the product list, never trusted from the client
+async function stampCosts(env, d, onlyMissing) {
+  const items = Array.isArray(d.items) ? d.items : [];
+  const ids = [...new Set(items.map((i) => i.pid).filter(Boolean))];
+  let map = {};
+  if (ids.length) {
+    const rows = (await env.DB.prepare(`SELECT id, data FROM majd_products WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all()).results;
+    map = Object.fromEntries(rows.map((r) => { let x = {}; try { x = JSON.parse(r.data); } catch {} return [r.id, x]; }));
+  }
+  d.items = items.map((i) => {
+    if (onlyMissing && i.cost !== undefined) return i;
+    return { ...i, cost: i.pid && map[i.pid] ? num(map[i.pid].cost) : num(i.cost) };
+  });
+}
+async function productStats(env) {
+  const rows = (await env.DB.prepare("SELECT data FROM majd_orders").all()).results;
+  const st = {};
+  for (const r of rows) {
+    let o; try { o = JSON.parse(r.data); } catch { continue; }
+    const k = o.status === 'delivered' ? 'sold' : ['new', 'picked', 'onway', 'postponed'].includes(o.status) ? 'pending' : null;
+    if (!k) continue;
+    for (const it of o.items || []) {
+      if (!it.pid) continue;
+      st[it.pid] = st[it.pid] || { sold: 0, pending: 0 };
+      st[it.pid][k] += num(it.qty);
+    }
+  }
+  return st;
+}
+
 // ---------- router ----------
 export async function onRequest({ request, env, params }) {
   if (!env.DB) return err('قاعدة البيانات غير مربوطة', 500);
@@ -245,7 +275,12 @@ export async function onRequest({ request, env, params }) {
 
     if (a === 'state' && m === 'GET') {
       const s = await settings(env);
-      const prods = (await env.DB.prepare('SELECT id, data FROM majd_products').all()).results.map(rowToOrder);
+      const stats = await productStats(env);
+      const prods = (await env.DB.prepare('SELECT id, data FROM majd_products').all()).results.map(rowToOrder).map((p) => {
+        const x = { ...p, sold: (stats[p.id] || {}).sold || 0, pending: (stats[p.id] || {}).pending || 0 };
+        if (me.role === 'driver') delete x.cost; // captains never see wholesale costs
+        return x;
+      });
       const q = isAdmin
         ? env.DB.prepare('SELECT id, data FROM majd_orders ORDER BY created DESC LIMIT 800')
         : isStaff
@@ -334,6 +369,7 @@ export async function onRequest({ request, env, params }) {
         if (isStaff) { d.status = 'new'; d.settled = false; d.createdBy = me.staffId; d.createdByName = me.name; delete d.driverId; }
         else { d.createdBy = 'admin'; d.createdByName = s.adminName || 'الإدارة'; }
         if (!d.driverId) { const dr = driverForArea(s, d.area); d.driverId = dr ? dr.id : ''; }
+        await stampCosts(env, d, false);
         const last = await env.DB.prepare("SELECT MAX(CAST(json_extract(data, '$.num') AS INTEGER)) AS n FROM majd_orders").first();
         d.num = Math.max(1000, (last && last.n) || 1000) + 1;
         const id = 'o' + randomHex(6), t = nowMs();
@@ -359,6 +395,7 @@ export async function onRequest({ request, env, params }) {
         if (isAdmin) {
           d = sanitizeOrder(data || {});
           if (!d.driverId) { const dr = driverForArea(s, d.area); d.driverId = dr ? dr.id : ''; }
+          await stampCosts(env, d, true);
         } else if (isStaff) {
           if (!staffOwn) return err('بتقدر تعدّل طلباتك الجديدة بس', 403);
           const cur = rowToOrder(row); delete cur.id;
@@ -366,6 +403,7 @@ export async function onRequest({ request, env, params }) {
           d = { ...cur };
           for (const k of STAFF_FIELDS) if (k in inc) d[k] = inc[k];
           if (d.area !== cur.area) { const dr = driverForArea(s, d.area); d.driverId = dr ? dr.id : ''; }
+          await stampCosts(env, d, false);
           d = sanitizeOrder(d);
         } else {
           if (row.driver !== me.driverId) return err('هذا الطلب مش إلك', 403);
