@@ -471,9 +471,8 @@ sell(){
   return `
   <div class="seg">${carts.map((x,k)=>`<button data-act="cart" data-k="${k}" aria-pressed="${k===ci}">سلة ${k+1}${x.lines.length?` (${x.lines.length})`:''}</button>`).join('')}</div>
   <div class="card">
-    <div class="withbtn"><label for="q">اسم الصنف أو رقم الباركود
-      <input id="q" inputmode="search" autocomplete="off" placeholder="اكتب أو استعمل قارئ الباركود" value="${esc(q)}"></label>
-      <button class="btn accent" data-act="scan" data-target="sell">مسح بالكاميرا</button></div>
+    <label for="q">إضافة صنف بالاسم
+      <input id="q" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف أو رقمه" value="${esc(q)}"></label>
     <div id="results"></div>
   </div>
   <div class="card"><h2>السلة</h2>
@@ -602,7 +601,8 @@ more(){
 function renderResults(){
   const el=$('#results'); if(!el) return;
   const s=q.trim();
-  const found=(s?S.items.filter(i=>i.name.includes(s)||i.barcode.includes(s)):S.items).slice(0,5);
+  if(!s){el.innerHTML='';return}
+  const found=S.items.filter(i=>i.name.includes(s)||i.barcode.includes(s)).slice(0,6);
   el.innerHTML=`<div class="list">${found.map(i=>`<button class="li" data-act="add" data-id="${i.id}">
     <span><span class="t">${esc(i.name)}</span><br><span class="muted">المتوفر ${qtyTxt(i)}</span></span><span>${money(i.price)} <span class="pill ok">أضف</span></span></button>`).join('')||'<div class="empty">لا يوجد صنف بهذا الاسم أو الباركود</div>'}</div>`;
 }
