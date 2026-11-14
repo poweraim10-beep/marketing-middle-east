@@ -72,6 +72,7 @@ const DEFAULT_SETTINGS = {
   storeName: 'شركة المجد لمكافحة الحشرات',
   storeTagline: 'بيع منتجات مكافحة الحشرات',
   adminName: 'د. محمود نصرالله (أبو عمر)',
+  payTo: { bank: 'بنك فلسطين', account: '0592116514', holder: '' },
   adminPageName: 'صفحة أبو عمر',
   manager: { name: 'د. أيمن نصرالله' },
   countryCode: '970',
@@ -390,7 +391,11 @@ export async function onRequest({ request, env, params, waitUntil }) {
           ? env.DB.prepare('SELECT id, data FROM majd_orders WHERE created_by = ? ORDER BY created DESC LIMIT 400').bind(me.staffId)
           : env.DB.prepare('SELECT id, data FROM majd_orders WHERE driver = ? ORDER BY created DESC LIMIT 400').bind(me.driverId);
       const orders = (await q.all()).results.map(rowToOrder);
-      return json({ me, settings: publicSettings(s), products: prods, orders });
+      const tr = (await env.DB.prepare("SELECT k, v FROM majd_kv WHERE k LIKE 'treq:%'").all()).results;
+      const treq = {};
+      for (const r of tr) { const id = r.k.slice(5); if (isAdmin || (me.role === 'driver' && me.driverId === id)) { try { treq[id] = JSON.parse(r.v); } catch {} } }
+      if (!s.payTo) s.payTo = { bank: 'بنك فلسطين', account: '0592116514', holder: '' };
+      return json({ me, settings: publicSettings(s), products: prods, orders, treq });
     }
 
     if (a === 'settings' && m === 'PUT') {
@@ -418,6 +423,9 @@ export async function onRequest({ request, env, params, waitUntil }) {
         adminName: clean(ns.adminName, 80) || old.adminName || '', staff, manager,
         adminPageName: clean(ns.adminPageName, 80) || old.adminPageName || 'صفحة أبو عمر',
         adminUser: (clean(ns.adminUser, 30) || old.adminUser || 'abuomar').toLowerCase(),
+        payTo: ns.payTo && typeof ns.payTo === 'object'
+          ? { bank: clean(ns.payTo.bank, 60), account: clean(ns.payTo.account, 40), holder: clean(ns.payTo.holder, 80) }
+          : (old.payTo || { bank: 'بنك فلسطين', account: '0592116514', holder: '' }),
         storeName: clean(ns.storeName, 80), storeTagline: clean(ns.storeTagline, 120), countryCode: clean(ns.countryCode, 4) || '970',
         feeIncluded: !!ns.feeIncluded, driverName: clean(ns.driverName, 60), driverPhone: clean(ns.driverPhone, 30),
         areas: (Array.isArray(ns.areas) ? ns.areas : []).slice(0, 40).map((x) => ({ name: clean(x.name, 80), fee: num(x.fee) })).filter((x) => x.name),
@@ -468,6 +476,23 @@ export async function onRequest({ request, env, params, waitUntil }) {
     if (a === 'notif' && m === 'GET') {
       const r = await env.DB.prepare('SELECT id, title, body, t FROM majd_notif WHERE who = ? ORDER BY id DESC LIMIT 1').bind(who).first();
       return json({ item: r || null });
+    }
+
+    // admin asks a captain to transfer what he owes now
+    if (a === 'transfer-request') {
+      if (!isAdmin) return err('للأدمن فقط', 403);
+      if (m === 'POST') {
+        const { driverId, amount } = await body(request);
+        const s = await settings(env);
+        const d = (s.drivers || []).find((x) => x.id === driverId);
+        if (!d) return err('الكابتن مش موجود', 404);
+        const pt = s.payTo || { bank: 'بنك فلسطين', account: '0592116514' };
+        const amt = Math.round(num(amount) * 100) / 100;
+        await kvSet(env, 'treq:' + d.id, { amount: amt, t: nowMs(), bank: pt.bank, account: pt.account });
+        await notify(env, 'd:' + d.id, '💰 حوّل المبلغ الآن: ' + amt + ' ₪', 'أبو عمر بيطلب منك تحوّل المطلوب على ' + (pt.bank || '') + ' ' + (pt.account || '') + (pt.holder ? ' باسم ' + pt.holder : ''));
+        return json({ ok: true });
+      }
+      if (m === 'DELETE' && b) { await env.DB.prepare('DELETE FROM majd_kv WHERE k = ?').bind('treq:' + b).run(); return json({ ok: true }); }
     }
 
     // products

@@ -498,6 +498,17 @@ nav.tabbar.nofab .in{padding-inline-start:0}
 .daysum{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:.8rem;color:var(--muted);text-align:center}
 .daysum span{background:var(--surface2);border-radius:10px;padding:7px 2px}
 .daysum b{display:block;color:var(--ink);font-size:.95rem}
+.paycard{display:grid;gap:10px;border:1.5px solid #1d4ed8;background:#f5f8ff}
+.pc1{display:flex;gap:10px;align-items:center}
+.pc1 svg.i{width:28px;height:28px;color:#1d4ed8}
+.pc1 small{display:block;color:var(--muted);font-size:.78rem}
+.pc1 b{font-size:1.05rem}
+.pc2{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:8px 12px}
+.pc2 b{font-size:1.35rem;letter-spacing:1px}
+.treq{display:flex;gap:10px;align-items:center;background:#fff4e5;border:1.5px solid var(--orange);border-radius:18px;padding:12px 14px;animation:pulse 1.6s ease-in-out 3}
+.treq b{display:block} .treq small{color:var(--muted)}
+.tbell{font-size:1.7rem}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(245,137,31,.18)}}
 </style>
 </head>
 <body>
@@ -572,6 +583,16 @@ function sumBy(list,f){ return list.reduce((s,o)=>s+f(o),0); }
 function dayKey(ts){ const d=new Date(ts||0); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function dayLabel(k){ const [y,m,d]=k.split("-").map(Number); const dt=new Date(y,m-1,d); const t=dayKey(Date.now()), yd=dayKey(Date.now()-864e5); return (k===t?"اليوم · ":k===yd?"مبارح · ":"")+dt.toLocaleDateString("ar-EG",{weekday:"long",day:"numeric",month:"long"}); }
 function owedOf(o){ return calc(o).collect - calc(o).fee; }
+function payTo(){ return S.settings.payTo||{bank:"بنك فلسطين",account:"0592116514",holder:""}; }
+function payCard(){
+  const p=payTo();
+  return '<div class="card form paycard"><div class="pc1">'+I("wallet")+'<div><small>حوّل المبلغ على</small><b>'+esc(p.bank||"")+'</b>'+(p.holder?'<small>باسم '+esc(p.holder)+'</small>':'')+'</div></div><div class="pc2"><b dir="ltr">'+esc(p.account||"")+'</b><button type="button" class="btn ghost" data-copytxt="'+esc(p.account||"")+'">'+I("copy")+'نسخ الرقم</button></div></div>';
+}
+function treqBanner(did){
+  const t=(S.treq||{})[did]; if(!t) return "";
+  const owed=sumBy(S.orders.filter(o=>orderDriver(o)===did&&o.status==="delivered"&&!o.settled),owedOf);
+  return '<div class="treq"><span class="tbell">💰</span><div><b>'+(S.role==="driver"?"أبو عمر طلب منك تحوّل المبلغ الآن":"طلبت التحويل من "+esc(dShort(did)))+'</b><small>المطلوب: '+money(owed||t.amount)+' · '+fmtTime(t.t)+'</small></div></div>';
+}
 function owedOfOld(o){ return calc(o).collect - calc(o).fee - paidIn(o); }
 const PAY = {cod:"نقداً عند الاستلام", prepaid:"مدفوع مسبقاً (جوال باي / تحويل)"};
 
@@ -737,13 +758,15 @@ async function api(path,opt){
 function logout(expired){ tokSet(""); saveSwToken(); try{ $("#notifBox").innerHTML=""; }catch(e){} S.auth=null; S.driverId=null; S.isOwner=false; S.unlocked=false; S.role="seller"; S.tab="orders"; if(store&&store.stop) store.stop(); S.orders=[]; S.prodList=[]; loadPublic().then(render); if(expired) toast("انتهت الجلسة، سجّل دخول من جديد"); render(); }
 async function loadPublic(){ try{ S.pub=await api("/public"); }catch(e){ S.pub=S.pub||null; S.pubErr=e.message; } }
 function apiStore(){
-  let timer=null, cbs=null, last={o:"",s:"",p:""};
+  let timer=null, cbs=null, last={o:"",s:"",p:"",t:""};
   async function refresh(){
     if(!cbs) return;
     try{
       const st=await api("/state");
       const so=JSON.stringify(st.settings), po=JSON.stringify(st.products), oo=JSON.stringify(st.orders);
-      const ch=(so!==last.s)||(po!==last.p)||(oo!==last.o)||!last.o;
+      const tq=JSON.stringify(st.treq||{}); const tqch=tq!==last.t; last.t=tq; S.treq=st.treq||{};
+      if(tqch && last.o && S.role==="driver" && S.treq[S.driverId]) { toast("💰 أبو عمر بيطلب منك تحوّل المبلغ الآن"); try{ navigator.vibrate&&navigator.vibrate([300,100,300]); }catch(e){} }
+      const ch=(so!==last.s)||(po!==last.p)||(oo!==last.o)||!last.o||tqch;
       if(so!==last.s){ last.s=so; S.settings=st.settings||{}; const typing=document.activeElement&&document.activeElement.matches("input,textarea,select"); if(!(typing&&S.tab==="settings")) S.setAreas=null; }
       if(po!==last.p){ last.p=po; S.prodList=st.products||[]; }
       if(oo!==last.o||!last.o){
@@ -1049,7 +1072,9 @@ function renderOrders(){
   const keys = S.role==="driver"
     ? [["active","طلبات للتوصيل"],["postponed","مؤجلة"],["delivered","تم التوصيل"],["returned","مرتجع"]]
     : [["active","النشطة"],["new","جديد"],["postponed","مؤجل"],["delivered","تم التوصيل"],["returned","مرتجع"],["cancelled","ملغي"],["all","الكل"]];
-  let h='<div class="pagehead"><h2>'+(S.role==="seller"?"الطلبات":"طلباتي")+'</h2><span>'+c.active+' نشط</span></div>';
+  let h='';
+  if(S.role==="driver" && (S.treq||{})[S.driverId]) h+=treqBanner(S.driverId)+payCard();
+  h+='<div class="pagehead"><h2>'+(S.role==="seller"?"الطلبات":"طلباتي")+'</h2><span>'+c.active+' نشط</span></div>';
   h+='<div class="chips">'+keys.map(([k,t])=>'<button type="button" class="chip '+(S.filter===k?"on":"")+'" data-filter="'+k+'">'+t+' <b>'+(c[k]||0)+'</b></button>').join("")+'</div>';
   if((S.role==="seller"||S.role==="manager") && staffList().length) h+='<div class="chips src"><span class="hint">الصفحة:</span><button type="button" class="chip '+(!S.srcFilter?"on":"")+'" data-src="">الكل</button><button type="button" class="chip '+(S.srcFilter==="admin"?"on":"")+'" data-src="admin">'+esc(stName("admin"))+'</button>'+staffList().map(s=>'<button type="button" class="chip '+(S.srcFilter===s.id?"on":"")+'" data-src="'+esc(s.id)+'">'+esc(s.name)+'</button>').join("")+'</div>';
   h+='<div class="searchbox">'+I("search")+'<input id="search" type="search" placeholder="رقم الطلب، اسم الزبون أو الجوال" value="'+esc(S.q)+'"></div>';
@@ -1354,7 +1379,13 @@ function renderDriverAccount(did){
   const tk=dayKey(Date.now()), td=days.find(d=>d.k===tk)||{n:0,col:0,fee:0,net:0};
   const active=S.orders.filter(o=>orderDriver(o)===did&&ACTIVE.includes(o.status)).length;
   const allFees=sumBy(days,d=>d.fee);
-  let h='<div class="tiles"><div class="tile hl"><div class="l">'+(admin?"المطلوب من "+esc(name)+" (تراكمي غير مخلّص)":"المطلوب مني للمحل (تراكمي)")+'</div><div class="n">'+money(unsettled)+'</div><div class="l">'+(openDays.length?openDays.length+" يوم ما تخلّص":"كل الأيام مخلّصة ✓")+' · '+active+' طلب لسا للتوصيل</div></div></div>';
+  let h=treqBanner(did);
+  h+='<div class="tiles"><div class="tile hl"><div class="l">'+(admin?"المطلوب من "+esc(name)+" (تراكمي غير مخلّص)":"المطلوب مني للمحل (تراكمي)")+'</div><div class="n">'+money(unsettled)+'</div><div class="l">'+(openDays.length?openDays.length+" يوم ما تخلّص":"كل الأيام مخلّصة ✓")+' · '+active+' طلب لسا للتوصيل</div></div></div>';
+  if(admin){
+    if(S.confirmTreq===did) h+='<div class="card form"><div class="hint">بيوصل إشعار على جوال '+esc(name)+': «حوّل المبلغ الآن '+money(unsettled)+' على '+esc(payTo().bank)+' '+esc(payTo().account)+'»</div><div class="row"><button type="button" class="btn ok" data-treqyes="'+esc(did)+'">'+I("send")+'ابعت الإشعار</button><button type="button" class="btn ghost" data-treqno="1">إلغاء</button></div></div>';
+    else if(unsettled>0) h+='<button type="button" class="btn call big" data-treq="'+esc(did)+'">🔔 اطلب من '+esc(name)+' يحوّل الآن ('+money(unsettled)+')</button>';
+    if((S.treq||{})[did]) h+='<button type="button" class="btn ghost" data-treqclear="'+esc(did)+'">'+I("x")+'إلغاء طلب التحويل</button>';
+  } else h+=payCard();
   h+='<div class="card form today"><h3 class="sec">'+I("bike")+'اليوم</h3><div class="tgrid"><div><b>'+td.n+'</b><span>طلب توصّل</span></div><div><b>'+money(td.col)+'</b><span>المبلغ</span></div><div><b>'+money(td.fee)+'</b><span>'+(admin?"للكابتن":"إلي")+'</span></div><div><b>'+money(td.net)+'</b><span>للمحل</span></div></div></div>';
   if(!days.length) return h+'<div class="card empty"><p>ما في طلبات متوصّلة لسا.</p></div>';
   h+='<div class="pagehead" style="margin-top:4px"><h2 style="font-size:1rem">الحساب يوم بيوم</h2><span>مجموع أجرته: '+money(allFees)+'</span></div>';
@@ -1397,6 +1428,10 @@ function renderSettings(){
   if(!drivers().length) h+='<div class="grid2"><label for="s_dname">اسم الدليفري<input id="s_dname" name="driverName" value="'+esc(s.driverName||"")+'"></label><label for="s_dphone">واتساب الدليفري<input id="s_dphone" name="driverPhone" dir="ltr" inputmode="tel" placeholder="059xxxxxxx" value="'+esc(s.driverPhone||"")+'"></label></div>';
   h+='<label for="s_cc">مقدمة أرقام واتساب<select id="s_cc" name="countryCode"><option value="970" '+((s.countryCode||"970")==="970"?"selected":"")+'>+970 فلسطين</option><option value="972" '+(s.countryCode==="972"?"selected":"")+'>+972</option></select></label>';
   h+='<div class="hint">الأرقام اللي بتبدأ بصفر بتتحول لهاي المقدمة. إذا واتساب الدليفري مسجّل على 972 اختارها.</div>';
+  const pt=payTo();
+  h+='<h3 class="sec"><span class="n">'+I("wallet")+'</span>حساب التحويل (بيشوفه الكباتن)</h3>';
+  h+='<div class="grid2"><label for="s_bank">البنك / المحفظة<input id="s_bank" name="ptBank" value="'+esc(pt.bank||"")+'"></label><label for="s_acct">رقم الحساب<input id="s_acct" name="ptAccount" dir="ltr" value="'+esc(pt.account||"")+'"></label></div>';
+  h+='<label for="s_holder">باسم (اختياري)<input id="s_holder" name="ptHolder" value="'+esc(pt.holder||"")+'"></label>';
   h+='<h3 class="sec"><span class="n">2</span>المناطق وأجرة الدليفري</h3>';
   h+='<label for="s_inc" class="check"><input type="checkbox" id="s_inc" name="feeIncluded" '+(s.feeIncluded?"checked":"")+'> أسعار الأصناف شاملة التوصيل (الزبون بيدفع سعر الصنف بس، والأجرة من المحل للدليفري)</label>';
   ar.forEach((a,i)=>{ h+='<div class="areaRow"><input aria-label="المنطقة" id="ar_n_'+i+'" data-ar="'+i+'" data-k="name" value="'+esc(a.name)+'"><input aria-label="السعر" id="ar_f_'+i+'" data-ar="'+i+'" data-k="fee" inputmode="decimal" value="'+esc(a.fee)+'"><button type="button" class="x" data-rmar="'+i+'" aria-label="حذف">×</button></div>'; });
@@ -1539,6 +1574,12 @@ document.addEventListener("click",async e=>{
     if(await safe(()=>store.saveSettings(s))){ await store.refresh(); toast("تم حذف "+nm); render(); }
     return;
   }
+  if(D.copytxt){ try{ await navigator.clipboard.writeText(D.copytxt); toast("تم نسخ الرقم"); }catch(err){ toast(D.copytxt); } return; }
+  if(D.treq){ S.confirmTreq=D.treq; render(); return; }
+  if(D.treqno){ S.confirmTreq=null; render(); return; }
+  if(D.treqyes){ const did=D.treqyes; S.confirmTreq=null; const amt=sumBy(S.orders.filter(o=>orderDriver(o)===did&&o.status==="delivered"&&!o.settled),owedOf);
+    if(await safe(()=>api("/transfer-request",{method:"POST",body:{driverId:did,amount:amt}}))){ await store.refresh(); toast("انبعت الإشعار لـ "+dShort(did)+" 🔔"); } render(); return; }
+  if(D.treqclear){ const did=D.treqclear; if(await safe(()=>api("/transfer-request/"+encodeURIComponent(did),{method:"DELETE"}))){ await store.refresh(); toast("انلغى طلب التحويل"); } render(); return; }
   if(D.dday){ S.openDay = S.openDay===D.dday ? null : D.dday; S.confirmDay=null; render(); return; }
   if(D.dsettle){ S.confirmDay=D.dsettle; render(); return; }
   if(D.dsettleno){ S.confirmDay=null; render(); return; }
@@ -1547,6 +1588,8 @@ document.addEventListener("click",async e=>{
     const L=S.orders.filter(o=>orderDriver(o)===did&&o.status==="delivered"&&!o.settled&&(k==="all"||dayKey(o.deliveredAt||o.updatedAt||o.createdAt)===k));
     const t=Date.now();
     for(const o of L){ const n=Object.assign({},o); delete n.id; n.settled=true; n.settledAt=t; n.settledBy=S.settings.adminName||"الإدارة"; if(!(await safe(()=>store.setOrder(o.id,n)))) return; }
+    const left=S.orders.filter(o=>orderDriver(o)===did&&o.status==="delivered"&&!o.settled&&!L.includes(o)).length;
+    if(!left && (S.treq||{})[did]) { try{ await api("/transfer-request/"+encodeURIComponent(did),{method:"DELETE"}); await store.refresh(); }catch(e){} }
     toast("تم التخليص مع "+dShort(did)+" ✓"); return;
   }
   if(D.dcopy){
@@ -1789,7 +1832,7 @@ document.addEventListener("submit",async e=>{
     syncSettingsLists();
     const f=e.target;
     const s=Object.assign({},S.settings,{
-      adminName:f.adminName.value.trim(), adminUser:f.adminUser.value.trim().toLowerCase(), adminPageName:f.adminPageName.value.trim(), storeName:f.storeName.value.trim(), storeTagline:f.storeTagline.value.trim(), driverName:f.driverName?f.driverName.value.trim():(S.settings.driverName||""),
+      payTo:{bank:f.ptBank.value.trim(),account:f.ptAccount.value.trim(),holder:f.ptHolder.value.trim()}, adminName:f.adminName.value.trim(), adminUser:f.adminUser.value.trim().toLowerCase(), adminPageName:f.adminPageName.value.trim(), storeName:f.storeName.value.trim(), storeTagline:f.storeTagline.value.trim(), driverName:f.driverName?f.driverName.value.trim():(S.settings.driverName||""),
       driverPhone:f.driverPhone?f.driverPhone.value.trim():(S.settings.driverPhone||""), countryCode:f.countryCode.value, feeIncluded:f.feeIncluded.checked,
       areas:S.setAreas.filter(a=>String(a.name).trim()).map(a=>({name:String(a.name).trim(),fee:num(a.fee)}))
     });
