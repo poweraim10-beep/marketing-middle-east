@@ -48,6 +48,8 @@ async function ensure(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS majd_products (id TEXT PRIMARY KEY, data TEXT NOT NULL, updated INTEGER NOT NULL)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS majd_receipts (id TEXT PRIMARY KEY, driver TEXT, img TEXT NOT NULL, t INTEGER NOT NULL)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS majd_fail (ip TEXT NOT NULL, t INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS majd_push (endpoint TEXT PRIMARY KEY, who TEXT NOT NULL, t INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS majd_notif (id INTEGER PRIMARY KEY AUTOINCREMENT, who TEXT NOT NULL, title TEXT NOT NULL, body TEXT, t INTEGER NOT NULL)'),
   ]);
   ready = true;
 }
@@ -70,6 +72,8 @@ const DEFAULT_SETTINGS = {
   storeName: 'شركة المجد لمكافحة الحشرات',
   storeTagline: 'بيع منتجات مكافحة الحشرات',
   adminName: 'د. محمود نصرالله (أبو عمر)',
+  adminPageName: 'صفحة أبو عمر',
+  manager: { name: 'د. أيمن نصرالله' },
   countryCode: '970',
   feeIncluded: true,
   areas: [{ name: 'غزة والشمال', fee: 10 }, { name: 'الجنوب', fee: 12 }],
@@ -108,6 +112,7 @@ function publicSettings(s) {
     ...s,
     drivers: (s.drivers || []).map(({ pinHash, pinSalt, pinVer, ...d }) => ({ ...d, hasPin: !!pinHash })),
     staff: (s.staff || []).map(({ pinHash, pinSalt, ...d }) => ({ ...d, hasPin: !!pinHash })),
+    manager: (({ pinHash, pinSalt, ...d }) => ({ ...d, hasPin: !!pinHash }))(s.manager || { name: 'د. أيمن نصرالله' }),
   };
 }
 function driverForArea(s, area) { return (s.drivers || []).find((d) => d.zone === area) || null; }
@@ -150,6 +155,12 @@ async function readToken(env, req) {
     if (!d || !d.pinHash || d.pinSalt !== p.v) return null;
     return { role: 'driver', driverId: d.id };
   }
+  if (p.r === 'manager') {
+    const s = await settings(env);
+    const d = s.manager || {};
+    if (!d.pinHash || d.pinSalt !== p.v) return null;
+    return { role: 'manager', name: d.name || 'د. أيمن نصرالله' };
+  }
   if (p.r === 'staff') {
     const s = await settings(env);
     const d = (s.staff || []).find((x) => x.id === p.d);
@@ -167,7 +178,7 @@ async function tooManyFails(env, ip) {
 async function noteFail(env, ip) { await env.DB.prepare('INSERT INTO majd_fail (ip, t) VALUES (?, ?)').bind(ip, nowMs()).run(); }
 
 // ---------- orders ----------
-const DRIVER_FIELDS = ['status', 'history', 'deliveredAt', 'updatedAt', 'payMethod', 'transferShop', 'transferAmount', 'taskNote', 'deliverNote', 'hasReceipt', 'driverNote'];
+const DRIVER_FIELDS = ['status', 'history', 'deliveredAt', 'updatedAt', 'payMethod', 'transferShop', 'transferName', 'transferAmount', 'taskNote', 'deliverNote', 'hasReceipt', 'driverNote', 'postponedTo'];
 const DRIVER_STATUSES = ['picked', 'onway', 'delivered', 'postponed', 'returned'];
 const STAFF_FIELDS = ['customer', 'phone', 'address', 'notes', 'items', 'area', 'fee', 'feeOnCustomer', 'wholesale', 'payment', 'updatedAt'];
 const rowToOrder = (r) => { let d = {}; try { d = JSON.parse(r.data); } catch {} return { ...d, id: r.id }; };
@@ -192,8 +203,55 @@ async function stampCosts(env, d, onlyMissing) {
     return { ...i, cost: i.pid && map[i.pid] ? num(map[i.pid].cost) : num(i.cost) };
   });
 }
+// ---------- phone push (Web Push + VAPID, no payload: the service worker fetches the text) ----------
+// Re-uses the academy's VAPID keys stored in its settings table, so one key pair serves the whole site.
+const b64uBuf = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function getAcadSetting(env, k) {
+  try { const r = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(k).first(); return r ? r.value : null; } catch { return null; }
+}
+async function vapidKeys(env) {
+  let pub = await getAcadSetting(env, 'vapid_pub'), priv = await getAcadSetting(env, 'vapid_priv');
+  if (!pub || !priv) {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    pub = b64uBuf(await crypto.subtle.exportKey('raw', kp.publicKey));
+    priv = JSON.stringify(await crypto.subtle.exportKey('jwk', kp.privateKey));
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)').run();
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('vapid_pub', ?)").bind(pub).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('vapid_priv', ?)").bind(priv).run();
+    pub = await getAcadSetting(env, 'vapid_pub'); priv = await getAcadSetting(env, 'vapid_priv');
+  }
+  return { pub, priv };
+}
+async function vapidAuth(env, endpoint) {
+  const { pub, priv } = await vapidKeys(env);
+  const key = await crypto.subtle.importKey('jwk', JSON.parse(priv), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const enc = (o) => b64uBuf(new TextEncoder().encode(JSON.stringify(o)));
+  const head = enc({ typ: 'JWT', alg: 'ES256' });
+  const bodyP = enc({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'mailto:info@marketingmiddleeast.com' });
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(head + '.' + bodyP));
+  return 'vapid t=' + head + '.' + bodyP + '.' + b64uBuf(sig) + ', k=' + pub;
+}
+async function notify(env, who, title, text) {
+  try {
+    await env.DB.prepare('INSERT INTO majd_notif (who, title, body, t) VALUES (?, ?, ?, ?)').bind(who, clean(title, 120), clean(text, 240), nowMs()).run();
+    await env.DB.prepare('DELETE FROM majd_notif WHERE t < ?').bind(nowMs() - 30 * 864e5).run();
+    const subs = (await env.DB.prepare('SELECT endpoint FROM majd_push WHERE who = ?').bind(who).all()).results;
+    for (const s of subs) {
+      try {
+        const r = await fetch(s.endpoint, { method: 'POST', headers: { TTL: '172800', Urgency: 'high', Authorization: await vapidAuth(env, s.endpoint), 'Content-Length': '0' } });
+        if (r.status === 404 || r.status === 410) await env.DB.prepare('DELETE FROM majd_push WHERE endpoint = ?').bind(s.endpoint).run();
+      } catch {}
+    }
+  } catch {}
+}
+function orderSummary(d) { return (d.items || []).map((i) => num(i.qty) + '× ' + clean(i.name, 40)).join('، '); }
+let wait = (p) => p; // replaced per request with context.waitUntil
+
 async function productStats(env) {
   const rows = (await env.DB.prepare("SELECT data FROM majd_orders").all()).results;
+  const prods = (await env.DB.prepare('SELECT id, data FROM majd_products').all()).results;
+  const comps = {};
+  for (const r of prods) { try { const p = JSON.parse(r.data); if (p.isPackage && Array.isArray(p.components)) comps[r.id] = p.components; } catch {} }
   const st = {};
   for (const r of rows) {
     let o; try { o = JSON.parse(r.data); } catch { continue; }
@@ -203,13 +261,19 @@ async function productStats(env) {
       if (!it.pid) continue;
       st[it.pid] = st[it.pid] || { sold: 0, pending: 0 };
       st[it.pid][k] += num(it.qty);
+      // a package takes its parts out of stock
+      for (const c of comps[it.pid] || []) {
+        st[c.pid] = st[c.pid] || { sold: 0, pending: 0 };
+        st[c.pid][k] += num(it.qty) * num(c.qty);
+      }
     }
   }
   return st;
 }
 
 // ---------- router ----------
-export async function onRequest({ request, env, params }) {
+export async function onRequest({ request, env, params, waitUntil }) {
+  wait = (p) => { try { waitUntil ? waitUntil(p) : null; } catch {} return p; };
   if (!env.DB) return err('قاعدة البيانات غير مربوطة', 500);
   await ensure(env);
   const parts = [].concat(params.path || []).filter(Boolean);
@@ -226,6 +290,7 @@ export async function onRequest({ request, env, params }) {
         storeName: s.storeName, storeTagline: s.storeTagline, adminName: s.adminName || '', adminSet: !!admin,
         drivers: (s.drivers || []).map((d) => ({ id: d.id, name: d.name, short: d.short, zone: d.zone, hasPin: !!d.pinHash })),
         staff: (s.staff || []).map((d) => ({ id: d.id, name: d.name, hasPin: !!d.pinHash })),
+        manager: { name: (s.manager && s.manager.name) || 'د. أيمن نصرالله', hasPin: !!(s.manager && s.manager.pinHash) },
       });
     }
     if (a === 'setup' && m === 'POST') {
@@ -254,6 +319,13 @@ export async function onRequest({ request, env, params }) {
         if (!same(await hashSecret(bd.pin || '', d.pinSalt), d.pinHash)) { await noteFail(env, ip); return err('الرقم السري غلط', 401); }
         return json({ token: await makeToken(env, 'driver', d.id, d.pinSalt), role: 'driver', driverId: d.id });
       }
+      if (bd.role === 'manager') {
+        const s = await settings(env);
+        const d = s.manager || {};
+        if (!d.pinHash) return err('ما في رقم سري لحسابك لسا، اطلب من أبو عمر يحدده', 409);
+        if (!same(await hashSecret(bd.pin || '', d.pinSalt), d.pinHash)) { await noteFail(env, ip); return err('الرقم السري غلط', 401); }
+        return json({ token: await makeToken(env, 'manager', '', d.pinSalt), role: 'manager' });
+      }
       if (bd.role === 'staff') {
         const s = await settings(env);
         const d = (s.staff || []).find((x) => x.id === bd.staffId);
@@ -270,6 +342,7 @@ export async function onRequest({ request, env, params }) {
     if (!me) return err('سجّل دخول من جديد', 401);
     const isAdmin = me.role === 'admin';
     const isStaff = me.role === 'staff';
+    const isManager = me.role === 'manager';
 
     if (a === 'me' && m === 'GET') return json(me);
 
@@ -281,7 +354,7 @@ export async function onRequest({ request, env, params }) {
         if (me.role === 'driver') delete x.cost; // captains never see wholesale costs
         return x;
       });
-      const q = isAdmin
+      const q = (isAdmin || isManager)
         ? env.DB.prepare('SELECT id, data FROM majd_orders ORDER BY created DESC LIMIT 800')
         : isStaff
           ? env.DB.prepare('SELECT id, data FROM majd_orders WHERE created_by = ? ORDER BY created DESC LIMIT 400').bind(me.staffId)
@@ -308,8 +381,12 @@ export async function onRequest({ request, env, params }) {
         const o = oldStaff[d.id] || {};
         return { id: clean(d.id, 40) || randomHex(4), name: clean(d.name, 80), ...(o.pinHash ? { pinHash: o.pinHash, pinSalt: o.pinSalt } : {}) };
       }).filter((d) => d.name);
+      const om = old.manager || {};
+      const nm = ns.manager && typeof ns.manager === 'object' ? ns.manager : {};
+      const manager = { name: clean(nm.name, 80) || om.name || 'د. أيمن نصرالله', ...(om.pinHash ? { pinHash: om.pinHash, pinSalt: om.pinSalt } : {}) };
       const s = {
-        adminName: clean(ns.adminName, 80) || old.adminName || '', staff,
+        adminName: clean(ns.adminName, 80) || old.adminName || '', staff, manager,
+        adminPageName: clean(ns.adminPageName, 80) || old.adminPageName || 'صفحة أبو عمر',
         storeName: clean(ns.storeName, 80), storeTagline: clean(ns.storeTagline, 120), countryCode: clean(ns.countryCode, 4) || '970',
         feeIncluded: !!ns.feeIncluded, driverName: clean(ns.driverName, 60), driverPhone: clean(ns.driverPhone, 30),
         areas: (Array.isArray(ns.areas) ? ns.areas : []).slice(0, 40).map((x) => ({ name: clean(x.name, 80), fee: num(x.fee) })).filter((x) => x.name),
@@ -320,10 +397,11 @@ export async function onRequest({ request, env, params }) {
     }
     if (a === 'driver-pin' && m === 'PUT') {
       if (!isAdmin) return err('للأدمن فقط', 403);
-      const { driverId, staffId, pin } = await body(request);
+      const { driverId, staffId, manager, pin } = await body(request);
       if (String(pin || '').length < 4) return err('الرقم السري لازم يكون 4 أرقام على الأقل');
       const s = await settings(env);
-      const d = staffId ? (s.staff || []).find((x) => x.id === staffId) : (s.drivers || []).find((x) => x.id === driverId);
+      if (manager) s.manager = s.manager || { name: 'د. أيمن نصرالله' };
+      const d = manager ? s.manager : staffId ? (s.staff || []).find((x) => x.id === staffId) : (s.drivers || []).find((x) => x.id === driverId);
       if (!d) return err('الحساب مش موجود', 404);
       d.pinSalt = randomHex(16); d.pinHash = await hashSecret(pin, d.pinSalt);
       await kvSet(env, 'settings', s);
@@ -340,12 +418,32 @@ export async function onRequest({ request, env, params }) {
       return json({ token: await makeToken(env, 'admin', '', salt) });
     }
 
+    // phone notifications
+    const who = isAdmin ? 'admin' : isManager ? 'manager' : isStaff ? 's:' + me.staffId : 'd:' + me.driverId;
+    if (a === 'push' && b === 'key' && m === 'GET') return json({ key: (await vapidKeys(env)).pub });
+    if (a === 'push' && b === 'subscribe' && m === 'POST') {
+      const { endpoint } = await body(request);
+      if (!/^https:\/\//.test(String(endpoint || ''))) return err('اشتراك غير صالح');
+      await env.DB.prepare('INSERT INTO majd_push (endpoint, who, t) VALUES (?, ?, ?) ON CONFLICT(endpoint) DO UPDATE SET who = excluded.who, t = excluded.t').bind(clean(endpoint, 1000), who, nowMs()).run();
+      return json({ ok: true });
+    }
+    if (a === 'push' && b === 'unsubscribe' && m === 'POST') {
+      const { endpoint } = await body(request);
+      await env.DB.prepare('DELETE FROM majd_push WHERE endpoint = ?').bind(clean(endpoint, 1000)).run();
+      return json({ ok: true });
+    }
+    if (a === 'notif' && m === 'GET') {
+      const r = await env.DB.prepare('SELECT id, title, body, t FROM majd_notif WHERE who = ? ORDER BY id DESC LIMIT 1').bind(who).first();
+      return json({ item: r || null });
+    }
+
     // products
     if (a === 'products') {
-      if (!isAdmin) return err('للأدمن فقط', 403);
+      if (!isAdmin && !isManager) return err('غير مسموح', 403);
       if (m === 'POST') {
         const { data } = await body(request);
         const id = 'p' + randomHex(5);
+        if (data) { delete data.sold; delete data.pending; }
         const d = sanitizeOrder(data || {});
         await env.DB.prepare('INSERT INTO majd_products (id, data, updated) VALUES (?, ?, ?)').bind(id, JSON.stringify(d), nowMs()).run();
         return json({ id });
@@ -367,7 +465,7 @@ export async function onRequest({ request, env, params }) {
         const { data } = await body(request);
         const d = sanitizeOrder(data || {});
         if (isStaff) { d.status = 'new'; d.settled = false; d.createdBy = me.staffId; d.createdByName = me.name; delete d.driverId; }
-        else { d.createdBy = 'admin'; d.createdByName = s.adminName || 'الإدارة'; }
+        else { d.createdBy = 'admin'; d.createdByName = s.adminPageName || 'صفحة أبو عمر'; }
         if (!d.driverId) { const dr = driverForArea(s, d.area); d.driverId = dr ? dr.id : ''; }
         await stampCosts(env, d, false);
         const last = await env.DB.prepare("SELECT MAX(CAST(json_extract(data, '$.num') AS INTEGER)) AS n FROM majd_orders").first();
@@ -375,6 +473,7 @@ export async function onRequest({ request, env, params }) {
         const id = 'o' + randomHex(6), t = nowMs();
         d.createdAt = d.createdAt || t;
         await env.DB.prepare('INSERT INTO majd_orders (id, driver, created_by, data, created, updated) VALUES (?, ?, ?, ?, ?, ?)').bind(id, d.driverId, d.createdBy, JSON.stringify(d), t, t).run();
+        if (d.driverId) wait(notify(env, 'd:' + d.driverId, '🛵 طلب جديد #' + d.num, (d.customer || '') + ' · ' + (d.area || '') + ' · ' + orderSummary(d)));
         return json({ id, num: d.num });
       }
       if (!b) return err('طلب غير صحيح');
@@ -392,10 +491,17 @@ export async function onRequest({ request, env, params }) {
         const { data } = await body(request);
         if (!row) return err('الطلب مش موجود', 404);
         let d;
+        const before = rowToOrder(row);
         if (isAdmin) {
           d = sanitizeOrder(data || {});
           if (!d.driverId) { const dr = driverForArea(s, d.area); d.driverId = dr ? dr.id : ''; }
           await stampCosts(env, d, true);
+        } else if (isManager) {
+          const cur = { ...before }; delete cur.id;
+          const inc = data || {};
+          d = { ...cur };
+          for (const k of ['supplierPaid', 'supplierPaidAt']) if (k in inc) d[k] = inc[k];
+          d = sanitizeOrder(d);
         } else if (isStaff) {
           if (!staffOwn) return err('بتقدر تعدّل طلباتك الجديدة بس', 403);
           const cur = rowToOrder(row); delete cur.id;
@@ -410,11 +516,28 @@ export async function onRequest({ request, env, params }) {
           const cur = rowToOrder(row); delete cur.id;
           const inc = data || {};
           if (inc.status && !DRIVER_STATUSES.includes(inc.status)) return err('حالة غير مسموحة', 403);
+          if (inc.status === 'delivered' && before.status !== 'delivered') {
+            if (!clean(inc.taskNote)) return err('اكتب الملاحظات المهمة قبل «تم التوصيل»');
+            if (!inc.payMethod) return err('اختار وين تم التحويل');
+            if (inc.payMethod !== 'cash' && !clean(inc.transferName)) return err('اكتب باسم مين التحويل');
+            if (inc.payMethod !== 'cash' && !inc.hasReceipt) return err('صوّر إشعار التحويل');
+          }
+          if (inc.status === 'postponed' && !clean(inc.driverNote)) return err('اكتب سبب التأجيل');
           d = { ...cur };
           for (const k of DRIVER_FIELDS) if (k in inc) d[k] = inc[k];
           d = sanitizeOrder(d);
         }
         await env.DB.prepare('UPDATE majd_orders SET driver = ?, data = ?, updated = ? WHERE id = ?').bind(d.driverId || '', JSON.stringify(d), nowMs(), b).run();
+        // who should hear about this change
+        if (d.driverId && d.driverId !== before.driverId && ['new', 'picked', 'onway', 'postponed'].includes(d.status))
+          wait(notify(env, 'd:' + d.driverId, '🛵 طلب جديد #' + d.num, (d.customer || '') + ' · ' + (d.area || '') + ' · ' + orderSummary(d)));
+        if (d.status !== before.status && ['delivered', 'postponed', 'returned'].includes(d.status)) {
+          const who = d.createdBy && d.createdBy !== 'admin' ? 's:' + d.createdBy : 'admin';
+          const t = d.status === 'delivered' ? '✅ تم توصيل الطلب #' + d.num : d.status === 'postponed' ? '⏸ تأجّل الطلب #' + d.num : '↩︎ مرتجع: الطلب #' + d.num;
+          const body2 = (d.customer || '') + (d.status === 'postponed' && d.driverNote ? ' · ' + d.driverNote : '');
+          wait(notify(env, who, t, body2));
+          if (who !== 'admin') wait(notify(env, 'admin', t, body2));
+        }
         return json({ ok: true });
       }
     }
@@ -424,6 +547,7 @@ export async function onRequest({ request, env, params }) {
       const row = await env.DB.prepare('SELECT driver FROM majd_orders WHERE id = ?').bind(b).first();
       if (!row) return err('الطلب مش موجود', 404);
       const own = isAdmin || (me.role === 'driver' && row.driver === me.driverId);
+      if (isManager && m === 'GET') { const r = await env.DB.prepare('SELECT img, t FROM majd_receipts WHERE id = ?').bind(b).first(); return r ? json({ img: r.img, t: r.t }) : err('ما في صورة', 404); }
       const ownView = own || (isStaff && (await env.DB.prepare('SELECT created_by FROM majd_orders WHERE id = ?').bind(b).first()).created_by === me.staffId);
       if (!ownView) return err('هذا الطلب مش إلك', 403);
       if (m === 'PUT') {
