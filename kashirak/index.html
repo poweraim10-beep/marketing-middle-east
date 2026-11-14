@@ -175,7 +175,7 @@ const APPM=['بنك فلسطين','PalPay','جوال باي','بنك آخر'];
 const payOf=s=>s.pays||{cash:s.pay==='cash'?s.total:0,app:s.pay==='bank'?s.total:0,debt:s.pay==='debt'?s.total:0};
 const payLabel=s=>{const p=payOf(s),k=Object.keys(PAY).filter(x=>p[x]>0);return k.length>1?'مقسّم':PAY[k[0]||'cash']};
 const isOwner=()=>S.mode!=='cashier';
-const newCart=()=>({lines:[],discount:0,pay:'cash',custId:'',splitCash:'',splitApp:'',appMethod:APPM[0],ref:''});
+const newCart=()=>({lines:[],discount:0,pay:'cash',custId:'',custName:'',custPhone:'',payer:'',splitCash:'',splitApp:'',appMethod:APPM[0],ref:''});
 const waNum=ph=>{let d=String(ph||'').replace(/\D/g,'');if(d.startsWith('00'))d=d.slice(2);if(/^05\d{8}$/.test(d))d=(/^05[69]/.test(d)?'970':'972')+d.slice(1);return d};
 const ICON={
  home:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
@@ -315,7 +315,26 @@ function seed(){
 let S;
 function load(){try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist().catch(()=>{})}catch(e){}
   try{const j=localStorage.getItem(KEY);if(j){S=JSON.parse(j);if(S&&S.items&&S.suppliers){if(!S.pin)S.pin='0000';if(!S.mode)S.mode='owner';return}}}catch(e){} S=null}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
+  o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
+function save(){const j=S?JSON.stringify(S):null; try{if(j)localStorage.setItem(KEY,j)}catch(e){}
+  clearTimeout(save.t); save.t=setTimeout(()=>idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}),400)}
+async function restoreFromIdb(){ /* if the browser cleared localStorage, bring the shop back from IndexedDB */
+  const [j,dv]=await Promise.all([idb('readonly',st=>st.get(KEY)),idb('readonly',st=>st.get(DEVKEY))]);
+  try{if(dv&&!localStorage.getItem(DEVKEY))localStorage.setItem(DEVKEY,dv)}catch(e){}
+  if(!S&&j){try{const o=JSON.parse(j);if(o&&o.items){S=o;S.mode=S.mode||'owner';try{localStorage.setItem(KEY,j)}catch(e){}route()}}catch(e){}}
+}
+/* scanner beep: short square tone like a supermarket scanner */
+let AC=null;
+function beep(ok=true){ if(S&&S.sound===false) return;
+  try{AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume();
+    const t=AC.currentTime, tones=ok?[[2700,0,.09]]:[[420,0,.12],[300,.15,.2]];
+    tones.forEach(([f,s,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=f;
+      g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(.18,t+s+.008);g.gain.setValueAtTime(.18,t+s+d-.02);g.gain.linearRampToValueAtTime(0,t+s+d);
+      o.connect(g).connect(AC.destination);o.start(t+s);o.stop(t+s+d+.02)});
+  }catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(ok?40:[60,60,60])}catch(e){}
+}
 const balance=c=>r2(c.ledger.reduce((a,l)=>a+l.amt,0));
 const itemById=id=>S.items.find(i=>i.id===+id);
 const qtyTxt=i=>i.byWeight?`${r3(i.qty)} كغ`:`${i.qty}`;
@@ -343,7 +362,7 @@ function receiptCanvas(s){
     C(S.shop,26,1); C(`فاتورة رقم ${s.id}`,18); C(fdate(s.ts),17); HR();
     s.lines.forEach(l=>{LR(l.name,'',19,1); LR(`${l.count} ${l.unit} × ${fx(l.price)}`,fx(l.price*l.count))});
     HR(); if(s.discount) LR('خصم','-'+fx(s.discount)); LR('الإجمالي ₪',fx(s.total),24,1);
-    Object.keys(PAY).forEach(k=>{if(p[k]>0) LR(PAY[k]+(k==='app'&&s.appMethod?` (${s.appMethod})`:''),fx(p[k]),17)});
+    Object.keys(PAY).forEach(k=>{if(p[k]>0) LR(PAY[k]+(k==='app'&&s.appMethod?` (${s.appMethod})`:'')+(k==='debt'&&s.custId?` على ${(S.customers.find(x=>x.id===s.custId)||{}).name||''}`:''),fx(p[k]),17)});
     HR(); C('شكرًا لزيارتكم',18); C('كاشيرك الذكي',14);
     const hOf=o=>o.k==='hr'?14:Math.round(o.sz*1.5), H=ops.reduce((a,o)=>a+hOf(o),2*P);
     const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d');
@@ -448,13 +467,17 @@ sell(){
       </div>`}).join('')||'<div class="empty">السلة فاضية. امسح باركود أو ابحث عن صنف.</div>'}
   </div>
   <div class="card">
-    <div class="grid2">
-      <label for="disc">خصم (₪)<input id="disc" type="number" inputmode="decimal" min="0" step="0.5" value="${c.discount||''}" placeholder="0"></label>
-      <label for="cust">الزبون (للدين)<select id="cust"><option value="">بدون</option>${S.customers.map(x=>`<option value="${x.id}" ${+c.custId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
-    </div>
+    <label for="disc">خصم (₪)<input id="disc" type="number" inputmode="decimal" min="0" step="0.5" value="${c.discount||''}" placeholder="0"></label>
     <div class="seg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${v}</button>`).join('')}</div>
     ${c.pay==='split'?`<div class="grid2"><label for="spC">نقدي (₪)<input id="spC" class="cf" data-f="splitCash" type="number" inputmode="decimal" min="0" value="${esc(c.splitCash)}"></label><label for="spA">تطبيق أو محفظة (₪)<input id="spA" class="cf" data-f="splitApp" type="number" inputmode="decimal" min="0" value="${esc(c.splitApp)}"></label></div><p class="muted" id="spRest" style="margin:0">الباقي ${fx(splitPays(tt.total,c).debt)} ₪ يُسجّل دين على الزبون.</p>`:''}
-    ${c.pay==='app'||c.pay==='split'?`<div class="grid2"><label for="apM">جهة التحويل<select id="apM" class="cf" data-f="appMethod">${APPM.map(m=>`<option ${c.appMethod===m?'selected':''}>${m}</option>`).join('')}</select></label><label for="apR">رقم العملية<input id="apR" class="cf" data-f="ref" inputmode="numeric" value="${esc(c.ref)}" placeholder="اختياري"></label></div>`:''}
+    ${c.pay==='app'||c.pay==='split'?`<div class="grid2"><label for="apM">جهة التحويل<select id="apM" class="cf" data-f="appMethod">${APPM.map(m=>`<option ${c.appMethod===m?'selected':''}>${m}</option>`).join('')}</select></label><label for="apR">رقم العملية<input id="apR" class="cf" data-f="ref" inputmode="numeric" value="${esc(c.ref)}" placeholder="اختياري"></label></div>
+    <label for="apP">الدفع باسم مين؟<input id="apP" class="cf" data-f="payer" value="${esc(c.payer)}" placeholder="اسم صاحب الحساب أو المحفظة (اختياري)" autocomplete="off"></label>`:''}
+    ${c.pay==='debt'||c.pay==='split'?`<div class="card" style="box-shadow:none;border-color:color-mix(in srgb,var(--gold) 50%,transparent);gap:8px">
+      <div class="row"><b>تفاصيل الدين</b><span id="debtAmt">${money(splitPays(tt.total,c).debt)}</span></div>
+      <label for="dName">اسم الشخص<input id="dName" class="cf" data-f="custName" list="custList" value="${esc(c.custName)}" placeholder="اكتب الاسم أو اختر من الزبائن" autocomplete="off"></label>
+      <datalist id="custList">${S.customers.map(x=>`<option value="${esc(x.name)}">`).join('')}</datalist>
+      <label for="dPhone">رقم جواله (اختياري)<input id="dPhone" class="cf" data-f="custPhone" inputmode="tel" value="${esc(c.custPhone)}" placeholder="059xxxxxxx"></label>
+      <p class="muted" style="margin:0">المبلغ بينضاف مباشرة على حسابه بدفتر الديون.</p></div>`:''}
     <div class="row"><span class="muted">الإجمالي${tt.disc?` بعد خصم ${fx(tt.disc)} ₪`:''}</span><span class="total">${money(tt.total)}</span></div>
     <div class="row muted"><span>يعادل بالدولار</span><span class="num">$ ${fx(tt.total/(S.rate||1))}</span></div>
     <button class="btn accent block" data-act="checkout">إتمام البيع</button>
@@ -512,7 +535,7 @@ more(){
     <div class="card"><div class="list">
       ${stat('رصيد الافتتاح',money(d.open))}${stat('مبيعات نقدية',money(d.cashSales))}${stat('دفعات ديون من الزبائن',money(d.debtIn))}
       ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}</div></div>
-    ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li"><span><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
+    ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li"><span><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">${s.payer?`باسم ${esc(s.payer)} · `:''}فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
     <div class="card"><h2>إقفال الصندوق</h2>
       <label for="cnt">المبلغ المعدود فعليًا (₪)<input id="cnt" type="number" inputmode="decimal" min="0" placeholder="${fx(d.expected)}"></label>
       <button class="btn primary" data-act="closeDay">إقفال وتسجيل الفرق</button></div>
@@ -525,6 +548,7 @@ more(){
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <label for="stRate">سعر صرف الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
       <button class="btn primary" data-act="saveSet">حفظ</button></div>
+    <div class="card"><h2>صوت المسح</h2><label class="chk" for="stSound"><input type="checkbox" id="stSound" ${S.sound===false?'':'checked'}>صوت «بيب» واهتزاز عند مسح الباركود</label><button class="btn" data-act="testBeep">تجربة الصوت</button></div>
     <div class="card"><h2>رمز المالك</h2><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في تعديل أصناف ولا إرجاع فواتير. الرمز الافتراضي 0000، غيّره.</p>
       <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
       <button class="btn primary" data-act="savePin">حفظ الرمز</button></div>
@@ -626,9 +650,10 @@ async function openScan(target){
 function onScan(code){
   code=String(code||'').trim(); if(!code) return;
   closeScan();
-  if(scan.target==='field'){const f=$('#fBar'); if(f){f.value=code; toast('تم التقاط الباركود')} return}
+  if(scan.target==='field'){const f=$('#fBar'); if(f){beep(true); f.value=code; toast('تم التقاط الباركود')} return}
   const it=S.items.find(i=>i.barcode===code);
-  if(it){ if(tab!=='sell'){tab='sell'} addToCart(it.id); return }
+  if(it){ beep(true); if(tab!=='sell'){tab='sell'} addToCart(it.id); return }
+  beep(false); q=''; const qi=$('#q'); if(qi){qi.value=''; renderResults()}
   openSheet(`${sheetHead('باركود غير مسجّل')}<p style="margin:0">الرقم <span class="num">${esc(code)}</span> غير موجود في الأصناف.</p>
     <button class="btn primary block" data-act="editItem" data-id="0" data-bar="${esc(code)}">إضافة صنف جديد بهذا الباركود</button>`);
 }
@@ -668,7 +693,7 @@ function addToCart(id){
 }
 function invoiceText(s){
   return [`${S.shop}`,`فاتورة رقم ${s.id} · ${fdate(s.ts)}`,'',...s.lines.map(l=>`${l.name} × ${l.count} ${l.unit} = ${fx(l.price*l.count)} ₪`),
-    s.discount?`خصم: ${fx(s.discount)} ₪`:null,`الإجمالي: ${fx(s.total)} ₪`,...Object.keys(PAY).filter(k=>payOf(s)[k]>0).map(k=>`${PAY[k]}: ${fx(payOf(s)[k])} ₪`),'شكرًا لزيارتكم'].filter(x=>x!==null).join('\n');
+    s.discount?`خصم: ${fx(s.discount)} ₪`:null,`الإجمالي: ${fx(s.total)} ₪`,...Object.keys(PAY).filter(k=>payOf(s)[k]>0).map(k=>`${PAY[k]}${k==='app'&&s.appMethod?` (${s.appMethod}${s.payer?' باسم '+s.payer:''})`:''}${k==='debt'&&s.custId?` على ${(S.customers.find(x=>x.id===s.custId)||{}).name||''}`:''}: ${fx(payOf(s)[k])} ₪`),'شكرًا لزيارتكم'].filter(x=>x!==null).join('\n');
 }
 function copyBox(id){const t=$('#'+id); if(!t) return; t.select();
   (navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).then(()=>toast('تم النسخ')).catch(()=>toast('حدّد النص وانسخه يدويًا'))}
@@ -676,7 +701,10 @@ function saleSheet(sale,title){
   openSheet(`${sheetHead(title)}
     <div class="card"><div class="row"><span>فاتورة رقم <span class="num">${sale.id}</span></span><span class="pill ${sale.confirmed===false?'warn':'ok'}">${payLabel(sale)}${sale.confirmed===false?' · بانتظار التأكيد':''}</span></div>
       <div class="row"><span class="muted">الإجمالي</span><span class="total">${money(sale.total)}</span></div>
+      ${sale.payer?`<div class="row muted"><span>محوّل باسم</span><span>${esc(sale.payer)}</span></div>`:''}
+      ${sale.custId?`<div class="row muted"><span>دين على</span><span>${esc((S.customers.find(x=>x.id===sale.custId)||{}).name||'')} · ${money(payOf(sale).debt)}</span></div>`:''}
       ${isOwner()?`<div class="row muted"><span>ربح الفاتورة</span>${money(sale.total-sale.cost)}</div>`:''}</div>
+    ${sale.custId?`<button class="btn block" data-act="party" data-kind="customers" data-id="${sale.custId}">فتح حسابه بدفتر الديون</button>`:''}
     ${(()=>{const img=receiptImage(sale);return img?`<div class="label" style="padding:6px"><img src="${img}" alt="إيصال الفاتورة ${sale.id}" style="max-width:100%;width:240px"></div><p class="muted" style="margin:0">الإيصال بعرض 58 مم ومرسوم كصورة، فبينطبع العربي صح على الطابعة الحرارية.</p>`:''})()}
     <label for="invTxt">نص الفاتورة لإرسالها للزبون<textarea id="invTxt" rows="6" readonly>${esc(invoiceText(sale))}</textarea></label>
     <div class="grid2"><button class="btn accent" data-act="printSale" data-id="${sale.id}">طباعة</button><button class="btn" data-act="btPrint" data-id="${sale.id}">طابعة بلوتوث</button></div>
@@ -705,12 +733,18 @@ checkout(){
   const c=cart(); if(!c.lines.length){toast('أضف صنفًا للسلة أولًا');return}
   if(!needActive()) return;
   const lines=c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)), tt=cartTotals(lines,c.discount), pays=splitPays(tt.total,c);
-  if(pays.debt>0&&!c.custId){toast(`اختر الزبون لتسجيل الدين (${fx(pays.debt)} ₪)`);return}
+  const dName=String(c.custName||'').trim().replace(/\s+/g,' ');
+  if(pays.debt>0&&!dName){toast(`اكتب اسم الشخص لتسجيل الدين (${fx(pays.debt)} ₪)`);const f=$('#dName');if(f)f.focus();return}
+  let debtor=null;
+  if(pays.debt>0){debtor=S.customers.find(x=>x.name.trim()===dName);
+    if(!debtor){debtor={id:S.nextId++,name:dName,phone:String(c.custPhone||'').trim(),ledger:[]};S.customers.push(debtor)}
+    else if(c.custPhone&&!debtor.phone) debtor.phone=String(c.custPhone).trim()}
   lines.forEach(l=>{const it=itemById(l.itemId); it.qty=r3(it.qty-l.baseQty)});
-  const sale={id:S.nextInv++,ts:Date.now(),lines,discount:tt.disc,total:tt.total,cost:tt.cost,pays,appMethod:pays.app>0?c.appMethod:'',ref:pays.app>0?String(c.ref||'').trim():'',confirmed:!(pays.app>0),custId:pays.debt>0?+c.custId:null};
+  const sale={id:S.nextInv++,ts:Date.now(),lines,discount:tt.disc,total:tt.total,cost:tt.cost,pays,appMethod:pays.app>0?c.appMethod:'',ref:pays.app>0?String(c.ref||'').trim():'',confirmed:!(pays.app>0),payer:pays.app>0?String(c.payer||'').trim():'',custId:debtor?debtor.id:null};
   S.sales.push(sale);
   if(sale.custId){S.customers.find(x=>x.id===sale.custId).ledger.push({ts:sale.ts,amt:pays.debt,note:`فاتورة رقم ${sale.id}`})}
   carts[ci]=newCart(); save(); render(); saleSheet(sale,'تم البيع');
+  if(debtor) toast(`انسجل ${fx(pays.debt)} ₪ على ${debtor.name} بدفتر الديون`);
 },
 sale(d){const s=S.sales.find(x=>x.id===+d.id); if(s) saleSheet(s,'تفاصيل الفاتورة')},
 refund(d){
@@ -800,6 +834,7 @@ closeDay(){const d=drawer(), raw=$('#cnt').value, counted=raw===''?d.expected:r2
 saveSet(){S.shop=$('#stShop').value.trim()||S.shop; const r=parseFloat($('#stRate').value); if(r>0) S.rate=r2(r); save(); render(); toast('تم الحفظ')},
 bkOut(){const t=$('#bk'); t.value=JSON.stringify(S); copyBox('bk')},
 bkIn(){try{const o=JSON.parse($('#bk').value); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)||!Array.isArray(o.suppliers)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('النص ليس نسخة احتياطية صالحة')}},
+testBeep(){beep(true)},
 wipeAsk(){openSheet(`${sheetHead('مسح كل البيانات')}<p style="margin:0">اكتب كلمة <b>مسح</b> للتأكيد. هالخطوة ما بترجع.</p><input id="wipeTxt" autocomplete="off"><button class="btn danger block" data-act="wipe">مسح نهائي</button>`)},
 wipe(){if($('#wipeTxt').value.trim()!=='مسح'){toast('اكتب كلمة مسح للتأكيد');return} try{localStorage.removeItem(KEY)}catch(e){} S=null; carts=carts.map(()=>newCart()); closeSheet(); tab='home'; render()},
 setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.trim(), phone=$('#suPhone').value.trim();
@@ -849,14 +884,14 @@ document.addEventListener('click',e=>{
 document.addEventListener('input',e=>{ const t=e.target;
   if(t.id==='q'){q=t.value; renderResults()}
   if(t.classList&&t.classList.contains('cf')){const c=cart(); c[t.dataset.f]=t.value; const r=$('#spRest');
-    if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`}}
+    if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
 });
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='disc'){cart().discount=Math.max(0,r2(parseFloat(t.value)||0)); render()}
-  if(t.id==='cust'){cart().custId=t.value; if(t.value&&cart().pay!=='split') cart().pay='debt'; render()}
   if(t.classList&&t.classList.contains('wt')){const l=cart().lines[+t.dataset.k], it=itemById(l.itemId), w=r3(parseFloat(t.value)||0);
     if(w<=0) toast('اكتب وزنًا أكبر من صفر'); else if(w>it.qty) toast(`المتوفر ${qtyTxt(it)} فقط`); else l.count=w; render()}
+  if(t.id==='stSound'){S.sound=t.checked; save(); if(t.checked) beep(true)}
   if((t.id==='bkPick'||t.id==='csvPick')&&t.files&&t.files[0]){const f=t.files[0], rd=new FileReader();
     rd.onload=()=>{ if(t.id==='csvPick'){$('#csvTxt').value=String(rd.result).replace(/^\uFEFF/,''); toast('تمت قراءة الملف، اضغط استيراد')}
       else {try{const o=JSON.parse(rd.result); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('الملف ليس نسخة احتياطية صالحة')}}};
@@ -872,11 +907,12 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeScan();closeSheet()}
   if(e.key==='Enter'&&e.target.id==='scanTxt') onScan(e.target.value);
   if(e.key==='Enter'&&e.target.id==='pin') A.unlock();
-  if(e.key==='Enter'&&e.target.id==='q'){const s=q.trim(); const hit=S.items.find(i=>i.barcode===s)||S.items.filter(i=>i.name.includes(s))[0]; if(s&&hit) addToCart(hit.id)}
+  if(e.key==='Enter'&&e.target.id==='q'){const s=q.trim(); if(!s) return; const byBar=S.items.find(i=>i.barcode===s), hit=byBar||S.items.filter(i=>i.name.includes(s))[0];
+    if(byBar) beep(true); else if(/^\d{8,14}$/.test(s)){beep(false); onScan(s); return} if(hit) addToCart(hit.id)}
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); route();
+load(); route(); restoreFromIdb();
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 </script>
 </body>
