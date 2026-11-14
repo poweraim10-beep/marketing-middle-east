@@ -1,7 +1,7 @@
 {
-  "name": "المجد · الطلبات والتوصيل",
-  "short_name": "المجد",
-  "description": "نظام الطلبات والتوصيل لشركة المجد لمكافحة الحشرات",
+  "name": "درع المجد · الطلبات والتوصيل",
+  "short_name": "درع المجد",
+  "description": "درع المجد: نظام الطلبات والتوصيل والمخزون لشركة المجد لمكافحة الحشرات",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "/majd/",
@@ -11,8 +11,21 @@
   "background_color": "#f3f5f9",
   "theme_color": "#34486a",
   "icons": [
-    { "src": "/majd/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/majd/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/majd/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/majd/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/majd/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/majd/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
