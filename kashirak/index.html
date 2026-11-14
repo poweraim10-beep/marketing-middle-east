@@ -151,6 +151,24 @@ video{width:100%;border-radius:12px;background:#000;max-height:260px;object-fit:
 #live.off video,#live.off .aim,#live.off #liveFlash{display:none}
 #live.off .livebar{position:static;background:none;color:var(--ink);padding:8px 12px}
 #live.off .livebar .btn{background:var(--brand);color:var(--brand-ink);border-color:transparent}
+.mgroup{display:flex;flex-direction:column;gap:8px}
+.mgroup h3{font-family:var(--display);font-size:13px;color:var(--muted);margin:4px 2px 0;font-weight:600}
+.menu button{border-top:1px solid var(--line)!important}
+.mic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold-deep);margin-bottom:6px}
+.mic svg{width:22px;height:22px}
+.mic.big{width:52px;height:52px;border-radius:16px;background:linear-gradient(180deg,#E6C878,#C39A3E);color:#0B1F3A;margin:0;flex:none}
+.mic.big svg{width:28px;height:28px}
+.pdfhero{display:flex;align-items:center;gap:14px;width:100%;border:0;border-radius:18px;padding:16px;cursor:pointer;background:linear-gradient(135deg,#16325A,#0B1F3A);color:#F7F1E1;border-bottom:3px solid #C8A24A;font:inherit;text-align:start}
+.pdfhero b{font-family:var(--display);font-size:17px;color:#E6C878}
+.pdfhero span span{font-size:13px;opacity:.85}
+.pdfhero .chev{font-size:26px;color:#E6C878;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:14px;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:transparent;font-weight:600}
+.checks{display:flex;flex-direction:column;gap:8px}
+.card2{border:1px solid var(--line);border-radius:12px;padding:10px 12px;align-items:flex-start!important;cursor:pointer}
+.card2:has(input:checked){border-color:var(--gold);background:color-mix(in srgb,var(--gold) 8%,var(--surface))}
+.card2 input{margin-top:2px;flex:none}
 #printArea{display:none}
 @media print{
   @page{size:58mm auto;margin:0}
@@ -206,6 +224,11 @@ const ICON={
  debts:'<path d="M5 3h12a2 2 0 0 1 2 2v16l-4-2-4 2-4-2-2 1zM9 8h6M9 12h6"/>',
  more:'<path d="M4 6h16M4 12h16M4 18h16"/>'
 };
+const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
+ list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+ users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',tag:'<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
+ cash:'<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/>',wallet:'<path d="M3 7a2 2 0 0 1 2-2h12v4M3 7v10a2 2 0 0 0 2 2h15V9H5a2 2 0 0 1-2-2z"/><path d="M16 14h.01"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
 const TABS=[['home','الرئيسية'],['items','الأصناف'],['sell','بيع'],['debts','الديون'],['more','المزيد']];
 
 /* ---------- barcode: EAN-13 maths and drawing (pure) ---------- */
@@ -527,15 +550,33 @@ debts(){
     <span class="t">${esc(c.name)}</span><span>${b>0?`${money(b)} <span class="pill warn">عليه</span>`:'<span class="pill ok">خالص</span>'}</span></button>`}).join('')}</div></div>`;
 },
 more(){
-  if(sub==='menu') return `<h2>كل الأقسام</h2><div class="menu">${[
-    ['rep','التقارير','أرباح وخسائر وأكثر الأصناف مبيعًا'],['log','سجل المبيعات','الفواتير والمرتجعات'],
-    ['buy','المشتريات','استلام بضاعة من مورد'],['sup','الموردين','أرصدتهم ودفعاتهم'],
-    ['exp','المصروفات','إيجار وكهرباء وغيرها'],['cash','الصندوق','النقد المتوقع وإقفال اليوم'],
-    ['lab','ملصقات الباركود','للأصناف التي لها باركود صالح'],['set','الإعدادات','المحل والنسخة الاحتياطية']
-  ].filter(([k])=>isOwner()||k==='log').map(([k,t,d])=>`<button data-act="sub" data-s="${k}"><b>${t}</b><span class="muted">${d}</span></button>`).join('')}</div>`;
-  if(sub==='log') return back('سجل المبيعات')+`<div class="card"><div class="list">${[...S.sales].sort((a,b)=>b.ts-a.ts).slice(0,40).map(s=>`<button class="li" data-act="sale" data-id="${s.id}">
+  if(sub==='menu'){
+    const tile=([k,t,d,ic])=>`<button data-act="sub" data-s="${k}"><span class="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg></span><b>${t}</b><span class="muted">${d}</span></button>`;
+    const grp=(title,list)=>{const l=list.filter(([k])=>isOwner()||k==='log');return l.length?`<div class="mgroup"><h3>${title}</h3><div class="menu">${l.map(tile).join('')}</div></div>`:''};
+    const r=report(sod());
+    return `${isOwner()?`<button class="pdfhero" data-act="sub" data-s="pdf"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC.pdf}</svg></span>
+      <span style="flex:1;text-align:start"><b>مركز ملفات PDF</b><br><span>اختار شو بدك تحمّل: الأرباح، المبيعات، الديون، المخزون أو الكل</span></span><span class="chev">‹</span></button>
+      <div class="tiles"><div class="tile"><div class="lbl">مبيعات اليوم</div><div class="val">${money(r.rev)}</div></div><div class="tile"><div class="lbl">صافي ربح اليوم</div><div class="val" style="color:var(--${r.net>=0?'good':'bad'})">${money(r.net)}</div></div></div>`:''}
+    ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list']])}
+    ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag']])}
+    ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء وغيرها','wallet']])}
+    ${grp('الإعدادات',[['set','الإعدادات','المحل والاشتراك والنسخة الاحتياطية','gear']])}`;
+  }
+  if(sub==='pdf'){const all=Object.keys(PDFSEC);
+    return back('مركز ملفات PDF')+`
+    <div class="card"><h2>1. الفترة</h2>
+      <div class="chips">${Object.entries(PERIODS).map(([k,v])=>`<button class="chip" data-act="pdfPer" data-p="${k}" aria-pressed="${pdfPer===k}">${v}</button>`).join('')}</div>
+      ${pdfPer==='custom'?`<div class="grid2"><label for="pdfFrom">من<input id="pdfFrom" type="date" value="${pdfFrom}"></label><label for="pdfTo">إلى<input id="pdfTo" type="date" value="${pdfTo}"></label></div>`:''}
+      <p class="muted" style="margin:0">${esc(periodRange(pdfPer).label)}</p></div>
+    <div class="card"><div class="row"><h2>2. شو بدك بالملف؟</h2><button class="btn sm" data-act="pdfAll">${all.every(k=>pdfSel.has(k))?'إلغاء الكل':'اختيار الكل'}</button></div>
+      <div class="checks">${Object.entries(PDFSEC).map(([k,[t,d,p]])=>`<label class="chk card2" for="ps_${k}"><input type="checkbox" id="ps_${k}" class="pdfchk" data-k="${k}" ${pdfSel.has(k)?'checked':''}><span><b>${t}</b><br><span class="muted">${d}${p?'':' · كامل وما بيتأثر بالفترة'}</span></span></label>`).join('')}</div></div>
+    <div class="card"><h2>3. التحميل</h2>
+      <div class="grid2"><button class="btn accent" data-act="pdfMake" data-how="dl">تحميل PDF</button><button class="btn primary" data-act="pdfMake" data-how="share">مشاركة على واتساب</button></div>
+      <p class="muted" style="margin:0">${pdfSel.size?`الملف فيه ${pdfSel.size} ${pdfSel.size>2?'أقسام':'قسم'}.`:'اختار قسم واحد على الأقل.'}</p></div>`;
+  }
+  if(sub==='log') return back('سجل المبيعات')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+`<div class="card"><div class="list">${[...S.sales].sort((a,b)=>b.ts-a.ts).slice(0,40).map(s=>`<button class="li" data-act="sale" data-id="${s.id}">
     <span><span class="t">فاتورة <span class="num">${s.id}</span></span><br><span class="muted">${fdate(s.ts)} · ${payLabel(s)}${s.confirmed===false?' · بانتظار التأكيد':''}</span></span>${money(s.total)}</button>`).join('')||'<div class="empty">لا فواتير</div>'}</div></div>`;
-  if(sub==='buy') return back('المشتريات')+`
+  if(sub==='buy') return back('المشتريات')+`<button class="btn block" data-act="pdfGo" data-sel="buys">تحميل المشتريات PDF</button>`+`
     <div class="card"><h2>استلام بضاعة</h2>
       <label for="pSup">المورد<select id="pSup">${S.suppliers.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
       <label for="pItem">الصنف<select id="pItem">${S.items.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
@@ -549,7 +590,7 @@ more(){
     <div class="row"><span class="muted">المستحق للموردين ${money(S.suppliers.reduce((a,c)=>a+balance(c),0))}</span><button class="btn primary sm" data-act="addParty" data-kind="suppliers">إضافة مورد</button></div>
     <div class="card"><div class="list">${S.suppliers.map(c=>{const b=balance(c);return `<button class="li" data-act="party" data-kind="suppliers" data-id="${c.id}">
       <span class="t">${esc(c.name)}</span><span>${b>0?`${money(b)} <span class="pill warn">له</span>`:'<span class="pill ok">خالص</span>'}</span></button>`}).join('')}</div></div>`;
-  if(sub==='exp') return back('المصروفات')+`
+  if(sub==='exp') return back('المصروفات')+`<button class="btn block" data-act="pdfGo" data-sel="exp">تحميل المصروفات PDF</button>`+`
     <div class="card"><h2>مصروف جديد</h2>
       <div class="grid2"><label for="exName">البيان<input id="exName" placeholder="مثال: كهرباء"></label>
       <label for="exAmt">المبلغ (₪)<input id="exAmt" type="number" inputmode="decimal" min="0"></label></div>
@@ -595,7 +636,7 @@ more(){
   const ib=itemBreakdown(from);
   return back('التقارير')+`
   <div class="seg">${[['today','اليوم'],['week','آخر 7 أيام'],['month','آخر 30 يوم']].map(([k,v])=>`<button data-act="period" data-p="${k}" aria-pressed="${period===k}">${v}</button>`).join('')}</div>
-  <button class="btn accent block" data-act="reportPdf">تقرير PDF مفصّل · ${period==='today'?'اليوم':period==='week'?'آخر 7 أيام':'آخر 30 يوم'}</button>
+  <div class="grid2"><button class="btn accent" data-act="pdfGo" data-sel="summary,pay" data-per="${period}">الأرباح والخسائر PDF</button><button class="btn" data-act="pdfGo" data-sel="${Object.keys(PDFSEC).join(',')}" data-per="${period}">التقرير الكامل PDF</button></div>
   <div class="card"><h2>الأرباح والخسائر</h2><div class="list">
     ${stat(`المبيعات (${r.count} فاتورة)`,money(r.rev))}${stat('تكلفة البضاعة المباعة',money(-r.cogs))}${stat('هامش الربح',money(r.gross))}${stat('المصروفات',money(-r.ex))}
     <div class="li"><span class="t">صافي الربح</span><span class="total" style="color:var(--${r.net>=0?'good':'bad'})">${money(r.net)}</span></div></div></div>
@@ -819,28 +860,48 @@ function docPages(title,sub,blocks){
   return pages.map(cv=>({cv,wpt:595.28,hpt:841.89}));
 }
 const tnum=ts=>{const d=new Date(ts),z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}/${z(d.getMonth()+1)} ${z(d.getHours())}:${z(d.getMinutes())}`};
-function periodRange(p){const now=Date.now();
-  if(p==='today') return {from:sod(),to:Infinity,label:'تقرير اليوم · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
+function periodRange(p){const now=Date.now(), f=t=>new Date(t).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'});
+  if(p==='today') return {from:sod(),to:Infinity,label:'اليوم · '+f(now)};
+  if(p==='yesterday') return {from:sod(now-DAY),to:sod(),label:'أمس · '+f(now-DAY)};
+  if(p==='thismonth'){const d=new Date();d.setDate(1);d.setHours(0,0,0,0);return {from:d.getTime(),to:Infinity,label:`هذا الشهر · من ${f(d)} إلى ${f(now)}`}}
+  if(p==='custom'){const a=pdfFrom?new Date(pdfFrom+'T00:00').getTime():sod(now-6*DAY), b=pdfTo?new Date(pdfTo+'T00:00').getTime()+DAY:sod()+DAY;
+    return {from:Math.min(a,b-DAY),to:Math.max(b,a+DAY),label:`من ${f(Math.min(a,b-DAY))} إلى ${f(Math.max(b,a+DAY)-DAY)}`}}
   const days=p==='week'?7:30, from=sod(now-(days-1)*DAY);
-  return {from,to:Infinity,label:`تقرير آخر ${days} يوم · من ${new Date(from).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})} إلى ${new Date(now).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})}`};
+  return {from,to:Infinity,label:`آخر ${days} يوم · من ${f(from)} إلى ${f(now)}`};
 }
 function itemBreakdown(from,to=Infinity){const m={};
   S.sales.filter(s=>s.ts>=from&&s.ts<to).forEach(s=>s.lines.forEach(l=>{const k=l.name,e=m[k]||(m[k]={name:k,qty:0,unit:l.unit==='كغ'?'كغ':'حبة',rev:0,cost:0});
     e.qty=r3(e.qty+l.baseQty);e.rev=r2(e.rev+l.price*l.count);e.cost=r2(e.cost+l.cost*l.baseQty)}));
   return Object.values(m).map(e=>({...e,profit:r2(e.rev-e.cost)})).sort((a,b)=>b.rev-a.rev);
 }
-function reportPdf(p){
-  const {from,to,label}=periodRange(p), r=report(from,to), items=itemBreakdown(from,to), sales=S.sales.filter(s=>s.ts>=from&&s.ts<to).sort((a,b)=>a.ts-b.ts);
-  const exp=S.expenses.filter(e=>e.ts>=from&&e.ts<to), disc=r2(sales.reduce((a,s)=>a+(s.discount||0),0)), t=tnum;
-  const blocks=[{h:'الملخص'},{kv:[['عدد الفواتير',String(r.count)],['المبيعات',fx(r.rev)+' ₪'],['الخصومات',fx(disc)+' ₪'],['تكلفة البضاعة المباعة',fx(r.cogs)+' ₪'],['هامش الربح',fx(r.gross)+' ₪'],['المصروفات',fx(r.ex)+' ₪'],['صافي الربح',fx(r.net)+' ₪',1]]},
-    {h:'حسب طريقة الدفع'},{kv:Object.entries(PAY).map(([k,v])=>[v,fx(r.by[k])+' ₪'])},
-    {h:'الأصناف المباعة'},{table:{cols:[['الصنف',4],['الكمية',1.4,'n'],['المبيعات ₪',1.6,'n'],['التكلفة ₪',1.6,'n'],['الربح ₪',1.6,'n']],
-      rows:items.map(e=>[e.name,`${e.qty} ${e.unit}`,fx(e.rev),fx(e.cost),fx(e.profit)]),foot:items.length?['المجموع','',fx(items.reduce((a,e)=>a+e.rev,0)),fx(items.reduce((a,e)=>a+e.cost,0)),fx(items.reduce((a,e)=>a+e.profit,0))]:null}},
-    {h:'سجل الفواتير'},{table:{cols:[['رقم',1,'n'],['الوقت',1.8,'n'],['الأصناف',4.2],['الدفع',1.8],['الإجمالي ₪',1.5,'n'],['الربح ₪',1.4,'n']],
-      rows:sales.map(s=>[String(s.id),t(s.ts),s.lines.map(l=>`${l.name}×${l.count}`).join('، '),payLabel(s),fx(s.total),fx(s.total-s.cost)])}},
-    {h:'المصروفات'},{table:{cols:[['البيان',5],['التاريخ',2.4,'n'],['المبلغ ₪',1.6,'n']],rows:exp.map(e=>[e.name,t(e.ts),fx(e.amt)]),foot:exp.length?['المجموع','',fx(r.ex)]:null}}];
-  return makePdf(docPages(`${S.shop}: تقرير المبيعات والأرباح`,label,blocks));
+const PERIODS={today:'اليوم',yesterday:'أمس',week:'آخر 7 أيام',month:'آخر 30 يوم',thismonth:'هذا الشهر',custom:'فترة مخصّصة'};
+const PDFSEC={summary:['الأرباح والخسائر','المبيعات والتكلفة والمصروفات وصافي الربح',1],pay:['طرق الدفع','نقدي وتطبيقات ودين',1],items:['الأصناف المباعة','الكمية والربح لكل صنف',1],
+  sales:['سجل الفواتير','كل فاتورة بوقتها وأصنافها',1],exp:['المصروفات','بند بند',1],buys:['المشتريات','البضاعة المستلمة من الموردين',1],
+  debts:['ديون الزبائن','مين عليه وكم',0],stock:['جرد المخزون','الكمية وقيمة كل صنف',0],sups:['حسابات الموردين','المستحق لكل مورد',0]};
+let pdfPer='today', pdfSel=new Set(['summary','pay','items']), pdfFrom='', pdfTo='';
+function buildPdf(per,sel){
+  const {from,to,label}=periodRange(per), r=report(from,to), t=tnum, inP=x=>x.ts>=from&&x.ts<to;
+  const sales=S.sales.filter(inP).sort((a,b)=>a.ts-b.ts), exp=S.expenses.filter(inP), buys=S.purchases.filter(inP).sort((a,b)=>a.ts-b.ts);
+  const disc=r2(sales.reduce((a,s)=>a+(s.discount||0),0)), B=[];
+  if(sel.has('summary')) B.push({h:'الأرباح والخسائر'},{kv:[['عدد الفواتير',String(r.count)],['المبيعات',fx(r.rev)+' ₪'],['الخصومات',fx(disc)+' ₪'],['تكلفة البضاعة المباعة',fx(r.cogs)+' ₪'],['هامش الربح',fx(r.gross)+' ₪'],['المصروفات',fx(r.ex)+' ₪'],['صافي الربح',fx(r.net)+' ₪',1]]});
+  if(sel.has('pay')) B.push({h:'حسب طريقة الدفع'},{kv:Object.entries(PAY).map(([k,v])=>[v,fx(r.by[k])+' ₪'])});
+  if(sel.has('items')){const it=itemBreakdown(from,to);B.push({h:'الأصناف المباعة'},{table:{cols:[['الصنف',4],['الكمية',1.4,'n'],['المبيعات ₪',1.6,'n'],['التكلفة ₪',1.6,'n'],['الربح ₪',1.6,'n']],
+    rows:it.map(e=>[e.name,`${e.qty} ${e.unit}`,fx(e.rev),fx(e.cost),fx(e.profit)]),foot:it.length?['المجموع','',fx(it.reduce((a,e)=>a+e.rev,0)),fx(it.reduce((a,e)=>a+e.cost,0)),fx(it.reduce((a,e)=>a+e.profit,0))]:null}})}
+  if(sel.has('sales')) B.push({h:'سجل الفواتير'},{table:{cols:[['رقم',1,'n'],['الوقت',1.8,'n'],['الأصناف',4.2],['الدفع',1.8],['الإجمالي ₪',1.5,'n'],['الربح ₪',1.4,'n']],
+    rows:sales.map(s=>[String(s.id),t(s.ts),s.lines.map(l=>`${l.name}×${l.count}`).join('، '),payLabel(s)+(s.custId?' · '+((S.customers.find(x=>x.id===s.custId)||{}).name||''):''),fx(s.total),fx(s.total-s.cost)]),
+    foot:sales.length?['','','المجموع','',fx(r.rev),fx(r.rev-r.cogs)]:null}});
+  if(sel.has('exp')) B.push({h:'المصروفات'},{table:{cols:[['البيان',5],['التاريخ',2.4,'n'],['المبلغ ₪',1.6,'n']],rows:exp.map(e=>[e.name,t(e.ts),fx(e.amt)]),foot:exp.length?['المجموع','',fx(r.ex)]:null}});
+  if(sel.has('buys')){const tot=r2(buys.reduce((a,p)=>a+p.total,0));B.push({h:'المشتريات'},{table:{cols:[['التاريخ',1.8,'n'],['المورد',2.4],['الصنف',2.6],['الكمية',1.1,'n'],['الوحدة ₪',1.2,'n'],['الإجمالي ₪',1.4,'n'],['الدفع',1.4]],
+    rows:buys.map(p=>[t(p.ts),(S.suppliers.find(x=>x.id===p.supId)||{}).name||'',p.name,String(p.qty),fx(p.cost),fx(p.total),p.paid==='cash'?'نقدًا':'على الحساب']),foot:buys.length?['المجموع','','','','',fx(tot),'']:null}})}
+  if(sel.has('debts')){const l=S.customers.map(c=>[c,balance(c)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);B.push({h:'ديون الزبائن (حتى اليوم)'},{table:{cols:[['الزبون',4],['الجوال',2.2,'n'],['آخر حركة',2,'n'],['المستحق ₪',1.6,'n']],
+    rows:l.map(([c,b])=>[c.name,c.phone||'',c.ledger.length?t(Math.max(...c.ledger.map(x=>x.ts))):'',fx(b)]),foot:l.length?['المجموع','','',fx(l.reduce((a,x)=>a+x[1],0))]:null}})}
+  if(sel.has('stock')){const st=S.items.slice().sort((a,b)=>a.name.localeCompare(b.name,'ar'));B.push({h:'جرد المخزون (حتى اليوم)'},{table:{cols:[['الصنف',3.6],['الكمية',1.3,'n'],['التكلفة ₪',1.3,'n'],['البيع ₪',1.3,'n'],['قيمة التكلفة ₪',1.7,'n'],['الحالة',1.2]],
+    rows:st.map(i=>[i.name,qtyTxt(i),fx(i.cost),fx(i.price),fx(Math.max(i.qty,0)*i.cost),i.qty<=0?'خالص':i.qty<=i.min?'قليل':'متوفر']),foot:st.length?['المجموع','','','',fx(st.reduce((a,i)=>a+Math.max(i.qty,0)*i.cost,0)),'']:null}})}
+  if(sel.has('sups')){const l=S.suppliers.map(c=>[c,balance(c)]);B.push({h:'حسابات الموردين (حتى اليوم)'},{table:{cols:[['المورد',4],['الجوال',2.2,'n'],['المستحق له ₪',1.8,'n']],rows:l.map(([c,b])=>[c.name,c.phone||'',fx(b)]),foot:l.length?['المجموع','',fx(l.reduce((a,x)=>a+x[1],0))]:null}})}
+  const one=sel.size===1?PDFSEC[[...sel][0]][0]:'تقرير المحل';
+  return {bytes:makePdf(docPages(`${S.shop}: ${one}`,label,B)),name:fileSafe(`${one} ${S.shop} ${PERIODS[per]} ${new Date().toISOString().slice(0,10)}`)+'.pdf'};
 }
+function downloadPdf(bytes,name){try{const f=new File([bytes],name,{type:'application/pdf'}),a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);toast('تم تنزيل الملف')}catch(e){toast('التنزيل غير متاح هنا')}}
 function invoicePdf(s){const c=receiptCanvas(s,3); if(!c) return null; const wpt=226.77; return makePdf([{cv:c,wpt,hpt:wpt*c.height/c.width}])}
 function statementPdf(c){
   let run=0; const rows=[...c.ledger].sort((a,b)=>a.ts-b.ts).map(l=>{run=r2(run+l.amt);return [tnum(l.ts),l.note,fx(l.amt),fx(run)]});
@@ -853,7 +914,7 @@ async function sharePdf(bytes,name,text){
   try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name,text});return}}catch(e){if(e&&e.name==='AbortError')return}
   try{const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);toast('تم تنزيل الملف، ابعته من واتساب')}catch(e){toast('التنزيل غير متاح هنا')}
 }
-const fileSafe=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').slice(0,60);
+const fileSafe=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').slice(0,110);
 
 /* ---------- actions ---------- */
 function usedQty(itemId){return cart().lines.filter(l=>l.itemId===itemId).reduce((a,l)=>a+lineOf(itemById(itemId),l.unit,l.count).baseQty,0)}
@@ -1011,7 +1072,11 @@ saveSet(){S.shop=$('#stShop').value.trim()||S.shop; const r=parseFloat($('#stRat
 bkOut(){const t=$('#bk'); t.value=JSON.stringify(S); copyBox('bk')},
 bkIn(){try{const o=JSON.parse($('#bk').value); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)||!Array.isArray(o.suppliers)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('النص ليس نسخة احتياطية صالحة')}},
 testBeep(){beep(true)},
-reportPdf(){toast('جارٍ تجهيز التقرير…'); const b=reportPdf(period); sharePdf(b,fileSafe(`تقرير ${S.shop} ${period==='today'?'اليوم':period==='week'?'أسبوع':'شهر'} ${new Date().toISOString().slice(0,10)}`)+'.pdf',`تقرير ${S.shop}`)},
+pdfPer(d){pdfPer=d.p; if(d.p==='custom'&&!pdfFrom){pdfFrom=new Date(Date.now()-6*DAY).toISOString().slice(0,10); pdfTo=new Date().toISOString().slice(0,10)} render()},
+pdfAll(){const all=Object.keys(PDFSEC); pdfSel=all.every(k=>pdfSel.has(k))?new Set():new Set(all); render()},
+pdfGo(d){pdfSel=new Set(d.sel.split(',')); if(d.per) pdfPer=d.per; tab='more'; sub='pdf'; render(); $('#view').scrollTop=0},
+pdfMake(d){ if(!pdfSel.size){toast('اختار قسم واحد على الأقل');return}
+  const {bytes,name}=buildPdf(pdfPer,pdfSel); if(d.how==='share') sharePdf(bytes,name,`${S.shop}: ${name.replace('.pdf','')}`); else downloadPdf(bytes,name)},
 invPdf(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; sharePdf(invoicePdf(s),fileSafe(`فاتورة ${s.id} ${S.shop}`)+'.pdf',`فاتورة رقم ${s.id} من ${S.shop}`)},
 stmtPdf(d){const c=S[d.kind].find(x=>x.id===+d.id); if(!c) return; sharePdf(statementPdf(c),fileSafe(`كشف حساب ${c.name}`)+'.pdf',`كشف حساب ${c.name} من ${S.shop}`)},
 liveToggle(){S.liveCam=S.liveCam===false; save(); syncLive(); if(S.liveCam!==false) toast('الكاميرا شغّالة: مرّر الأغراض قدامها')},
@@ -1052,7 +1117,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const OWNER_ONLY=new Set(['editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','saveSet','savePin','addExp','importItems','doImport','reportPdf']);
+const OWNER_ONLY=new Set(['editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -1072,6 +1137,8 @@ document.addEventListener('change',e=>{
   if(t.id==='disc'){cart().discount=Math.max(0,r2(parseFloat(t.value)||0)); render()}
   if(t.classList&&t.classList.contains('wt')){const l=cart().lines[+t.dataset.k], it=itemById(l.itemId), w=r3(parseFloat(t.value)||0);
     if(w<=0) toast('اكتب وزنًا أكبر من صفر'); else if(w>it.qty) toast(`المتوفر ${qtyTxt(it)} فقط`); else l.count=w; render()}
+  if(t.classList&&t.classList.contains('pdfchk')){t.checked?pdfSel.add(t.dataset.k):pdfSel.delete(t.dataset.k); render(); return}
+  if(t.id==='pdfFrom'||t.id==='pdfTo'){if(t.id==='pdfFrom')pdfFrom=t.value;else pdfTo=t.value; render(); return}
   if(t.id==='stSound'){S.sound=t.checked; save(); if(t.checked) beep(true)}
   if((t.id==='bkPick'||t.id==='csvPick')&&t.files&&t.files[0]){const f=t.files[0], rd=new FileReader();
     rd.onload=()=>{ if(t.id==='csvPick'){$('#csvTxt').value=String(rd.result).replace(/^\uFEFF/,''); toast('تمت قراءة الملف، اضغط استيراد')}
