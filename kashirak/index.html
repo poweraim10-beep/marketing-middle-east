@@ -182,6 +182,22 @@ video{width:100%;border-radius:12px;background:#000;max-height:260px;object-fit:
 .okshot{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .okshot img{width:200px;height:200px;object-fit:cover;border-radius:50%;border:5px solid var(--good)}
 .okshot .big{font-family:var(--display);font-size:24px;font-weight:700}
+.tcard{display:flex;flex-direction:column;gap:10px;border:1.5px solid color-mix(in srgb,var(--gold) 55%,transparent);border-radius:18px;padding:12px;background:color-mix(in srgb,var(--gold) 6%,var(--surface))}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:600;cursor:pointer;min-height:40px}
+.chip[aria-pressed=true]{color:var(--ink)!important;border-color:var(--gold)!important;background:color-mix(in srgb,var(--gold) 18%,var(--surface))!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent)}.chip .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.pbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:84px;border:2px dashed color-mix(in srgb,var(--gold) 70%,transparent);border-radius:16px;color:var(--ink);font-weight:700;cursor:pointer;background:var(--surface);text-align:center;padding:8px}
+.pbtn svg{color:var(--gold-deep)}.proof{display:flex;gap:12px;align-items:flex-start}
+.pthumb{width:84px;height:110px;border-radius:12px;overflow:hidden;border:2px solid var(--gold);padding:0;background:var(--surface);cursor:pointer;flex:none}.pthumb img{width:100%;height:100%;object-fit:cover}
+.pthumb.sm{width:46px;height:58px;border-width:1.5px;margin-inline-end:10px;display:grid;place-items:center;color:var(--muted)}.pthumb.none{border-style:dashed;border-color:var(--line);cursor:default}
+.pdup{color:var(--bad);font-weight:700;font-size:13px}
+.fpair{display:flex;gap:14px;justify-content:center}.fpair figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
+.fpair img{width:118px!important;height:118px!important;border-radius:50%;object-fit:cover;border:4px solid var(--gold)!important}
+.okshot img.bad,.fpair img.bad{border-color:var(--bad)!important}
+.xmark{width:64px;height:64px;border-radius:50%;background:var(--bad);color:#fff;display:grid;place-items:center;font-size:34px;font-weight:800;box-shadow:0 0 0 8px color-mix(in srgb,var(--bad) 22%,transparent);animation:xpop .35s ease-out}
+.xmark.warnx{background:var(--warn);box-shadow:0 0 0 8px color-mix(in srgb,var(--warn) 22%,transparent)}
+@keyframes xpop{0%{transform:scale(.4)}70%{transform:scale(1.12)}100%{transform:scale(1)}}
+.fspin{width:38px;height:38px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--gold);animation:fsp 0.8s linear infinite}@keyframes fsp{to{transform:rotate(360deg)}}
+.rejbar{display:flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--bad) 12%,var(--surface));border:1.5px solid var(--bad);color:var(--bad);border-radius:16px;padding:12px 14px;font:inherit;font-weight:700;cursor:pointer;width:100%;text-align:start}
 .pair{display:flex;gap:6px}.pair img{width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid var(--line)}
 nav{position:relative;overflow:visible;grid-template-columns:1fr 1fr 1fr 78px 1fr 1fr 1fr!important}
 main{padding-bottom:44px}
@@ -238,6 +254,26 @@ const fdate=t=>new Date(t).toLocaleString('ar-u-nu-latn',{day:'numeric',month:'s
 const KEY='kashirak-v1', DEVKEY='kashirak-dev';
 const PAY={cash:'نقدي',app:'تطبيق أو محفظة',debt:'دين'};
 const APPM=['بنك فلسطين','PalPay','جوال باي','بنك آخر'];
+const APPC={'بنك فلسطين':'#0E7C4A','PalPay':'#1E88E5','جوال باي':'#E53935','بنك آخر':'#8D6E63'};
+const PROOF={};
+const refDup=c=>{const r=String(c.ref||'').trim(); return r.length>=3?S.sales.find(x=>x.ref===r&&x.appMethod===c.appMethod):null};
+/* بصمة صورة للإشعار (dHash 32×32) لكشف إعادة استعمال نفس الصورة */
+function imgHash(cv){const W=33,H=32,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.drawImage(cv,0,0,W,H);const d=g.getImageData(0,0,W,H).data;let bits='';
+  for(let y=0;y<H;y++)for(let x=0;x<W-1;x++){const i=(y*W+x)*4,j=i+4;bits+=(d[i]*.3+d[i+1]*.59+d[i+2]*.11)>(d[j]*.3+d[j+1]*.59+d[j+2]*.11)?'1':'0'}
+  let h='';for(let k=0;k<bits.length;k+=4)h+=parseInt(bits.slice(k,k+4),2).toString(16);return h}
+function hamHex(a,b){if(!a||!b||a.length!==b.length)return 999;let n=0;for(let i=0;i<a.length;i++){let x=parseInt(a[i],16)^parseInt(b[i],16);while(x){n+=x&1;x>>=1}}return n}
+async function proofImg(f){const u=URL.createObjectURL(f); try{const im=new Image(); im.src=u; await im.decode(); const k=Math.min(1,1200/Math.max(im.naturalWidth,im.naturalHeight)), c=document.createElement('canvas');
+  c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); return {data:c.toDataURL('image/jpeg',.74),hash:imgHash(c)}} finally{URL.revokeObjectURL(u)}}
+/* مقارنة دقيقة: نفس الصورة (حتى لو انضغطت بالواتساب) أو صورة مختلفة بنفس الشكل؟ أي اختلاف بالأرقام بيبيّن ببلوك واحد على الأقل */
+async function sameShot(a,b){ const L=async d=>{const im=new Image(); im.src=d; await im.decode(); return im};
+  const [x,y]=await Promise.all([L(a),L(b)]), ra=x.naturalHeight/x.naturalWidth, rb=y.naturalHeight/y.naturalWidth; if(Math.abs(ra-rb)>.02*ra) return false;
+  const W=240,H=Math.round(W*ra), g=im=>{const c=document.createElement('canvas');c.width=W;c.height=H;const t=c.getContext('2d');t.drawImage(im,0,0,W,H);const d=t.getImageData(0,0,W,H).data,o=new Float32Array(W*H);for(let i=0;i<o.length;i++)o[i]=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;return o};
+  const p=g(x),q=g(y),B=8; let mx=0;
+  for(let by=0;by+B<=H;by+=B)for(let bx=0;bx+B<=W;bx+=B){let sm=0;for(let j=0;j<B;j++)for(let i=0;i<B;i++){const k=(by+j)*W+bx+i;sm+=Math.abs(p[k]-q[k])}mx=Math.max(mx,sm/(B*B))}
+  return mx<35}
+async function proofDupOf(data,hash,skipId){ for(const x of S.sales){ if(!x.proofHash||String(x.id)===String(skipId||'')||hamHex(x.proofHash,hash)>80) continue;
+    const o=await proofGet(x.proof); if(o&&await sameShot(o,data)) return x } return null}
+async function proofGet(id){ if(!id) return ''; if(PROOF[id]===undefined) PROOF[id]=await idb('readonly',s=>s.get(id))||''; return PROOF[id]}
 const payOf=s=>s.pays||{cash:s.pay==='cash'?s.total:0,app:s.pay==='bank'?s.total:0,debt:s.pay==='debt'?s.total:0};
 const payLabel=s=>{const p=payOf(s),k=Object.keys(PAY).filter(x=>p[x]>0);return k.length>1?'مقسّم':PAY[k[0]||'cash']};
 const isOwner=()=>S.mode!=='cashier';
@@ -391,7 +427,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; return o}
+  o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; return o}
 function audit(what){ if(!S) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 function save(){ norm(S); const j=S?JSON.stringify(S):null; try{if(j)localStorage.setItem(KEY,j)}catch(e){}
   clearTimeout(save.t); save.t=setTimeout(()=>idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}),400)}
@@ -483,7 +519,7 @@ function planCard(c){const ps=planStatus(c);
     <label for="plS">أول دفعة بتاريخ<input id="plS" type="date" value="${new Date(Date.now()+7*DAY).toISOString().slice(0,10)}"></label><button class="btn primary" data-act="makePlan" data-id="${c.id}">عمل جدول تقسيط لـ ${fx(balance(c))} ₪</button></div>`;
   return `<div class="card"><div class="row"><h2>جدول التقسيط</h2><span class="pill ${ps.late?'bad':'ok'}">${ps.late?ps.late+' متأخرة':'منتظم'}</span></div><div class="list">${ps.rows.map((r,k)=>`<div class="li"><span>الدفعة ${k+1} · ${new Date(r.due).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})}</span><span>${money(r.amt)} <span class="pill ${r.ok?'ok':r.late?'bad':'warn'}">${r.ok?'مدفوعة':r.late?'متأخرة':'قادمة'}</span></span></div>`).join('')}</div>
     <button class="btn sm danger" data-act="dropPlan" data-id="${c.id}">إلغاء الجدول</button></div>`}
-const hm=ts=>{const d=new Date(ts),H=d.getHours();return `${H%12||12}:${String(d.getMinutes()).padStart(2,'0')} ${H<12?'ص':'م'}`};
+const hm=ts=>{const d=new Date(ts),H=d.getHours();return `\u2067${H%12||12}:${String(d.getMinutes()).padStart(2,'0')} ${H<12?'ص':'م'}\u2069`};
 function lastPunch(sid){for(let i=S.punches.length-1;i>=0;i--) if(S.punches[i].staffId===sid) return S.punches[i]; return null}
 function attDays(sid,from,to=Infinity){ /* pair in/out per day */
   const ps=S.punches.filter(p=>p.staffId===sid&&p.ts>=from&&p.ts<to).sort((a,b)=>a.ts-b.ts), out=[]; let cur=null;
@@ -528,15 +564,16 @@ async function fingerCheck(st){
   const a=await navigator.credentials.get({publicKey:{challenge:crypto.getRandomValues(new Uint8Array(32)),allowCredentials:[{type:'public-key',id:unb64u(st.cred)}],userVerification:'required',timeout:60000}});
   return !!a;
 }
-async function punchFor(st,cv,method='photo'){
+async function punchFor(st,cv,method='photo',fd=null){
   const lp=lastPunch(st.id), type=lp&&lp.type==='in'&&sod(lp.ts)===sod()?'out':'in';
   let id='', data='';
   if(cv){id='p'+Date.now(); data=cv.toDataURL('image/jpeg',.72); await idb('readwrite',s=>s.put(data,id))}
   else data=REFS[st.ref]||(st.ref?await idb('readonly',s=>s.get(st.ref)):'')||'';
-  const punch={id:Date.now(),staffId:st.id,type,ts:Date.now(),photo:id,method,lat:null,lng:null,dist:null,far:false};
+  const punch={id:Date.now(),staffId:st.id,type,ts:Date.now(),photo:id,method,fd:fd!=null?Math.round(fd*100)/100:null,lat:null,lng:null,dist:null,far:false};
   S.punches.push(punch); save(); beep(true);
   const hrs=type==='out'&&lp?r2((punch.ts-lp.ts)/36e5):0, hh=Math.floor(hrs), mm=Math.round((hrs-hh)*60);
   openSheet(`<div class="okshot">${data?`<img src="${data}" alt="">`:''}<div class="big" style="color:var(--good)">✓ ${esc(st.name)}${method==='finger'?' · بصمة إصبع':''}</div>
+    ${fd!=null?'<span class="pill ok">الوجه متطابق مع الصورة المرجعية</span>':''}
     <div class="big">${type==='in'?'دخل':'روّح'} الساعة <span class="num">${hm(punch.ts)}</span></div>
     ${type==='out'?`<p class="muted" style="margin:0">اشتغل اليوم <span class="num">${hh}:${String(mm).padStart(2,'0')}</span> ساعة</p>`:`<p class="muted" style="margin:0">${type==='in'?'يعطيك العافية، دوام موفّق':''}</p>`}
     <button class="btn danger" data-act="punchUndo" data-id="${punch.id}">مش أنا، إلغاء البصمة</button></div>`);
@@ -544,6 +581,80 @@ async function punchFor(st,cv,method='photo'){
   getPos().then(pos=>{if(!pos) return; punch.lat=pos.lat; punch.lng=pos.lng; if(S.shopLoc){punch.dist=distM(pos,S.shopLoc); punch.far=punch.dist>150} save(); if(tab==='staff') render()});
   render();
 }
+/* التحقق من الوجه: نموذج تعرّف محلي على الجهاز (face-api, MIT). المسافة بين بصمتي وجهين: أقل من OK نفس الشخص، أكثر من NO شخص آخر، وبينهما غير واضح */
+const FACE={p:null,ok:false,OK:.45,NO:.55};
+function faceLoad(){ if(FACE.p) return FACE.p;
+  FACE.p=new Promise((res,rej)=>{ if(window.faceapi) return res(); const s=document.createElement('script'); s.src='face/face-api.js'; s.onload=res; s.onerror=()=>rej(new Error('lib')); document.head.appendChild(s)})
+    .then(async()=>{const n=faceapi.nets,u='face/'; await Promise.all([n.tinyFaceDetector.loadFromUri(u),n.faceLandmark68Net.loadFromUri(u),n.faceRecognitionNet.loadFromUri(u)]); FACE.ok=true})
+    .catch(e=>{FACE.p=null; throw e});
+  return FACE.p}
+async function faceOf(src){ await faceLoad();
+  const r=await faceapi.detectAllFaces(src,new faceapi.TinyFaceDetectorOptions({inputSize:416,scoreThreshold:.5})).withFaceLandmarks().withFaceDescriptors();
+  if(!r.length) return {err:'none'};
+  r.sort((a,b)=>b.detection.box.area-a.detection.box.area); const f=r[0];
+  if(f.detection.box.width<(src.width||src.naturalWidth)*.15) return {err:'small'};
+  return {d:Array.from(f.descriptor,v=>Math.round(v*1e4)/1e4),n:r.filter(x=>x.detection.box.width>=f.detection.box.width*.6).length}}
+const fdist=(a,b)=>{let s=0;for(let i=0;i<a.length;i++){const t=a[i]-b[i];s+=t*t}return Math.sqrt(s)};
+const fbest=(st,d)=>(st.faces||[]).reduce((m,f)=>Math.min(m,fdist(f,d)),9);
+async function imgCanvas(data){const im=new Image(); im.src=data; await im.decode(); return canvasFrom(im,im.naturalWidth,im.naturalHeight,false)}
+async function ensureFaces(st){ if(st.faces&&st.faces.length) return true;
+  const data=st.ref&&(REFS[st.ref]||await idb('readonly',s=>s.get(st.ref))); if(!data) return false;
+  const r=await faceOf(await imgCanvas(data)); if(r.err) return false; st.faces=[r.d]; save(); return true}
+function facePrewarm(){ if(FACE.p||!S||!S.staff||!S.staff.length) return;
+  setTimeout(()=>faceLoad().then(async()=>{for(const st of S.staff){try{await ensureFaces(st)}catch(e){}}}).catch(()=>{}),1200)}
+/* يقرأ ملامح الصورة المرجعية؛ يرفض صورة بلا وجه أو وجه مسجّل لعامل آخر */
+async function faceEnroll(cv,exceptId){
+  let r; try{r=await faceOf(cv)}catch(e){return {offline:true}}
+  if(r.err) return {msg:r.err==='small'?'الوجه بعيد. قرّب الكاميرا من وجه العامل':'ما في وجه واضح بالصورة. صوّر وجه العامل من قدّام'};
+  if(r.n>1) return {msg:'في أكثر من وجه بالصورة. خلّي العامل لحاله بالصورة'};
+  const dup=S.staff.find(o=>o.id!==exceptId&&o.faces&&fbest(o,r.d)<FACE.OK);
+  if(dup) return {msg:`هذا الوجه مسجّل لـ ${dup.name}`};
+  return {d:r.d}}
+async function facePunch(st,cv){
+  openSheet(`<div class="okshot"><img src="${cv.toDataURL('image/jpeg',.6)}" alt="" style="border-color:var(--gold)"><div class="big">جاري التحقق من الوجه…</div><div class="fspin" aria-hidden="true"></div></div>`);
+  let r;
+  try{ if(!(await ensureFaces(st))) return faceFail(st,cv,'noref'); r=await faceOf(cv) }catch(e){ return faceFail(st,cv,'load') }
+  if(r.err) return faceFail(st,cv,r.err);
+  const dd=fbest(st,r.d);
+  let other=null; for(const o of S.staff){ if(o.id===st.id||!o.faces) continue; const x=fbest(o,r.d); if(x<FACE.OK&&x<dd&&(!other||x<other.x)) other={o,x}}
+  if(other) return faceFail(st,cv,'other',dd,other.o);
+  if(dd<FACE.OK) return punchFor(st,cv,'photo',dd);
+  return faceFail(st,cv,dd<FACE.NO?'unsure':'notme',dd);
+}
+async function faceFail(st,cv,why,dd,other){
+  beep(false); try{navigator.vibrate&&navigator.vibrate([150,80,150])}catch(e){}
+  const shot=cv.toDataURL('image/jpeg',.7), ref=REFS[st.ref]||(st.ref?await idb('readonly',s=>s.get(st.ref)):'')||'';
+  const T={none:['ما في وجه بالصورة','صوّر وجهك إنت. صورة إيد أو إصبع أو أي إشي ثاني ما بتنقبل.'],
+    small:['الوجه بعيد','قرّب الجوال من وجهك وجرّب كمان مرة.'],
+    notme:['ليس هو',`هذا الوجه مش وجه ${esc(st.name)}.`],
+    other:['ليس هو',`هذا ${esc(other?other.name:'')}، مش ${esc(st.name)}. كل عامل يبصم من صورته.`],
+    unsure:['الوجه مش واضح','ما قدرنا نتأكد إنه إنت. خلّي وجهك مقابل الكاميرا بضوء منيح، بدون نظارة شمسية، وجرّب كمان مرة.'],
+    noref:['الصورة المرجعية مش واضحة',`صاحب المحل لازم يصوّر ${esc(st.name)} من جديد من بطاقته.`],
+    load:['التحقق من الوجه مش جاهز','بيحتاج نت أول مرة بس لتنزيل ملفات التحقق. شغّل النت وجرّب.']}[why];
+  if(['none','small','notme','other','unsure'].includes(why)){
+    const id='x'+Date.now(); await idb('readwrite',s=>s.put(shot,id));
+    S.attRej=S.attRej||[]; S.attRej.push({id:Date.now(),staffId:st.id,ts:Date.now(),photo:id,why,dist:dd!=null?Math.round(dd*100)/100:null,other:other?other.id:null});
+    while(S.attRej.length>60){const o=S.attRej.shift(); if(o.photo) idb('readwrite',s=>s.delete(o.photo))}
+    if(why==='notme'||why==='other'||why==='none') audit(`بصمة مرفوضة باسم ${st.name}: ${T[0]}`); save();
+  }
+  const red=why==='notme'||why==='other'||why==='none';
+  openSheet(`<div class="okshot">
+    <div class="fpair"><figure>${ref?`<img src="${ref}" alt="">`:'<span class="wimg"></span>'}<figcaption>${esc(st.name)}</figcaption></figure><figure><img src="${shot}" alt="" class="bad"><figcaption>اللي انصوّر</figcaption></figure></div>
+    <div class="xmark ${red?'':'warnx'}" aria-hidden="true">${red?'✕':'!'}</div>
+    <div class="big" style="color:${red?'var(--bad)':'var(--warn)'}">${T[0]}</div><p style="margin:0">${T[1]}</p>
+    <p class="muted" style="margin:0">ما انسجّلت أي بصمة</p>
+    ${why==='noref'||why==='load'?'':`<button class="btn accent block" data-act="fpToPhoto">صوّر مرة ثانية</button>`}
+    ${st.cred?`<button class="btn block" data-act="fpRetry">استعمل بصمة الإصبع</button>`:''}
+    <button class="btn block" data-act="camCancel">إغلاق</button></div>`);
+}
+/* تصوير صورة مرجعية والتأكد إن فيها وجه واحد واضح مش مسجّل لعامل ثاني */
+function refShoot(name,exceptId,done,extra){
+  camSheet(`${extra?'صورة إضافية':'صورة'} ${name}`,'خلّي وجه العامل بنص الصورة، من قدّام، بضوء منيح، واضغط التقاط',false,async cv=>{
+    openSheet(`<div class="okshot"><img src="${cv.toDataURL('image/jpeg',.6)}" alt="" style="border-color:var(--gold)"><div class="big">جاري قراءة ملامح الوجه…</div><div class="fspin" aria-hidden="true"></div></div>`);
+    const r=await faceEnroll(cv,exceptId);
+    if(r.msg){beep(false); A._ref=()=>refShoot(name,exceptId,done,extra);
+      openSheet(`<div class="okshot"><img src="${cv.toDataURL('image/jpeg',.6)}" alt="" class="bad"><div class="xmark" aria-hidden="true">✕</div><div class="big" style="color:var(--bad)">الصورة ما بتنفع</div><p style="margin:0">${esc(r.msg)}</p><button class="btn accent block" data-act="refRetry">صوّر مرة ثانية</button><button class="btn block" data-act="camCancel">إلغاء</button></div>`); return}
+    const id='r'+Date.now(), data=cv.toDataURL('image/jpeg',.75); await idb('readwrite',s=>s.put(data,id)); REFS[id]=data; beep(true); done(id,r.d||null)})}
 async function savePunch(type,canvas){
   const st=S.staff.find(x=>x.id===SELF.staff); stopSelf(); const msg=$('#selfMsg'); if(msg) msg.textContent='جارٍ تسجيل البصمة…';
   const id='p'+Date.now(), data=canvas.toDataURL('image/jpeg',.7); await idb('readwrite',s=>s.put(data,id));
@@ -655,8 +766,16 @@ sell(){
     <label for="disc">خصم (₪)<input id="disc" type="number" inputmode="decimal" min="0" step="0.5" value="${c.discount||''}" placeholder="0"></label>
     <div class="seg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${v}</button>`).join('')}</div>
     ${c.pay==='split'?`<div class="grid2"><label for="spC">نقدي (₪)<input id="spC" class="cf" data-f="splitCash" type="number" inputmode="decimal" min="0" value="${esc(c.splitCash)}"></label><label for="spA">تطبيق أو محفظة (₪)<input id="spA" class="cf" data-f="splitApp" type="number" inputmode="decimal" min="0" value="${esc(c.splitApp)}"></label></div><p class="muted" id="spRest" style="margin:0">الباقي ${fx(splitPays(gt,c).debt)} ₪ يُسجّل دين على الزبون.</p>`:''}
-    ${c.pay==='app'||c.pay==='split'?`<div class="grid2"><label for="apM">جهة التحويل<select id="apM" class="cf" data-f="appMethod">${APPM.map(m=>`<option ${c.appMethod===m?'selected':''}>${m}</option>`).join('')}</select></label><label for="apR">رقم العملية<input id="apR" class="cf" data-f="ref" inputmode="numeric" value="${esc(c.ref)}" placeholder="اختياري"></label></div>
-    <label for="apP">الدفع باسم مين؟<input id="apP" class="cf" data-f="payer" value="${esc(c.payer)}" placeholder="اسم صاحب الحساب أو المحفظة (اختياري)" autocomplete="off"></label>`:''}
+    ${c.pay==='app'||c.pay==='split'?(()=>{const need=splitPays(gt,c).app, dupR=refDup(c), img=c.proof?PROOF[c.proof]:'';
+      return `<div class="tcard"><div class="row"><b>التحويل</b><span class="pill ok">المطلوب <span class="num">${fx(need)}</span> ₪</span></div>
+      <div class="chips" role="group" aria-label="جهة التحويل">${APPM.map(m=>`<button class="chip" data-act="apM" data-m="${esc(m)}" aria-pressed="${c.appMethod===m}"><span class="dot" style="background:${APPC[m]||'var(--gold)'}"></span>${esc(m)}</button>`).join('')}</div>
+      ${img?`<div class="proof"><button class="pthumb" data-act="proofView" data-k="cart" aria-label="عرض إشعار التحويل"><img src="${img}" alt=""></button><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span class="pill ok" style="align-self:flex-start">✓ إشعار التحويل مرفق</span>${c.proofDup?`<span class="pdup">⚠ هذا الإشعار بيشبه إشعار فاتورة ${c.proofDup}. تأكد إنه تحويل جديد.</span>`:'<span class="muted" style="font-size:13px">تأكد إن المبلغ والاسم بالإشعار صح، وإن التحويل لحسابك.</span>'}<div class="row" style="justify-content:flex-start;gap:8px"><label class="btn sm" for="prGal">تغيير</label><button class="btn sm danger" data-act="proofDrop">حذف</button></div></div></div>`
+        :`<div class="pbtns"><label class="pbtn" for="prCam"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>صوّر الإشعار</label><label class="pbtn" for="prGal"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>من الصور أو واتساب</label></div>
+        <p class="muted" style="margin:0;font-size:13px">${S.proofReq?'صورة إشعار التحويل مطلوبة قبل إتمام البيع.':'صوّر شاشة التحويل من جوال الزبون، أو اختار الصورة اللي بعتها على واتساب.'}</p>`}
+      <input id="prCam" type="file" accept="image/*" capture="environment" hidden><input id="prGal" type="file" accept="image/*" hidden>
+      <div class="grid2"><label for="apR">رقم العملية<input id="apR" class="cf" data-f="ref" inputmode="numeric" value="${esc(c.ref)}" placeholder="من الإشعار"></label>
+      <label for="apP">باسم مين؟<input id="apP" class="cf" data-f="payer" value="${esc(c.payer)}" placeholder="صاحب الحساب" autocomplete="off"></label></div>
+      ${dupR?`<span class="pdup" id="refDupMsg">⚠ رقم العملية هذا مستعمل قبل بفاتورة ${dupR.id}</span>`:'<span id="refDupMsg"></span>'}</div>`})():''}
     ${S.loyal.on&&c.pay!=='debt'&&c.pay!=='split'?`<label for="lName">اسم الزبون لجمع النقاط (اختياري)<input id="lName" class="cf" data-f="custName" list="custList" value="${esc(c.custName)}" autocomplete="off" placeholder="اكتب الاسم"></label><datalist id="custList">${S.customers.map(x=>`<option value="${esc(x.name)}">`).join('')}</datalist>`:''}
     ${c.pay==='debt'||c.pay==='split'?`<div class="card" style="box-shadow:none;border-color:color-mix(in srgb,var(--gold) 50%,transparent);gap:8px">
       <div class="row"><b>تفاصيل الدين</b><span id="debtAmt">${money(splitPays(gt,c).debt)}</span></div>
@@ -692,7 +811,9 @@ items(){
 staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
   const cards=S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===t0, img=refImg(st);
     return `<button class="wcard ${inNow?'in':''}" data-act="staffTap" data-id="${st.id}"><span class="wimg">${img?`<img src="${img}" alt="">`:`<span>${esc(st.name.trim()[0]||'؟')}</span>`}</span><b>${esc(st.name)}</b>${S.attMode==='finger'&&st.cred?'<span class="muted" style="font-size:12px">بصمة إصبع</span>':''}<span class="pill ${inNow?'ok':'warn'}">${inNow?'داوم من '+hm(lp.ts):'مش داوم'}</span></button>`}).join('');
-  return `<div class="card" style="text-align:center;gap:4px"><h2>بصمة العمال</h2><p class="muted" style="margin:0">اضغط على صورتك، والكاميرا بتصوّرك لحالها وبتسجّل الدخول أو الخروج.</p></div>
+  const rejT=(S.attRej||[]).filter(r=>r.ts>=t0&&r.why!=='small'&&r.why!=='unsure').length;
+  return `${isOwner()&&rejT?`<button class="rejbar" data-act="faceRej"><span class="xmark" style="width:30px;height:30px;font-size:17px;box-shadow:none;animation:none">✕</span><span style="flex:1">${rejT} ${rejT===1?'محاولة بصمة مرفوضة':'محاولات بصمة مرفوضة'} اليوم</span><span class="chev">‹</span></button>`:''}
+  <div class="card" style="text-align:center;gap:4px"><h2>بصمة العمال</h2><p class="muted" style="margin:0">اضغط على صورتك، والكاميرا بتصوّرك وبتقارن وجهك بصورتك المسجّلة. إذا مش إنت، ما بتنسجّل البصمة.</p></div>
   ${S.staff.length?`<div class="wgrid">${cards}</div>`:`<div class="empty">${isOwner()?'ضيف أول عامل من تحت':'ما في عمال مضافين. خلي صاحب المحل يضيفهم.'}</div>`}
   ${isOwner()?`<button class="btn accent block" data-act="staffNew">إضافة عامل</button>
   <div class="card"><h2>دوام اليوم</h2><div class="list">${S.staff.map(st=>{const d=attDays(st.id,t0)[0];return `<button class="li" data-act="staffView" data-id="${st.id}"><span><span class="t">${esc(st.name)}</span><br><span class="muted">${d?`دخول ${d.inP?hm(d.inP.ts):'—'} · خروج ${d.outP?hm(d.outP.ts):'—'}${d.hrs?` · ${fx(d.hrs)} ساعة`:''}`:'ما بصم اليوم'}</span></span><span class="chev" style="color:var(--gold-deep)">‹</span></button>`}).join('')||'<div class="empty">—</div>'}</div></div>
@@ -802,7 +923,7 @@ more(){
       ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}</div></div>
     ${(()=>{const ap={}; S.sales.filter(s=>s.ts>d.from&&payOf(s).app>0).forEach(s=>{const k=s.appMethod||'أخرى',e=ap[k]||(ap[k]={ok:0,pend:0,n:0}); e.n++; if(s.confirmed===false) e.pend=r2(e.pend+payOf(s).app); else e.ok=r2(e.ok+payOf(s).app)});
       const ks=Object.keys(ap); return ks.length?`<div class="card"><h2>مطابقة المحافظ والبنوك</h2><p class="muted" style="margin:0">قارن هالأرقام مع كشف كل محفظة قبل الإقفال.</p><div class="list">${ks.map(k=>`<div class="li"><span><span class="t">${esc(k)}</span><br><span class="muted">${ap[k].n} عملية${ap[k].pend?` · بانتظار ${fx(ap[k].pend)} ₪`:''}</span></span>${money(ap[k].ok+ap[k].pend)}</div>`).join('')}</div></div>`:''})()}
-    ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li"><span><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">${s.payer?`باسم ${esc(s.payer)} · `:''}فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
+    ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li">${s.proof?`<button class="pthumb sm" data-act="proofView" data-k="${s.id}" aria-label="إشعار فاتورة ${s.id}">${PROOF[s.proof]?`<img src="${PROOF[s.proof]}" alt="">`:(proofGet(s.proof).then(()=>{if(tab==='more')render()}),'')}</button>`:'<span class="pthumb sm none" title="بلا إشعار">—</span>'}<span style="flex:1"><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">${s.payer?`باسم ${esc(s.payer)} · `:''}فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
     <div class="card"><h2>إقفال الصندوق</h2>
       <label for="cnt">المبلغ المعدود فعليًا (₪)<input id="cnt" type="number" inputmode="decimal" min="0" placeholder="${fx(d.expected)}"></label>
       <button class="btn primary" data-act="closeDay">إقفال وتسجيل الفرق</button></div>
@@ -817,6 +938,7 @@ more(){
       <label for="stRateJ">سعر الدينار بالشيكل<input id="stRateJ" type="number" inputmode="decimal" step="0.01" value="${S.rateJ}"></label></div>
       <div class="grid2"><label for="stFee">رسوم الدفع بالتطبيق %<input id="stFee" type="number" inputmode="decimal" step="0.5" min="0" value="${S.appFee}"></label>
       <label for="stMax">أكبر خصم للكاشير %<input id="stMax" type="number" inputmode="decimal" step="1" min="0" max="100" value="${S.maxDisc}"></label></div>
+      <label class="chk" for="stProof"><input type="checkbox" id="stProof" ${S.proofReq?'checked':''}>صورة إشعار التحويل إجبارية للدفع بالتطبيق أو البنك</label>
       <p class="muted" style="margin:0">رسوم التطبيق بتنضاف لحالها لما الزبون يدفع كامل الفاتورة بالتطبيق أو المحفظة. خلّيها 0 لو ما بدك فرق.</p>
       <button class="btn primary" data-act="saveSet">حفظ</button></div>
     <div class="card"><h2>صوت المسح</h2><label class="chk" for="stSound"><input type="checkbox" id="stSound" ${S.sound===false?'':'checked'}>صوت «بيب» واهتزاز عند مسح الباركود</label><button class="btn" data-act="testBeep">تجربة الصوت</button></div>
@@ -887,7 +1009,7 @@ function renderSetup(){
 }
 function render(){
   if(!S){renderSetup();return}
-  norm(S);
+  norm(S); if(tab==='staff') facePrewarm();
   $('.app>header').hidden=false; $('#nav').hidden=false; $('#hdrLogo').innerHTML=LOGO('h');
   $('#today').textContent=S.shop+' · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
   $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير';
@@ -1170,6 +1292,7 @@ function saleSheet(sale,title){
     <div class="card"><div class="row"><span>فاتورة رقم <span class="num">${sale.id}</span></span><span class="pill ${sale.confirmed===false?'warn':'ok'}">${payLabel(sale)}${sale.confirmed===false?' · بانتظار التأكيد':''}</span></div>
       <div class="row"><span class="muted">الإجمالي</span><span class="total">${money(sale.total)}</span></div>
       ${sale.payer?`<div class="row muted"><span>محوّل باسم</span><span>${esc(sale.payer)}</span></div>`:''}
+      ${payOf(sale).app>0?(sale.proof?`<button class="btn" data-act="proofView" data-k="${sale.id}">عرض إشعار التحويل${sale.ref?` · رقم ${esc(sale.ref)}`:''}</button>`:`<label class="btn" for="prLate">إرفاق صورة إشعار التحويل</label><input id="prLate" type="file" accept="image/*" data-sale="${sale.id}" hidden>`):''}
       ${sale.custId?`<div class="row muted"><span>دين على</span><span>${esc((S.customers.find(x=>x.id===sale.custId)||{}).name||'')} · ${money(payOf(sale).debt)}</span></div>`:''}
       ${isOwner()?`<div class="row muted"><span>ربح الفاتورة</span>${money(sale.total-sale.cost)}</div>`:''}</div>
     ${sale.custId?(()=>{const cu=S.customers.find(x=>x.id===sale.custId)||{ledger:[],name:''}, bal=balance(cu), m=`مرحبًا ${cu.name}، انسجل عليك ${fx(payOf(sale).debt)} ₪ من ${S.shop} (فاتورة ${sale.id}). رصيدك الحالي ${fx(bal)} ₪. شكرًا لثقتك.`;
@@ -1207,12 +1330,15 @@ checkout(){
   if(!isOwner()&&tt.disc>r2(tt.sub*S.maxDisc/100)){toast(`أكبر خصم مسموح للكاشير ${S.maxDisc}% (${fx(tt.sub*S.maxDisc/100)} ₪)`);return}
   const dName=String(c.custName||'').trim().replace(/\s+/g,' ');
   if(pays.debt>0&&!dName){toast(`اكتب اسم الشخص لتسجيل الدين (${fx(pays.debt)} ₪)`);const f=$('#dName');if(f)f.focus();return}
+  if(pays.app>0){ if(S.proofReq&&!c.proof){beep(false); toast('صوّر إشعار التحويل قبل إتمام البيع'); const b=$('.pbtns'); if(b) b.scrollIntoView({block:'center'}); return}
+    const dr=refDup(c); if(dr){beep(false); toast(`رقم العملية مستعمل قبل بفاتورة ${dr.id}. تأكد منه`); const f=$('#apR'); if(f) f.focus(); return}}
   let debtor=null;
   if(pays.debt>0){debtor=S.customers.find(x=>x.name.trim()===dName);
     if(!debtor){debtor={id:S.nextId++,name:dName,phone:String(c.custPhone||'').trim(),ledger:[]};S.customers.push(debtor)}
     else if(c.custPhone&&!debtor.phone) debtor.phone=String(c.custPhone).trim()}
   lines.forEach(l=>{const it=itemById(l.itemId); it.qty=r3(it.qty-l.baseQty)});
-  const sale={id:S.nextInv++,ts:Date.now(),lines,discount:tt.disc,promo:tt.promo||0,wholesale:!!c.wholesale,fee,total:tt.total,cost:tt.cost,pays,appMethod:pays.app>0?c.appMethod:'',ref:pays.app>0?String(c.ref||'').trim():'',confirmed:!(pays.app>0),payer:pays.app>0?String(c.payer||'').trim():'',custId:debtor?debtor.id:null};
+  const sale={id:S.nextInv++,ts:Date.now(),lines,discount:tt.disc,promo:tt.promo||0,wholesale:!!c.wholesale,fee,total:tt.total,cost:tt.cost,pays,appMethod:pays.app>0?c.appMethod:'',ref:pays.app>0?String(c.ref||'').trim():'',confirmed:!(pays.app>0),payer:pays.app>0?String(c.payer||'').trim():'',proof:pays.app>0&&c.proof?c.proof:'',proofHash:pays.app>0&&c.proof?c.proofHash:'',custId:debtor?debtor.id:null};
+  if(c.proof&&!(pays.app>0)) idb('readwrite',st=>st.delete(c.proof));
   S.sales.push(sale);
   if(sale.custId){S.customers.find(x=>x.id===sale.custId).ledger.push({ts:sale.ts,amt:pays.debt,note:`فاتورة رقم ${sale.id}`})}
   if(tt.disc>0) audit(`خصم ${fx(tt.disc)} ₪ على فاتورة ${sale.id}`);
@@ -1306,7 +1432,7 @@ mode(){ if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; ren
   else openSheet(`${sheetHead('الدخول كمالك')}<label for="pin">الرمز السري<input id="pin" type="password" inputmode="numeric" autocomplete="off"></label><button class="btn primary block" data-act="unlock">دخول</button>`)},
 unlock(){ if($('#pin').value===S.pin){S.mode='owner'; save(); closeSheet(); render(); toast('وضع المالك')} else toast('الرمز غلط')},
 savePin(){const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
-confirmPay(d){const s=S.sales.find(x=>x.id===+d.id); if(s){s.confirmed=true; audit(`تأكيد تحويل ${s.appMethod} ${fx(payOf(s).app)} ₪ فاتورة ${s.id}`); save(); render(); toast('تم تأكيد التحويل')}},
+confirmPay(d){const s=S.sales.find(x=>x.id===+d.id); if(s){s.confirmed=true; if($('#sheetBox [data-act=proofShare]')) closeSheet(); audit(`تأكيد تحويل ${s.appMethod} ${fx(payOf(s).app)} ₪ فاتورة ${s.id}`); save(); render(); toast('تم تأكيد التحويل')}},
 savePhone(d){const c=S[d.kind].find(x=>x.id===+d.id); c.phone=$('#pPhone').value.trim(); save(); A.party(d); toast('تم حفظ الرقم')},
 debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]), tot=r2(list.reduce((a,x)=>a+x[1],0));
   const txt=[`كشف ديون ${S.shop} · ${fdate(Date.now())}`,'',...list.map(([n,v])=>`${n}: ${fx(v)} ₪`),'',`المجموع: ${fx(tot)} ₪`].join('\n');
@@ -1324,7 +1450,7 @@ bkOut(){const t=$('#bk'); t.value=JSON.stringify(S); copyBox('bk')},
 bkIn(){try{const o=JSON.parse($('#bk').value); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)||!Array.isArray(o.suppliers)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('النص ليس نسخة احتياطية صالحة')}},
 testBeep(){beep(true)},
 staffTap(d){const st=S.staff.find(x=>x.id===+d.id); if(!st) return;
-  const photo=()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod(); camSheet(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`,'انظر للكاميرا، بتصوّرك لحالها بعد 3 ثواني',true,cv=>punchFor(st,cv,'photo'))};
+  const photo=()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod(); camSheet(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`,'انظر للكاميرا، بتصوّرك لحالها بعد 3 ثواني',true,cv=>facePunch(st,cv))};
   const finger=async()=>{const lp=lastPunch(st.id), out=lp&&lp.type==='in'&&sod(lp.ts)===sod();
     openSheet(`${sheetHead(`${out?'بصمة خروج':'بصمة دخول'} · ${st.name}`)}<div class="okshot"><div class="wimg" style="width:120px;height:120px"><svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="#E6C878" stroke-width="1.6" stroke-linecap="round"><path d="M12 11v3a6 6 0 0 1-1 3.3M8.5 7.6A5 5 0 0 1 17 11v1.5M7 11a5 5 0 0 1 .4-2M5 15.5c.5-1.5.5-3 .5-4.5a6.5 6.5 0 0 1 11-4.7M12 21c1.5-2 2.5-4.5 2.5-7.5M9 20.5c1.3-1.9 2-4.1 2-6.5v-1"/></svg></div>
       <div class="big">حط إصبعك على حسّاس البصمة</div><p class="muted" style="margin:0" id="fpMsg">بيطلعلك طلب البصمة من الجوال</p></div>
@@ -1347,19 +1473,39 @@ pinGo(d){const st=S.staff.find(x=>x.id===+d.id); if($('#punPin').value!==st.pin)
 camShot(){const v=$('#camVid'); if(!v||!v.videoWidth){toast('الكاميرا لسا ما اشتغلت');return} const cv=canvasFrom(v,v.videoWidth,v.videoHeight,true); camStop(); const cb=CAM.cb; CAM.cb=null; if(cb) cb(cv)},
 camCancel(){camStop(); CAM.cb=null; closeSheet(); syncLive()},
 punchUndo(d){const p=S.punches.find(x=>x.id===+d.id); S.punches=S.punches.filter(x=>x.id!==+d.id); if(p&&p.photo) idb('readwrite',s=>s.delete(p.photo)); save(); closeSheet(); render(); syncLive(); toast('انلغت البصمة، جرّب مرة ثانية')},
-staffNew(){openSheet(`${sheetHead('عامل جديد')}<label for="stfN">اسم العامل<input id="stfN" autocomplete="off"></label>
+staffNew(){faceLoad().catch(()=>{}); openSheet(`${sheetHead('عامل جديد')}<label for="stfN">اسم العامل<input id="stfN" autocomplete="off"></label>
   <div class="grid2"><label for="stfW">أجرة الساعة ₪<input id="stfW" type="number" inputmode="decimal" min="0" placeholder="اختياري"></label><label for="stfP">رمز 4 أرقام<input id="stfP" type="password" inputmode="numeric" maxlength="4" placeholder="اختياري" autocomplete="off"></label></div>
   <p class="muted" style="margin:0">الخطوة الجاية: صورة مرجعية لوجه العامل، بتظهر على بطاقته وبتقارن فيها صور البصمة.</p>
   <button class="btn accent block" data-act="staffRef">متابعة لتصوير العامل</button>`)},
 staffRef(){const n=$('#stfN').value.trim(), w=parseFloat($('#stfW').value)||0, pin=$('#stfP').value.trim();
   if(!n){toast('اكتب اسم العامل');return} if(pin&&!/^\d{4}$/.test(pin)){toast('الرمز 4 أرقام');return} if(pin&&S.staff.some(x=>x.pin===pin)){toast('الرمز مستخدم لعامل ثاني');return}
-  camSheet(`صورة ${n}`,'خلّي وجه العامل بنص الصورة واضغط التقاط',false,async cv=>{const id='r'+Date.now(), data=cv.toDataURL('image/jpeg',.75); await idb('readwrite',s=>s.put(data,id)); REFS[id]=data;
-    S.staff.push({id:S.nextId++,name:n,pin,wage:r2(w),ref:id}); audit(`إضافة عامل ${n}`); save(); closeSheet(); tab='staff'; render(); syncLive(); toast(`انضاف ${n}. هلأ بيقدر يبصم`)})},
-staffPhoto(d){const st=S.staff.find(x=>x.id===+d.id); camSheet(`صورة ${st.name}`,'صورة مرجعية جديدة',false,async cv=>{const id='r'+Date.now(), data=cv.toDataURL('image/jpeg',.75); await idb('readwrite',s=>s.put(data,id)); REFS[id]=data; st.ref=id; save(); closeSheet(); render(); toast('انحدّثت الصورة')})},
+  refShoot(n,null,async(id,face)=>{S.staff.push({id:S.nextId++,name:n,pin,wage:r2(w),ref:id,faces:face?[face]:undefined}); audit(`إضافة عامل ${n}`); save(); closeSheet(); tab='staff'; render(); syncLive(); toast(face?`انضاف ${n}، ووجهه انحفظ للتحقق`:`انضاف ${n}. التحقق من وجهه بيتجهّز أول ما يتوفر نت`)})},
+staffPhoto(d){const st=S.staff.find(x=>x.id===+d.id); refShoot(st.name,st.id,(id,face)=>{st.ref=id; st.faces=face?[face]:undefined; audit(`تغيير الصورة المرجعية لـ ${st.name}`); save(); closeSheet(); render(); toast('انحدّثت الصورة المرجعية')})},
+faceAdd(d){const st=S.staff.find(x=>x.id===+d.id); refShoot(st.name,st.id,(id,face)=>{ if(!face){toast('لازم نت أول مرة لتجهيز التحقق');return} st.faces=(st.faces||[]).concat([face]).slice(-4); idb('readwrite',s=>s.delete(id)); save(); A.staffView({id:st.id}); toast('انضافت صورة مرجعية إضافية')},true)},
+faceRej(){const t0=sod(), rs=(S.attRej||[]).slice().reverse(); Promise.all(rs.map(async r=>[r,await idb('readonly',s=>s.get(r.photo))])).then(xs=>{
+  const W={none:'مش وجه',small:'الوجه بعيد',notme:'ليس هو',other:'وجه عامل ثاني',unsure:'مش واضح'};
+  openSheet(`${sheetHead('محاولات البصمة المرفوضة')}<p class="muted" style="margin:0">هاي صور انرفضت وما انسجّلت كدوام. لو في محاولة إلها علاقة بتلاعب، بتشوفها هون.</p>
+  <div class="list">${xs.map(([r,img])=>{const st=S.staff.find(x=>x.id===r.staffId), o=r.other&&S.staff.find(x=>x.id===r.other);
+    return `<div class="li"><span class="pair">${img?`<img src="${img}" alt="">`:''}<img src="${st?refImg(st):''}" alt=""></span><span style="flex:1"><span class="t">باسم ${esc(st?st.name:'—')} · <span style="color:var(--bad)">${W[r.why]||''}</span>${o?` (${esc(o.name)})`:''}</span><br><span class="muted">${r.ts>=t0?'اليوم':new Date(r.ts).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})} · <span class="num">${hm(r.ts)}</span></span></span></div>`}).join('')||'<div class="empty">ما في محاولات مرفوضة</div>'}</div>
+  ${xs.length?'<button class="btn sm" data-act="faceRejClear">مسح السجل</button>':''}`)})},
+refRetry(){if(A._ref) A._ref()},
+apM(d){cart().appMethod=d.m; render()},
+proofDrop(){const c=cart(); if(c.proof) idb('readwrite',s=>s.delete(c.proof)); c.proof=''; c.proofHash=''; c.proofDup=null; render()},
+async proofView(d){const sl=d.k==='cart'?null:S.sales.find(x=>x.id===+d.k), img=d.k==='cart'?PROOF[cart().proof]:await proofGet(sl&&sl.proof); if(!img) return;
+  openSheet(`${sheetHead(sl?`إشعار تحويل · فاتورة ${sl.id}`:'إشعار التحويل')}${sl?`<div class="row muted"><span>${esc(sl.appMethod||'')}${sl.payer?' · باسم '+esc(sl.payer):''}${sl.ref?' · رقم '+esc(sl.ref):''}</span><span class="num">${fx(payOf(sl).app)} ₪</span></div>`:''}
+    <img src="${img}" alt="إشعار التحويل" style="width:100%;border-radius:14px;border:1px solid var(--line)">
+    ${sl?`<div class="grid2"><button class="btn accent" data-act="proofShare" data-id="${sl.id}">مشاركة الإشعار</button>${sl.confirmed===false&&isOwner()?`<button class="btn primary" data-act="confirmPay" data-id="${sl.id}">التحويل وصل</button>`:`<button class="btn" data-act="sale" data-id="${sl.id}">الفاتورة</button>`}</div>`:''}`)},
+async proofShare(d){const sl=S.sales.find(x=>x.id===+d.id), img=await proofGet(sl&&sl.proof); if(!img) return; const b=await (await fetch(img)).blob(), f=new File([b],`اشعار-تحويل-${sl.id}.jpg`,{type:'image/jpeg'});
+  try{ if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:`إشعار تحويل فاتورة ${sl.id}`}); return} }catch(e){if(e&&e.name==='AbortError')return}
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=f.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000)},
+faceRejClear(){(S.attRej||[]).forEach(r=>idb('readwrite',s=>s.delete(r.photo))); S.attRej=[]; save(); closeSheet(); render()},
 async staffView(d){const st=S.staff.find(x=>x.id===+d.id), ps=S.punches.filter(p=>p.staffId===st.id).slice(-30).reverse(), ref=await idb('readonly',s=>s.get(st.ref||'-')), imgs={};
   await Promise.all(ps.filter(p=>p.photo).map(async p=>{imgs[p.photo]=await idb('readonly',s=>s.get(p.photo))}));
   openSheet(`${sheetHead(st.name)}<div class="row">${ref?`<img src="${ref}" alt="الصورة المرجعية" style="width:84px;height:84px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)">`:''}<span class="muted" style="flex:1">قارن صورة كل بصمة بالصورة المرجعية. لو في بصمة مش إله احذفها.</span></div>
-    <div class="list">${ps.map(p=>`<div class="li"><span class="pair">${imgs[p.photo]?`<img src="${imgs[p.photo]}" alt="">`:''}</span><span style="flex:1"><span class="t">${p.type==='in'?'دخول':'خروج'} · <span class="num">${hm(p.ts)}</span>${p.method==='finger'?' · بصمة إصبع':''}</span><br><span class="muted">${new Date(p.ts).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}${p.dist!=null?` · ${p.far?'⚠ بعيد':'بالمحل'} (${p.dist} م)`:''}</span></span><button class="btn sm danger" data-act="punchDel" data-id="${p.id}" data-s="${st.id}">حذف</button></div>`).join('')||'<div class="empty">لا بصمات</div>'}</div>
+    <div class="list">${ps.map(p=>`<div class="li"><span class="pair">${imgs[p.photo]?`<img src="${imgs[p.photo]}" alt="">`:''}</span><span style="flex:1"><span class="t">${p.type==='in'?'دخول':'خروج'} · <span class="num">${hm(p.ts)}</span>${p.method==='finger'?' · بصمة إصبع':p.fd!=null?' · <span style="color:var(--good)">الوجه ✓</span>':''}</span><br><span class="muted">${new Date(p.ts).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}${p.dist!=null?` · ${p.far?'⚠ بعيد':'بالمحل'} (${p.dist} م)`:''}</span></span><button class="btn sm danger" data-act="punchDel" data-id="${p.id}" data-s="${st.id}">حذف</button></div>`).join('')||'<div class="empty">لا بصمات</div>'}</div>
+    <div class="card" style="gap:8px"><div class="row"><h2>بصمة الوجه</h2><span class="pill ${st.faces&&st.faces.length?'ok':'warn'}">${st.faces&&st.faces.length?`جاهزة · ${st.faces.length} ${st.faces.length===1?'صورة':'صور'}`:'مش جاهزة'}</span></div>
+      <p class="muted" style="margin:0">${st.faces&&st.faces.length?'كل بصمة بتنقارن بملامح وجهه. لو بيلبس نظارة أحيانًا أو تغيّرت ذقنه، ضيف صورة مرجعية ثانية.':'بيتجهّز تلقائيًا أول ما يتوفر نت. لو ضلّت مش جاهزة، غيّر الصورة لصورة أوضح.'}</p>
+      ${st.faces&&st.faces.length&&st.faces.length<4?`<button class="btn sm" data-act="faceAdd" data-id="${st.id}">إضافة صورة مرجعية ثانية</button>`:''}</div>
     <div class="card" style="gap:8px"><div class="row"><h2>بصمة الإصبع</h2><span class="pill ${st.cred?'ok':'warn'}">${st.cred?'مسجّلة':'مش مسجّلة'}</span></div>
       ${st.cred?`<button class="btn sm" data-act="fpRemove" data-id="${st.id}">إزالة البصمة</button>`:`<button class="btn accent" data-act="fpEnroll" data-id="${st.id}">تسجيل بصمة ${esc(st.name)}</button><p class="muted" style="margin:0">العامل بيحط إصبعه على جوال المحل. لازم تكون بصمته مضافة على الجوال من إعدادات الأمان.</p>`}</div>
     <div class="grid2"><button class="btn" data-act="staffPhoto" data-id="${st.id}">تغيير الصورة</button><button class="btn danger" data-act="delStaff" data-id="${st.id}">حذف العامل</button></div>`)},
@@ -1491,7 +1637,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -1505,6 +1651,7 @@ document.addEventListener('input',e=>{ const t=e.target;
   if(t.id==='iq'){iq=t.value; const pos=t.selectionStart; render(); const n=$('#iq'); if(n){n.focus(); try{n.setSelectionRange(pos,pos)}catch(_){}} return}
   if(t.id==='q'){q=t.value; renderResults()}
   if(t.classList&&t.classList.contains('cf')){const c=cart(); c[t.dataset.f]=t.value;
+    if(t.dataset.f==='ref'){const m=$('#refDupMsg'), d=refDup(c); if(m){m.className=d?'pdup':''; m.textContent=d?`⚠ رقم العملية هذا مستعمل قبل بفاتورة ${d.id}`:''}}
     if(t.dataset.f==='rcv'||t.dataset.f==='rcvC'){const g=$('#chg'); if(g){const tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount); g.innerHTML=changeTxt(r2(tt.total+appFeeOf(tt.total,c)),c)}} const r=$('#spRest');
     if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
 });
@@ -1517,6 +1664,14 @@ document.addEventListener('change',e=>{
   if(t.classList&&t.classList.contains('pdfchk')){t.checked?pdfSel.add(t.dataset.k):pdfSel.delete(t.dataset.k); render(); return}
   if(t.id==='pdfFrom'||t.id==='pdfTo'){if(t.id==='pdfFrom')pdfFrom=t.value;else pdfTo=t.value; render(); return}
   if(t.id==='attPin'){S.attPin=t.checked; save(); return}
+  if(t.id==='stProof'){S.proofReq=t.checked; audit(`صورة إشعار التحويل ${t.checked?'صارت إجبارية':'صارت اختيارية'}`); save(); return}
+  if((t.id==='prCam'||t.id==='prGal'||t.id==='prLate')&&t.files&&t.files[0]){const f=t.files[0], sid=t.dataset.sale; t.value='';
+    proofImg(f).then(async r=>{const id='tr'+Date.now(); await idb('readwrite',s=>s.put(r.data,id)); PROOF[id]=r.data;
+      const dup=await proofDupOf(r.data,r.hash,sid);
+      if(sid){const sl=S.sales.find(x=>x.id===+sid); if(sl){if(sl.proof) idb('readwrite',s=>s.delete(sl.proof)); sl.proof=id; sl.proofHash=r.hash; audit(`إرفاق إشعار تحويل لفاتورة ${sl.id}`); save(); render(); toast(dup?`انتبه: الإشعار بيشبه إشعار فاتورة ${dup.id}`:'انرفق الإشعار بالفاتورة')}; return}
+      const c=cart(); if(c.proof) idb('readwrite',s=>s.delete(c.proof)); c.proof=id; c.proofHash=r.hash; c.proofDup=dup?dup.id:null; render();
+      if(dup){beep(false); toast(`⚠ الإشعار بيشبه إشعار فاتورة ${dup.id}`)} else beep(true)}).catch(()=>toast('ما قدرنا نقرأ الصورة'));
+    return}
   if(t.id==='camFile'&&t.files&&t.files[0]){const im=new Image(),u=URL.createObjectURL(t.files[0]); im.onload=()=>{const cv=canvasFrom(im,im.width,im.height,false); URL.revokeObjectURL(u); camStop(); const cb=CAM.cb; CAM.cb=null; if(cb) cb(cv)}; im.src=u; t.value=''; return}
   if(t.id==='selfFile'&&t.files&&t.files[0]){const im=new Image(),u=URL.createObjectURL(t.files[0]),type=t.dataset.type; im.onload=()=>{const k=Math.min(1,480/im.width),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);savePunch(type,c)};im.src=u;return}
   if(t.id==='pPhoto'&&t.files&&t.files[0]){const im=new Image(), u=URL.createObjectURL(t.files[0]); im.onload=()=>{const k=Math.min(1,1400/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
