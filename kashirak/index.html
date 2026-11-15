@@ -71,7 +71,29 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 #celeb .cplan b{display:block;font-size:22px;color:#F3DC9A}
 #celeb .btn{margin-top:14px;width:100%}
 #celeb i{position:absolute;top:-10px;width:9px;height:14px;border-radius:2px;opacity:.95;animation:cfall linear forwards}
-@keyframes cfade{from{opacity:0}to{opacity:1}}@keyframes cpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes cfade{from{opacity:0}to{opacity:1}}
+#intro{position:fixed;inset:0;z-index:150;overflow-y:auto;background:radial-gradient(900px 600px at 50% -10%,#1d4a8a 0%,#0B1F3A 45%,#06111F 100%);color:#F7F1E1;animation:cfade .3s ease-out}
+#intro .iwrap{max-width:560px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 18px calc(130px + env(safe-area-inset-bottom))}
+#intro .ix{position:sticky;top:0;margin-inline-start:auto;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1px solid rgba(230,200,120,.45);background:rgba(6,17,31,.6);color:#F3DC9A;font-size:22px;cursor:pointer;z-index:2;backdrop-filter:blur(4px)}
+#intro .ihero{text-align:center;margin-top:-18px}
+#intro .ihero img{width:120px;height:120px;border-radius:30px;filter:drop-shadow(0 12px 26px rgba(0,0,0,.5));animation:ifloat 3.5s ease-in-out infinite}
+#intro h2{font-family:var(--display);font-size:30px;margin:6px 0 2px;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
+#intro .itag{color:#D5DDEA;font-size:16px;margin:0 0 14px}
+#intro .igift{display:flex;align-items:center;gap:12px;margin:0 auto 16px;padding:10px 14px;border-radius:18px;background:linear-gradient(90deg,rgba(230,200,120,.2),rgba(230,200,120,.06));border:1px solid rgba(230,200,120,.5);text-align:start}
+#intro .igift img{width:54px;height:54px;border-radius:14px}
+#intro .igift b{display:block;color:#F3DC9A;font-size:16.5px}
+#intro .igift span{font-size:13px;color:#C9D2E0}
+#intro .ifeats{display:grid;gap:10px}
+#intro .ift{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(230,200,120,.22);opacity:0;transform:translateY(14px);animation:iup .5s ease-out forwards}
+#intro .ift .ii{flex:none;width:68px;height:68px;border-radius:18px;background:#11294D;display:grid;place-items:center;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(230,200,120,.25)}
+#intro .ift .ii img{width:68px;height:68px}
+#intro .ift b{display:block;font-size:16px;color:#FFF3D1;margin-bottom:2px}
+#intro .ift span{font-size:13.5px;color:#C9D2E0;line-height:1.55}
+#intro .ibar{position:fixed;left:0;right:0;bottom:0;padding:14px 18px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#06111F 65%,rgba(6,17,31,0));display:flex;flex-direction:column;gap:8px;align-items:center}
+#intro .ibar .btn{width:100%;max-width:520px}
+#intro .ibar a{color:#C9D2E0;font-size:14px;text-decoration:underline;cursor:pointer;background:none;border:0;font:inherit}
+#intro .ifoot{text-align:center;font-size:12.5px;color:#8FA0B8;margin-top:16px}
+@keyframes iup{to{opacity:1;transform:none}}@keyframes ifloat{50%{transform:translateY(-8px)}}@keyframes cpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 @keyframes cfall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
 .modebtn{background:rgba(255,255,255,.08);color:#F7F1E1;border:1px solid rgba(230,200,120,.6);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap}
 main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
@@ -437,6 +459,25 @@ function planTagUI(){ const t=$('#planTag'); if(!t) return; if(!S||!LICREADY||!l
   else if(st.paid){txt=`⭐ ${planName(S.licPlan)||'مشترك'} · لغاية ${sd(dayTs(LIC.e))}`}
   else {cls='trial'; txt=`🎁 تجربة مجانية · باقي ${Math.max(0,st.daysLeft)} يوم`}
   t.className='plantag '+cls; t.textContent=txt; t.hidden=false}
+
+/* شاشة المميزات: بتطلع أول مرة لأي حد بيفتح التطبيق، وبتنفتح كمان من الإعدادات */
+const FEATS=[['barcode','بيع بلمح البصر','امسح باركود الصنف بكاميرا الجوال، والفاتورة بتنحسب لحالها.'],
+ ['chart','أرباحك قدام عيونك','مبيعات اليوم والشهر وصافي ربحك بعد المصاريف بنظرة وحدة.'],
+ ['ledger','دفتر الديون صار ذكي','ديون الزباين والموردين محسوبة بالقرش، وكشف الحساب بتبعته على واتساب.'],
+ ['card','دفع بالتحويل بثقة','بنك فلسطين وبال باي: صوّر إشعار التحويل وبيتحفظ مع الفاتورة، والإشعار المكرر بينكشف فورًا.'],
+ ['shield','دوام الموظفين ببصمة الوجه','الموظف بيسجّل حضوره بوجهه، وإذا حدا حاول يسجّل عنه بيطلع «ليس هو» 🔴'],
+ ['coins','مخزونك مضبوط','بتعرف إيش قرب يخلص، والمدير الذكي بيقترحلك شو تطلب وقديش.'],
+ ['receipt','فواتير احترافية','اطبع الفاتورة على طابعة بلوتوث، أو ابعتها PDF على واتساب الزبون.'],
+ ['calc','محلك معك وين ما كنت','بيشتغل بدون نت، وبياناتك محفوظة على السحابة، وبتتابع محلك من اللابتوب أو جوالك وإنت برا.']];
+function showIntro(){ if($('#intro')) return; const d=document.createElement('div'); d.id='intro';
+  d.innerHTML=`<div class="iwrap"><button class="ix" data-act="introClose" aria-label="إغلاق">×</button>
+   <div class="ihero"><img src="icons/logo-3d-256.png" alt=""><h2>كاشيرك الذكي</h2><p class="itag">كاشير ومحاسبة محلك، كله من جوالك 📱</p></div>
+   <div class="igift"><img src="icons/feat/gift.jpg" alt=""><div><b>جرّبه مجانًا ${TRIAL_DAYS} أيام</b><span>بدون أي دفع، وبتجرّب كل المميزات.</span></div></div>
+   <div class="ifeats">${FEATS.map(([ic,t,x],i)=>`<div class="ift" style="animation-delay:${.08+i*.07}s"><span class="ii"><img src="icons/feat/${ic}.jpg" alt="" loading="lazy"></span><div><b>${t}</b><span>${x}</span></div></div>`).join('')}</div>
+   <p class="ifoot">تطوير شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</p></div>
+   <div class="ibar"><button class="btn accent big" data-act="introClose">${S?'تمام، رجوع للتطبيق':'ابدأ الآن مجانًا'}</button>${S?'':'<button class="ilog" data-act="introLogin" style="background:none;border:0;color:#C9D2E0;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer">عندي حساب؟ ادخل واسترجع محلك</button>'}</div>`;
+  document.body.appendChild(d); document.body.style.overflow='hidden' }
+function closeIntro(){ const d=$('#intro'); if(d) d.remove(); document.body.style.overflow=''; try{localStorage.setItem('ksr-intro','1')}catch(e){} }
 function celebrate(o){ const life=o.e>=LIC_LIFE, end=fday(dayTs(o.e)), pn=planName(o.p);
   const old=$('#celeb'); if(old) old.remove(); const d=document.createElement('div'); d.id='celeb';
   const cols=['#F0CF7A','#25D366','#5AA9FF','#FF7A7A','#FFFFFF','#C7962F'];
@@ -1207,7 +1248,8 @@ more(){
     <div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div></div>
       <a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}تواصل معنا الآن واطلب كود التفعيل</a>
       <a class="btn wa block" style="background:#fff;color:#128C4A;border:1.5px solid #25D366" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي استفسار بخصوص «كاشيرك الذكي».\nاسم المحل: '+S.shop+(status().acct?'\nرقم الحساب: '+status().acct:''))}" target="_blank" rel="noopener">${WAIC}للدعم والاستشارة تواصل معنا</a>
-      <p class="muted" style="margin:0;text-align:center;font-size:13px">واتساب: <span class="num">+${SUPPORT_WA}</span></p></div>
+      <p class="muted" style="margin:0;text-align:center;font-size:13px">واتساب: <span class="num">+${SUPPORT_WA}</span></p>
+      <button class="btn" data-act="introShow">✨ مميزات التطبيق</button></div>
     <div class="card"><h2>مسح كل البيانات</h2><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`;
   const from=period==='today'?sod():period==='week'?sod(Date.now()-6*DAY):sod(Date.now()-29*DAY), r=report(from);
   const mx=Math.max(1,...r.top.map(t=>t[1]));
@@ -1916,6 +1958,9 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+introClose(){closeIntro(); if(!S) setTimeout(()=>{const i=$('#suShop'); if(i) i.focus()},200)},
+introLogin(){closeIntro(); A.cloudLogin()},
+introShow(){closeSheet(); showIntro()},
 celebOk(){const c=$('#celeb'); if(c) c.remove()},
 joinGo(){joinRun(true)},
 async subRetry(){const b=$('[data-act=subRetry]'); if(b){b.disabled=true;b.textContent='جاري التحقق…'} await licRefresh(); closeSheet(); expGate(); if(status().active) toast('✓ تمام')},
@@ -1949,7 +1994,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
@@ -2014,9 +2059,9 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); route(); restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
+load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115185507'; let UPD=false;
+const BUILD='20261115190448'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
