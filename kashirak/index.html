@@ -73,6 +73,7 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 #remOv .ri{display:flex;justify-content:space-between;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(230,200,120,.25)}
 .rempill{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-radius:16px;background:#E3F4EA;color:#17713F;font-weight:700;border:1px solid #9BD7B1}
 .rembtn{border:1.5px dashed #C8A24A!important;background:#FFF9EA!important;color:#6b4d0e!important;font-weight:700}
+.wacc{display:flex;gap:8px;direction:ltr}.wacc select{flex:none;width:96px}.wacc input{flex:1}
 .plantag{margin-top:3px;display:inline-flex;align-items:center;gap:5px;max-width:100%;border:1px solid rgba(230,200,120,.55);background:rgba(230,200,120,.14);color:#F3DC9A;font:inherit;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plantag.life{background:linear-gradient(180deg,#FFE7A6,#D7A845);color:#2a1c04;border-color:transparent}
 .plantag.trial{color:#CFE2FF;border-color:rgba(160,195,255,.5);background:rgba(120,160,255,.14)}
@@ -614,6 +615,8 @@ function subSheet(){ if(!S) return; const st=status(); setTimeout(()=>{const bx=
   if(st.why==='reg') return openSheet(`${sheetHead('سجّل محلك')}<p style="margin:0">عشان تكمل تستعمل «كاشيرك الذكي»، سجّل محلك مرة وحدة وإنت متصل بالنت. بياناتك ما رح تتغير، وبتنحفظ نسخة منها على السحابة.</p>
     <label for="jnOwner">اسم صاحب المحل<input id="jnOwner" autocomplete="name" value="${esc(S.owner||'')}"></label>
     <label for="jnPhone">رقم جوال صاحب المحل<input id="jnPhone" inputmode="tel" autocomplete="tel" value="${esc(S.phone||'')}" placeholder="059xxxxxxx"></label>
+    <label for="jnWa">رقم الواتساب (اختياري)<span class="wacc"><input id="jnWa" inputmode="tel" dir="ltr" placeholder="59xxxxxxx"><select id="jnWaCc" aria-label="المقدمة" dir="ltr"><option value="970">+970</option><option value="972">+972</option></select></span></label>
+      <p class="muted" style="margin:-6px 0 0;font-size:12.5px">إذا الواتساب على رقم غير رقم الجوال. اختار المقدمة واكتب الرقم بدون صفر.</p>
     <button class="btn accent block" data-act="joinGo">تسجيل المحل</button>
     <button class="btn block" data-act="cloudLogin">المحل مسجّل من قبل؟ ادخل للحساب</button>`,true);
   if(st.why==='nolic') return openSheet(`${sheetHead('بنتأكد من اشتراكك')}<p style="margin:0">ما قدرنا نتأكد من اشتراك هذا الجهاز. شغّل النت واضغط تحقق.</p><button class="btn primary block" data-act="subRetry">تحقق الآن</button>${wa}`,true);
@@ -627,11 +630,13 @@ async function devFp(){ try{ const c=document.createElement('canvas'); c.width=2
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))].slice(0,16).map(b=>b.toString(16).padStart(2,'0')).join('') }catch(e){return ''}}
 /* تسجيل المحل بالسيرفر: حساب واحد لكل رقم جوال، مربوط بهذا الجهاز */
 async function joinRun(existing){ const owner=($('#jnOwner')||$('#suOwner')).value.trim(), phone=($('#jnPhone')||$('#suPhone')).value.trim();
+  const wi=$('#jnWa')||$('#suWa'), wc=$('#jnWaCc')||$('#suWaCc'); let wa=wi?wi.value.replace(/\D/g,'').replace(/^0+/,''):'';
+  if(wa){ if(/^97[02]/.test(wa)) wa=wa; else wa=(wc?wc.value:'970')+wa; if(!/^97[02]5\d{8}$/.test(wa)){toast('رقم الواتساب مش صحيح: اكتبه 9 أرقام بيبلّش بـ5 (مثال 599123456)');return false} }
   const btn=$('[data-act=joinGo]')||$('[data-act=setupGo]:not([data-demo])');
   if(owner.length<2){toast('اكتب اسم صاحب المحل');return false} { const d=phone.replace(/\D/g,'').replace(/^00/,''); if(!/^(0?5[69]\d{7}|97[02]5[69]\d{7})$/.test(d)){toast('رقم الجوال مش صحيح. اكتبه هيك: 059xxxxxxx');return false} }
   if(!navigator.onLine){toast('تسجيل المحل بدّه نت أول مرة. شغّل النت وجرّب');return false}
   const shop=existing?S.shop:$('#suShop').value.trim();
-  try{ const r=await api('/join',{method:'POST',body:{owner,phone,shop,device:devInfo().id,label:devLabel(),fp:await devFp(),since:existing?Math.min(devInfo().ts,S.trialTs||Infinity):0}});
+  try{ const r=await api('/join',{method:'POST',body:{owner,phone,wa,shop,device:devInfo().id,label:devLabel(),fp:await devFp(),since:existing?Math.min(devInfo().ts,S.trialTs||Infinity):0}});
     CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner||owner,main:devInfo().id,ver:existing?0:r.shop.version,last:null,nopass:!r.shop.haspass}; clSave(); upSet({});
     if(existing){ S.owner=owner; if(!S.phone) S.phone=phone; await licApply(r.license); EXPSNAP=null; persist(); closeSheet(); render(); toast('✓ انسجّل المحل · رقم حسابك '+r.shop.acct); cloudPush() }
     return r;
@@ -1416,6 +1421,8 @@ function renderSetup(){
       <label for="suShop">اسم المحل<input id="suShop" placeholder="مثال: سوبر ماركت الأمل" autocomplete="organization"></label>
       <label for="suOwner">اسم صاحب المحل<input id="suOwner" autocomplete="name" placeholder="مثال: أبو محمد الأغا"></label>
       <label for="suPhone">رقم جوال صاحب المحل<input id="suPhone" inputmode="tel" autocomplete="tel" placeholder="059xxxxxxx"></label>
+      <label for="suWa">رقم الواتساب (اختياري)<span class="wacc"><input id="suWa" inputmode="tel" dir="ltr" placeholder="59xxxxxxx"><select id="suWaCc" aria-label="المقدمة" dir="ltr"><option value="970">+970</option><option value="972">+972</option></select></span></label>
+      <p class="muted" style="margin:-6px 0 0;font-size:12.5px">إذا الواتساب على رقم غير رقم الجوال. اختار المقدمة واكتب الرقم بدون صفر.</p>
       <label for="suPin">رمز سري للمالك (4 لـ8 أرقام)<input id="suPin" type="password" inputmode="numeric" autocomplete="new-password"></label>
       <p class="muted" style="margin:0">الرمز بيحمي الأرباح والتعديلات لما يشتغل الكاشير على الجهاز.</p>
       <button class="btn accent block" data-act="setupGo">ابدأ بمحل فاضي</button>
@@ -2215,7 +2222,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115205825'; let UPD=false;
+const BUILD='20261115210157'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}

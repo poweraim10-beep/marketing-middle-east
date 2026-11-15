@@ -243,18 +243,19 @@ function codesResult(r,plan){
   open(`${head('الكود جاهز ✓')}
   <div class="card" style="gap:0"><div class="kv"><span>صاحب المحل</span><span>${esc(r.owner)}</span></div><div class="kv"><span>رقم الحساب</span><span class="num">${r.acct}</span></div><div class="kv"><span>المحل</span><span>${esc(r.shop)}</span></div><div class="kv"><span>المدة</span><span>${planLabel(plan)}</span></div></div>
   ${r.codes.map(c=>`<div class="codebox"><span class="code">${c}</span><span style="display:flex;gap:6px"><button class="btn sm" data-a="copy" data-v="${c}">نسخ</button></span></div>
-    <a class="btn wa block" href="https://wa.me/${waNum(r.phone)}?text=${encodeURIComponent(codeMsg(c,plan,r.owner,r.acct))}" target="_blank" rel="noopener">ابعت الكود لـ«${esc(r.owner)}» على واتساب</a>`).join('')}
+    <a class="btn wa block" href="https://wa.me/${r.wa||waNum(r.phone)}?text=${encodeURIComponent(codeMsg(c,plan,r.owner,r.acct))}" target="_blank" rel="noopener">ابعت الكود لـ«${esc(r.owner)}» على واتساب</a>`).join('')}
   <button class="btn block" data-a="close">تمام</button>`)}
 function shopSheet(id,kind){
   const s=D.shops.find(x=>x.id===id&&x.kind===kind); if(!s) return; const st=stateOf(s), P=prices();
   const tail=`\nالأسعار: شهر ${P.m1} ₪ · 3 شهور ${P.m3} ₪ · سنة ${P.y1} ₪\nابعتلنا إشعار التحويل وبنبعتلك كود التفعيل فورًا 🌟`;
   const msgRenew=`أهلًا ${s.name&&!s.visit?s.name:''} 👋\n`+({trial:`شكرًا إنك جرّبت «كاشيرك الذكي». فترة التجربة المجانية بتخلص بعد ${st.left} يوم، وعشان تضل تبيع بدون توقف فعّل اشتراكك.`,tover:`خلصت فترة التجربة المجانية لـ«كاشيرك الذكي». بياناتك كلها محفوظة، وبمجرد ما تفعّل الاشتراك بترجع تبيع من نفس المكان.`,visit:`شفناك فتحت «كاشيرك الذكي» 🙌 إذا بدك مساعدة بتجهيز محلك وإضافة الأصناف، إحنا جاهزين.`,over:`اشتراك «كاشيرك الذكي» انتهى. بياناتك محفوظة، جدّد وارجع بيع فورًا.`}[st.k]||`حابين نذكّرك إن اشتراك «كاشيرك الذكي» بينتهي بعد ${st.left} يوم.`)+tail;
   open(`${head(esc(s.name||'محل'))}
-  <div class="row">${pillOf(st)}${s.phone?`<a class="btn sm wa" href="https://wa.me/${waNum(s.phone)}" target="_blank" rel="noopener">واتساب</a>`:''}</div>
+  <div class="row">${pillOf(st)}${s.phone?`<a class="btn sm wa" href="https://wa.me/${(s.wa||waNum(s.phone))}" target="_blank" rel="noopener">واتساب</a>`:''}</div>
   <div class="card" style="gap:0">
     ${s.acct?`<div class="kv"><span>رقم الحساب</span><span class="num" style="font-weight:700">${s.acct}</span></div>`:''}
     ${s.owner?`<div class="kv"><span>صاحب المحل</span><span>${esc(s.owner)}</span></div>`:''}
     ${s.phone?`<div class="kv"><span>رقم الجوال</span><span class="num">${esc(s.phone)}</span></div>`:''}
+    ${s.wa?`<div class="kv"><span>واتساب</span><span class="num">+${esc(s.wa)}</span></div>`:''}
     ${s.kind==='shop'?`<div class="kv"><span>كلمة سر للحساب</span><span>${s.haspass?'محدّدة':'لسا'}</span></div>`:''}
     <div class="kv"><span>الاشتراك</span><span>${st.k==='visit'?'فتح التطبيق وما جهّز محله':st.k==='life'?'مفتوح، ما بينتهي':st.k==='trial'?'تجربة لغاية '+fday(st.exp):st.exp?(st.k==='over'?'انتهى ':st.k==='tover'?'خلصت التجربة ':'لغاية ')+fday(st.exp):'—'}</span></div>
     ${s.lic&&s.lic.plan?`<div class="kv"><span>آخر باقة</span><span>${planLabel(s.lic.plan)}</span></div>`:''}
@@ -278,7 +279,7 @@ function shopSheet(id,kind){
   <label>المبلغ المدفوع (₪)<input id="exPrice" class="num" inputmode="decimal" value="${P.m1}"></label>
   <button class="btn gold block" data-a="extend" data-id="${esc(s.id)}" data-k="${s.kind}">تمديد الآن</button>
   <p style="font-size:13px;color:var(--muted);margin-top:-4px">المدة بتنضاف على اشتراكه، والتطبيق بياخدها لحاله أول ما يتصل بالنت.</p>
-  <a class="btn wa block" href="https://wa.me/${s.phone?waNum(s.phone):''}?text=${encodeURIComponent(msgRenew)}" target="_blank" rel="noopener">${st.k==='visit'?'رسالة ترحيب ومساعدة':['trial','tover'].includes(st.k)?'رسالة لتحويله لمشترك':'رسالة تذكير بالتجديد'}</a>
+  <a class="btn wa block" href="https://wa.me/${s.phone?(s.wa||waNum(s.phone)):''}?text=${encodeURIComponent(msgRenew)}" target="_blank" rel="noopener">${st.k==='visit'?'رسالة ترحيب ومساعدة':['trial','tover'].includes(st.k)?'رسالة لتحويله لمشترك':'رسالة تذكير بالتجديد'}</a>
   <label>ملاحظات عن المحل<textarea id="shNote" rows="2" placeholder="مثلاً: دفع نقدًا، بدّه طابعة…">${esc(s.note||'')}</textarea></label>
   <button class="btn" data-a="saveNote" data-id="${esc(s.id)}" data-k="${s.kind}">حفظ الملاحظة</button>
   ${s.lic&&s.lic.exp>=D.today?`<button class="btn danger" data-a="cancelLic" data-id="${esc(s.id)}" data-k="${s.kind}">إيقاف الاشتراك</button>`:''}`)}
@@ -332,12 +333,12 @@ const A={
   async setPass(d){const pw=$('#npw').value.trim(), s=shopById(d.id); if(pw.length<6){toast('6 أحرف أو أرقام على الأقل');return}
     try{await call('setpass',{id:d.id,password:pw}); const msg=`أهلًا ${s.owner||''} 👋\nكلمة السر الجديدة لحساب «كاشيرك الذكي»:\n\n${pw}\n\nرقم الجوال للدخول: ${s.phone}\nرقم الحساب: ${s.acct}\n\nبتقدر تغيّرها من الإعدادات ← حساب المحل.`;
       open(`${head('✓ تغيّرت كلمة السر')}<div class="codebox"><span class="code">${esc(pw)}</span><button class="btn sm" data-a="copy" data-v="${esc(pw)}">نسخ</button></div>
-      <a class="btn wa block" href="https://wa.me/${waNum(s.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">ابعتها لـ«${esc(s.owner||s.name)}» على واتساب</a><button class="btn block" data-a="close">تمام</button>`); load()}catch(e){toast(e.message)}},
+      <a class="btn wa block" href="https://wa.me/${(s.wa||waNum(s.phone))}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">ابعتها لـ«${esc(s.owner||s.name)}» على واتساب</a><button class="btn block" data-a="close">تمام</button>`); load()}catch(e){toast(e.message)}},
   editSheet(d){const s=shopById(d.id);
     open(`${head('تعديل بيانات الحساب')}<label>اسم صاحب المحل<input id="edO" value="${esc(s.owner||'')}"></label><label>اسم المحل<input id="edN" value="${esc(s.name||'')}"></label>
-    <label>رقم الجوال<input id="edP" class="num" inputmode="tel" value="${esc(s.phone||'')}" dir="ltr"></label><button class="btn gold block" data-a="saveEdit" data-id="${esc(d.id)}">حفظ</button>
+    <label>رقم الجوال<input id="edP" class="num" inputmode="tel" value="${esc(s.phone||'')}" dir="ltr"></label><label>رقم الواتساب (مع 970 أو 972)<input id="edW" class="num" inputmode="tel" value="${esc(s.wa||'')}" dir="ltr" placeholder="970599123456"></label><button class="btn gold block" data-a="saveEdit" data-id="${esc(d.id)}">حفظ</button>
     <p style="font-size:12.5px;color:var(--muted)">لو غيّرت رقم الجوال، الزبون بيدخل من الأجهزة الثانية بالرقم الجديد.</p>`)},
-  async saveEdit(d){try{await call('edit',{id:d.id,owner:$('#edO').value,name:$('#edN').value,phone:$('#edP').value}); await load(); shopSheet(d.id,'shop'); toast('✓ انحفظت')}catch(e){toast(e.message)}},
+  async saveEdit(d){try{await call('edit',{id:d.id,owner:$('#edO').value,name:$('#edN').value,phone:$('#edP').value,wa:$('#edW').value.trim()}); await load(); shopSheet(d.id,'shop'); toast('✓ انحفظت')}catch(e){toast(e.message)}},
   trialSheet(d){const s=shopById(d.id);
     open(`${head('تمديد التجربة المجانية')}<p style="font-size:14px">${s.trialEnds?(s.trialEnds>Date.now()?'التجربة الحالية لغاية ':'التجربة خلصت ')+fday(s.trialEnds):''}</p>
     <div class="grid2">${[3,7,14,30].map(n=>`<button class="btn" data-a="addTrial" data-id="${esc(d.id)}" data-n="${n}">＋ ${n} أيام</button>`).join('')}</div>
@@ -376,7 +377,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261115205825'; let UPD=false;
+const BUILD='20261115210157'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);

@@ -70,6 +70,7 @@ async function ensure(env) {
     'CREATE TABLE IF NOT EXISTS ksr_hist (shop TEXT NOT NULL, ver INTEGER NOT NULL, t INTEGER NOT NULL, size INTEGER NOT NULL, meta TEXT, why TEXT, PRIMARY KEY (shop, ver))',
     'CREATE TABLE IF NOT EXISTS ksr_hist_chunks (shop TEXT NOT NULL, ver INTEGER NOT NULL, i INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, ver, i))',
     'ALTER TABLE ksr_shops ADD COLUMN restored INTEGER',
+    'ALTER TABLE ksr_shops ADD COLUMN wa TEXT',
     'CREATE TABLE IF NOT EXISTS ksr_sig (shop TEXT NOT NULL, k TEXT NOT NULL, v TEXT, t INTEGER NOT NULL, PRIMARY KEY (shop, k))',
     'CREATE TABLE IF NOT EXISTS ksr_scans (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, t INTEGER NOT NULL)',
   ]) { try { await env.DB.prepare(q).run(); } catch {} }
@@ -122,7 +123,8 @@ async function readShop(env, req) {
   if (!shop || shop.salt !== p.v) return null;
   return shop;
 }
-const pubShop = (s) => ({ restored: s.restored || 0, id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
+const waOf = (w) => { const d = String(w || '').replace(/\D/g, '').replace(/^00/, ''); return /^97[02]5\d{8}$/.test(d) ? d : ''; };
+const pubShop = (s) => ({ restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
 async function seen(env, shop, device, label) {
   if (!device) return;
   let d = {}; try { d = JSON.parse(shop.devices || '{}'); } catch {}
@@ -233,6 +235,7 @@ export async function onRequest({ request, env, params }) {
       if (!/^(0?5[69]\d{7}|97[02]5[69]\d{7})$/.test(phone)) return err('رقم الجوال مش صحيح. اكتبه هيك: 059xxxxxxx أو 056xxxxxxx', 400, { code: 'phone' });
       if (owner.length < 2) return err('اكتب اسم صاحب المحل');
       if (!name) return err('اكتب اسم المحل');
+      const wa = waOf(q.wa); if (q.wa && String(q.wa).replace(/\D/g, '').length > 3 && !wa) return err('رقم الواتساب مش صحيح. اختار 970 أو 972 واكتب الرقم بدون صفر: 59xxxxxxx', 400, { code: 'wa' });
       if (!device) return err('رقم الجهاز ناقص');
       let shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
       if (shop) {
@@ -240,7 +243,7 @@ export async function onRequest({ request, env, params }) {
           await seen(env, shop, device, clean(q.label, 60) + ' (طلب دخول)');
           return err('هذا الرقم مسجّل على جهاز ثاني', 409, { code: 'other_device', acct: (await ensureAcct(env, shop)).acct, haspass: !!shop.hash });
         }
-        await env.DB.prepare('UPDATE ksr_shops SET owner = COALESCE(owner, ?), name = COALESCE(name, ?) WHERE id = ?').bind(owner, name, shop.id).run();
+        await env.DB.prepare('UPDATE ksr_shops SET owner = COALESCE(owner, ?), name = COALESCE(name, ?), wa = COALESCE(?, wa) WHERE id = ?').bind(owner, name, wa || null, shop.id).run();
         shop = await ensureAcct(env, await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(shop.id).first());
       } else {
         const day = nowMs() - 864e5;
@@ -250,8 +253,8 @@ export async function onRequest({ request, env, params }) {
         const since = Number(q.since) || 0; // installs from before accounts keep their original trial start (never a longer trial)
         const t0 = since > nowMs() - 180 * 864e5 && since < nowMs() ? since : nowMs();
         const salt = randomHex(16), id = randomHex(10), acct = await newAcct(env);
-        await env.DB.prepare('INSERT INTO ksr_shops (id, phone, name, salt, hash, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip) VALUES (?, ?, ?, ?, \'\', ?, 0, 0, NULL, ?, ?, \'{}\', ?, ?, ?, ?, ?)')
-          .bind(id, phone, name, salt, device, nowMs(), JSON.stringify({ [device]: { label: clean(q.label, 60), first: nowMs(), last: nowMs() } }), acct, owner, t0 + TRIAL_MS, fp || null, ip).run();
+        await env.DB.prepare('INSERT INTO ksr_shops (id, phone, name, salt, hash, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip, wa) VALUES (?, ?, ?, ?, \'\', ?, 0, 0, NULL, ?, ?, \'{}\', ?, ?, ?, ?, ?, ?)')
+          .bind(id, phone, name, salt, device, nowMs(), JSON.stringify({ [device]: { label: clean(q.label, 60), first: nowMs(), last: nowMs() } }), acct, owner, t0 + TRIAL_MS, fp || null, ip, wa || null).run();
         await env.DB.prepare('INSERT INTO ksr_join (ip, t) VALUES (?, ?)').bind(ip, nowMs()).run();
         shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(id).first();
       }
@@ -465,7 +468,7 @@ async function admin(env, request, b) {
 
   if (b === 'summary' && m === 'GET') {
     const [shopsR, licR, codesR, devR] = await Promise.all([
-      env.DB.prepare("SELECT id, phone, name, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip, (hash <> '') AS haspass FROM ksr_shops ORDER BY created DESC LIMIT 3000").all(),
+      env.DB.prepare("SELECT id, phone, name, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip, wa, (hash <> '') AS haspass FROM ksr_shops ORDER BY created DESC LIMIT 3000").all(),
       env.DB.prepare('SELECT * FROM ksr_lic').all(),
       env.DB.prepare('SELECT * FROM ksr_codes ORDER BY created DESC LIMIT 3000').all(),
       env.DB.prepare('SELECT * FROM ksr_dev ORDER BY last DESC LIMIT 3000').all(),
@@ -476,7 +479,7 @@ async function admin(env, request, b) {
       let d = {}, meta = {}; try { d = JSON.parse(s.devices || '{}'); } catch {} try { meta = JSON.parse(s.meta || '{}'); } catch {}
       const L = lic['shop:' + s.id];
       const lastSeen = Math.max(0, ...Object.values(d).map((x) => x.last || 0));
-      return { kind: 'shop', id: s.id, acct: s.acct, owner: s.owner || '', haspass: !!s.haspass, fp: s.fp || '', phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: s.trial_end || meta.trialEnds || null, legacyExp: null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
+      return { kind: 'shop', id: s.id, acct: s.acct, owner: s.owner || '', wa: s.wa || '', haspass: !!s.haspass, fp: s.fp || '', phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: s.trial_end || meta.trialEnds || null, legacyExp: null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
     });
     // same phone/browser fingerprint behind several accounts = probably the same person repeating the free trial
     const fpN = {}; for (const s of shops) if (s.fp) fpN[s.fp] = (fpN[s.fp] || 0) + 1;
@@ -510,11 +513,11 @@ async function admin(env, request, b) {
       await env.DB.prepare('INSERT INTO ksr_codes (code, plan, days, price, note, created, status, kind, acct, owner) VALUES (?, ?, ?, ?, ?, ?, \'new\', \'code\', ?, ?)').bind(code, plan || ('d' + days), days, price, note || null, t, acct, owner).run();
       out.push(code);
     }
-    return json({ codes: out, acct, owner, shop: sh.name || '', phone: sh.phone });
+    return json({ codes: out, acct, owner, shop: sh.name || '', phone: sh.phone, wa: sh.wa || '' });
   }
   if (b === 'acct' && m === 'GET') {
     const url = new URL(request.url); const n = parseInt(url.searchParams.get('n'), 10);
-    const sh = n ? await env.DB.prepare('SELECT acct, owner, name, phone FROM ksr_shops WHERE acct = ?').bind(n).first() : null;
+    const sh = n ? await env.DB.prepare('SELECT acct, owner, name, phone, wa FROM ksr_shops WHERE acct = ?').bind(n).first() : null;
     return sh ? json({ shop: sh }) : err('رقم الحساب مش موجود', 404);
   }
   if (b === 'move' && m === 'POST') { // the owner moves a shop to a new device (old one stops selling)
@@ -539,7 +542,9 @@ async function admin(env, request, b) {
       const owner = clean(q.owner, 60), name = clean(q.name, 80), phone = q.phone ? phoneOf(q.phone) : sh.phone;
       if (phone.length < 9) return err('رقم الجوال مش صحيح');
       if (phone !== sh.phone && (await env.DB.prepare('SELECT 1 FROM ksr_shops WHERE phone = ? AND id <> ?').bind(phone, sh.id).first())) return err('هذا الرقم عليه حساب ثاني');
-      await env.DB.prepare('UPDATE ksr_shops SET owner = ?, name = ?, phone = ? WHERE id = ?').bind(owner || sh.owner, name || sh.name, phone, sh.id).run();
+      const wa = q.wa === '' ? '' : (waOf(q.wa) || sh.wa || '');
+      if (q.wa && !waOf(q.wa)) return err('رقم الواتساب مش صحيح. مثال: 970599123456');
+      await env.DB.prepare('UPDATE ksr_shops SET owner = ?, name = ?, phone = ?, wa = ? WHERE id = ?').bind(owner || sh.owner, name || sh.name, phone, wa || null, sh.id).run();
       return json({ ok: true });
     }
     if (b === 'trial') {
