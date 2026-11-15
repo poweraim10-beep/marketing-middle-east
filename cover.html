@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>
+@font-face{font-family:RX;font-weight:700;src:url(fonts/ReadexPro-bold.ttf)}
+@font-face{font-family:RX;font-weight:600;src:url(fonts/ReadexPro-SemiBold.ttf)}
+@font-face{font-family:PX;font-weight:600;src:url(fonts/IBMPlexSansArabic-SemiBold.ttf)}
+*{margin:0;box-sizing:border-box}html,body{width:1640px;height:624px;overflow:hidden;background:#040b16}
+#st{position:relative;width:1640px;height:624px;overflow:hidden}
+.abs{position:absolute}
+#bg{inset:0;background:radial-gradient(900px 620px at 34% 55%,#18407a 0%,#0B1F3A 45%,#040b16 100%)}
+#rays{inset:-30%;background:conic-gradient(from 200deg at 33% 40%,transparent 0deg,rgba(240,216,152,.08) 12deg,transparent 26deg,rgba(240,216,152,.06) 40deg,transparent 60deg,rgba(240,216,152,.07) 75deg,transparent 95deg);mix-blend-mode:screen;transform:rotate(8deg)}
+#halo{width:760px;height:760px;left:150px;top:-80px;border-radius:50%;background:radial-gradient(circle,rgba(214,175,90,.32),rgba(214,175,90,0) 62%)}
+.bk{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,226,150,.5),rgba(255,226,150,0) 70%)}
+#gl{left:0;top:0;width:1640px;height:624px}
+.prop{position:absolute}.prop img{width:100%;display:block;filter:drop-shadow(0 22px 30px rgba(0,0,0,.55))}
+.gold{background:linear-gradient(180deg,#FFF1C6 0%,#F0CF7A 38%,#C7962F 70%,#8E6519 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 rgba(90,60,10,.35))}
+#txt{right:285px;top:105px;width:720px;text-align:right;font-family:RX;color:#fff}
+#txt .t{font-weight:700;font-size:84px;line-height:1.1;white-space:nowrap}
+#txt .s{font-family:PX;font-weight:600;font-size:34px;color:#E3E8F1;margin-top:14px}
+#txt .c{display:inline-flex;margin-top:22px;padding:12px 26px;border-radius:999px;border:2px solid #F0CF7A;background:linear-gradient(180deg,rgba(240,207,122,.28),rgba(240,207,122,.08));font-weight:600;font-size:28px;color:#fff}
+#vig{inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 60%,rgba(0,0,0,.45) 100%)}
+</style></head><body><div id="st">
+<div class="abs" id="bg"></div><div class="abs" id="rays"></div><div class="abs" id="halo"></div><div id="bks"></div>
+<canvas class="abs" id="gl" width="1640" height="624"></canvas>
+<div class="prop" style="left:640px;top:345px;width:185px;transform:perspective(900px) rotateY(-18deg) rotateZ(-8deg)"><img src="a/barcode.png"></div>
+<div class="prop" style="left:330px;top:60px;width:130px;transform:rotate(-10deg)"><img src="a/coins.png"></div>
+<div class="prop" style="left:630px;top:95px;width:165px;transform:perspective(900px) rotateY(-16deg)"><img src="a/chart.png"></div>
+<div id="txt" class="abs"><img src="a/logo1.png" style="width:104px;margin-bottom:4px;filter:drop-shadow(0 10px 20px rgba(0,0,0,.5))"><div class="t gold">كاشيرك الذكي</div><div class="s">محلّك كلّه صار بجوالك</div><div class="c">جرّبه 5 أيام مجانًا</div></div>
+<div class="abs" id="vig"></div></div>
+<script type="module">
+import * as THREE from './lib/three.module.js';
+import {RoundedBoxGeometry} from './lib/RoundedBoxGeometry.js';
+import {RoomEnvironment} from './lib/RoomEnvironment.js';
+const $=id=>document.getElementById(id); const W=1640,H=624;
+(()=>{let h='';const R=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)};for(let i=0;i<22;i++){const s=16+R(i)*70;h+=`<div class="bk" style="width:${s}px;height:${s}px;left:${R(i+9)*1640}px;top:${R(i+50)*624}px;opacity:${.12+.3*R(i+3)}"></div>`}$('bks').innerHTML=h})();
+// ---------- THREE ----------
+const renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(W,H,false);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();
+const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;
+const cam=new THREE.PerspectiveCamera(26,W/H,.1,100);
+scene.add(new THREE.AmbientLight(0xffffff,.25));
+const key=new THREE.DirectionalLight(0xfff1d6,2.2);key.position.set(3,4,5);scene.add(key);
+const rim=new THREE.DirectionalLight(0xf0c46a,3.0);rim.position.set(-4,2,-3);scene.add(rim);
+const tab=new THREE.Group();scene.add(tab);
+const SW=1.36,SH=1.935,BW=1.50,BH=2.08,BD=.075;
+const gold=new THREE.MeshPhysicalMaterial({color:0xd9b25a,metalness:1,roughness:.22,clearcoat:.6});
+const navy=new THREE.MeshPhysicalMaterial({color:0x18284a,metalness:.85,roughness:.32,clearcoat:1,clearcoatRoughness:.12});
+const body=new THREE.Mesh(new RoundedBoxGeometry(BW,BH,BD,8,.11),navy);tab.add(body);
+const rimG=new THREE.Mesh(new RoundedBoxGeometry(BW+.016,BH+.016,BD*.5,8,.118),gold);tab.add(rimG);
+const front=new THREE.Mesh(new THREE.PlaneGeometry(BW-.035,BH-.035),new THREE.MeshPhysicalMaterial({color:0x020306,roughness:.04,metalness:0,clearcoat:1,clearcoatRoughness:.02}));
+front.position.z=BD/2+.0006;tab.add(front);
+// rounded front corners via alpha map
+function roundAlpha(w,h,r){const c=document.createElement('canvas');c.width=512;c.height=Math.round(512*h/w);const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.fillStyle='#fff';const rr=r/w*512;g.beginPath();g.roundRect(0,0,c.width,c.height,rr);g.fill();return new THREE.CanvasTexture(c)}
+front.material.alphaMap=roundAlpha(BW,BH,.1);front.material.transparent=true;
+const loader=new THREE.TextureLoader();
+const SHOTS=['home','sell','pay','done','debts','rep','staff','face_ok','face_bad'];const TEX={};
+const scrA=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),new THREE.MeshBasicMaterial({toneMapped:false,transparent:true,alphaMap:roundAlpha(SW,SH,.05)}));
+const scrB=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),new THREE.MeshBasicMaterial({toneMapped:false,transparent:true,alphaMap:roundAlpha(SW,SH,.05)}));
+scrA.position.z=BD/2+.0012;scrB.position.z=BD/2+.0016;tab.add(scrA,scrB);
+// glass reflection + sweep
+const glass=new THREE.Mesh(new THREE.PlaneGeometry(BW-.035,BH-.035),new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:.03,transparent:true,opacity:.10,clearcoat:1,envMapIntensity:2.2}));
+glass.position.z=BD/2+.0022;tab.add(glass);
+const swC=document.createElement('canvas');swC.width=512;swC.height=64;{const g=swC.getContext('2d');const gr=g.createLinearGradient(0,0,512,0);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.42,'rgba(255,255,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.55)');gr.addColorStop(.58,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,512,64)}
+const swT=new THREE.CanvasTexture(swC);swT.wrapS=THREE.ClampToEdgeWrapping;
+const sweep=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),new THREE.MeshBasicMaterial({map:swT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,alphaMap:roundAlpha(SW,SH,.05)}));
+sweep.position.z=BD/2+.0026;tab.add(sweep);
+// back logo + camera bump
+const back_=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62),new THREE.MeshPhysicalMaterial({transparent:true,metalness:.6,roughness:.25}));back_.rotation.y=Math.PI;back_.position.z=-BD/2-.002;tab.add(back_);
+const camBump=new THREE.Mesh(new RoundedBoxGeometry(.2,.2,.02,4,.05),new THREE.MeshPhysicalMaterial({color:0x0b1222,metalness:.6,roughness:.2,clearcoat:1}));camBump.position.set(.55,.83,-BD/2-.01);tab.add(camBump);
+
+
+
+const ready=Promise.all([new Promise(r=>loader.load('a/logo1.png',tx=>{tx.colorSpace=THREE.SRGBColorSpace;back_.material.map=tx;back_.material.needsUpdate=true;r()})),new Promise(r=>loader.load('tab/home.jpg',tx=>{tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=8;TEX.home=tx;r()})),document.fonts.ready,...[...document.images].map(i=>i.decode().catch(()=>{}))]);
+window.draw=async()=>{await ready; scrA.material.map=TEX.home;scrA.material.needsUpdate=true;scrB.material.opacity=0;sweep.material.opacity=0;
+  tab.position.set(-1.0,0,0);tab.rotation.set(-.06,.42,.03);cam.position.set(0,0,6.3);cam.lookAt(0,0,0);renderer.render(scene,cam);return true};
+window.coverReady=true;
+</script></body></html>
