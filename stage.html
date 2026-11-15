@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:RX;font-weight:600;src:url(fonts/ReadexPro-SemiBold.ttf)}
+@font-face{font-family:RX;font-weight:700;src:url(fonts/ReadexPro-bold.ttf)}
+@font-face{font-family:PX;font-weight:500;src:url(fonts/IBMPlexSansArabic-Medium.ttf)}
+@font-face{font-family:PX;font-weight:600;src:url(fonts/IBMPlexSansArabic-SemiBold.ttf)}
+@font-face{font-family:PX;font-weight:700;src:url(fonts/IBMPlexSansArabic-Bold.ttf)}
+*{box-sizing:border-box;margin:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:#040b16}
+#st{position:relative;width:1920px;height:1080px;overflow:hidden;font-family:PX;color:#F7F1E1}
+.abs{position:absolute}
+#bg{inset:0;background:radial-gradient(1300px 950px at 32% 52%,#163a6b 0%,#0B1F3A 42%,#040b16 100%)}
+#rays{inset:-20%;background:conic-gradient(from 200deg at 30% 40%,transparent 0deg,rgba(240,216,152,.07) 12deg,transparent 26deg,rgba(240,216,152,.05) 40deg,transparent 60deg,rgba(240,216,152,.06) 75deg,transparent 95deg);mix-blend-mode:screen}
+#halo{width:1150px;height:1150px;left:-40px;top:-35px;border-radius:50%;background:radial-gradient(circle,rgba(214,175,90,.30),rgba(214,175,90,0) 62%)}
+#floor{left:150px;top:930px;width:780px;height:120px;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.6),rgba(0,0,0,0))}
+.bk{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,226,150,.55),rgba(255,226,150,0) 70%)}
+#clip{inset:0;width:1920px;height:1080px;object-fit:cover;opacity:0}
+#clipShade{inset:0;background:linear-gradient(270deg,rgba(4,11,22,.88) 0%,rgba(4,11,22,.55) 38%,rgba(4,11,22,0) 62%);opacity:0}
+#gl{left:0;top:0;width:1920px;height:1080px}
+.L{position:absolute;opacity:0;will-change:transform,opacity}
+.h1{font-family:RX;font-weight:700;font-size:92px;line-height:1.14;color:#fff;letter-spacing:-.5px;text-shadow:0 6px 30px rgba(0,0,0,.35)}
+.h2{font-family:RX;font-weight:700;font-size:72px;line-height:1.18;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.35)}
+.gold{background:linear-gradient(180deg,#FFF1C6 0%,#F0CF7A 38%,#C7962F 70%,#8E6519 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 rgba(90,60,10,.35))}
+.sub{font-family:PX;font-weight:600;font-size:44px;line-height:1.4;color:#DCE3EE}
+.txt{right:110px;width:780px;text-align:right}
+.chip{display:inline-flex;align-items:center;gap:14px;padding:15px 28px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.04));border:2px solid rgba(240,216,152,.5);font-family:RX;font-weight:600;font-size:35px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 10px 30px rgba(0,0,0,.25)}
+.chip .d{width:18px;height:18px;border-radius:50%;box-shadow:0 0 12px currentColor}
+.prop{position:absolute;opacity:0;will-change:transform,opacity}
+.prop img{display:block;width:100%;filter:drop-shadow(0 30px 40px rgba(0,0,0,.55))}
+.prop .gl{position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.0) 42%,rgba(255,255,255,.85) 50%,rgba(255,255,255,0) 58%,transparent 65%);background-size:300% 100%;mix-blend-mode:screen;pointer-events:none}
+.badge{border-radius:50%;display:grid;place-items:center;font-family:RX;font-weight:700;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.4),inset 0 2px 0 rgba(255,255,255,.35)}
+#brandmark{top:52px;right:66px;display:flex;align-items:center;gap:16px;font-family:RX;font-weight:700;font-size:36px}
+#brandmark img{width:70px;height:70px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+#grain{inset:0;opacity:.06;mix-blend-mode:overlay;pointer-events:none}
+#vig{inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);pointer-events:none}
+#flash{inset:0;background:radial-gradient(circle at 50% 50%,#fff6dc,#f0cf7a 40%,rgba(240,207,122,0) 80%);opacity:0;pointer-events:none;mix-blend-mode:screen}
+#rflash{inset:0;box-shadow:inset 0 0 280px rgba(229,72,77,.95);opacity:0;pointer-events:none}
+#lb1,#lb2{left:0;width:1920px;height:0;background:#000}#lb1{top:0}#lb2{bottom:0}
+.wa{background:linear-gradient(180deg,#E7FBD8,#CDEFB8);color:#0d1b0d;border-radius:28px 28px 6px 28px;padding:22px 30px;box-shadow:0 26px 60px rgba(0,0,0,.45),inset 0 1px 0 #fff;font:600 28px/1.5 PX}
+</style></head><body>
+<div id="st">
+  <div class="abs" id="bg"></div><div class="abs" id="rays"></div><div class="abs" id="halo"></div><div class="abs" id="floor"></div><div id="bks"></div>
+  <img class="abs" id="clip">
+  <div class="abs" id="clipShade"></div>
+  <canvas class="abs" id="gl" width="1920" height="1080"></canvas>
+
+  <!-- props -->
+  <div class="prop" id="p_logo" style="left:760px;top:150px;width:400px"><img src="a/logo1.png"><div class="gl"></div></div>
+  <div class="prop" id="p_barcode" style="left:690px;top:520px;width:380px"><img src="a/barcode.png"><div class="gl"></div></div>
+  <div class="prop" id="p_card" style="left:780px;top:250px;width:360px"><img src="a/card.png"><div class="gl"></div></div>
+  <div class="prop" id="p_receipt" style="left:700px;top:520px;width:300px"><img src="a/receipt.png"><div class="gl"></div></div>
+  <div class="prop" id="p_ledger" style="left:740px;top:170px;width:330px"><img src="a/ledger.png"><div class="gl"></div></div>
+  <div class="prop" id="p_coins" style="left:760px;top:560px;width:300px"><img src="a/coins.png"><div class="gl"></div></div>
+  <div class="prop" id="p_chart" style="left:740px;top:540px;width:380px"><img src="a/chart.png"><div class="gl"></div></div>
+  <div class="prop" id="p_shield" style="left:760px;top:200px;width:360px"><img src="a/shield.png"><div class="gl"></div></div>
+  <div class="prop" id="p_gift" style="left:200px;top:470px;width:520px"><img src="a/gift.png"><div class="gl"></div></div>
+  <div class="prop" id="p_logoEnd" style="left:1230px;top:120px;width:300px"><img src="a/logo1.png"><div class="gl"></div></div>
+
+  <!-- S0 hook text -->
+  <div class="L txt h1" id="s0a" style="top:240px">لسّا بْتِحْسِب<br><span class="gold">بالدفتر والآلة الحاسبة؟</span></div>
+  <div class="L txt h2" id="s0b" style="top:560px">ومش عارف آخر الشهر<br><span class="gold">قدّيش ربحت؟</span></div>
+  <!-- S1 brand -->
+  <div class="L h1" id="s1t" style="left:0;width:1920px;text-align:center;top:575px;font-size:140px"><span class="gold">كاشيرك الذكي</span></div>
+  <div class="L sub" id="s1s" style="left:0;width:1920px;text-align:center;top:780px;font-size:56px;color:#fff">محلّك كلّه صار <span class="gold" style="font-family:RX;font-weight:700">بجوالك</span></div>
+  <!-- S2 -->
+  <div class="L txt h1" id="s2a" style="top:230px">امسح <span class="gold">الباركود</span><br>بالكاميرا</div>
+  <div class="L txt sub" id="s2b" style="top:500px">والسلّة بتتعبّى لحالها</div>
+  <div class="L" id="s2p1" style="left:640px;top:330px"><div class="badge" style="background:linear-gradient(180deg,#43d17f,#1f9a55);width:104px;height:104px;font-size:44px;direction:ltr">+1</div></div>
+  <div class="L" id="s2p2" style="left:640px;top:330px"><div class="badge" style="background:linear-gradient(180deg,#43d17f,#1f9a55);width:104px;height:104px;font-size:44px;direction:ltr">+1</div></div>
+  <div class="L" id="s2p3" style="left:640px;top:330px"><div class="badge" style="background:linear-gradient(180deg,#43d17f,#1f9a55);width:104px;height:104px;font-size:44px;direction:ltr">+1</div></div>
+  <!-- S3 -->
+  <div class="L txt h2" id="s3a" style="top:170px">كاش، دين،<br>أو <span class="gold">تحويل بنكي</span></div>
+  <div class="L" id="s3c" style="right:110px;top:410px;display:flex;flex-wrap:wrap;gap:18px;width:780px">
+    <span class="chip" id="c1"><span class="d" style="background:#F0D898;color:#F0D898"></span>كاش</span><span class="chip" id="c2"><span class="d" style="background:#E5484D;color:#E5484D"></span>دين</span><span class="chip" id="c3"><span class="d" style="background:#16a35f;color:#16a35f"></span>بنك فلسطين</span><span class="chip" id="c4"><span class="d" style="background:#1E88E5;color:#1E88E5"></span>PalPay</span><span class="chip" id="c5"><span class="d" style="background:#c0392b;color:#c0392b"></span>جوال باي</span></div>
+  <div class="L sub" id="s3b" style="right:110px;width:780px;top:690px;text-align:right">وصورة <span class="gold" style="font-family:RX;font-weight:700">إشعار التحويل</span><br>محفوظة مع الفاتورة</div>
+  <!-- S4 -->
+  <div class="L txt h2" id="s4a" style="top:190px">الدين بينزل لحاله<br>بـ<span class="gold">دفتر الديون</span></div>
+  <div class="L txt sub" id="s4b" style="top:450px">والفاتورة بتوصل للزبون<br>عالواتساب</div>
+  <div class="L" id="s4w" style="right:110px;top:640px;width:520px"><div class="wa"><b style="font-family:RX">سوبر ماركت الأمل</b><br>فاتورة رقم 1061 · أبو محمد<br>سكر 1 كغ × 1 = 5.00 ₪<br><b>رصيدك علينا: 5.00 ₪</b><div style="text-align:left;font-size:20px;color:#4d7a4d">10:34 م ✓✓</div></div></div>
+  <!-- S5 -->
+  <div class="L txt h2" id="s5a" style="top:170px">تقارير <span class="gold">يومية<br>وأسبوعية وشهرية</span></div>
+  <div class="L txt sub" id="s5b" style="top:430px">بربح كل صنف، وملف PDF<br>بضغطة وحدة</div>
+  <div class="L" id="s5n" style="right:110px;top:640px;font-family:RX;font-weight:700;font-size:34px;color:#fff;text-align:right">صافي الربح<br><span class="gold" id="s5num" style="font-size:96px;line-height:1.1">0.00</span><span class="gold" style="font-size:60px"> ₪</span></div>
+  <!-- S6 -->
+  <div class="L txt h2" id="s6a" style="top:190px">بصمة العمال<br><span class="gold">بالوجه أو بالإصبع</span></div>
+  <div class="L txt sub" id="s6b" style="top:480px">واللي مش هو…<br><b style="color:#FF6B6F;font-family:RX">ما بتنسجّل إله بصمة</b></div>
+  <div class="L" id="s6ok" style="left:840px;top:610px"><div class="badge" style="background:linear-gradient(180deg,#43d17f,#1f9a55);width:140px;height:140px;font-size:76px">✓</div></div>
+  <div class="L" id="s6x" style="left:840px;top:610px"><div class="badge" style="background:linear-gradient(180deg,#ff6b6f,#c9252b);width:140px;height:140px;font-size:76px">✕</div></div>
+  <!-- S7 -->
+  <div class="L txt h1" id="s7a" style="top:330px">وكلّه بيشتغل<br><span class="gold">حتى بدون نت</span></div>
+  <!-- S8 -->
+  <div class="L txt h1" id="s8a" style="top:300px;font-size:104px">جرّبه <span class="gold">5 أيام</span><br>مجانًا</div>
+  <div class="L txt h1" id="s8t" style="top:450px;font-size:110px"><span class="gold">كاشيرك الذكي</span></div>
+  <div class="L txt sub" id="s8s" style="top:610px;font-family:RX;font-weight:600;font-size:52px">محلّك بين إيديك</div>
+  <div class="L" id="s8u" style="right:110px;top:770px"><span class="chip" style="font-size:38px;direction:ltr;border-color:#F0D898;background:linear-gradient(180deg,rgba(240,207,122,.28),rgba(240,207,122,.08))">marketingmiddleeast.com/kashirak</span></div>
+
+  <div class="L" id="brandmark"><img src="a/logo1.png"><span class="gold">كاشيرك الذكي</span></div>
+  <canvas class="abs" id="grain" width="480" height="270" style="width:1920px;height:1080px"></canvas>
+  <div class="abs" id="vig"></div><div class="abs" id="rflash"></div><div class="abs" id="flash"></div>
+  <div class="abs" id="lb1"></div><div class="abs" id="lb2"></div>
+</div>
+<script type="module">
+import * as THREE from './lib/three.module.js';
+import {RoundedBoxGeometry} from './lib/RoundedBoxGeometry.js';
+import {RoomEnvironment} from './lib/RoomEnvironment.js';
+const $=id=>document.getElementById(id);
+window.SC=window.SC||[0,4.45,7.98,11.18,16.62,21.3,27.1,31.75,33.95,40.2];
+const CLIPS=window.CLIPS||{A:{n:121,fps:24,dir:'clips/A'},B:{n:121,fps:24,dir:'clips/B'}};
+const cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), lerp=(a,b,k)=>a+(b-a)*k;
+const eo=x=>1-Math.pow(1-cl(x),3), eio=x=>{x=cl(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const back=x=>{x=cl(x);const c=1.6;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+const P=(t,a,d)=>cl((t-a)/d);
+const io=(t,a,b,din=.55,dout=.35)=>Math.min(eo(P(t,a,din)),1-eio(P(t,b-dout,dout)));
+function set(id,o,tx=0,ty=0,s=1,r=0,ex=''){const e=$(id);e.style.opacity=o;e.style.transform=`translate(${tx}px,${ty}px) scale(${s}) rotate(${r}deg) ${ex}`}
+// shine masks
+document.querySelectorAll('.prop').forEach(p=>{const u=p.querySelector('img').getAttribute('src');const g=p.querySelector('.gl');g.style.webkitMaskImage=`url(${u})`;g.style.maskImage=`url(${u})`});
+function prop(id,o,tx,ty,s,ry,rz,shine){const e=$(id);e.style.opacity=o;e.style.transform=`perspective(1400px) translate(${tx}px,${ty}px) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${s})`;e.querySelector('.gl').style.backgroundPosition=`${100-200*shine}% 0`}
+// bokeh
+(()=>{let h='';for(let i=0;i<26;i++)h+=`<div class="bk" id="b${i}"></div>`;$('bks').innerHTML=h})();
+const R=i=>{const x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)};
+// grain
+const gctx=$('grain').getContext('2d'),gimg=gctx.createImageData(480,270);
+function grain(f){let s=(f*9301+49297)%233280;for(let i=0;i<gimg.data.length;i+=4){s=(s*9301+49297)%233280;const v=s/233280*255;gimg.data[i]=gimg.data[i+1]=gimg.data[i+2]=v;gimg.data[i+3]=255}gctx.putImageData(gimg,0,0)}
+
+// ---------- THREE ----------
+const renderer=new THREE.WebGLRenderer({canvas:$('gl'),antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(1);renderer.setSize(1920,1080,false);
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene();
+const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;
+const cam=new THREE.PerspectiveCamera(30,1920/1080,.1,100);
+scene.add(new THREE.AmbientLight(0xffffff,.25));
+const key=new THREE.DirectionalLight(0xfff1d6,2.2);key.position.set(3,4,5);scene.add(key);
+const rim=new THREE.DirectionalLight(0xf0c46a,3.0);rim.position.set(-4,2,-3);scene.add(rim);
+const tab=new THREE.Group();scene.add(tab);
+const SW=1.36,SH=1.935,BW=1.50,BH=2.08,BD=.075;
+const gold=new THREE.MeshPhysicalMaterial({color:0xd9b25a,metalness:1,roughness:.22,clearcoat:.6});
+const navy=new THREE.MeshPhysicalMaterial({color:0x18284a,metalness:.85,roughness:.32,clearcoat:1,clearcoatRoughness:.12});
+const body=new THREE.Mesh(new RoundedBoxGeometry(BW,BH,BD,8,.11),navy);tab.add(body);
+const rimG=new THREE.Mesh(new RoundedBoxGeometry(BW+.016,BH+.016,BD*.5,8,.118),gold);tab.add(rimG);
+const front=new THREE.Mesh(new THREE.PlaneGeometry(BW-.035,BH-.035),new THREE.MeshPhysicalMaterial({color:0x020306,roughness:.04,metalness:0,clearcoat:1,clearcoatRoughness:.02}));
+front.position.z=BD/2+.0006;tab.add(front);
+// rounded front corners via alpha map
+function roundAlpha(w,h,r){const c=document.createElement('canvas');c.width=512;c.height=Math.round(512*h/w);const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);g.fillStyle='#fff';const rr=r/w*512;g.beginPath();g.roundRect(0,0,c.width,c.height,rr);g.fill();return new THREE.CanvasTexture(c)}
+front.material.alphaMap=roundAlpha(BW,BH,.1);front.material.transparent=true;
+const loader=new THREE.TextureLoader();
+const SHOTS=['home','sell','pay','done','debts','rep','staff','face_ok','face_bad'];const TEX={};
+const scrA=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),new THREE.MeshBasicMaterial({toneMapped:false,transparent:true,alphaMap:roundAlpha(SW,SH,.05)}));
+const scrB=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),new THREE.MeshBasicMaterial({toneMapped:false,transparent:true,alphaMap:roundAlpha(SW,SH,.05)}));
+scrA.position.z=BD/2+.0012;scrB.position.z=BD/2+.0016;tab.add(scrA,scrB);
+// glass reflection + sweep
+const glass=new THREE.Mesh(new THREE.PlaneGeometry(BW-.035,BH-.035),new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:.03,transparent:true,opacity:.10,clearcoat:1,envMapIntensity:2.2}));
+glass.position.z=BD/2+.0022;tab.add(glass);
+const swC=document.createElement('canvas');swC.width=512;swC.height=64;{const g=swC.getContext('2d');const gr=g.createLinearGradient(0,0,512,0);gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.42,'rgba(255,255,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.55)');gr.addColorStop(.58,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,512,64)}
+const swT=new THREE.CanvasTexture(swC);swT.wrapS=THREE.ClampToEdgeWrapping;
+const sweep=new THREE.Mesh(new THREE.PlaneGeometry(SW,SH),new THREE.MeshBasicMaterial({map:swT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false,alphaMap:roundAlpha(SW,SH,.05)}));
+sweep.position.z=BD/2+.0026;tab.add(sweep);
+// back logo + camera bump
+const back_=new THREE.Mesh(new THREE.PlaneGeometry(.62,.62),new THREE.MeshPhysicalMaterial({transparent:true,metalness:.6,roughness:.25}));back_.rotation.y=Math.PI;back_.position.z=-BD/2-.002;tab.add(back_);
+const camBump=new THREE.Mesh(new RoundedBoxGeometry(.2,.2,.02,4,.05),new THREE.MeshPhysicalMaterial({color:0x0b1222,metalness:.6,roughness:.2,clearcoat:1}));camBump.position.set(.55,.83,-BD/2-.01);tab.add(camBump);
+const ready=Promise.all([...SHOTS.map(k=>new Promise(r=>loader.load(`tab/${k}.jpg`,tx=>{tx.colorSpace=THREE.SRGBColorSpace;tx.anisotropy=8;TEX[k]=tx;r()}))),
+  new Promise(r=>loader.load('a/logo1.png',tx=>{tx.colorSpace=THREE.SRGBColorSpace;back_.material.map=tx;back_.material.needsUpdate=true;r()})),document.fonts.ready]);
+window.ready=ready;
+
+function screenAt(t){const S=window.SC,s=i=>S[i];
+  // returns [texA, texB, mixB]
+  const f=(a,b,at,d=.35)=>[a,b,eio(P(t,at,d))];
+  if(t<s(2)||t>=window.SC[8]) return ['home','home',0];
+  if(t<s(3)) return ['sell','sell',0];
+  if(t<s(4)) return f('pay','done',s(3)+4.4);
+  if(t<s(5)) return ['debts','debts',0];
+  if(t<s(6)) return ['rep','rep',0];
+  if(t<s(7)){ if(t<s(6)+2.3) return f('staff','face_ok',s(6)+1.0); return f('face_ok','face_bad',s(6)+2.3)}
+  return ['home','home',0]}
+// tablet pose per time: [x,y,z,rx,ry,rz,scale]
+const POSES=[
+ // [time, x, y, z, rx, ry, rz]
+];
+function pose(t){const S=window.SC,s=i=>S[i];
+  // base: left third
+  let x=-1.0,y=0,z=0,rx=-.04,ry=.28,rz=0;
+  const ent=eo(P(t,s(1)+2.75,.85)); // fly in
+  y+= -3.2*(1-ent); rx+= .9*(1-ent); ry+= -.9*(1-ent); z+= -1.5*(1-ent);
+  // per scene settle + whip transitions
+  const sc=[2,3,4,5,6,7].map(i=>s(i));
+  const yaws=[.30,.18,.34,.22,.30,.20], pitch=[-.05,-.02,-.06,-.03,-.04,-.02];
+  let k=0;for(let i=0;i<sc.length;i++) if(t>=sc[i]-.3) k=i;
+  const tk=P(t,sc[k]-.3,.6), prevY=yaws[Math.max(0,k-1)], prevP=pitch[Math.max(0,k-1)];
+  const whip=k>0?Math.sin(Math.PI*tk)*.22:0;
+  ry=lerp(prevY,yaws[k],eio(tk))+whip+ (ry-.28); rx=lerp(prevP,pitch[k],eio(tk))+(rx+.04);
+  // gentle float
+  y+=Math.sin(t*1.1)*.025; rz+=Math.sin(t*.8)*.012;
+  // S5 reports: slide left a touch
+  const m5=eio(P(t,s(5),.6))*(1-eio(P(t,s(6)-.4,.5))); x+=-.12*m5;
+  // S7 offline: spin 360 to show back logo then return
+  const sp=eio(P(t,s(7)+.35,1.3)); ry+=sp*Math.PI*2;
+  // S7 end: push into camera (transition to clip B)
+  const push=eio(P(t,s(8)-.55,.55)); z+=2.6*push; x+=1.0*push; ry-=ry*push; rx-=rx*push;
+  let hide=t>=s(8)?1:0;
+  // end card: tablet returns
+  if(t>=s(8)+2.2){const u=eo(P(t,s(8)+2.2,.9)); hide=0; x=-1.0; y=-2.6*(1-u)+Math.sin(t*1.1)*.025; z=-.55-.8*(1-u); rx=-.04+.6*(1-u); ry=.30-.8*(1-u)+.05*Math.sin(t*.7); rz=0}
+  return {x,y,z,rx,ry,rz,hide}}
+function camPose(t){const S=window.SC,s=i=>S[i];let cx=0,cy=0,cz=4.75,lx=0;
+  cz+= -.25*Math.sin(Math.PI*cl((t-s(2))/(s(8)-s(2))));
+  cx+=Math.sin(t*.35)*.06; cy+=Math.cos(t*.3)*.04;
+  return {cx,cy,cz}}
+
+window.render=async function(t,frame=0){
+  await ready;
+  const S=window.SC,s=i=>S[i],e=i=>S[i+1];
+  // ----- background
+  $('rays').style.transform=`rotate(${t*2}deg)`;
+  for(let i=0;i<26;i++){const sz=20+R(i)*90, sp=.2+R(i+7)*.5; let y=(R(i+50)*1250 - t*sp*40)%1250; if(y<0)y+=1250; const x=R(i+9)*1920+Math.sin(t*.5+i)*25; const b=$('b'+i); b.style.width=b.style.height=sz+'px'; b.style.transform=`translate(${x}px,${y-90}px)`; b.style.opacity=(.10+.25*R(i+3))*(.6+.4*Math.sin(t*1.3+i))}
+  $('halo').style.transform=`scale(${1+.05*Math.sin(t*1.4)})`;
+  // ----- clips
+  let clipO=0,clipSrc=null,clipScale=1,shade=0,clipF='';
+  if(t<s(1)){const fr=Math.min(CLIPS.A.n-1,Math.floor((t+.15)*CLIPS.A.fps)); clipSrc=`${CLIPS.A.dir}/f${String(fr+1).padStart(4,'0')}.jpg`; clipO=1; clipScale=1.04+.05*P(t,0,4.45)+.35*eio(P(t,4.0,.45)); shade=io(t,.0,4.2,.3,.4); clipF=`saturate(1.05) contrast(1.06) brightness(${1+1.2*eio(P(t,4.05,.4))}) blur(${6*eio(P(t,4.05,.4))}px)`}
+  else if(t>=s(8)&&t<s(8)+2.35){const u=t-s(8);const fr=Math.min(CLIPS.B.n-1,Math.floor((u+1.2)*CLIPS.B.fps)); clipSrc=`${CLIPS.B.dir}/f${String(fr+1).padStart(4,'0')}.jpg`; clipO=Math.min(1,1-eio(P(t,s(8)+2.0,.35))); clipScale=1.08-.05*P(u,0,2.3); shade=clipO; clipF=`saturate(1.08) contrast(1.05) brightness(${1+.9*(1-eo(P(u,0,.35)))})`}
+  const ci=$('clip'); ci.style.opacity=clipO; ci.style.transform=`scale(${clipScale})`; ci.style.filter=clipF; $('clipShade').style.opacity=shade;
+  if(clipSrc&&ci.getAttribute('src')!==clipSrc){ci.src=clipSrc; try{await ci.decode()}catch(err){}}
+  // letterbox in clips
+  const lb=t<s(1)?62*(1-eio(P(t,4.1,.35))):(t>=s(8)&&t<s(8)+2.35?62*(1-eio(P(t,s(8)+2.0,.35))):0);
+  $('lb1').style.height=$('lb2').style.height=lb+'px';
+  // ----- tablet
+  const p=pose(t), c=camPose(t);
+  tab.visible=t>=s(1)+2.7&&!p.hide;
+  if(t>=s(8)+2.2){scrA.material.map=null}
+  tab.position.set(p.x,p.y,p.z);tab.rotation.set(p.rx,p.ry,p.rz);
+  cam.position.set(c.cx,c.cy,c.cz);cam.lookAt(c.cx*.5,0,0);
+  const [ka,kb,mb]=screenAt(t); scrA.material.map=TEX[ka]; scrB.material.map=TEX[kb]; scrA.material.needsUpdate=scrB.material.needsUpdate=true; scrB.material.opacity=mb; scrA.material.opacity=1;
+  // offline dim on screen
+  const off=io(t,s(7)+.1,e(7)-.6,.3,.3); scrA.material.color.setScalar(1-.55*off); scrB.material.color.setScalar(1-.55*off);
+  // sweep: crosses at scene starts
+  let sw=-1;for(const at of [s(1)+3.4,s(2)+.2,s(3)+.2,s(4)+.2,s(5)+.2,s(6)+.2,s(8)+3.2]){const u=P(t,at,.9); if(u>0&&u<1) sw=u}
+  swT.offset.x=sw<0?2:(.9-1.8*sw); sweep.material.opacity=sw<0?0:1;
+  rim.intensity=3+1.5*Math.sin(t*.9);
+  renderer.render(scene,cam);
+  $('floor').style.opacity=tab.visible?(t>=s(8)?.9*eo(P(t,s(8)+2.6,.6)):.9*eo(P(t,s(1)+3,.6))*(1-eio(P(t,s(8)-.5,.4)))):0;
+  // ----- brand mark
+  set('brandmark',Math.min(eo(P(t,s(2)-.2,.5)),1-eio(P(t,s(8)-.4,.3))));
+  // ----- S0 hook text
+  {const a=s(0),b=e(0);
+   set('s0a',Math.min(eo(P(t,a+.05,.45)),1-eio(P(t,a+2.15,.3))),40*(1-eo(P(t,a+.05,.6))),0);
+   set('s0b',io(t,a+2.3,b-.1,.5,.3),40*(1-eo(P(t,a+2.3,.6))),0);}
+  // ----- S1 brand reveal
+  {const a=s(1);
+   const lg=P(t,a,.9); prop('p_logo',io(t,a,a+2.85,.45,.4),0,60*(1-eo(lg)),.6+.4*back(lg),-25*(1-eo(lg))+8*Math.sin((t-a)*1.4),0,P(t,a+.5,1.1));
+   set('s1t',io(t,a+.25,a+2.85,.5,.35),0,0,.88+.12*back(P(t,a+.25,.6)));
+   set('s1s',io(t,a+1.45,a+2.9,.5,.35),0,26*(1-eo(P(t,a+1.45,.5))));}
+  // ----- S2 barcode
+  {const a=s(2),b=e(2);
+   set('s2a',io(t,a+.15,b),0,30*(1-eo(P(t,a+.15,.6))));
+   set('s2b',io(t,a+.9,b),0,30*(1-eo(P(t,a+.9,.6))));
+   const bp=P(t,a+.1,.7); prop('p_barcode',io(t,a+.1,b,.5,.3),60*(1-eo(bp)),40*Math.sin((t-a)*1.6),.9+.1*back(bp),-18+6*Math.sin(t),-6,P(t,a+1.0,1.2));
+   [1.0,1.9,2.6].forEach((d,i)=>{const q=P(t,a+d,.9); set('s2p'+(i+1),(q>0&&q<1)?Math.min(1,(1-q)*2.4):0,30*i,-110*eo(q),back(P(t,a+d,.3)))});}
+  // ----- S3 pay
+  {const a=s(3),b=e(3);
+   set('s3a',io(t,a+.15,b),0,30*(1-eo(P(t,a+.15,.6))));
+   set('s3c',io(t,a+.4,b));
+   for(let i=1;i<=5;i++){const q=P(t,a+.5+i*.2,.45),el=$('c'+i);el.style.opacity=eo(q);el.style.transform=`translateY(${30*(1-eo(q))}px) scale(${.8+.2*back(q)})`;const on=i===3&&t>a+1.8;el.style.borderColor=on?'#F0D898':'';el.style.background=on?'linear-gradient(180deg,rgba(240,207,122,.35),rgba(240,207,122,.12))':''}
+   set('s3b',io(t,a+3.1,b),0,30*(1-eo(P(t,a+3.1,.6))));
+   const rp=P(t,a+3.2,.8); prop('p_card',io(t,a+3.2,b,.45,.3),120*(1-eo(rp)),-40+40*eo(rp)+12*Math.sin(t*1.5),.85+.15*back(rp),-20+5*Math.sin(t),4,P(t,a+3.7,1));
+   prop('p_receipt',io(t,a+1.2,b,.5,.3),-30+20*Math.sin(t*.8),30*Math.sin(t*1.2),1,-15,-8+4*Math.sin(t),P(t,a+1.6,1.2));}
+  // ----- S4 debts
+  {const a=s(4),b=e(4);
+   set('s4a',io(t,a+.15,b),0,30*(1-eo(P(t,a+.15,.6))));
+   set('s4b',io(t,a+2.3,b),0,30*(1-eo(P(t,a+2.3,.6))));
+   set('s4w',io(t,a+2.6,b),0,80*(1-eo(P(t,a+2.6,.6))),.9+.1*back(P(t,a+2.6,.6)));
+   const lp=P(t,a+.7,.7); prop('p_ledger',io(t,a+.7,b,.45,.3),80*(1-eo(lp)),15*Math.sin(t*1.3),.85+.15*back(lp),-22+6*Math.sin(t*.9),6,P(t,a+1.2,1.1));
+   const cp=P(t,a+1.1,.7); prop('p_coins',io(t,a+1.1,b,.45,.3),0,-60*(1-eo(cp))+12*Math.sin(t*1.6),.8+.2*back(cp),-10,0,P(t,a+1.6,1.1));}
+  // ----- S5 reports
+  {const a=s(5),b=e(5);
+   set('s5a',io(t,a+.15,b),0,30*(1-eo(P(t,a+.15,.6))));
+   set('s5b',io(t,a+2.5,b),0,30*(1-eo(P(t,a+2.5,.6))));
+   set('s5n',io(t,a+1.0,b),0,30*(1-eo(P(t,a+1.0,.6))));
+   $('s5num').textContent=(631.10*eo(P(t,a+1.0,2.2))).toFixed(2);
+   const hp=P(t,a+.8,.8); prop('p_chart',io(t,a+.8,b,.45,.3),40*(1-eo(hp)),10*Math.sin(t*1.2),.8+.2*back(hp),-16+5*Math.sin(t*.8),0,P(t,a+1.4,1.2));}
+  // ----- S6 attendance
+  {const a=s(6),b=e(6);
+   set('s6a',io(t,a+.15,b),0,30*(1-eo(P(t,a+.15,.6))));
+   set('s6b',io(t,a+2.4,b),0,30*(1-eo(P(t,a+2.4,.6))));
+   const shp=P(t,a+.3,.7); prop('p_shield',io(t,a+.3,b,.45,.3),70*(1-eo(shp)),12*Math.sin(t*1.4),.85+.15*back(shp),-22+6*Math.sin(t),0,P(t,a+.8,1.1));
+   set('s6ok',io(t,a+1.2,a+2.35,.35,.3),0,0,back(P(t,a+1.2,.4)));
+   const xp=P(t,a+2.6,.4); set('s6x',io(t,a+2.6,b,.3,.3),Math.sin(xp*Math.PI*6)*14*(1-xp),0,back(xp));
+   $('rflash').style.opacity=(t>a+2.55&&t<a+3.55)?.8*(1-P(t,a+2.55,1)):0;}
+  // ----- S7 offline
+  {const a=s(7),b=e(7); set('s7a',io(t,a+.15,b-.45,.5,.3),0,30*(1-eo(P(t,a+.15,.6))));}
+  // ----- S8 CTA
+  {const a=s(8),b=e(8);
+   set('s8a',io(t,a+.15,a+2.3,.5,.35),0,30*(1-eo(P(t,a+.15,.6))),.94+.06*back(P(t,a+.15,.6)));
+   const gp=P(t,a+.35,.7); prop('p_gift',io(t,a+.35,a+2.3,.45,.35),0,40*(1-eo(gp))+10*Math.sin(t*1.5),.8+.2*back(gp),10+4*Math.sin(t),0,P(t,a+.9,1.1));
+   const e2=a+2.2;
+   const lp=P(t,e2,.8); prop('p_logoEnd',io(t,e2,b+1,.5),0,40*(1-eo(lp)),.7+.3*back(lp),-18*(1-eo(lp))+6*Math.sin((t-e2)*1.2),0,P(t,e2+.6,1.2));
+   set('s8t',io(t,e2+.2,b+1,.55),0,30*(1-eo(P(t,e2+.2,.6))));
+   set('s8s',io(t,e2+1.1,b+1,.55),0,30*(1-eo(P(t,e2+1.1,.6))));
+   set('s8u',io(t,e2+.7,b+1,.55),0,30*(1-eo(P(t,e2+.7,.6))));
+   // end tablet centered-left: show 3D tablet again with home
+  }
+  // flash transitions
+  let fl=0; for(const at of [s(1),s(8)]){const u=P(t,at-.12,.6); if(u>0&&u<1) fl=Math.max(fl,Math.sin(Math.PI*u))}
+  $('flash').style.opacity=fl*.9;
+  grain(frame);
+  $('st').style.filter=`brightness(${Math.min(eo(P(t,0,.35)),1-eio(P(t,e(8)-.6,.6)))})`;
+  return true};
+window.cues=function(){const S=window.SC,s=i=>S[i],c=[];
+  c.push(['pop',s(0)+.1],['scratch',s(0)+1.3],['whoosh',s(0)+2.25],['pop',s(0)+2.4],['rise',s(0)+2.9]);
+  c.push(['impact',s(1)],['shimmer',s(1)+.3],['pop',s(1)+1.45],['whoosh',s(1)+2.75],['shimmer',s(1)+3.3]);
+  c.push(['whoosh',s(2)+.1],['beep',s(2)+1.0],['beep',s(2)+1.9],['beep',s(2)+2.6]);
+  c.push(['whoosh',s(3)-.1]); for(let i=1;i<=5;i++)c.push(['tick',s(3)+.5+i*.2]); c.push(['swipe',s(3)+1.2],['swipe',s(3)+3.2],['ding',s(3)+3.7]);
+  c.push(['whoosh',s(4)-.1],['pop',s(4)+.7],['coin',s(4)+1.15],['msg',s(4)+2.6]);
+  c.push(['whoosh',s(5)-.1],['rise',s(5)+.9],['ding',s(5)+3.2]);
+  c.push(['whoosh',s(6)-.1],['shutter',s(6)+.85],['ding',s(6)+1.2],['shutter',s(6)+2.15],['buzz',s(6)+2.6]);
+  c.push(['whoosh',s(7)-.1],['swoosh360',s(7)+.35],['whoosh',s(8)-.5]);
+  c.push(['impact',s(8)],['pop',s(8)+.35],['shimmer',s(8)+.9],['impact',s(8)+2.2],['shimmer',s(8)+2.5],['tick',s(8)+2.9],['ding',s(8)+3.3]);
+  return c};
+window.stageReady=true;
+</script></body></html>
