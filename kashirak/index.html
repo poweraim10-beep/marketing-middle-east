@@ -46,7 +46,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg)}
 header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F7F1E1;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid #C8A24A;padding-top:max(12px,env(safe-area-inset-top))}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand svg{width:38px;height:38px;flex:none}
+.brand svg,.brand .lg3d{width:40px;height:40px;flex:none;border-radius:10px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))}
 header h1{font-family:var(--display);font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
 header h1 b{color:#E6C878;font-weight:700}
 header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -130,7 +130,7 @@ video{width:100%;border-radius:12px;background:#000;max-height:260px;object-fit:
 .withbtn label{flex:1}
 .setup{min-height:100%;display:flex;flex-direction:column;gap:16px;padding:24px 18px;max-width:520px;margin:0 auto}
 .hero{background:linear-gradient(150deg,#16325A,#0B1F3A);color:#F7F1E1;border-radius:22px;padding:26px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;border-bottom:3px solid #C8A24A}
-.hero svg{width:84px;height:84px}
+.hero svg,.hero .lg3d{width:104px;height:104px;border-radius:24px;filter:drop-shadow(0 10px 22px rgba(0,0,0,.45))}
 .hero h1{font-family:var(--display);margin:0;font-size:26px}
 .hero h1 b{color:#E6C878}
 .hero p{margin:0;opacity:.85;font-size:14px}
@@ -363,7 +363,7 @@ const dayNum=t=>Math.floor((t-LIC_EPOCH)/DAY);
 const dayTs=d=>LIC_EPOCH+d*DAY;
 const fday=t=>new Date(t).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'});
 
-const LOGO=(id)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="bg${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#16325A"/><stop offset="1" stop-color="#0B1F3A"/></linearGradient><linearGradient id="gd${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EAD08A"/><stop offset="1" stop-color="#C39A3E"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#bg${id})"/><path d="M168 112h176a20 20 0 0 1 20 20v264l-32-24-32 24-32-24-32 24-32-24-32 24-32-24V132a20 20 0 0 1 20-20z" fill="url(#gd${id})"/><path d="M204 196h104M204 252h104M204 308h60" stroke="#0B1F3A" stroke-width="24" stroke-linecap="round"/><path d="M388 72l12 26 26 12-26 12-12 26-12-26-26-12 26-12z" fill="#EAD08A"/></svg>`;
+const LOGO=(id)=>`<img class="lg3d" src="icons/logo-3d-256.png" alt="" width="256" height="256" decoding="async">`;
 function devInfo(){
   let d=null; try{d=JSON.parse(localStorage.getItem(DEVKEY)||'null')}catch(e){}
   if(!d||!d.id){const r=new Uint8Array(4); (window.crypto||{getRandomValues:a=>a.map(()=>Math.random()*256|0)}).getRandomValues(r);
