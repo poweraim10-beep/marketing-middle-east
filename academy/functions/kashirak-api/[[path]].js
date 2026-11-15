@@ -67,6 +67,9 @@ async function ensure(env) {
     'ALTER TABLE ksr_codes ADD COLUMN acct INTEGER', 'ALTER TABLE ksr_codes ADD COLUMN owner TEXT',
     'CREATE UNIQUE INDEX IF NOT EXISTS ksr_shops_acct ON ksr_shops (acct)',
     'CREATE TABLE IF NOT EXISTS ksr_join (ip TEXT NOT NULL, t INTEGER NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS ksr_hist (shop TEXT NOT NULL, ver INTEGER NOT NULL, t INTEGER NOT NULL, size INTEGER NOT NULL, meta TEXT, why TEXT, PRIMARY KEY (shop, ver))',
+    'CREATE TABLE IF NOT EXISTS ksr_hist_chunks (shop TEXT NOT NULL, ver INTEGER NOT NULL, i INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, ver, i))',
+    'ALTER TABLE ksr_shops ADD COLUMN restored INTEGER',
   ]) { try { await env.DB.prepare(q).run(); } catch {} }
   ready = true;
 }
@@ -117,7 +120,7 @@ async function readShop(env, req) {
   if (!shop || shop.salt !== p.v) return null;
   return shop;
 }
-const pubShop = (s) => ({ id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
+const pubShop = (s) => ({ restored: s.restored || 0, id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
 async function seen(env, shop, device, label) {
   if (!device) return;
   let d = {}; try { d = JSON.parse(shop.devices || '{}'); } catch {}
@@ -126,6 +129,24 @@ async function seen(env, shop, device, label) {
   const keys = Object.keys(d).sort((a, b) => d[b].last - d[a].last).slice(0, 12);
   const out = {}; for (const k of keys) out[k] = d[k];
   await env.DB.prepare('UPDATE ksr_shops SET devices = ? WHERE id = ?').bind(JSON.stringify(out), shop.id).run();
+}
+// ---------- version history: every shop keeps its recent cloud copies, so nothing can be lost by one bad upload ----------
+const HIST_KEEP = 20, HIST_EVERY = 6 * 3600e3;
+function snapStmts(env, shop, why, prune = true) { // copy the CURRENT cloud copy into history (same batch as the overwrite = atomic)
+  return [
+    env.DB.prepare('INSERT OR REPLACE INTO ksr_hist (shop, ver, t, size, meta, why) VALUES (?, ?, ?, ?, ?, ?)').bind(shop.id, shop.version, shop.updated || nowMs(), shop.size || 0, shop.meta || '{}', why),
+    env.DB.prepare('DELETE FROM ksr_hist_chunks WHERE shop = ? AND ver = ?').bind(shop.id, shop.version),
+    env.DB.prepare('INSERT INTO ksr_hist_chunks (shop, ver, i, data) SELECT shop, ?, i, data FROM ksr_chunks WHERE shop = ?').bind(shop.version, shop.id),
+  ].concat(prune ? [
+    env.DB.prepare('DELETE FROM ksr_hist WHERE shop = ? AND ver NOT IN (SELECT ver FROM ksr_hist WHERE shop = ? ORDER BY ver DESC LIMIT ?)').bind(shop.id, shop.id, HIST_KEEP),
+    env.DB.prepare('DELETE FROM ksr_hist_chunks WHERE shop = ? AND ver NOT IN (SELECT ver FROM ksr_hist WHERE shop = ?)').bind(shop.id, shop.id),
+  ] : []);
+}
+async function needSnap(env, shop, newSize) {
+  if (!shop.version || !shop.size) return null;
+  if (newSize < shop.size * 0.6) return 'shrink'; // a much smaller upload than before: always keep the previous copy
+  const r = await env.DB.prepare('SELECT MAX(t) AS t FROM ksr_hist WHERE shop = ?').bind(shop.id).first();
+  return !r || !r.t || nowMs() - r.t > HIST_EVERY ? 'auto' : null;
 }
 async function readState(env, id) {
   const r = await env.DB.prepare('SELECT data FROM ksr_chunks WHERE shop = ? ORDER BY i').bind(id).all();
@@ -343,14 +364,20 @@ export async function onRequest({ request, env, params }) {
       if (Number(q.base) !== shop.version) return err('في نسخة أحدث على الحساب', 409, { code: 'stale', shop: pubShop(shop) });
       const data = String(q.data || '');
       if (!data || data.length > MAX_STATE) return err('حجم البيانات غير مقبول', 413);
+      if (!/^(g:|p:\{)/.test(data) || data.length < 40) return err('نسخة البيانات ناقصة أو تالفة، ما انحفظت', 422);
       const meta = JSON.stringify(q.meta && typeof q.meta === 'object' ? q.meta : {}).slice(0, 4000);
       const t = nowMs();
       const upd = await env.DB.prepare('UPDATE ksr_shops SET version = version + 1, updated = ?, size = ?, meta = ?, name = COALESCE(?, name) WHERE id = ? AND version = ? AND main = ?')
         .bind(t, data.length, meta, q.name ? clean(q.name, 80) : null, shop.id, shop.version, dev).run();
       if (!upd.meta || !upd.meta.changes) return err('في نسخة أحدث على الحساب', 409, { code: 'stale' });
-      const stmts = [env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(shop.id)];
+      const why = await needSnap(env, shop, data.length);
+      const stmts = [...(why ? snapStmts(env, shop, why) : []), env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(shop.id)];
       for (let i = 0, k = 0; i < data.length; i += CHUNK, k++) stmts.push(env.DB.prepare('INSERT INTO ksr_chunks (shop, i, data) VALUES (?, ?, ?)').bind(shop.id, k, data.slice(i, i + CHUNK)));
-      await env.DB.batch(stmts);
+      try { await env.DB.batch(stmts); }
+      catch (e) { // the write failed as a whole: put the version back so the device simply retries, the old copy is untouched
+        await env.DB.prepare('UPDATE ksr_shops SET version = ?, updated = ?, size = ?, meta = ? WHERE id = ? AND version = ?').bind(shop.version, shop.updated, shop.size, shop.meta, shop.id, shop.version + 1).run();
+        throw e;
+      }
       await seen(env, shop, dev);
       return json({ version: shop.version + 1, updated: t });
     }
@@ -497,11 +524,36 @@ async function admin(env, request, b) {
       await env.DB.batch([
         env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(sh.id),
         env.DB.prepare('DELETE FROM ksr_blobs WHERE shop = ?').bind(sh.id),
+        env.DB.prepare('DELETE FROM ksr_hist WHERE shop = ?').bind(sh.id),
+        env.DB.prepare('DELETE FROM ksr_hist_chunks WHERE shop = ?').bind(sh.id),
         env.DB.prepare('DELETE FROM ksr_lic WHERE id = ?').bind('shop:' + sh.id),
         env.DB.prepare('DELETE FROM ksr_shops WHERE id = ?').bind(sh.id),
       ]);
       return json({ ok: true });
     }
+  }
+  if (b === 'history' && m === 'GET') {
+    const id = clean(new URL(request.url).searchParams.get('id'), 40);
+    const sh = await env.DB.prepare('SELECT id, version, updated, size, meta FROM ksr_shops WHERE id = ?').bind(id).first();
+    if (!sh) return err('الحساب مش موجود', 404);
+    const r = await env.DB.prepare('SELECT ver, t, size, meta, why FROM ksr_hist WHERE shop = ? ORDER BY ver DESC').bind(id).all();
+    return json({ current: sh, list: r.results || [] });
+  }
+  if (b === 'restore' && m === 'POST') { // bring a shop back to an earlier cloud copy (the current one is kept in history too)
+    const sh = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(clean(q.id, 40)).first();
+    const ver = parseInt(q.ver, 10);
+    const h = sh && await env.DB.prepare('SELECT * FROM ksr_hist WHERE shop = ? AND ver = ?').bind(sh.id, ver).first();
+    if (!sh || !h) return err('النسخة مش موجودة', 404);
+    const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM ksr_hist_chunks WHERE shop = ? AND ver = ?').bind(sh.id, ver).first();
+    if (!n || !n.n) return err('النسخة فاضية', 422);
+    const nv = sh.version + 1, t = nowMs();
+    await env.DB.batch([
+      ...snapStmts(env, sh, 'before-restore', false),
+      env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(sh.id),
+      env.DB.prepare('INSERT INTO ksr_chunks (shop, i, data) SELECT shop, i, data FROM ksr_hist_chunks WHERE shop = ? AND ver = ?').bind(sh.id, ver),
+      env.DB.prepare('UPDATE ksr_shops SET version = ?, updated = ?, size = ?, meta = ?, restored = ? WHERE id = ? AND version = ?').bind(nv, t, h.size, h.meta, nv, sh.id, sh.version),
+    ]);
+    return json({ ok: true, version: nv });
   }
   if (b === 'void' && m === 'POST') {
     const code = normCode(q.code);

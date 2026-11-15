@@ -605,13 +605,19 @@ function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashi
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
   o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
-function persist(){ const j=S?JSON.stringify(S):null; try{if(j)localStorage.setItem(KEY,j)}catch(e){}
-  clearTimeout(persist.t); persist.t=setTimeout(()=>idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}),400)}
+/* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
+   إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
+function persist(){ if(!S) return; S._t=Date.now(); const j=JSON.stringify(S);
+  try{localStorage.setItem(KEY,j)}catch(e){ try{localStorage.removeItem(KEY)}catch(_){} persist.big=true }
+  persist.j=j; clearTimeout(persist.t); persist.t=setTimeout(persist.flush,300)}
+persist.flush=()=>{ const j=persist.j; if(!j) return; persist.j=null; return idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}).catch(()=>{ persist.j=persist.j||j })};
+window.addEventListener('pagehide',()=>persist.flush&&persist.flush());
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&persist.flush) persist.flush() });
 function save(){ norm(S); if(isViewer()&&!viewerMayKeep()) return; if(!expMayKeep()) return; persist(); cloudOnSave()}
 async function restoreFromIdb(){ /* if the browser cleared localStorage, bring the shop back from IndexedDB */
   const [j,dv]=await Promise.all([idb('readonly',st=>st.get(KEY)),idb('readonly',st=>st.get(DEVKEY))]);
   try{if(dv&&!localStorage.getItem(DEVKEY))localStorage.setItem(DEVKEY,dv)}catch(e){}
-  if(!S&&j){try{const o=JSON.parse(j);if(o&&o.items){S=o;S.mode=S.mode||'owner';try{localStorage.setItem(KEY,j)}catch(e){}route()}}catch(e){}}
+  if(j){try{const o=JSON.parse(j); if(o&&o.items&&(!S||(o._t||0)>(S._t||0))){const keep=S?{mode:S.mode}:{}; S=norm(o); S.mode=keep.mode||S.mode||'owner'; try{localStorage.setItem(KEY,j)}catch(e){} route(); render()}}catch(e){}}
 }
 /* ===== حساب المحل على السحابة: نسخة تلقائية + أجهزة متابعة =====
    جهاز واحد «أساسي» بيبيع وبيرفع نسخة من المحل كل ما يتغيّر إشي. أي جهاز ثاني بيدخل بنفس الحساب
@@ -626,7 +632,7 @@ function clSave(){try{CL?localStorage.setItem(CKEY,JSON.stringify(CL)):localStor
 const linked=()=>!!(CL&&CL.token);
 const isMain=()=>linked()&&CL.main===devInfo().id;
 const isViewer=()=>linked()&&CL.main!==devInfo().id;
-const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan'];
+const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','_t'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
 function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
   if(!CLSNAP||stripLocal(S)===CLSNAP){persist();return false}
@@ -696,12 +702,18 @@ async function cloudPull(full){
     CL.name=sh.name; CL.mainLast=sh.updated; if(sh.id&&!CL.shopId){CL.shopId=sh.id; clSave()}
     if(was&&sh.main!==devInfo().id){CLS.busy=false; await cloudLostMain(sh); return}
     CL.main=sh.main; clSave();
-    if(r.data&&(!isMain()||full)){ applyRemote(await gunz(r.data),sh.version,sh.updated); if(!document.querySelector('#sheet.show')) render(); cloudPullBlobs() }
+    const restored=isMain()&&sh.restored&&sh.restored===sh.version&&sh.restored>(CL.rseen||0);
+    if(restored&&!r.data){ CLS.busy=false; CL.ver=-1; clSave(); return cloudPull(true) }
+    if(r.data&&(!isMain()||full||restored)){
+      if(restored&&S){ await idb('readwrite',st=>st.put(JSON.stringify(S),'unsynced-'+Date.now())); CL.rseen=sh.restored }
+      applyRemote(await gunz(r.data),sh.version,sh.updated); if(!document.querySelector('#sheet.open')) render(); cloudPullBlobs();
+      if(restored) toast('✓ رجعت بيانات المحل لنسخة سابقة من الإدارة') }
     CLS.state='ok'; CLS.err='';
   }catch(e){ if(e.status===401) cloudSignedOut(); else {CLS.state=e.status?'err':'off'; CLS.err=e.message} }
   finally{CLS.busy=false; setCloudUI()}
 }
 async function cloudLostMain(sh){
+  if(sh&&sh.main===devInfo().id){ const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id)); CLS.busy=false; CL.ver=-1; clSave(); await cloudPull(true); return }
   /* جهاز ثاني صار هو الأساسي: بنحفظ نسخة من بيانات هذا الجهاز قبل ما نستبدلها، عشان ما يضيع إشي */
   const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id));
   CL.lost=id; if(sh&&sh.main) CL.main=sh.main; clSave(); CLS.busy=false;
@@ -984,6 +996,7 @@ function smart(){
   S.staff.forEach(st=>{const lp=lastPunch(st.id); if(lp&&lp.type==='in'&&sod(lp.ts)<sod()) out.push({p:2,ic:'users',t:`${esc(st.name)} ما بصم خروج`,d:`آخر دخول ${new Date(lp.ts).toLocaleDateString('ar',{weekday:'long'})} ${hm(lp.ts)}`,act:'data-act="go" data-tab="staff"'})});
   { const dl=S.customers.filter(c=>balance(c)>0), dt=r2(dl.reduce((a,c)=>a+balance(c),0)); let seen=''; try{seen=localStorage.getItem('ksr-debtpdf')||''}catch(e){}
     if(isOwner()&&dl.length&&seen!==new Date().toDateString()) out.push({p:1,ic:'pdf',t:'📄 سجل ديون اليوم جاهز',d:`${dl.length} زبون عليهم ${money(dt)} · اضغط وابعته واتساب`,act:'data-act="debtPdf"'}) }
+  if(isMain()&&CLS.dirty&&CL.last&&now-CL.last>12*3600e3) out.push({p:0,ic:'gear',t:'⚠️ بيانات اليوم ما انرفعت للسحابة',d:'شغّل النت شوي عشان تنحفظ نسخة من شغلك',act:'data-act="cloudSheet"'});
   const pend=S.sales.filter(s=>s.confirmed===false).length; if(pend&&isOwner()) out.push({p:1,ic:'wallet',t:`${pend} تحويل بانتظار التأكيد`,d:'تأكد إنها وصلت حسابك',act:'data-act="openSub" data-s="cash"'});
   if(isOwner()&&!linked()&&S.items.length) out.push({p:1,ic:'gear',t:'احمِ بيانات محلك',d:'اعمل حساب للمحل وبتنحفظ نسخة تلقائية على السحابة',act:'data-act="cloudNew"'});
   if(isOwner()&&!linked()&&(!S.lastBackup||S.lastBackup<now-7*DAY)&&S.sales.length) out.push({p:3,ic:'gear',t:'نزّل نسخة احتياطية',d:S.lastBackup?`آخر نسخة من ${Math.floor((now-S.lastBackup)/DAY)} يوم`:'ما في نسخة لسا',act:'data-act="bkFile"'});
@@ -1991,6 +2004,10 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   if(!shop){toast('اكتب اسم المحل');return} if(!/^\d{4,8}$/.test(pin)){toast('الرمز السري لازم يكون 4 لـ8 أرقام');return}
   const btns=document.querySelectorAll('[data-act=setupGo]'); btns.forEach(b=>b.disabled=true); toast('جاري تسجيل المحل…');
   const r=await joinRun(false); btns.forEach(b=>b.disabled=false); if(!r) return;
+  if(r.shop.version>0){ /* المحل إله بيانات على السحابة: بنرجّعها بدل ما نبلّش من الصفر */
+    try{ toast('لقينا بيانات محلك على السحابة، جاري استرجاعها…'); const st=await api('/state?have=-1&device='+devInfo().id);
+      if(st.data){ applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); S.pin=S.pin||pin; await licApply(r.license); persist(); cloudPullBlobs(); tab='home'; render(); toast('✓ رجعت كل بيانات محلك · رقم حسابك '+r.shop.acct); return } }
+    catch(e){ CL=null; clSave(); toast('ما قدرنا نسترجع بيانات محلك. جرّب مرة ثانية وإنت متصل بالنت'); return } }
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
@@ -2108,7 +2125,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115202837'; let UPD=false;
+const BUILD='20261115204352'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}

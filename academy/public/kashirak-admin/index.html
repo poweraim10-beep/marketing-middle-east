@@ -270,6 +270,7 @@ function shopSheet(id,kind){
       <button class="btn" data-a="editSheet" data-id="${esc(s.id)}">✏️ تعديل البيانات</button>
       <button class="btn" data-a="trialSheet" data-id="${esc(s.id)}">⏳ تمديد التجربة</button>
       <button class="btn danger" data-a="delSheet" data-id="${esc(s.id)}">🗑 حذف الحساب</button></div>
+      <button class="btn block" data-a="histSheet" data-id="${esc(s.id)}">🕘 نسخ بيانات المحل (استرجاع)</button>
       <p style="font-size:12.5px;color:var(--muted)">كلمات السر محفوظة مشفّرة وما حدا بيقدر يشوفها، بس بتقدر تعطي الزبون كلمة سر جديدة إذا نسيها.</p></div>`:''}
   <h2>تمديد الاشتراك</h2>
   <div class="plans">${PLAN_ORDER.map(p=>`<button class="plan" data-a="pickExt" data-p="${p}" aria-pressed="${p==='m1'}">${PLAN_NAME[p]}<small>${P[p]} ₪</small></button>`).join('')}</div>
@@ -312,6 +313,17 @@ const A={
     try{const plan=$('#ncPlan').value, r=await call('codes',{plan,count:1,price:+$('#ncPrice').value||0,acct:$('#ncAcct').value.trim(),owner:$('#ncOwner').value.trim()});
       await load(); codesResult(r,plan)}catch(e){ if(e.message!=='login'){toast(e.message); b.disabled=false; b.textContent='إنشاء الكود'} }},
   copy(d){copy(d.v)},
+  async histSheet(d){ const s=shopById(d.id); open(`${head('نسخ بيانات '+esc(s.name))}<div class="spin"></div>`);
+    try{const r=await call('history?id='+encodeURIComponent(d.id)); const m=x=>{try{return JSON.parse(x||'{}')}catch(e){return {}}};
+      const W={auto:'نسخة تلقائية',shrink:'قبل تغيير كبير',['before-restore']:'قبل استرجاع'}, row=(x,cur)=>{const mm=m(x.meta);
+        return `<div class="li" style="cursor:default"><span class="grow"><span class="t">${cur?'⭐ النسخة الحالية':W[x.why]||'نسخة'} · ${new Date(x.t||x.updated||Date.now()).toLocaleString('ar-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</span><br>
+        <span class="s">${mm.sales!=null?`<span class="num">${mm.sales}</span> فاتورة · <span class="num">${mm.items}</span> صنف · `:''}<span class="num">${Math.round((x.size||0)/1024)}</span> KB</span></span>
+        ${cur?'':`<button class="btn sm" data-a="restore" data-id="${esc(d.id)}" data-v="${x.ver}">استرجاع</button>`}</div>`};
+      open(`${head('نسخ بيانات '+esc(s.name))}<p style="font-size:13.5px;color:var(--muted)">السيرفر بيحتفظ تلقائيًا بنسخة من بيانات المحل كل 6 ساعات، وقبل أي تغيير كبير، لآخر 20 نسخة. إذا صار خطأ عند الزبون، بترجّع بياناته لأي نسخة منهم.</p>
+        <div class="card"><div class="list">${row(r.current,true)}${r.list.map(x=>row(x,false)).join('')||'<div class="empty">لسا ما في نسخ سابقة. أول نسخة بتنحفظ بعد 6 ساعات من الاستعمال.</div>'}</div></div>`)
+    }catch(e){toast(e.message)}},
+  async restore(d){ if(!confirm('أكيد بدك ترجّع بيانات المحل لهاي النسخة؟ النسخة الحالية بتنحفظ كمان وبتقدر ترجعلها.')) return;
+    try{await call('restore',{id:d.id,ver:+d.v}); toast('✓ رجعت البيانات. بتوصل جهاز المحل أول ما يتصل بالنت'); A.histSheet({id:d.id})}catch(e){toast(e.message)}},
   passSheet(d){const s=shopById(d.id), pw=String(100000+Math.floor(Math.random()*900000));
     open(`${head('كلمة سر جديدة · '+esc(s.name))}<p style="font-size:14px">اكتب كلمة سر جديدة للزبون (6 أحرف أو أرقام على الأقل)، أو خلّي المقترحة.</p>
     <label>كلمة السر الجديدة<input id="npw" class="num" value="${pw}" dir="ltr" style="font-size:22px;letter-spacing:3px;text-align:center"></label>
@@ -364,7 +376,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261115202837'; let UPD=false;
+const BUILD='20261115204352'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);
