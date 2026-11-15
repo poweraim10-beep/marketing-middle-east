@@ -182,6 +182,11 @@ video{width:100%;border-radius:12px;background:#000;max-height:260px;object-fit:
 .okshot{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
 .okshot img{width:200px;height:200px;object-fit:cover;border-radius:50%;border:5px solid var(--good)}
 .okshot .big{font-family:var(--display);font-size:24px;font-weight:700}
+.cloudbtn{position:relative;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;border:1px solid rgba(240,207,122,.35);background:rgba(255,255,255,.06);color:#F0CF7A;cursor:pointer;margin-inline-start:auto}
+.cloudbtn i{position:absolute;bottom:6px;left:6px;width:9px;height:9px;border-radius:50%;background:#2FB36D;box-shadow:0 0 0 2px #0B1F3A}
+.cloudbtn[data-st=sync] i,.cloudbtn[data-st=wait] i{background:#F0CF7A;animation:fsp 1s linear infinite}.cloudbtn[data-st=off] i{background:#9aa3b2}.cloudbtn[data-st=err] i{background:#E5484D}.cloudbtn[data-st=view] i{background:#4aa3ff}
+#cloudBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 14px;background:#E8F1FD;color:#0B1F3A;font-size:13px;border-bottom:1px solid #cfe0f5}
+#cloudBar[hidden]{display:none!important}
 .tcard{display:flex;flex-direction:column;gap:10px;border:1.5px solid color-mix(in srgb,var(--gold) 55%,transparent);border-radius:18px;padding:12px;background:color-mix(in srgb,var(--gold) 6%,var(--surface))}
 .chips{display:flex;flex-wrap:wrap;gap:8px}.chip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:600;cursor:pointer;min-height:40px}
 .chip[aria-pressed=true]{color:var(--ink)!important;border-color:var(--gold)!important;background:color-mix(in srgb,var(--gold) 18%,var(--surface))!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent)}.chip .dot{width:12px;height:12px;border-radius:50%;flex:none}
@@ -225,8 +230,10 @@ main{padding-bottom:44px}
 <div class="app">
   <header>
     <div class="brand"><span id="hdrLogo"></span><div style="min-width:0"><h1>كاشيرك <b>الذكي</b></h1><div class="sub" id="today"></div></div></div>
+    <button class="cloudbtn" id="cloudBtn" data-act="cloudSheet" hidden aria-label="حساب المحل على السحابة"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/></svg><i></i></button>
     <button class="modebtn" id="modeBtn" data-act="mode"></button>
   </header>
+  <div id="cloudBar" hidden></div>
   <div id="live" hidden>
     <video id="liveVid" playsinline muted autoplay></video>
     <div class="aim" aria-hidden="true"><i></i></div>
@@ -373,7 +380,7 @@ function devInfo(){
   return d;
 }
 function status(){
-  const d=devInfo(), now=Math.max(Date.now(),d.seen||0), trialEnd=d.ts+TRIAL_DAYS*DAY, licEnd=S&&S.licExp!=null?dayTs(S.licExp+1):0;
+  const d=devInfo(), now=Math.max(Date.now(),d.seen||0), trialEnd=Math.min(d.ts,S&&S.trialTs||Infinity)+TRIAL_DAYS*DAY, licEnd=S&&S.licExp!=null?dayTs(S.licExp+1):0;
   const end=Math.max(trialEnd,licEnd), daysLeft=Math.ceil((end-now)/DAY);
   return {dev:d.id,active:now<end,paid:licEnd>trialEnd,daysLeft,end};
 }
@@ -429,13 +436,134 @@ function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashi
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
   o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; return o}
 function audit(what){ if(!S) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
-function save(){ norm(S); const j=S?JSON.stringify(S):null; try{if(j)localStorage.setItem(KEY,j)}catch(e){}
-  clearTimeout(save.t); save.t=setTimeout(()=>idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}),400)}
+function persist(){ const j=S?JSON.stringify(S):null; try{if(j)localStorage.setItem(KEY,j)}catch(e){}
+  clearTimeout(persist.t); persist.t=setTimeout(()=>idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}),400)}
+function save(){ norm(S); if(isViewer()&&!viewerMayKeep()) return; persist(); cloudOnSave()}
 async function restoreFromIdb(){ /* if the browser cleared localStorage, bring the shop back from IndexedDB */
   const [j,dv]=await Promise.all([idb('readonly',st=>st.get(KEY)),idb('readonly',st=>st.get(DEVKEY))]);
   try{if(dv&&!localStorage.getItem(DEVKEY))localStorage.setItem(DEVKEY,dv)}catch(e){}
   if(!S&&j){try{const o=JSON.parse(j);if(o&&o.items){S=o;S.mode=S.mode||'owner';try{localStorage.setItem(KEY,j)}catch(e){}route()}}catch(e){}}
 }
+/* ===== حساب المحل على السحابة: نسخة تلقائية + أجهزة متابعة =====
+   جهاز واحد «أساسي» بيبيع وبيرفع نسخة من المحل كل ما يتغيّر إشي. أي جهاز ثاني بيدخل بنفس الحساب
+   بيتابع المحل مباشرة (قراءة بس)، وبيقدر يصير هو الأساسي بكلمة السر. */
+const API=(()=>{try{return localStorage.getItem('kashirak-api')||'https://academy.marketingmiddleeast.com/kashirak-api'}catch(e){return 'https://academy.marketingmiddleeast.com/kashirak-api'}})();
+const CKEY='kashirak-cloud', UPKEY='kashirak-cloud-up';
+let CL=(()=>{try{return JSON.parse(localStorage.getItem(CKEY)||'null')}catch(e){return null}})();
+const CLS={busy:false,dirty:false,state:'idle',err:'',tick:0};
+let CLSNAP=null;
+function clSave(){try{CL?localStorage.setItem(CKEY,JSON.stringify(CL)):localStorage.removeItem(CKEY)}catch(e){}}
+const linked=()=>!!(CL&&CL.token);
+const isMain=()=>linked()&&CL.main===devInfo().id;
+const isViewer=()=>linked()&&CL.main!==devInfo().id;
+const LOCALF=['mode','liveCam','sound'];
+const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
+function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
+  if(!CLSNAP||stripLocal(S)===CLSNAP){persist();return false}
+  const keep={};LOCALF.forEach(k=>keep[k]=S[k]); S=norm(JSON.parse(CLSNAP)); Object.assign(S,keep); persist();
+  toast('هذا الجهاز للمتابعة بس. التعديل من الجهاز الأساسي'); setTimeout(render,0); return false}
+const devLabel=()=>{const u=navigator.userAgent;return /iPhone|iPad/.test(u)?'آيفون':/Android/.test(u)?(/Mobile/.test(u)?'جوال أندرويد':'تابلت أندرويد'):/Windows/.test(u)?'لابتوب ويندوز':/Mac/.test(u)?'ماك':'جهاز'};
+async function api(path,opt={}){
+  const h={'content-type':'application/json','x-device':devInfo().id}; if(CL&&CL.token) h.authorization='Bearer '+CL.token;
+  let r; try{r=await fetch(API+path,{method:opt.method||'GET',headers:h,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'})}
+  catch(e){const x=new Error('ما في اتصال بالنت');x.status=0;throw x}
+  let j={}; try{j=await r.json()}catch(e){}
+  if(!r.ok){const x=new Error(j.error||('خطأ '+r.status));x.status=r.status;x.code=j.code;x.shop=j.shop;throw x} return j}
+async function gz(str){ if(!window.CompressionStream) return 'p:'+str;
+  const buf=new Uint8Array(await new Response(new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  let bin='';for(let i=0;i<buf.length;i+=0x8000) bin+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000)); return 'g:'+btoa(bin)}
+async function gunz(s){ if(s.startsWith('p:')) return s.slice(2);
+  const bin=atob(s.slice(2)),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+  return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text()}
+const idbKeys=()=>idb('readonly',st=>st.getAllKeys()).then(r=>r||[]);
+const upGet=()=>{try{return JSON.parse(localStorage.getItem(UPKEY)||'{}')}catch(e){return {}}};
+const upSet=o=>{try{localStorage.setItem(UPKEY,JSON.stringify(o))}catch(e){}};
+function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length}}
+function cloudOnSave(){ if(!isMain()) return; CLS.dirty=true; clearTimeout(cloudOnSave.t); cloudOnSave.t=setTimeout(cloudPush,4000); setCloudUI()}
+async function cloudPush(){
+  if(!isMain()||!S) return; if(CLS.busy){CLS.dirty=true;return}
+  if(!navigator.onLine){CLS.state='off';setCloudUI();return}
+  CLS.busy=true; CLS.dirty=false; CLS.state='sync'; setCloudUI();
+  try{
+    const r=await api('/state',{method:'PUT',body:{device:devInfo().id,base:CL.ver||0,data:await gz(JSON.stringify(S)),name:S.shop,meta:cloudMeta()}});
+    CL.ver=r.version; CL.last=r.updated; clSave(); CLS.state='ok'; CLS.err='';
+    await cloudPushBlobs();
+  }catch(e){
+    if(e.status===409) await cloudLostMain(e.shop);
+    else if(e.status===401) cloudSignedOut();
+    else {CLS.state=navigator.onLine&&e.status?'err':'off'; CLS.err=e.message; CLS.dirty=true}
+  }finally{CLS.busy=false; setCloudUI(); if(CLS.dirty&&isMain()){clearTimeout(cloudOnSave.t);cloudOnSave.t=setTimeout(cloudPush,15000)}}
+}
+async function cloudPushBlobs(){
+  const up=upGet(); let n=0;
+  for(const k of await idbKeys()){
+    if(k===KEY||k===DEVKEY||up[k]||String(k).startsWith('unsynced')) continue;
+    const v=await idb('readonly',st=>st.get(k));
+    if(typeof v!=='string'||!v.startsWith('data:image/')){up[k]=1;continue}
+    try{await api('/blob/'+encodeURIComponent(k),{method:'PUT',body:{data:v}}); up[k]=1; if(++n%5===0) upSet(up)}
+    catch(e){ if(e.status===413){up[k]=1;continue} break }
+  }
+  upSet(up);
+}
+async function cloudPullBlobs(){
+  if(cloudPullBlobs.on) return; cloudPullBlobs.on=1;
+  try{ const {ids}=await api('/blobs'), have=new Set(await idbKeys()), up=upGet();
+    for(const id of ids){ up[id]=1; if(have.has(id)) continue;
+      try{const r=await api('/blob/'+encodeURIComponent(id)); await idb('readwrite',st=>st.put(r.data,id)); if(id[0]==='r') REFS[id]=r.data}catch(e){} }
+    upSet(up);
+  }catch(e){} cloudPullBlobs.on=0;
+}
+function applyRemote(txt,ver,updated){
+  const keep={}; if(S) LOCALF.forEach(k=>{if(S[k]!==undefined) keep[k]=S[k]});
+  S=norm(JSON.parse(txt)); Object.assign(S,keep); if(!S.mode) S.mode='owner';
+  CLSNAP=stripLocal(S); CL.ver=ver; CL.last=updated; clSave(); persist();
+}
+async function cloudPull(full){
+  if(!linked()||CLS.busy) return; if(!navigator.onLine){CLS.state='off';setCloudUI();return}
+  CLS.busy=true;
+  try{
+    const r=await api('/state?have='+(full?-1:(CL.ver||0))+'&device='+devInfo().id), sh=r.shop, was=isMain();
+    CL.name=sh.name; CL.mainLast=sh.updated;
+    if(was&&sh.main!==devInfo().id){CLS.busy=false; await cloudLostMain(sh); return}
+    CL.main=sh.main; clSave();
+    if(r.data&&(!isMain()||full)){ applyRemote(await gunz(r.data),sh.version,sh.updated); if(!document.querySelector('#sheet.show')) render(); cloudPullBlobs() }
+    CLS.state='ok'; CLS.err='';
+  }catch(e){ if(e.status===401) cloudSignedOut(); else {CLS.state=e.status?'err':'off'; CLS.err=e.message} }
+  finally{CLS.busy=false; setCloudUI()}
+}
+async function cloudLostMain(sh){
+  /* جهاز ثاني صار هو الأساسي: بنحفظ نسخة من بيانات هذا الجهاز قبل ما نستبدلها، عشان ما يضيع إشي */
+  const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id));
+  CL.lost=id; if(sh&&sh.main) CL.main=sh.main; clSave(); CLS.busy=false;
+  await cloudPull(true);
+  openSheet(`${sheetHead('هذا الجهاز صار للمتابعة')}<p style="margin:0">جهاز ثاني صار هو الجهاز الأساسي للمحل، فهذا الجهاز صار يعرض البيانات بس.</p>
+    <p class="muted" style="margin:0">إذا كان في بيع أو تعديل على هذا الجهاز ما انرفع قبل، حفظنا منه نسخة. بتقدر تنزّلها كملف.</p>
+    <button class="btn" data-act="cloudUnsynced">تنزيل نسخة هذا الجهاز</button><button class="btn primary" data-act="cloudTake">رجّع هذا الجهاز أساسي</button>`);
+}
+function cloudSignedOut(){CL=null;clSave();CLS.state='idle';setCloudUI();toast('انتهى الدخول لحساب المحل. ادخل من جديد من الإعدادات')}
+function setCloudUI(){
+  const b=$('#cloudBtn'), bar=$('#cloudBar'); if(!b) return;
+  if(!S||!linked()){b.hidden=true; if(bar) bar.hidden=true; return}
+  b.hidden=false; const st=isViewer()?'view':(CLS.dirty&&CLS.state!=='sync'?'wait':CLS.state);
+  b.dataset.st=st; b.title={ok:'محفوظ على السحابة',sync:'جاري الرفع…',wait:'بانتظار الرفع',off:'بدون نت: رح يرفع لما يرجع النت',err:'ما انرفع: '+CLS.err,view:'جهاز متابعة',idle:'السحابة'}[st]||'';
+  if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث من الجهاز الأساسي <span class="num">${CL.last?hm(CL.last):'—'}</span></span><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button>`}
+}
+function cloudCard(){
+  if(!linked()) return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>
+    <p class="muted" style="margin:0">بيانات المحل الآن على هذا الجهاز بس. اعمل حساب للمحل، وبتنحفظ نسخة تلقائية كل ما تبيع، وبترجع كلها لو ضاع الجوال. وبتقدر تتابع المحل من لابتوب أو جوال ثاني.</p>
+    <div class="grid2"><button class="btn accent" data-act="cloudNew">إنشاء حساب للمحل</button><button class="btn" data-act="cloudLogin">عندي حساب</button></div></div>`;
+  const st=CLS.state, main=isMain();
+  return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2><div class="list">
+    <div class="li"><span>الحساب</span><span class="num">${esc(CL.phone||'')}</span></div>
+    <div class="li"><span>هذا الجهاز</span><span class="pill ${main?'ok':'warn'}">${main?'الأساسي (بيبيع ويرفع)':'للمتابعة بس'}</span></div>
+    <div class="li"><span>آخر نسخة على السحابة</span><span>${CL.last?fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا'}</span></div>
+    <div class="li"><span>الحالة</span><span>${{ok:'✓ محفوظ',sync:'جاري الرفع…',off:'بدون نت، رح يرفع لما يرجع',err:'ما انرفع: '+esc(CLS.err)}[st]||'—'}</span></div></div>
+    <div class="grid2">${main?'<button class="btn primary" data-act="cloudNow">ارفع الآن</button>':'<button class="btn primary" data-act="cloudTake">خلّي هذا الجهاز أساسي</button>'}<button class="btn" data-act="cloudNow2">حدّث من السحابة</button></div>
+    <button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button></div>`}
+setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
+  if(isViewer()) cloudPull(); else if(CLS.tick%4===0) cloudPull(); if(isMain()&&CLS.dirty) cloudPush() },15000);
+window.addEventListener('online',()=>{ if(isMain()) cloudPush(); else if(linked()) cloudPull() });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()) cloudPull() });
 /* scanner beep: short square tone like a supermarket scanner */
 let AC=null;
 function beep(ok=true){ if(S&&S.sound===false) return;
@@ -676,7 +804,8 @@ function smart(){
   if(isOwner()&&S.sales.some(s=>s.ts>now-7*DAY)&&(!S.lastWeekly||S.lastWeekly<now-7*DAY)) out.push({p:2,ic:'pdf',t:'تقرير الأسبوع جاهز',d:'كل يوم وكل سلة بأصنافها وأرباحها',act:'data-act="pdfGo" data-sel="summary,items,daily,att" data-per="week"'});
   S.staff.forEach(st=>{const lp=lastPunch(st.id); if(lp&&lp.type==='in'&&sod(lp.ts)<sod()) out.push({p:2,ic:'users',t:`${esc(st.name)} ما بصم خروج`,d:`آخر دخول ${new Date(lp.ts).toLocaleDateString('ar',{weekday:'long'})} ${hm(lp.ts)}`,act:'data-act="go" data-tab="staff"'})});
   const pend=S.sales.filter(s=>s.confirmed===false).length; if(pend&&isOwner()) out.push({p:1,ic:'wallet',t:`${pend} تحويل بانتظار التأكيد`,d:'تأكد إنها وصلت حسابك',act:'data-act="openSub" data-s="cash"'});
-  if(isOwner()&&(!S.lastBackup||S.lastBackup<now-7*DAY)&&S.sales.length) out.push({p:3,ic:'gear',t:'نزّل نسخة احتياطية',d:S.lastBackup?`آخر نسخة من ${Math.floor((now-S.lastBackup)/DAY)} يوم`:'ما في نسخة لسا',act:'data-act="bkFile"'});
+  if(isOwner()&&!linked()&&S.items.length) out.push({p:1,ic:'gear',t:'احمِ بيانات محلك',d:'اعمل حساب للمحل وبتنحفظ نسخة تلقائية على السحابة',act:'data-act="cloudNew"'});
+  if(isOwner()&&!linked()&&(!S.lastBackup||S.lastBackup<now-7*DAY)&&S.sales.length) out.push({p:3,ic:'gear',t:'نزّل نسخة احتياطية',d:S.lastBackup?`آخر نسخة من ${Math.floor((now-S.lastBackup)/DAY)} يوم`:'ما في نسخة لسا',act:'data-act="bkFile"'});
   return out.sort((a,b)=>a.p-b.p).slice(0,6);
 }
 function alerts(){
@@ -931,7 +1060,7 @@ more(){
   if(sub==='lab'){const ok=S.items.filter(i=>eanValid(i.barcode));return back('ملصقات الباركود')+`
     <p class="muted" style="margin:0">${ok.length} صنف له باركود صالح. الطباعة على طابعة الملصقات تتفعّل في النسخة المستضافة.</p>
     ${ok.map(i=>`<div class="label"><b>${esc(i.name)}</b> · ${fx(i.price)} ₪<br>${eanSvg(i.barcode)}</div>`).join('')}`}
-  if(sub==='set') return back('الإعدادات')+`
+  if(sub==='set') return back('الإعدادات')+cloudCard()+`
     <div class="card"><h2>بيانات المحل</h2>
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <div class="grid2"><label for="stRate">سعر الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
@@ -1004,6 +1133,8 @@ function renderSetup(){
       <button class="btn accent block" data-act="setupGo">ابدأ بمحل فاضي</button>
       <button class="btn block" data-act="setupGo" data-demo="1">جرّب ببيانات أمثلة</button>
     </div>
+    <div class="card"><h2>عندك حساب للمحل؟</h2><p class="muted" style="margin:0">ادخل برقم الجوال وكلمة السر، وبترجع كل بيانات محلك على هذا الجهاز.</p>
+      <button class="btn primary block" data-act="cloudLogin">دخول واسترجاع المحل</button></div>
     <p class="muted" style="text-align:center;margin:0">تجربة مجانية ${TRIAL_DAYS} أيام · رقم الجهاز <span class="num">${devInfo().id}</span></p>
   </div>`;
 }
@@ -1012,7 +1143,7 @@ function render(){
   norm(S); if(tab==='staff') facePrewarm();
   $('.app>header').hidden=false; $('#nav').hidden=false; $('#hdrLogo').innerHTML=LOGO('h');
   $('#today').textContent=S.shop+' · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
-  $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير';
+  $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير'; setCloudUI();
   $('#view').innerHTML=V[tab]();
   $('#nav').innerHTML=TABS.map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&sub==='rep'))?'aria-current="page"':''}><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg></span>${v}</button>`).join('')
     +`<button class="fab" data-act="go" data-tab="sell" aria-label="بيع" ${tab==='sell'?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON.sell}</svg><span>بيع</span></button>`;
@@ -1489,6 +1620,56 @@ faceRej(){const t0=sod(), rs=(S.attRej||[]).slice().reverse(); Promise.all(rs.ma
     return `<div class="li"><span class="pair">${img?`<img src="${img}" alt="">`:''}<img src="${st?refImg(st):''}" alt=""></span><span style="flex:1"><span class="t">باسم ${esc(st?st.name:'—')} · <span style="color:var(--bad)">${W[r.why]||''}</span>${o?` (${esc(o.name)})`:''}</span><br><span class="muted">${r.ts>=t0?'اليوم':new Date(r.ts).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})} · <span class="num">${hm(r.ts)}</span></span></span></div>`}).join('')||'<div class="empty">ما في محاولات مرفوضة</div>'}</div>
   ${xs.length?'<button class="btn sm" data-act="faceRejClear">مسح السجل</button>':''}`)})},
 refRetry(){if(A._ref) A._ref()},
+cloudSheet(){openSheet(sheetHead('حساب المحل')+cloudCard().replace('<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>','<div style="display:flex;flex-direction:column;gap:12px">'))},
+cloudNew(){openSheet(`${sheetHead('إنشاء حساب للمحل')}<p class="muted" style="margin:0">رقم الجوال وكلمة السر هم مفتاح محلك. بيهم بترجع بياناتك على أي جهاز.</p>
+  <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" value="${esc(S.phone||'')}" placeholder="059xxxxxxx"></label>
+  <label for="clPass">كلمة السر (6 أحرف أو أرقام على الأقل)<input id="clPass" type="password" autocomplete="new-password"></label>
+  <label for="clPass2">أعد كلمة السر<input id="clPass2" type="password" autocomplete="new-password"></label>
+  <button class="btn accent block" data-act="cloudNewGo">إنشاء الحساب ورفع المحل</button>`)},
+async cloudNewGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, pw2=$('#clPass2').value;
+  if(pw!==pw2){toast('كلمتين السر مش متطابقات');return}
+  const btn=$('[data-act=cloudNewGo]'); btn.disabled=true; btn.textContent='جاري الإنشاء…';
+  try{const r=await api('/register',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}});
+    CL={token:r.token,phone:r.shop.phone,main:devInfo().id,ver:0,last:null}; clSave(); upSet({});
+    if(!S.trialTs) S.trialTs=devInfo().ts; if(!S.phone) S.phone=ph; audit('إنشاء حساب للمحل على السحابة'); persist();
+    closeSheet(); render(); toast('انعمل الحساب. جاري رفع بيانات المحل…'); await cloudPush(); render();
+    if(CLS.state==='ok') toast('✓ بيانات المحل محفوظة على السحابة');
+  }catch(e){toast(e.message); btn.disabled=false; btn.textContent='إنشاء الحساب ورفع المحل'}},
+cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
+  <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" placeholder="059xxxxxxx"></label>
+  <label for="clPass">كلمة السر<input id="clPass" type="password" autocomplete="current-password"></label>
+  <div class="seg" role="radiogroup" aria-label="شو دور هذا الجهاز؟" style="display:grid;gap:8px">
+    <label class="chk"><input type="radio" name="clRole" value="main" checked>هذا الجهاز للبيع (الجهاز الأساسي)</label>
+    <label class="chk"><input type="radio" name="clRole" value="view">للمتابعة بس (لابتوب أو جوال صاحب المحل)</label></div>
+  ${S?'<p class="muted" style="margin:0;color:var(--bad)">بيانات هذا الجهاز رح تنستبدل ببيانات الحساب.</p>':''}
+  <button class="btn primary block" data-act="cloudLoginGo">دخول</button>`)},
+async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'main';
+  const btn=$('[data-act=cloudLoginGo]'); btn.disabled=true; btn.textContent='جاري الدخول…';
+  try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel()}});
+    CL={token:r.token,phone:r.shop.phone,main:r.shop.main,ver:-1,last:r.shop.updated}; clSave(); upSet({});
+    if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; clSave()}
+    btn.textContent='جاري استرجاع المحل…';
+    const st=await api('/state?have=-1&device='+devInfo().id);
+    if(st.data){applyRemote(await gunz(st.data),st.shop.version,st.shop.updated)}
+    else if(S&&isMain()){CL.ver=0;clSave();await cloudPush()}
+    else {toast('الحساب فاضي. اعمل المحل من الجهاز الأساسي أول'); CL=null; clSave(); btn.disabled=false; btn.textContent='دخول'; return}
+    CLS.state='ok'; closeSheet(); tab='home'; render(); toast(isMain()?'✓ رجعت بيانات المحل، وهذا الجهاز صار الأساسي':'✓ هذا الجهاز صار يتابع المحل'); cloudPullBlobs();
+  }catch(e){toast(e.message); btn.disabled=false; btn.textContent='دخول'}},
+cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
+  <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
+  <button class="btn primary block" data-act="cloudTakeGo">تأكيد</button>`)},
+async cloudTakeGo(){const pw=$('#clPass').value, btn=$('[data-act=cloudTakeGo]'); btn.disabled=true;
+  try{const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}});
+    const st=await api('/state?have=-1&device='+devInfo().id); CL.main=m.shop.main; clSave();
+    if(st.data) applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); else CL.ver=st.shop.version;
+    CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); toast('✓ هذا الجهاز صار الأساسي'); cloudPullBlobs();
+  }catch(e){toast(e.message); btn.disabled=false}},
+async cloudNow(){await cloudPush(); render(); toast(CLS.state==='ok'?'✓ انرفع':CLS.err||'ما انرفع')},
+async cloudNow2(){await cloudPull(isViewer()); render(); toast(CLS.state==='ok'?'✓ محدّث':CLS.err||'ما في اتصال')},
+cloudOut(){openSheet(`${sheetHead('تسجيل خروج من حساب المحل')}<p style="margin:0">بيانات المحل بتضل على هذا الجهاز، بس ما رح تنرفع نسخ جديدة للسحابة.</p><button class="btn danger block" data-act="cloudOutGo">تسجيل خروج</button>`)},
+cloudOutGo(){CL=null; clSave(); upSet({}); CLSNAP=null; closeSheet(); render(); toast('سجّلت خروج من حساب المحل')},
+async cloudUnsynced(){const id=CL&&CL.lost; const j=id&&await idb('readonly',st=>st.get(id)); if(!j){toast('ما في نسخة محفوظة');return}
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([j],{type:'application/json'})); a.download=`كاشيرك-نسخة-الجهاز-${new Date().toISOString().slice(0,10)}.json`; a.click()},
 apM(d){cart().appMethod=d.m; render()},
 proofDrop(){const c=cart(); if(c.proof) idb('readwrite',s=>s.delete(c.proof)); c.proof=''; c.proofHash=''; c.proofDup=null; render()},
 async proofView(d){const sl=d.k==='cart'?null:S.sales.find(x=>x.id===+d.k), img=d.k==='cart'?PROOF[cart().proof]:await proofGet(sl&&sl.proof); if(!img) return;
@@ -1637,12 +1818,15 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const OWNER_ONLY=new Set(['adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const VIEW_OK=new Set(['go','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
+const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
   const el=e.target.closest('[data-act]'); if(!el||!A[el.dataset.act]) return;
   const a=el.dataset.act, d=el.dataset;
+  if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
   if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
@@ -1697,7 +1881,7 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); route(); restoreFromIdb();
+load(); route(); restoreFromIdb(); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 </script>
 </body>
