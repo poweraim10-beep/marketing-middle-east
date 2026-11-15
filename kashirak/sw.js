@@ -1,6 +1,6 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v17';
-const CORE=['./','index.html','manifest.webmanifest','icons/icon-192-3d.png','icons/icon-512-3d.png','icons/maskable-512-3d.png','icons/apple-touch-icon-3d.png','icons/logo.svg','icons/logo-3d-256.png'];
+const CACHE='kashirak-v18';
+const CORE=['./','index.html','manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
