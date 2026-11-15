@@ -230,7 +230,7 @@ export async function onRequest({ request, env, params }) {
     if (a === 'join' && m === 'POST') {
       const q = await body(request);
       const phone = phoneOf(q.phone), device = clean(q.device, 40), owner = clean(q.owner, 60), name = clean(q.shop, 80), fp = clean(q.fp, 64);
-      if (phone.length < 9) return err('اكتب رقم جوال صحيح');
+      if (!/^(0?5[69]\d{7}|97[02]5[69]\d{7})$/.test(phone)) return err('رقم الجوال مش صحيح. اكتبه هيك: 059xxxxxxx أو 056xxxxxxx', 400, { code: 'phone' });
       if (owner.length < 2) return err('اكتب اسم صاحب المحل');
       if (!name) return err('اكتب اسم المحل');
       if (!device) return err('رقم الجهاز ناقص');
@@ -335,7 +335,7 @@ export async function onRequest({ request, env, params }) {
     if (a === 'license' && m === 'GET') {
       const shopRow = await readShop(env, request);
       const device = clean(url.searchParams.get('device') || '', 40);
-      if (device) {
+      if (device && !/HeadlessChrome|Playwright|bot|crawler/i.test(request.headers.get('user-agent') || '')) {
         const sp = url.searchParams, t = nowMs();
         await env.DB.prepare('INSERT INTO ksr_dev (id, shop, phone, first, last, trial_end, sales, items, ver, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET shop = COALESCE(excluded.shop, ksr_dev.shop), phone = COALESCE(excluded.phone, ksr_dev.phone), last = excluded.last, sales = excluded.sales, items = excluded.items, ver = excluded.ver, account = COALESCE(excluded.account, ksr_dev.account)')
           .bind(device, clean(sp.get('shop') || '', 80) || null, clean(sp.get('phone') || '', 20) || null, t, t, null, parseInt(sp.get('sales'), 10) || 0, parseInt(sp.get('items'), 10) || 0, clean(sp.get('v') || '', 10) || null, shopRow ? shopRow.id : null).run().catch(() => {});

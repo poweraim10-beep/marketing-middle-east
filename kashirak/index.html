@@ -628,7 +628,7 @@ async function devFp(){ try{ const c=document.createElement('canvas'); c.width=2
 /* تسجيل المحل بالسيرفر: حساب واحد لكل رقم جوال، مربوط بهذا الجهاز */
 async function joinRun(existing){ const owner=($('#jnOwner')||$('#suOwner')).value.trim(), phone=($('#jnPhone')||$('#suPhone')).value.trim();
   const btn=$('[data-act=joinGo]')||$('[data-act=setupGo]:not([data-demo])');
-  if(owner.length<2){toast('اكتب اسم صاحب المحل');return false} if(phone.replace(/\D/g,'').length<9){toast('اكتب رقم جوال صحيح');return false}
+  if(owner.length<2){toast('اكتب اسم صاحب المحل');return false} { const d=phone.replace(/\D/g,'').replace(/^00/,''); if(!/^(0?5[69]\d{7}|97[02]5[69]\d{7})$/.test(d)){toast('رقم الجوال مش صحيح. اكتبه هيك: 059xxxxxxx');return false} }
   if(!navigator.onLine){toast('تسجيل المحل بدّه نت أول مرة. شغّل النت وجرّب');return false}
   const shop=existing?S.shop:$('#suShop').value.trim();
   try{ const r=await api('/join',{method:'POST',body:{owner,phone,shop,device:devInfo().id,label:devLabel(),fp:await devFp(),since:existing?Math.min(devInfo().ts,S.trialTs||Infinity):0}});
@@ -2215,7 +2215,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115205347'; let UPD=false;
+const BUILD='20261115205825'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
