@@ -214,24 +214,35 @@ function codeMsg(code,plan,owner,acct){return `أهلًا ${owner||''} 👋\nه�
 function newCodeSheet(pre={}){
   const P=prices(), plan=pre.plan||'m1';
   open(`${head('كود تفعيل جديد')}
-  <label>رقم حساب الزبون<input id="ncAcct" class="num" inputmode="numeric" maxlength="6" value="${esc(pre.acct||'')}" placeholder="6 أرقام، بيلاقيه الزبون بصفحة الاشتراك"></label>
-  <div id="ncWho" style="font-size:14px;margin-top:-4px;min-height:20px"></div>
+  <label>اكتب رقم حساب الزبون<input id="ncAcct" class="num" inputmode="numeric" maxlength="6" value="${esc(pre.acct||'')}" placeholder="مثلاً 123456" style="font-size:24px;letter-spacing:4px;text-align:center"></label>
+  <p style="font-size:13px;color:var(--muted);margin-top:-6px">الزبون بيلاقيه بالتطبيق، وبيوصلك تلقائيًا برسالة الواتساب لما يطلب كود.</p>
+  <div id="ncWho" style="font-size:14px"></div>
+  <div id="ncMore" hidden style="display:flex;flex-direction:column;gap:12px">
   <label>اسم صاحب السوبر ماركت<input id="ncOwner" value="${esc(pre.owner||'')}" placeholder="الاسم الكامل"></label>
   <div class="plans">${PLAN_ORDER.map(p=>`<button class="plan" data-a="pickPlan" data-p="${p}" aria-pressed="${p===plan}">${PLAN_NAME[p]}<small>${P[p]} ₪</small></button>`).join('')}</div>
   <label>السعر المدفوع (₪)<input id="ncPrice" class="num" inputmode="decimal" value="${P[plan]}"></label>
   <input type="hidden" id="ncPlan" value="${plan}">
   <button class="btn gold block" data-a="genCodes">إنشاء الكود</button>
-  <p style="font-size:13px;color:var(--muted)">الكود بيشتغل مرة وحدة بس، وعلى هذا الحساب بس، ومن الجهاز الأساسي للمحل. لو حدا ثاني جرّبه بيرفضه.</p>`);
+  <p style="font-size:13px;color:var(--muted)">الكود بيشتغل مرة وحدة بس، وعلى هذا الحساب بس، ومن الجهاز الأساسي للمحل. لو حدا ثاني جرّبه بيرفضه.</p></div>`);
+  setTimeout(()=>{const i=$('#ncAcct'); if(i&&!pre.acct) i.focus()},250);
   if(pre.acct) lookupAcct()}
 let lkT=0;
-async function lookupAcct(){const v=($('#ncAcct')||{}).value||'', w=$('#ncWho'); if(!w) return; if(!/^\d{6}$/.test(v.trim())){w.textContent='';return}
-  try{const r=await call('acct?n='+v.trim()); w.innerHTML=`<span style="color:var(--ok)">✓ ${esc(r.shop.name||'')} · <span class="num">${esc(r.shop.phone)}</span></span>`; if(!$('#ncOwner').value&&r.shop.owner) $('#ncOwner').value=r.shop.owner}
-  catch(e){w.innerHTML=`<span style="color:var(--bad)">${esc(e.message)}</span>`}}
+async function lookupAcct(){const v=(($('#ncAcct')||{}).value||'').replace(/\D/g,''), w=$('#ncWho'), g=$('[data-a=genCodes]'); if(!w) return;
+  if(v.length<6){w.innerHTML=v?'<span style="color:var(--muted)">رقم الحساب 6 أرقام…</span>':''; $('#ncMore').hidden=true; return}
+  w.innerHTML='<span style="color:var(--muted)">جاري البحث…</span>';
+  try{const r=await call('acct?n='+v), sh=D&&D.shops.find(x=>String(x.acct)===v), st=sh?stateOf(sh):null;
+    w.innerHTML=`<div class="card" style="gap:0;border:1.5px solid #9BD7B1;background:#F2FBF5">
+      <div class="kv"><span>المحل</span><b>${esc(r.shop.name||'—')}</b></div>
+      <div class="kv"><span>صاحب المحل</span><b>${esc(r.shop.owner||'—')}</b></div>
+      <div class="kv"><span>الجوال</span><span class="num">${esc(r.shop.phone)}</span></div>
+      ${st?`<div class="kv"><span>الوضع الحالي</span><span>${pillOf(st)}</span></div>`:''}</div>`;
+    $('#ncOwner').value=r.shop.owner||$('#ncOwner').value; $('#ncMore').hidden=false; if(!r.shop.owner) $('#ncOwner').focus();
+  }catch(e){w.innerHTML=`<div class="card" style="border:1.5px solid #F2C9CB;background:#FDF3F3;color:var(--bad)">✗ ${esc(e.message)}</div>`; $('#ncMore').hidden=true}}
 function codesResult(r,plan){
   open(`${head('الكود جاهز ✓')}
   <div class="card" style="gap:0"><div class="kv"><span>صاحب المحل</span><span>${esc(r.owner)}</span></div><div class="kv"><span>رقم الحساب</span><span class="num">${r.acct}</span></div><div class="kv"><span>المحل</span><span>${esc(r.shop)}</span></div><div class="kv"><span>المدة</span><span>${planLabel(plan)}</span></div></div>
   ${r.codes.map(c=>`<div class="codebox"><span class="code">${c}</span><span style="display:flex;gap:6px"><button class="btn sm" data-a="copy" data-v="${c}">نسخ</button></span></div>
-    <a class="btn wa block" href="https://wa.me/${waNum(r.phone)}?text=${encodeURIComponent(codeMsg(c,plan,r.owner,r.acct))}" target="_blank" rel="noopener">ابعته لـ${esc(r.owner)} على واتساب</a>`).join('')}
+    <a class="btn wa block" href="https://wa.me/${waNum(r.phone)}?text=${encodeURIComponent(codeMsg(c,plan,r.owner,r.acct))}" target="_blank" rel="noopener">ابعت الكود لـ«${esc(r.owner)}» على واتساب</a>`).join('')}
   <button class="btn block" data-a="close">تمام</button>`)}
 function shopSheet(id,kind){
   const s=D.shops.find(x=>x.id===id&&x.kind===kind); if(!s) return; const st=stateOf(s), P=prices();
@@ -315,12 +326,18 @@ const A={
 };
 document.addEventListener('click',e=>{const t=e.target.closest('[data-a]'); if(!t) return; if(t.id==='sheet'&&e.target!==t) return; const a=A[t.dataset.a]; if(a){e.preventDefault&&t.tagName!=='A'&&e.preventDefault(); a(t.dataset)}});
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet') close()});
-document.addEventListener('input',e=>{ if(e.target.id==='ncAcct'){clearTimeout(lkT); lkT=setTimeout(lookupAcct,350)}
+document.addEventListener('input',e=>{ if(e.target.id==='ncAcct'){e.target.value=e.target.value.replace(/\D/g,'').slice(0,6); clearTimeout(lkT); lkT=setTimeout(lookupAcct,e.target.value.length===6?50:400)}
   if(e.target.id==='shopQ'){shopQ=e.target.value; const sh=D.shops.map(s=>({s,st:stateOf(s)})).filter(x=>{const q=shopQ.trim(); return inFilter(x.st)&&(!q||(x.s.name+' '+x.s.phone+' '+x.s.id+' '+(x.s.acct||'')+' '+(x.s.owner||'')).includes(q))}); $('#shopList').innerHTML=sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في نتائج</div>'}
   if(e.target.id==='codeQ'){codeQ=e.target.value; const pos=e.target.selectionStart; render(); const i=$('#codeQ'); i.focus(); i.setSelectionRange(pos,pos)} });
 document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP'||e.target.id==='lgE')) A.login() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
+/* تحديث تلقائي للوحة */
+const BUILD='20261115182755'; let UPD=false;
+async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const BUILD='20261115182755']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
+function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
+setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
 load();
 </script>
 </body>

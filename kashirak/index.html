@@ -1976,7 +1976,18 @@ document.addEventListener('keydown',e=>{
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
-if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+/* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
+const BUILD='20261115182755'; let UPD=false;
+const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
+async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
+  try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const BUILD='20261115182755']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
+  applyUpdate() }
+function applyUpdate(){ if(!UPD||!idleNow()) return; try{sessionStorage.setItem('ksr-upd','1')}catch(e){} location.reload() }
+setInterval(checkUpdate,5*60e3); setTimeout(checkUpdate,8000);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
+setInterval(applyUpdate,20e3);
+try{ if(sessionStorage.getItem('ksr-upd')){sessionStorage.removeItem('ksr-upd'); setTimeout(()=>toast('✓ انحدّث التطبيق لآخر إصدار'),1200)} }catch(e){}
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{setInterval(()=>r.update().catch(()=>{}),30*60e3)}).catch(()=>{}))}
 </script>
 </body>
 </html>
