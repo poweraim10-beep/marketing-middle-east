@@ -1,8 +1,10 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v26';
+const CACHE='kashirak-v27';
 const CORE=['./','index.html','manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())
+  /* إصدار جديد: أي نسخة قديمة مفتوحة بالخلفية بتتحدّث لحالها، والسلة محفوظة */
+  .then(()=>self.clients.matchAll({type:'window'})).then(cs=>Promise.all(cs.filter(c=>c.visibilityState==='hidden'&&'navigate' in c).map(c=>c.navigate(c.url).catch(()=>{})))))});
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET') return;
   const u=new URL(r.url);
