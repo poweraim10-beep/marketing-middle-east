@@ -95,6 +95,11 @@ button.tile{cursor:pointer}
 a.btn{text-decoration:none;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:6px}
 .btn.primary{background:var(--brand);color:var(--brand-ink);border-color:transparent}
 .btn.accent{background:linear-gradient(180deg,#E6C878,#C39A3E);color:#0B1F3A;border-color:transparent}
+.btn.wa{background:#25D366;color:#fff;border-color:transparent;text-decoration:none}
+.btn.big{gap:10px;min-height:58px;font-size:17px;box-shadow:0 8px 20px rgba(37,211,102,.35)}
+.exphd{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px 2px}
+.exphd .expic{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:40px;background:radial-gradient(circle at 35% 30%,#FFE9B0,#E6B24A);box-shadow:0 8px 22px rgba(199,150,47,.4)}
+.exphd h2{font-size:22px;margin:0}.exphd p{margin:0;color:var(--muted);line-height:1.7}
 .btn.danger{color:var(--bad)}
 .btn.block{width:100%;display:block}
 .btn.sm{min-height:34px;padding:4px 10px;font-size:13px;border-radius:10px;white-space:nowrap}
@@ -365,27 +370,27 @@ function b32dec(s){let bits='';for(const c of s){const v=B32.indexOf(c);if(v<0)r
 const dayNum=t=>Math.floor((t-LIC_EPOCH)/DAY);
 const dayTs=d=>LIC_EPOCH+d*DAY;
 const fday=t=>new Date(t).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'});
-const LIC_LIFE=29200, LEGACY_MAX=dayNum(Date.UTC(2027,11,31));
+const LIC_LIFE=29200;
 const ub64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
-let LICKEY=null;
+let LICKEY=null, LIC=null, LICREADY=false;
+/* شهادة الاشتراك موقّعة من السيرفر: رقم الحساب + الجهاز الوحيد المسموح يبيع + تاريخ الاشتراك + نهاية التجربة.
+   أي تعديل عليها بيبطّلها، وما بتشتغل على جهاز غير جهازها */
 async function licVerify(tok){ try{
   const [p,sig]=String(tok||'').split('.'); if(!p||!sig) return null;
   LICKEY=LICKEY||await crypto.subtle.importKey('jwk',LIC_PUB,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
   const ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},LICKEY,ub64(sig),new TextEncoder().encode(p)); if(!ok) return null;
   const o=JSON.parse(new TextDecoder().decode(ub64(p)));
-  if(o.t==='dev'&&o.id===devInfo().id) return o;
-  if(o.t==='shop'&&typeof CL!=='undefined'&&CL&&CL.shopId===o.id) return o;
-  return null }catch(e){return null}}
-/* عند التشغيل: الاشتراك بيعتمد بس على الشهادة الموقّعة. التفعيلات القديمة (قبل الشهادات) بتضل محترمة لحد نهاية 2027 */
-async function licCheckStored(){ if(!S) return; const before=S.licExp;
-  if(S.licTok){ const o=await licVerify(S.licTok); S.licExp=o?o.e:(S.licLegacy!=null?Math.min(S.licLegacy,LEGACY_MAX):null); S.licPlan=o?o.p:S.licPlan }
-  else if(S.licExp!=null){ if(S.licLegacy==null) S.licLegacy=S.licExp; S.licExp=Math.min(S.licLegacy,LEGACY_MAX) }
-  if(before!==S.licExp){persist(); render()}}
-async function licApply(tok){const o=await licVerify(tok); if(!o) return false; S.licTok=tok; S.licExp=o.e; S.licPlan=o.p; save(); render(); return o}
+  return o.t==='shop'&&typeof CL!=='undefined'&&CL&&CL.shopId===o.id?o:null }catch(e){return null}}
+async function licCheckStored(){ const was=JSON.stringify(status());
+  LIC=S&&S.licTok?await licVerify(S.licTok):null;
+  if(S){ S.licExp=LIC&&LIC.e>=0?LIC.e:null; S.licPlan=LIC?LIC.p:null; delete S.licLegacy; persist() }
+  LICREADY=true; if(JSON.stringify(status())!==was) render(); expGate() }
+async function licApply(tok){const o=await licVerify(tok); if(!o) return false; LIC=o; S.licTok=tok; S.licExp=o.e>=0?o.e:null; S.licPlan=o.p; if(CL&&o.a&&CL.acct!==o.a){CL.acct=o.a;clSave()} persist(); EXPSNAP=null; render(); return o}
 async function licRefresh(){ if(!navigator.onLine) return;
-  if(!S){ api('/license?'+new URLSearchParams({device:devInfo().id,v:APPVER,visit:'1'})).catch(()=>{}); return }
-  try{ const st=status(), q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',trial:String(Math.min(devInfo().ts,S.trialTs||Infinity)+TRIAL_DAYS*DAY),sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q); if(r&&r.license&&licKey(r.license)!==licKey(S.licTok)) await licApply(r.license) }catch(e){} }
-const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return o.t+':'+o.id+':'+o.e}catch(e){return ''}};
+  if(!S||!linked()){ api('/license?'+new URLSearchParams({device:devInfo().id,v:APPVER,shop:S&&S.shop||'',phone:S&&S.phone||''})).catch(()=>{}); return }
+  try{ const q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q);
+    if(r&&r.license&&(!LIC||licKey(r.license)!==licKey(S.licTok))) await licApply(r.license); expGate() }catch(e){ if(e.status===401) cloudSignedOut() } }
+const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return [o.t,o.id,o.d,o.e,o.tr].join(':')}catch(e){return ''}};
 const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||'';
 
 const LOGO=(id)=>`<img class="lg3d" src="icons/logo-3d-256.png" alt="" width="256" height="256" decoding="async">`;
@@ -398,11 +403,59 @@ function devInfo(){
   return d;
 }
 function status(){
-  const d=devInfo(), now=Math.max(Date.now(),d.seen||0), trialEnd=Math.min(d.ts,S&&S.trialTs||Infinity)+TRIAL_DAYS*DAY, licEnd=S&&S.licExp!=null?dayTs(S.licExp+1):0;
-  const end=Math.max(trialEnd,licEnd), daysLeft=Math.ceil((end-now)/DAY);
-  return {dev:d.id,active:now<end,paid:licEnd>trialEnd,daysLeft,end};
+  const d=devInfo(), base={dev:d.id,acct:CL&&CL.acct||null};
+  if(!LICREADY) return {...base,active:true,paid:false,daysLeft:99,end:0,why:''};
+  if(!S||!linked()) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'reg'};
+  if(!LIC) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'nolic'};
+  const now=Math.max(Date.now(),d.seen||0,LIC.i||0), trialEnd=LIC.tr||0, licEnd=LIC.e>=0?dayTs(LIC.e+1):0;
+  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id;
+  return {...base,active:now<end&&(mine||isViewer()),paid,daysLeft:Math.ceil((end-now)/DAY),end,why:!mine&&!isViewer()?'moved':(paid?'paid':'trial')};
 }
-function needActive(){const st=status(); if(st.active) return true; A.license(); toast('انتهت فترة الاستخدام. فعّل الاشتراك لتكمل البيع'); return false}
+function needActive(){const st=status(); if(st.active) return true; expiredSheet(); return false}
+const expiredSheet=()=>subSheet();
+let EXPSNAP=null;
+/* بعد ما يخلص الوقت: ممنوع أي إضافة أو تعديل. أي تغيير بيرجع زي ما كان وبتطلع شاشة الاشتراك */
+function expMayKeep(){ if(!LICREADY||!S||isViewer()||status().active){EXPSNAP=null;return true}
+  if(EXPSNAP==null){EXPSNAP=stripLocal(S);return true}
+  if(stripLocal(S)===EXPSNAP) return true;
+  const keep={};LOCALF.forEach(k=>keep[k]=S[k]); S=norm(JSON.parse(EXPSNAP)); Object.assign(S,keep); persist(); setTimeout(()=>{render();subSheet()},0); return false}
+function expGate(){ if(!S||!LICREADY) return; if(isViewer()||status().active){EXPSNAP=null;return}
+  if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!document.querySelector('#sheet.open')) subSheet()}
+function waMsg(){const st=status(); return `مرحبًا، بدي ${st.why==='paid'?'أجدّد':'أشترك في'} «كاشيرك الذكي».\nاسم صاحب المحل: ${CL&&CL.owner||S.owner||''}\nاسم المحل: ${S.shop}\nرقم الحساب: ${st.acct||'—'}\nرقم الجوال: ${CL&&CL.phone||S.phone||''}`}
+function subSheet(){ if(!S) return; const st=status();
+  const wa=`<a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
+  const code=`<label for="licIn">عندك كود تفعيل؟<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
+    <button class="btn primary block" data-act="activate">تفعيل</button><p class="muted" style="margin:0;font-size:13px">الكود بيشتغل بس على رقم حسابك وعلى هذا الجهاز. التفعيل بدّه نت مرة وحدة.</p>`;
+  const acct=st.acct?`<div class="tile hl"><div class="lbl">رقم حسابك</div><div class="val code" style="color:#E6C878;font-size:30px;letter-spacing:3px">${st.acct}</div><div class="lbl">${esc(CL&&CL.owner||'')} · ${esc(S.shop)}</div></div>`:'';
+  if(st.why==='reg') return openSheet(`${sheetHead('سجّل محلك')}<p style="margin:0">عشان تكمل تستعمل «كاشيرك الذكي»، سجّل محلك مرة وحدة وإنت متصل بالنت. بياناتك ما رح تتغير، وبتنحفظ نسخة منها على السحابة.</p>
+    <label for="jnOwner">اسم صاحب المحل<input id="jnOwner" autocomplete="name" value="${esc(S.owner||'')}"></label>
+    <label for="jnPhone">رقم جوال صاحب المحل<input id="jnPhone" inputmode="tel" autocomplete="tel" value="${esc(S.phone||'')}" placeholder="059xxxxxxx"></label>
+    <button class="btn accent block" data-act="joinGo">تسجيل المحل</button>
+    <button class="btn block" data-act="cloudLogin">المحل مسجّل من قبل؟ ادخل للحساب</button>`,true);
+  if(st.why==='nolic') return openSheet(`${sheetHead('بنتأكد من اشتراكك')}<p style="margin:0">ما قدرنا نتأكد من اشتراك هذا الجهاز. شغّل النت واضغط تحقق.</p><button class="btn primary block" data-act="subRetry">تحقق الآن</button>${wa}`,true);
+  if(st.why==='moved') return openSheet(`${sheetHead('المحل صار على جهاز ثاني')}<p style="margin:0">حسابك صار شغّال على جهاز ثاني، والحساب الواحد بيبيع من جهاز واحد بس. إذا بدك ترجّع البيع لهذا الجهاز ادخل بكلمة سر الحساب أو تواصل معنا.</p>${acct}<button class="btn primary block" data-act="cloudTake">رجّع البيع لهذا الجهاز</button>${wa}`,true);
+  if(!st.active) return openSheet(`<div class="exphd"><div class="expic">⏰</div><h2>${st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</h2><p>خلص وقتك. عشان ترجع تبيع وتضيف بيانات، اشترك الآن.<br><b>بياناتك كلها محفوظة</b> وبترجع تشتغل من نفس المكان.</p></div>
+    ${acct}${wa}${code}<button class="btn block" data-act="close">بس بدي أتفرّج على بياناتي</button>`,true);
+  openSheet(`${sheetHead('الاشتراك')}${acct}<div class="list"><div class="li"><span>الحالة</span><span class="pill ${st.paid?'ok':'warn'}">${st.paid?(S.licPlan?'مشترك · '+planName(S.licPlan):'مشترك'):'تجربة مجانية'}</span></div>
+    <div class="li"><span>ينتهي في</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)+' · باقي <span class="num">'+st.daysLeft+'</span> يوم'}</span></div></div>${wa}${code}`)}
+async function devFp(){ try{ const c=document.createElement('canvas'); c.width=220; c.height=40; const x=c.getContext('2d'); x.textBaseline='top'; x.font='16px Arial'; x.fillStyle='#f60'; x.fillRect(10,5,90,20); x.fillStyle='#069'; x.fillText('كاشيرك ksr 2026 😀',2,12);
+  const raw=[navigator.userAgent,screen.width+'x'+screen.height,devicePixelRatio,Intl.DateTimeFormat().resolvedOptions().timeZone,navigator.language,navigator.hardwareConcurrency,navigator.deviceMemory,c.toDataURL()].join('|');
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))].slice(0,16).map(b=>b.toString(16).padStart(2,'0')).join('') }catch(e){return ''}}
+/* تسجيل المحل بالسيرفر: حساب واحد لكل رقم جوال، مربوط بهذا الجهاز */
+async function joinRun(existing){ const owner=($('#jnOwner')||$('#suOwner')).value.trim(), phone=($('#jnPhone')||$('#suPhone')).value.trim();
+  const btn=$('[data-act=joinGo]')||$('[data-act=setupGo]:not([data-demo])');
+  if(owner.length<2){toast('اكتب اسم صاحب المحل');return false} if(phone.replace(/\D/g,'').length<9){toast('اكتب رقم جوال صحيح');return false}
+  if(!navigator.onLine){toast('تسجيل المحل بدّه نت أول مرة. شغّل النت وجرّب');return false}
+  const shop=existing?S.shop:$('#suShop').value.trim();
+  try{ const r=await api('/join',{method:'POST',body:{owner,phone,shop,device:devInfo().id,label:devLabel(),fp:await devFp(),since:existing?Math.min(devInfo().ts,S.trialTs||Infinity):0}});
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner||owner,main:devInfo().id,ver:existing?0:r.shop.version,last:null,nopass:!r.shop.haspass}; clSave(); upSet({});
+    if(existing){ S.owner=owner; if(!S.phone) S.phone=phone; await licApply(r.license); EXPSNAP=null; persist(); closeSheet(); render(); toast('✓ انسجّل المحل · رقم حسابك '+r.shop.acct); cloudPush() }
+    return r;
+  }catch(e){
+    if(e.code==='other_device') openSheet(`${sheetHead('هذا الرقم مسجّل على جهاز ثاني')}<p style="margin:0">كل محل إله حساب واحد بيشتغل على جهاز واحد. الرقم هذا مسجّل من قبل على جهاز ثاني.</p>
+      <button class="btn primary block" data-act="cloudLogin">ادخل للحساب بكلمة السر</button>
+      <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أنقل حساب «كاشيرك الذكي» لجهاز جديد.\nرقم الجوال: '+phone+'\nرقم الجهاز الجديد: '+devInfo().id)}" target="_blank" rel="noopener">انقل الحساب لهذا الجهاز عن طريق الدعم</a>`);
+    else toast(e.message); return false }}
 function emptyState(shop,pin,phone){return {shop,phone,rate:3.7,pin,mode:'owner',items:[],customers:[],suppliers:[],purchases:[],sales:[],expenses:[],closes:[],nextInv:1001,nextId:100,nextCode:1}}
 /* ---------- data ---------- */
 function seed(){
@@ -453,10 +506,10 @@ function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashi
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
   o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; return o}
-function audit(what){ if(!S) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
+function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 function persist(){ const j=S?JSON.stringify(S):null; try{if(j)localStorage.setItem(KEY,j)}catch(e){}
   clearTimeout(persist.t); persist.t=setTimeout(()=>idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}),400)}
-function save(){ norm(S); if(isViewer()&&!viewerMayKeep()) return; persist(); cloudOnSave()}
+function save(){ norm(S); if(isViewer()&&!viewerMayKeep()) return; if(!expMayKeep()) return; persist(); cloudOnSave()}
 async function restoreFromIdb(){ /* if the browser cleared localStorage, bring the shop back from IndexedDB */
   const [j,dv]=await Promise.all([idb('readonly',st=>st.get(KEY)),idb('readonly',st=>st.get(DEVKEY))]);
   try{if(dv&&!localStorage.getItem(DEVKEY))localStorage.setItem(DEVKEY,dv)}catch(e){}
@@ -475,7 +528,7 @@ function clSave(){try{CL?localStorage.setItem(CKEY,JSON.stringify(CL)):localStor
 const linked=()=>!!(CL&&CL.token);
 const isMain=()=>linked()&&CL.main===devInfo().id;
 const isViewer=()=>linked()&&CL.main!==devInfo().id;
-const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','licLegacy'];
+const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
 function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
   if(!CLSNAP||stripLocal(S)===CLSNAP){persist();return false}
@@ -573,12 +626,14 @@ function cloudCard(){
     <div class="grid2"><button class="btn accent" data-act="cloudNew">إنشاء حساب للمحل</button><button class="btn" data-act="cloudLogin">عندي حساب</button></div></div>`;
   const st=CLS.state, main=isMain();
   return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2><div class="list">
-    <div class="li"><span>الحساب</span><span class="num">${esc(CL.phone||'')}</span></div>
+    <div class="li"><span>رقم الحساب</span><span class="num" style="font-weight:700">${esc(CL.acct||'—')}</span></div>
+    <div class="li"><span>الجوال</span><span class="num">${esc(CL.phone||'')}</span></div>
     <div class="li"><span>هذا الجهاز</span><span class="pill ${main?'ok':'warn'}">${main?'الأساسي (بيبيع ويرفع)':'للمتابعة بس'}</span></div>
     <div class="li"><span>آخر نسخة على السحابة</span><span>${CL.last?fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا'}</span></div>
     <div class="li"><span>الحالة</span><span>${{ok:'✓ محفوظ',sync:'جاري الرفع…',off:'بدون نت، رح يرفع لما يرجع',err:'ما انرفع: '+esc(CLS.err)}[st]||'—'}</span></div></div>
     <div class="grid2">${main?'<button class="btn primary" data-act="cloudNow">ارفع الآن</button>':'<button class="btn primary" data-act="cloudTake">خلّي هذا الجهاز أساسي</button>'}<button class="btn" data-act="cloudNow2">حدّث من السحابة</button></div>
-    <button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button></div>`}
+    ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
+    ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
   if(isViewer()) cloudPull(); else if(CLS.tick%4===0) cloudPull(); if(isMain()&&CLS.dirty) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
@@ -872,7 +927,7 @@ home(){
   const days=[...Array(7)].map((_,k)=>{const from=sod(Date.now()-(6-k)*DAY);return {from,rev:report(from,from+DAY).rev}});
   const mx=Math.max(1,...days.map(d=>d.rev));
   const st=status();
-  const ban=!st.active?`<div class="banner over"><span><b>انتهت فترة الاستخدام</b><br><span class="muted">البيع متوقف. بياناتك محفوظة وبتقدر تشوفها.</span></span><button class="btn sm primary" data-act="license">تفعيل</button></div>`
+  const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
   return `${installCard()}${ban}
@@ -1095,7 +1150,7 @@ more(){
       <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
       <button class="btn primary" data-act="savePin">حفظ الرمز</button></div>
     ${(()=>{const st=status();return `<div class="card"><h2>الاشتراك</h2><div class="list">
-      <div class="li"><span>رقم الجهاز</span><span class="code">${st.dev}</span></div>
+      <div class="li"><span>رقم الحساب</span><span class="code">${st.acct||'—'}</span></div>
       <div class="li"><span>الحالة</span><span class="pill ${st.active?'ok':'bad'}">${st.active?(st.paid?'مفعّل':'تجربة مجانية'):'منتهي'}</span></div>
       ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
       <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
@@ -1149,7 +1204,8 @@ function renderSetup(){
     ${installCard()}
     <div class="card"><h2>تجهيز المحل</h2>
       <label for="suShop">اسم المحل<input id="suShop" placeholder="مثال: سوبر ماركت الأمل" autocomplete="organization"></label>
-      <label for="suPhone">رقم جوال المحل (اختياري)<input id="suPhone" inputmode="tel" placeholder="059xxxxxxx"></label>
+      <label for="suOwner">اسم صاحب المحل<input id="suOwner" autocomplete="name" placeholder="مثال: أبو محمد الأغا"></label>
+      <label for="suPhone">رقم جوال صاحب المحل<input id="suPhone" inputmode="tel" autocomplete="tel" placeholder="059xxxxxxx"></label>
       <label for="suPin">رمز سري للمالك (4 لـ8 أرقام)<input id="suPin" type="password" inputmode="numeric" autocomplete="new-password"></label>
       <p class="muted" style="margin:0">الرمز بيحمي الأرباح والتعديلات لما يشتغل الكاشير على الجهاز.</p>
       <button class="btn accent block" data-act="setupGo">ابدأ بمحل فاضي</button>
@@ -1643,16 +1699,18 @@ faceRej(){const t0=sod(), rs=(S.attRej||[]).slice().reverse(); Promise.all(rs.ma
   ${xs.length?'<button class="btn sm" data-act="faceRejClear">مسح السجل</button>':''}`)})},
 refRetry(){if(A._ref) A._ref()},
 cloudSheet(){openSheet(sheetHead('حساب المحل')+cloudCard().replace('<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>','<div style="display:flex;flex-direction:column;gap:12px">'))},
-cloudNew(){openSheet(`${sheetHead('إنشاء حساب للمحل')}<p class="muted" style="margin:0">رقم الجوال وكلمة السر هم مفتاح محلك. بيهم بترجع بياناتك على أي جهاز.</p>
-  <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" value="${esc(S.phone||'')}" placeholder="059xxxxxxx"></label>
+cloudNew(){openSheet(`${sheetHead(linked()?'كلمة سر حساب المحل':'إنشاء حساب للمحل')}<p class="muted" style="margin:0">رقم الجوال وكلمة السر هم مفتاح محلك. بيهم بترجع بياناتك على أي جهاز، وبتتابع محلك من اللابتوب أو جوال ثاني.</p>
+  <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" value="${esc(linked()?CL.phone:(S.phone||''))}" ${linked()?'readonly':''} placeholder="059xxxxxxx"></label>
   <label for="clPass">كلمة السر (6 أحرف أو أرقام على الأقل)<input id="clPass" type="password" autocomplete="new-password"></label>
   <label for="clPass2">أعد كلمة السر<input id="clPass2" type="password" autocomplete="new-password"></label>
   <button class="btn accent block" data-act="cloudNewGo">إنشاء الحساب ورفع المحل</button>`)},
 async cloudNewGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, pw2=$('#clPass2').value;
   if(pw!==pw2){toast('كلمتين السر مش متطابقات');return}
+  if(linked()&&CL.nopass){ const b=$('[data-act=cloudNewGo]'); b.disabled=true;
+    try{const r=await api('/register',{method:'POST',body:{phone:CL.phone,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}}); CL.token=r.token; CL.nopass=false; clSave(); closeSheet(); render(); toast('✓ انحفظت كلمة السر. هلأ بتقدر تفتح المحل من أي جهاز')}catch(e){toast(e.message); b.disabled=false} return }
   const btn=$('[data-act=cloudNewGo]'); btn.disabled=true; btn.textContent='جاري الإنشاء…';
   try{const r=await api('/register',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}});
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,main:devInfo().id,ver:0,last:null}; clSave(); upSet({}); setTimeout(licRefresh,400);
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:devInfo().id,ver:0,last:null,nopass:false}; clSave(); upSet({}); setTimeout(licRefresh,400);
     if(!S.trialTs) S.trialTs=devInfo().ts; if(!S.phone) S.phone=ph; audit('إنشاء حساب للمحل على السحابة'); persist();
     closeSheet(); render(); toast('انعمل الحساب. جاري رفع بيانات المحل…'); await cloudPush(); render();
     if(CLS.state==='ok') toast('✓ بيانات المحل محفوظة على السحابة');
@@ -1668,7 +1726,7 @@ cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
 async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'main';
   const btn=$('[data-act=cloudLoginGo]'); btn.disabled=true; btn.textContent='جاري الدخول…';
   try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel()}});
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,main:r.shop.main,ver:-1,last:r.shop.updated}; clSave(); upSet({}); setTimeout(licRefresh,2500);
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,ver:-1,last:r.shop.updated,nopass:false}; clSave(); upSet({}); setTimeout(licRefresh,2500);
     if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; clSave()}
     btn.textContent='جاري استرجاع المحل…';
     const st=await api('/state?have=-1&device='+devInfo().id);
@@ -1684,7 +1742,7 @@ async cloudTakeGo(){const pw=$('#clPass').value, btn=$('[data-act=cloudTakeGo]')
   try{const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}});
     const st=await api('/state?have=-1&device='+devInfo().id); CL.main=m.shop.main; clSave();
     if(st.data) applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); else CL.ver=st.shop.version;
-    CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); toast('✓ هذا الجهاز صار الأساسي'); cloudPullBlobs();
+    CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); toast('✓ هذا الجهاز صار الأساسي'); cloudPullBlobs(); licRefresh();
   }catch(e){toast(e.message); btn.disabled=false}},
 async cloudNow(){await cloudPush(); render(); toast(CLS.state==='ok'?'✓ انرفع':CLS.err||'ما انرفع')},
 async cloudNow2(){await cloudPull(isViewer()); render(); toast(CLS.state==='ok'?'✓ محدّث':CLS.err||'ما في اتصال')},
@@ -1805,23 +1863,23 @@ stmtPdf(d){const c=S[d.kind].find(x=>x.id===+d.id); if(!c) return; sharePdf(stat
 liveToggle(){S.liveCam=S.liveCam===false; save(); syncLive(); if(S.liveCam!==false) toast('الكاميرا شغّالة: مرّر الأغراض قدامها')},
 wipeAsk(){openSheet(`${sheetHead('مسح كل البيانات')}<p style="margin:0">اكتب كلمة <b>مسح</b> للتأكيد. هالخطوة ما بترجع.</p><input id="wipeTxt" autocomplete="off"><button class="btn danger block" data-act="wipe">مسح نهائي</button>`)},
 wipe(){if($('#wipeTxt').value.trim()!=='مسح'){toast('اكتب كلمة مسح للتأكيد');return} try{localStorage.removeItem(KEY)}catch(e){} S=null; carts=carts.map(()=>newCart()); closeSheet(); tab='home'; render()},
-setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.trim(), phone=$('#suPhone').value.trim();
+async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.trim(), phone=$('#suPhone').value.trim(), owner=$('#suOwner').value.trim();
   if(!shop){toast('اكتب اسم المحل');return} if(!/^\d{4,8}$/.test(pin)){toast('الرمز السري لازم يكون 4 لـ8 أرقام');return}
-  S=d.demo?Object.assign(seed(),{shop,pin,phone}):emptyState(shop,pin,phone); save(); setTimeout(licRefresh,300); tab=d.demo?'home':'items'; render(); toast(d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')},
-license(){const st=status(), msg=`مرحبًا، بدي أفعّل اشتراك كاشيرك الذكي.\nاسم المحل: ${S.shop}\nرقم الجهاز: ${st.dev}`;
-  openSheet(`${sheetHead('تفعيل الاشتراك')}
-    <div class="tile hl"><div class="lbl">رقم الجهاز، ابعته للدعم</div><div class="val code" style="color:#E6C878">${st.dev}</div><div class="lbl">${st.active?(st.paid?(S.licExp>=LIC_LIFE?'مفعّل · اشتراك مفتوح':'مفعّل لغاية '+fday(st.end)):'تجربة لغاية '+fday(st.end)):'منتهي'}</div></div>
-    <a class="btn accent block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">اطلب كود التفعيل على واتساب</a>
-    <label for="licIn">كود التفعيل<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
-    <p class="muted" style="margin:0;font-size:13px">التفعيل بدّه نت مرة وحدة بس. بعدها التطبيق بيشتغل بدون نت لآخر الاشتراك.</p>
-    <button class="btn primary block" data-act="activate">تفعيل</button>`)},
+  const btns=document.querySelectorAll('[data-act=setupGo]'); btns.forEach(b=>b.disabled=true); toast('جاري تسجيل المحل…');
+  const r=await joinRun(false); btns.forEach(b=>b.disabled=false); if(!r) return;
+  S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
+  tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
+license(){subSheet()},
+joinGo(){joinRun(true)},
+async subRetry(){const b=$('[data-act=subRetry]'); if(b){b.disabled=true;b.textContent='جاري التحقق…'} await licRefresh(); closeSheet(); expGate(); if(status().active) toast('✓ تمام')},
 async activate(){const v=$('#licIn').value.trim(), btn=$('[data-act=activate]'); if(!v){toast('اكتب كود التفعيل');return}
+  if(!linked()){subSheet();return}
   if(!navigator.onLine){toast('التفعيل بدّه نت مرة وحدة. شغّل النت وجرّب');return}
   btn.disabled=true; btn.textContent='جاري التفعيل…';
-  try{ const r=await api('/redeem',{method:'POST',body:{code:v,device:devInfo().id,shop:S.shop}}); const o=await licApply(r.license);
+  try{ const r=await api('/redeem',{method:'POST',body:{code:v,device:devInfo().id}}); const o=await licApply(r.license);
     if(!o) throw new Error('شهادة التفعيل مش صحيحة. تواصل مع الدعم');
     audit('تفعيل الاشتراك بكود '+v.toUpperCase()); closeSheet(); render(); toast(o.e>=LIC_LIFE?'✓ تم التفعيل: اشتراك مفتوح':'✓ تم التفعيل لغاية '+fday(dayTs(o.e)));
-  }catch(e){toast(e.message); btn.disabled=false; btn.textContent='تفعيل'}},
+  }catch(e){toast(e.message); if(e.status===401) cloudSignedOut(); btn.disabled=false; btn.textContent='تفعيل'}},
 printSale(d){const s=S.sales.find(x=>x.id===+d.id), img=s&&receiptImage(s); if(!img){toast('تعذّر تجهيز الإيصال');return}
   $('#printArea').innerHTML=`<img src="${img}" alt="">`; setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا، جرّب طابعة البلوتوث')}},150)},
 async btPrint(d){const s=S.sales.find(x=>x.id===+d.id), cv=s&&receiptCanvas(s); if(!cv) return;
@@ -1845,6 +1903,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 };
 
 const VIEW_OK=new Set(['go','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
@@ -1852,6 +1911,7 @@ document.addEventListener('click',e=>{
   if(e.target.id==='scanSheet'){closeScan();return}
   const el=e.target.closest('[data-act]'); if(!el||!A[el.dataset.act]) return;
   const a=el.dataset.act, d=el.dataset;
+  if(S&&LICREADY&&!isViewer()&&!EXP_OK.has(a)&&!status().active){subSheet();return}
   if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
   if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
@@ -1907,7 +1967,7 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); route(); restoreFromIdb(); setTimeout(()=>{licCheckStored().then(licRefresh)},600); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
+load(); route(); restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 </script>
 </body>

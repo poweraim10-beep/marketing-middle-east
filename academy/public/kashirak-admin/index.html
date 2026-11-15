@@ -170,7 +170,7 @@ home(){
 shops(){
   let sh=D.shops.map(s=>({s,st:stateOf(s)}));
   sh=sh.filter(x=>inFilter(x.st));
-  const q=shopQ.trim(); if(q) sh=sh.filter(x=>(x.s.name+' '+x.s.phone+' '+x.s.id).includes(q));
+  const q=shopQ.trim(); if(q) sh=sh.filter(x=>(x.s.name+' '+x.s.phone+' '+x.s.id+' '+(x.s.acct||'')+' '+(x.s.owner||'')).includes(q));
   sh.sort(['tryall','trial','tover','visit'].includes(shopFilter)?(a,b)=>(b.s.created||0)-(a.s.created||0):(a,b)=>(b.s.lastSeen||b.s.created||0)-(a.s.lastSeen||a.s.created||0));
   const cnt=k=>D.shops.filter(s=>inFilter(stateOf(s),k)).length;
   const F=[['all','الكل'],['paid','مشتركين'],['tryall','كل المجرّبين'],['trial','بالتجربة هلأ'],['tover','خلصت تجربتهم'],['visit','زوار'],['soon','قرب ينتهي'],['over','منتهي']];
@@ -202,28 +202,36 @@ money(){
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
   <div class="card"><h2>الحساب</h2><a class="btn" href="/" target="_blank" rel="noopener">فتح الأكاديمية</a><button class="btn danger" data-a="logout">تسجيل خروج</button></div>`}
 };
-function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}</span><br><span class="s">${s.phone?`<span class="num">${esc(s.phone)}</span> · `:''}${['trial','tover','visit'].includes(st.k)&&s.created?'بدأ '+new Date(s.created).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short'})+' · ':''}${ago(s.lastSeen)}</span></span>${pillOf(st)}</div>`}
+function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}${s.dup&&s.dup.length?' ⚠️':''}</span><br><span class="s">${s.acct?`حساب <span class="num">${s.acct}</span> · `:''}${s.owner?esc(s.owner)+' · ':''}${s.phone&&!s.owner?`<span class="num">${esc(s.phone)}</span> · `:''}${['trial','tover','visit'].includes(st.k)&&s.created?'بدأ '+new Date(s.created).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short'})+' · ':''}${ago(s.lastSeen)}</span></span>${pillOf(st)}</div>`}
 function codeRow(c){const st={new:'<span class="pill ok">جاهز</span>',used:'<span class="pill mute">مستعمل</span>',void:'<span class="pill bad">ملغي</span>'}[c.status];
-  return `<div class="li" data-a="code" data-c="${esc(c.code)}"><span class="grow"><span class="t code">${esc(c.code)}</span><br><span class="s">${planLabel(c.plan)} · <span class="num">${fmt(+c.price||0)}</span> ₪${c.note?' · '+esc(c.note):''}${c.status==='used'?' · فعّله '+esc(c.used_label||'محل')+' '+fday(c.used_at):''}</span></span>${st}</div>`}
+  return `<div class="li" data-a="code" data-c="${esc(c.code)}"><span class="grow"><span class="t code">${esc(c.code)}</span><br><span class="s">${planLabel(c.plan)} · <span class="num">${fmt(+c.price||0)}</span> ₪${c.acct?' · حساب <span class="num">'+c.acct+'</span>':''}${c.owner?' · '+esc(c.owner):(c.note?' · '+esc(c.note):'')}${c.status==='used'?' · فعّله '+esc(c.used_label||'محل')+' '+fday(c.used_at):''}</span></span>${st}</div>`}
 
 /* ---------- sheets ---------- */
 function open(html){$('#sbox').innerHTML=html; $('#sheet').classList.add('show')}
 function close(){$('#sheet').classList.remove('show')}
 const head=t=>`<div class="shd"><h2>${t}</h2><button class="x" data-a="close" aria-label="إغلاق">×</button></div>`;
-function codeMsg(code,plan){return `أهلًا وسهلًا 👋\nهذا كود تفعيل «كاشيرك الذكي» لمدة ${planLabel(plan)}:\n\n${code}\n\nطريقة التفعيل:\n1. افتح التطبيق: ${APPURL}\n2. من «المزيد» ← «الإعدادات» ← «إدخال كود تفعيل»\n3. الصق الكود واضغط تفعيل (لازم النت يكون شغّال مرة وحدة)\n\nشكرًا لثقتك 🌟\nشركة أبو عمر الغزاوي`}
+function codeMsg(code,plan,owner,acct){return `أهلًا ${owner||''} 👋\nهذا كود تفعيل «كاشيرك الذكي» لمدة ${planLabel(plan)}${acct?'\nلرقم الحساب: '+acct:''}\n\n${code}\n\nطريقة التفعيل:\n1. افتح التطبيق على جهاز المحل: ${APPURL}\n2. اضغط «اشترك الآن» أو من «المزيد» ← «الإعدادات» ← «الاشتراك»\n3. الصق الكود واضغط تفعيل (لازم النت يكون شغّال مرة وحدة)\n\n⚠️ الكود بيشتغل مرة وحدة، وبس على حسابك وعلى جهاز المحل.\n\nشكرًا لثقتك 🌟\nشركة أبو عمر الغزاوي`}
 function newCodeSheet(pre={}){
   const P=prices(), plan=pre.plan||'m1';
-  open(`${head('أكواد تفعيل جديدة')}
+  open(`${head('كود تفعيل جديد')}
+  <label>رقم حساب الزبون<input id="ncAcct" class="num" inputmode="numeric" maxlength="6" value="${esc(pre.acct||'')}" placeholder="6 أرقام، بيلاقيه الزبون بصفحة الاشتراك"></label>
+  <div id="ncWho" style="font-size:14px;margin-top:-4px;min-height:20px"></div>
+  <label>اسم صاحب السوبر ماركت<input id="ncOwner" value="${esc(pre.owner||'')}" placeholder="الاسم الكامل"></label>
   <div class="plans">${PLAN_ORDER.map(p=>`<button class="plan" data-a="pickPlan" data-p="${p}" aria-pressed="${p===plan}">${PLAN_NAME[p]}<small>${P[p]} ₪</small></button>`).join('')}</div>
-  <div class="grid2"><label>السعر (₪)<input id="ncPrice" class="num" inputmode="decimal" value="${P[plan]}"></label><label>عدد الأكواد<input id="ncCount" class="num" inputmode="numeric" value="${pre.count||1}"></label></div>
-  <label>لمين؟ (اسم الزبون أو رقمه، اختياري)<input id="ncNote" value="${esc(pre.note||'')}" placeholder="مثلاً: سوبر ماركت الأمل 0599…"></label>
+  <label>السعر المدفوع (₪)<input id="ncPrice" class="num" inputmode="decimal" value="${P[plan]}"></label>
   <input type="hidden" id="ncPlan" value="${plan}">
-  <button class="btn gold block" data-a="genCodes">إنشاء</button>
-  <p style="font-size:13px;color:var(--muted)">كل كود بينفع لمحل واحد ومرة وحدة. لما الزبون يفعّله، بتنضاف المدة على اشتراكه الحالي.</p>`)}
-function codesResult(list,plan){
-  open(`${head('الأكواد جاهزة ✓')}
-  ${list.map(c=>`<div class="codebox"><span class="code">${c}</span><span style="display:flex;gap:6px"><button class="btn sm" data-a="copy" data-v="${c}">نسخ</button><a class="btn sm wa" href="https://wa.me/?text=${encodeURIComponent(codeMsg(c,plan))}" target="_blank" rel="noopener">واتساب</a></span></div>`).join('')}
-  ${list.length>1?`<button class="btn primary block" data-a="copy" data-v="${list.join('\n')}">نسخ كل الأكواد</button>`:''}
+  <button class="btn gold block" data-a="genCodes">إنشاء الكود</button>
+  <p style="font-size:13px;color:var(--muted)">الكود بيشتغل مرة وحدة بس، وعلى هذا الحساب بس، ومن الجهاز الأساسي للمحل. لو حدا ثاني جرّبه بيرفضه.</p>`);
+  if(pre.acct) lookupAcct()}
+let lkT=0;
+async function lookupAcct(){const v=($('#ncAcct')||{}).value||'', w=$('#ncWho'); if(!w) return; if(!/^\d{6}$/.test(v.trim())){w.textContent='';return}
+  try{const r=await call('acct?n='+v.trim()); w.innerHTML=`<span style="color:var(--ok)">✓ ${esc(r.shop.name||'')} · <span class="num">${esc(r.shop.phone)}</span></span>`; if(!$('#ncOwner').value&&r.shop.owner) $('#ncOwner').value=r.shop.owner}
+  catch(e){w.innerHTML=`<span style="color:var(--bad)">${esc(e.message)}</span>`}}
+function codesResult(r,plan){
+  open(`${head('الكود جاهز ✓')}
+  <div class="card" style="gap:0"><div class="kv"><span>صاحب المحل</span><span>${esc(r.owner)}</span></div><div class="kv"><span>رقم الحساب</span><span class="num">${r.acct}</span></div><div class="kv"><span>المحل</span><span>${esc(r.shop)}</span></div><div class="kv"><span>المدة</span><span>${planLabel(plan)}</span></div></div>
+  ${r.codes.map(c=>`<div class="codebox"><span class="code">${c}</span><span style="display:flex;gap:6px"><button class="btn sm" data-a="copy" data-v="${c}">نسخ</button></span></div>
+    <a class="btn wa block" href="https://wa.me/${waNum(r.phone)}?text=${encodeURIComponent(codeMsg(c,plan,r.owner,r.acct))}" target="_blank" rel="noopener">ابعته لـ${esc(r.owner)} على واتساب</a>`).join('')}
   <button class="btn block" data-a="close">تمام</button>`)}
 function shopSheet(id,kind){
   const s=D.shops.find(x=>x.id===id&&x.kind===kind); if(!s) return; const st=stateOf(s), P=prices();
@@ -232,14 +240,19 @@ function shopSheet(id,kind){
   open(`${head(esc(s.name||'محل'))}
   <div class="row">${pillOf(st)}${s.phone?`<a class="btn sm wa" href="https://wa.me/${waNum(s.phone)}" target="_blank" rel="noopener">واتساب</a>`:''}</div>
   <div class="card" style="gap:0">
+    ${s.acct?`<div class="kv"><span>رقم الحساب</span><span class="num" style="font-weight:700">${s.acct}</span></div>`:''}
+    ${s.owner?`<div class="kv"><span>صاحب المحل</span><span>${esc(s.owner)}</span></div>`:''}
     ${s.phone?`<div class="kv"><span>رقم الجوال</span><span class="num">${esc(s.phone)}</span></div>`:''}
+    ${s.kind==='shop'?`<div class="kv"><span>كلمة سر للحساب</span><span>${s.haspass?'محدّدة':'لسا'}</span></div>`:''}
     <div class="kv"><span>الاشتراك</span><span>${st.k==='visit'?'فتح التطبيق وما جهّز محله':st.k==='life'?'مفتوح، ما بينتهي':st.k==='trial'?'تجربة لغاية '+fday(st.exp):st.exp?(st.k==='over'?'انتهى ':st.k==='tover'?'خلصت التجربة ':'لغاية ')+fday(st.exp):'—'}</span></div>
     ${s.lic&&s.lic.plan?`<div class="kv"><span>آخر باقة</span><span>${planLabel(s.lic.plan)}</span></div>`:''}
     <div class="kv"><span>آخر ظهور</span><span>${ago(s.lastSeen)}</span></div>
     ${s.kind==='shop'?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div><div class="kv"><span>الأصناف</span><span class="num">${s.items}</span></div><div class="kv"><span>من</span><span>${fday(s.created)}</span></div>`:`<div class="kv"><span>النوع</span><span>${s.lic?'جهاز مفعّل بكود، بدون حساب سحابي':'جهاز بدون حساب سحابي'}</span></div><div class="kv"><span>أول مرة فتح</span><span>${fday(s.created)}</span></div>${s.sales?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div>`:''}`}
-    <div class="kv"><span>الأجهزة</span><span>${s.devices.map(d=>`${esc(d.label||'جهاز')}${d.main?' (أساسي)':''}`).join('، ')||'—'}</span></div>
-    <div class="kv"><span>رقم ${s.kind==='shop'?'الحساب':'الجهاز'}</span><span class="code" style="font-size:12px">${esc(s.id)}</span></div>
   </div>
+  ${s.dup&&s.dup.length?`<div class="card" style="background:#FDF1DC;border-color:#F0D49B;gap:4px"><b>⚠️ نفس الجوال جرّب بحساب ثاني</b><span style="font-size:13.5px">${s.dup.map(esc).join('، ')}. ممكن يكون نفس الشخص بيعيد التجربة المجانية برقم جديد.</span></div>`:''}
+  ${s.kind==='shop'?`<div class="card" style="gap:0"><h2 style="margin-bottom:6px">الأجهزة</h2>${s.devices.map(d=>`<div class="kv"><span>${esc(d.label||'جهاز')} <span class="code" style="font-size:11px">${esc(d.id)}</span>${d.last?' · '+ago(d.last):''}</span><span>${d.main?'<span class="pill ok">بيبيع</span>':`<button class="btn sm" data-a="move" data-id="${esc(s.id)}" data-dev="${esc(d.id)}">خلّيه هو اللي يبيع</button>`}</span></div>`).join('')}
+    <p style="font-size:12.5px;color:var(--muted);margin-top:6px">الحساب بيبيع من جهاز واحد بس. لو الزبون غيّر جواله، افتح التطبيق عنده بنفس الرقم وبعدين انقله من هون.</p></div>
+    <button class="btn gold block" data-a="codeFor" data-acct="${s.acct}" data-owner="${esc(s.owner||'')}">＋ كود تفعيل لهذا الحساب</button>`:''}
   <h2>تمديد الاشتراك</h2>
   <div class="plans">${PLAN_ORDER.map(p=>`<button class="plan" data-a="pickExt" data-p="${p}" aria-pressed="${p==='m1'}">${PLAN_NAME[p]}<small>${P[p]} ₪</small></button>`).join('')}</div>
   <input type="hidden" id="exPlan" value="m1">
@@ -258,7 +271,7 @@ function codeSheet(code){
     <div class="kv"><span>انعمل</span><span>${fday(c.created)}</span></div>${c.note?`<div class="kv"><span>لمين</span><span>${esc(c.note)}</span></div>`:''}
     <div class="kv"><span>الحالة</span><span>${{new:'جاهز للبيع',used:'مستعمل',void:'ملغي'}[c.status]}</span></div>
     ${c.status==='used'?`<div class="kv"><span>فعّله</span><span>${esc(c.used_label||'—')} · ${fday(c.used_at)}</span></div>`:''}</div>
-  ${c.status==='new'?`<a class="btn wa block" href="https://wa.me/?text=${encodeURIComponent(codeMsg(c.code,c.plan))}" target="_blank" rel="noopener">ابعته على واتساب</a><button class="btn danger block" data-a="voidCode" data-c="${esc(c.code)}">إلغاء الكود</button>`:''}`)}
+  ${c.status==='new'?`<a class="btn wa block" href="https://wa.me/?text=${encodeURIComponent(codeMsg(c.code,c.plan,c.owner,c.acct))}" target="_blank" rel="noopener">ابعته على واتساب</a><button class="btn danger block" data-a="voidCode" data-c="${esc(c.code)}">إلغاء الكود</button>`:''}`)}
 
 /* ---------- login ---------- */
 function showLogin(){close(); $('#app').innerHTML=`<div class="login"><div class="card"><img src="icons/icon-512.png" alt=""><h2 style="font-size:22px">لوحة مالك «كاشيرك الذكي»</h2>
@@ -278,9 +291,12 @@ const A={
   pickPlan(d){document.querySelectorAll('[data-a=pickPlan]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); $('#ncPlan').value=d.p; $('#ncPrice').value=prices()[d.p]},
   pickExt(d){document.querySelectorAll('[data-a=pickExt]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); $('#exPlan').value=d.p; $('#exPrice').value=prices()[d.p]},
   async genCodes(){const b=$('[data-a=genCodes]'); b.disabled=true; b.textContent='جاري الإنشاء…';
-    try{const plan=$('#ncPlan').value, r=await call('codes',{plan,count:+$('#ncCount').value||1,price:+$('#ncPrice').value||0,note:$('#ncNote').value});
-      await load(); codesResult(r.codes,plan)}catch(e){ if(e.message!=='login'){toast(e.message); b.disabled=false; b.textContent='إنشاء'} }},
+    try{const plan=$('#ncPlan').value, r=await call('codes',{plan,count:1,price:+$('#ncPrice').value||0,acct:$('#ncAcct').value.trim(),owner:$('#ncOwner').value.trim()});
+      await load(); codesResult(r,plan)}catch(e){ if(e.message!=='login'){toast(e.message); b.disabled=false; b.textContent='إنشاء الكود'} }},
   copy(d){copy(d.v)},
+  codeFor(d){newCodeSheet({acct:d.acct,owner:d.owner})},
+  async move(d){ if(!confirm('أكيد؟ الجهاز الحالي بيوقف بيع، وهذا الجهاز بيصير هو اللي يبيع.')) return;
+    try{await call('move',{id:d.id,device:d.dev}); await load(); shopSheet(d.id,'shop'); toast('✓ انتقل الحساب')}catch(e){toast(e.message)}},
   shop(d){shopSheet(d.id,d.k)}, code(d){codeSheet(d.c)},
   async voidCode(d){ if(!confirm('أكيد بدك تلغي الكود '+d.c+'؟')) return; try{await call('void',{code:d.c}); close(); await load(); toast('انلغى الكود')}catch(e){toast(e.message)}},
   async extend(d){const plan=$('#exPlan').value, price=+$('#exPrice').value||0, s=D.shops.find(x=>x.id===d.id);
@@ -299,7 +315,8 @@ const A={
 };
 document.addEventListener('click',e=>{const t=e.target.closest('[data-a]'); if(!t) return; if(t.id==='sheet'&&e.target!==t) return; const a=A[t.dataset.a]; if(a){e.preventDefault&&t.tagName!=='A'&&e.preventDefault(); a(t.dataset)}});
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet') close()});
-document.addEventListener('input',e=>{ if(e.target.id==='shopQ'){shopQ=e.target.value; const sh=D.shops.map(s=>({s,st:stateOf(s)})).filter(x=>{const q=shopQ.trim(); return inFilter(x.st)&&(!q||(x.s.name+' '+x.s.phone+' '+x.s.id).includes(q))}); $('#shopList').innerHTML=sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في نتائج</div>'}
+document.addEventListener('input',e=>{ if(e.target.id==='ncAcct'){clearTimeout(lkT); lkT=setTimeout(lookupAcct,350)}
+  if(e.target.id==='shopQ'){shopQ=e.target.value; const sh=D.shops.map(s=>({s,st:stateOf(s)})).filter(x=>{const q=shopQ.trim(); return inFilter(x.st)&&(!q||(x.s.name+' '+x.s.phone+' '+x.s.id+' '+(x.s.acct||'')+' '+(x.s.owner||'')).includes(q))}); $('#shopList').innerHTML=sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في نتائج</div>'}
   if(e.target.id==='codeQ'){codeQ=e.target.value; const pos=e.target.selectionStart; render(); const i=$('#codeQ'); i.focus(); i.setSelectionRange(pos,pos)} });
 document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP'||e.target.id==='lgE')) A.login() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });

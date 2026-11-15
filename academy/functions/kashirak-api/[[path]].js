@@ -60,7 +60,29 @@ async function ensure(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_lic (id TEXT PRIMARY KEY, exp INTEGER NOT NULL, plan TEXT, updated INTEGER NOT NULL, label TEXT, note TEXT)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_dev (id TEXT PRIMARY KEY, shop TEXT, phone TEXT, first INTEGER NOT NULL, last INTEGER NOT NULL, trial_end INTEGER, sales INTEGER, items INTEGER, ver TEXT, account TEXT)'),
   ]);
+  // columns added later: each ALTER fails harmlessly once the column exists
+  for (const q of [
+    'ALTER TABLE ksr_shops ADD COLUMN acct INTEGER', 'ALTER TABLE ksr_shops ADD COLUMN owner TEXT', 'ALTER TABLE ksr_shops ADD COLUMN trial_end INTEGER',
+    'ALTER TABLE ksr_shops ADD COLUMN fp TEXT', 'ALTER TABLE ksr_shops ADD COLUMN ip TEXT',
+    'ALTER TABLE ksr_codes ADD COLUMN acct INTEGER', 'ALTER TABLE ksr_codes ADD COLUMN owner TEXT',
+    'CREATE UNIQUE INDEX IF NOT EXISTS ksr_shops_acct ON ksr_shops (acct)',
+    'CREATE TABLE IF NOT EXISTS ksr_join (ip TEXT NOT NULL, t INTEGER NOT NULL)',
+  ]) { try { await env.DB.prepare(q).run(); } catch {} }
   ready = true;
+}
+const TRIAL_MS = 5 * 864e5;
+async function newAcct(env) {
+  for (let k = 0; k < 20; k++) {
+    const n = 100000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 900000);
+    if (!(await env.DB.prepare('SELECT 1 FROM ksr_shops WHERE acct = ?').bind(n).first())) return n;
+  }
+  throw new Error('ما قدرنا نطلّع رقم حساب');
+}
+async function ensureAcct(env, shop) { // shops from before account numbers get one the first time they are seen
+  if (shop.acct) return shop;
+  const n = await newAcct(env);
+  await env.DB.prepare('UPDATE ksr_shops SET acct = ?, trial_end = COALESCE(trial_end, ?) WHERE id = ? AND acct IS NULL').bind(n, (shop.created || nowMs()) + TRIAL_MS, shop.id).run();
+  return await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(shop.id).first();
 }
 async function secret(env) {
   const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('secret').first();
@@ -95,7 +117,7 @@ async function readShop(env, req) {
   if (!shop || shop.salt !== p.v) return null;
   return shop;
 }
-const pubShop = (s) => ({ id: s.id, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size });
+const pubShop = (s) => ({ id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
 async function seen(env, shop, device, label) {
   if (!device) return;
   let d = {}; try { d = JSON.parse(shop.devices || '{}'); } catch {}
@@ -136,6 +158,14 @@ async function signLicense(env, row) {
   const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await signKey(env), new TextEncoder().encode(payload)));
   return payload + '.' + b64uBytes(sig);
 }
+// the one certificate the app trusts: account + the ONE device allowed to sell + paid-until day + trial end
+async function signShop(env, shop) {
+  shop = await ensureAcct(env, shop);
+  const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('shop:' + shop.id).first();
+  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, e: L ? L.exp : -1, tr: shop.trial_end || 0, p: L ? (L.plan || '') : 'trial', i: Date.now() }));
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await signKey(env), new TextEncoder().encode(payload)));
+  return payload + '.' + b64uBytes(sig);
+}
 async function extendLic(env, id, days, plan, label) {
   const cur = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(id).first();
   const base = Math.max(todayDay(), cur ? cur.exp : 0);
@@ -173,6 +203,38 @@ export async function onRequest({ request, env, params }) {
   try {
     if (a === 'ping') return json({ ok: true, t: nowMs() });
 
+    // ----- first start on a device: every shop gets ONE account (by phone), bound to this device -----
+    if (a === 'join' && m === 'POST') {
+      const q = await body(request);
+      const phone = phoneOf(q.phone), device = clean(q.device, 40), owner = clean(q.owner, 60), name = clean(q.shop, 80), fp = clean(q.fp, 64);
+      if (phone.length < 9) return err('اكتب رقم جوال صحيح');
+      if (owner.length < 2) return err('اكتب اسم صاحب المحل');
+      if (!name) return err('اكتب اسم المحل');
+      if (!device) return err('رقم الجهاز ناقص');
+      let shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
+      if (shop) {
+        if (shop.main !== device) {
+          await seen(env, shop, device, clean(q.label, 60) + ' (طلب دخول)');
+          return err('هذا الرقم مسجّل على جهاز ثاني', 409, { code: 'other_device', acct: (await ensureAcct(env, shop)).acct, haspass: !!shop.hash });
+        }
+        await env.DB.prepare('UPDATE ksr_shops SET owner = COALESCE(owner, ?), name = COALESCE(name, ?) WHERE id = ?').bind(owner, name, shop.id).run();
+        shop = await ensureAcct(env, await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(shop.id).first());
+      } else {
+        const day = nowMs() - 864e5;
+        await env.DB.prepare('DELETE FROM ksr_join WHERE t < ?').bind(day).run();
+        const j = await env.DB.prepare('SELECT COUNT(*) AS n FROM ksr_join WHERE ip = ?').bind(ip).first();
+        if ((j && j.n) >= 25) return err('انعمل محلات كثير من نفس الشبكة اليوم. تواصل مع الدعم', 429);
+        const since = Number(q.since) || 0; // installs from before accounts keep their original trial start (never a longer trial)
+        const t0 = since > nowMs() - 180 * 864e5 && since < nowMs() ? since : nowMs();
+        const salt = randomHex(16), id = randomHex(10), acct = await newAcct(env);
+        await env.DB.prepare('INSERT INTO ksr_shops (id, phone, name, salt, hash, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip) VALUES (?, ?, ?, ?, \'\', ?, 0, 0, NULL, ?, ?, \'{}\', ?, ?, ?, ?, ?)')
+          .bind(id, phone, name, salt, device, nowMs(), JSON.stringify({ [device]: { label: clean(q.label, 60), first: nowMs(), last: nowMs() } }), acct, owner, t0 + TRIAL_MS, fp || null, ip).run();
+        await env.DB.prepare('INSERT INTO ksr_join (ip, t) VALUES (?, ?)').bind(ip, nowMs()).run();
+        shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(id).first();
+      }
+      return json({ token: await makeToken(env, shop), shop: pubShop(shop), license: await signShop(env, shop) });
+    }
+
     // ----- create a shop account -----
     if (a === 'register' && m === 'POST') {
       const q = await body(request);
@@ -181,12 +243,18 @@ export async function onRequest({ request, env, params }) {
       if (password.length < 6) return err('كلمة السر لازم تكون 6 أحرف أو أرقام على الأقل');
       if (!device) return err('رقم الجهاز ناقص');
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
-      const exists = await env.DB.prepare('SELECT id FROM ksr_shops WHERE phone = ?').bind(phone).first();
+      const exists = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
+      if (exists && !exists.hash && exists.main === device) { // the shop sets a password so it can open from other devices
+        const salt2 = randomHex(16);
+        await env.DB.prepare('UPDATE ksr_shops SET salt = ?, hash = ? WHERE id = ?').bind(salt2, await hashSecret(password, salt2), exists.id).run();
+        const sh2 = { ...exists, salt: salt2, hash: 'x' };
+        return json({ token: await makeToken(env, sh2), shop: pubShop(sh2) });
+      }
       if (exists) { await noteFail(env, ip); return err('هذا الرقم عليه حساب. ادخل بكلمة السر بدل إنشاء حساب جديد', 409); }
       const salt = randomHex(16);
-      const shop = { id: randomHex(10), phone, name: clean(q.name, 80), salt, hash: await hashSecret(password, salt), main: device, version: 0, size: 0, updated: null, created: nowMs() };
-      await env.DB.prepare('INSERT INTO ksr_shops (id, phone, name, salt, hash, main, version, size, updated, created, devices, meta) VALUES (?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?, ?)')
-        .bind(shop.id, phone, shop.name, salt, shop.hash, device, shop.created, JSON.stringify({ [device]: { label: clean(q.label, 60), first: nowMs(), last: nowMs() } }), '{}').run();
+      const shop = { id: randomHex(10), phone, name: clean(q.name, 80), salt, hash: await hashSecret(password, salt), main: device, version: 0, size: 0, updated: null, created: nowMs(), acct: await newAcct(env), owner: clean(q.owner, 60) || null, trial_end: nowMs() + TRIAL_MS };
+      await env.DB.prepare('INSERT INTO ksr_shops (id, phone, name, salt, hash, main, version, size, updated, created, devices, meta, acct, owner, trial_end, ip) VALUES (?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?, ?, ?, ?, ?, ?)')
+        .bind(shop.id, phone, shop.name, salt, shop.hash, device, shop.created, JSON.stringify({ [device]: { label: clean(q.label, 60), first: nowMs(), last: nowMs() } }), '{}', shop.acct, shop.owner, shop.trial_end, ip).run();
       // a subscription bought on this device before the account existed now belongs to the shop
       const dl = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('dev:' + device).first();
       if (dl) await env.DB.batch([
@@ -203,6 +271,7 @@ export async function onRequest({ request, env, params }) {
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
       const phone = phoneOf(q.phone);
       const shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
+      if (shop && !shop.hash) { await noteFail(env, ip); return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
       if (!shop || !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('رقم الجوال أو كلمة السر غلط', 401); }
       await seen(env, shop, clean(q.device, 40), q.label);
       return json({ token: await makeToken(env, shop), shop: pubShop(shop) });
@@ -214,43 +283,43 @@ export async function onRequest({ request, env, params }) {
       return json({ jwk: JSON.parse(r.v) });
     }
 
-    // ----- redeem an activation code (shop account if signed in, otherwise this device) -----
+    // ----- redeem an activation code: only on the shop's own main device, only if the code was made for this account -----
     if (a === 'redeem' && m === 'POST') {
       const q = await body(request);
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
       const code = normCode(q.code), device = clean(q.device, 40);
       if (!code) { await noteFail(env, ip); return err('الكود لازم يكون بالشكل KSR-XXXX-XXXX'); }
-      if (!device) return err('رقم الجهاز ناقص');
-      const shopRow = await readShop(env, request);
-      const target = shopRow ? 'shop:' + shopRow.id : 'dev:' + device;
+      let shopRow = await readShop(env, request);
+      if (!shopRow) return err('لازم المحل يكون مسجّل أول. افتح التطبيق وهو متصل بالنت', 401, { code: 'noacct' });
+      shopRow = await ensureAcct(env, shopRow);
+      if (!device || device !== shopRow.main) return err('التفعيل بيصير بس من الجهاز الأساسي للمحل', 403, { code: 'not_main' });
       const row = await env.DB.prepare('SELECT * FROM ksr_codes WHERE code = ?').bind(code).first();
       if (!row) { await noteFail(env, ip); return err('الكود غير صحيح', 404); }
       if (row.status === 'void') return err('هذا الكود ملغي. تواصل مع الدعم', 410);
+      if (row.acct && Number(row.acct) !== Number(shopRow.acct)) { await noteFail(env, ip); return err('هذا الكود مش لحسابك. الكود بيشتغل بس على رقم الحساب اللي انعمل إله', 403, { code: 'wrong_acct' }); }
+      const target = 'shop:' + shopRow.id;
       if (row.status === 'used' && row.used_for !== target) return err('هذا الكود مستعمل على محل ثاني', 409);
-      let lic;
-      if (row.status === 'used') lic = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(target).first();
-      else {
-        const label = shopRow ? (shopRow.name || shopRow.phone) : clean(q.shop || '', 80);
-        lic = await extendLic(env, target, row.days, row.plan, label);
-        await env.DB.prepare("UPDATE ksr_codes SET status = 'used', used_at = ?, used_for = ?, used_label = ? WHERE code = ?").bind(nowMs(), target, label || null, code).run();
+      if (row.status !== 'used') {
+        const label = shopRow.owner ? shopRow.owner + ' · ' + (shopRow.name || '') : (shopRow.name || shopRow.phone);
+        await extendLic(env, target, row.days, row.plan, label);
+        await env.DB.prepare("UPDATE ksr_codes SET status = 'used', used_at = ?, used_for = ?, used_label = ? WHERE code = ? AND status = 'new'").bind(nowMs(), target, label, code).run();
       }
-      return json({ license: await signLicense(env, lic), exp: lic.exp, plan: lic.plan });
+      const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(target).first();
+      return json({ license: await signShop(env, shopRow), exp: L ? L.exp : -1, plan: L ? L.plan : '' });
     }
 
-    // ----- latest licence for this shop / device (the app asks whenever it is online) -----
+    // ----- the app asks for its latest certificate whenever it is online (installs without an account just check in) -----
     if (a === 'license' && m === 'GET') {
       const shopRow = await readShop(env, request);
       const device = clean(url.searchParams.get('device') || '', 40);
-      if (device) { // every install checks in, so the owner sees trial shops too
+      if (device) {
         const sp = url.searchParams, t = nowMs();
-        await env.DB.prepare('INSERT INTO ksr_dev (id, shop, phone, first, last, trial_end, sales, items, ver, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET shop = excluded.shop, phone = COALESCE(excluded.phone, ksr_dev.phone), last = excluded.last, trial_end = excluded.trial_end, sales = excluded.sales, items = excluded.items, ver = excluded.ver, account = excluded.account')
-          .bind(device, clean(sp.get('shop') || '', 80) || null, clean(sp.get('phone') || '', 20) || null, t, t, parseInt(sp.get('trial'), 10) || null, parseInt(sp.get('sales'), 10) || 0, parseInt(sp.get('items'), 10) || 0, clean(sp.get('v') || '', 10) || null, shopRow ? shopRow.id : null).run().catch(() => {});
+        await env.DB.prepare('INSERT INTO ksr_dev (id, shop, phone, first, last, trial_end, sales, items, ver, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET shop = COALESCE(excluded.shop, ksr_dev.shop), phone = COALESCE(excluded.phone, ksr_dev.phone), last = excluded.last, sales = excluded.sales, items = excluded.items, ver = excluded.ver, account = COALESCE(excluded.account, ksr_dev.account)')
+          .bind(device, clean(sp.get('shop') || '', 80) || null, clean(sp.get('phone') || '', 20) || null, t, t, null, parseInt(sp.get('sales'), 10) || 0, parseInt(sp.get('items'), 10) || 0, clean(sp.get('v') || '', 10) || null, shopRow ? shopRow.id : null).run().catch(() => {});
+        if (shopRow) await seen(env, shopRow, device);
       }
-      const ids = []; if (shopRow) ids.push('shop:' + shopRow.id); if (device) ids.push('dev:' + device);
-      let best = null;
-      for (const id of ids) { const r = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(id).first(); if (r && (!best || r.exp > best.exp)) best = r; }
-      if (!best) return json({ license: null });
-      return json({ license: await signLicense(env, best), exp: best.exp, plan: best.plan });
+      if (!shopRow) return json({ license: null });
+      return json({ license: await signShop(env, shopRow), main: shopRow.main });
     }
 
     // ----- everything below needs a shop token -----
@@ -340,7 +409,7 @@ async function admin(env, request, b) {
 
   if (b === 'summary' && m === 'GET') {
     const [shopsR, licR, codesR, devR] = await Promise.all([
-      env.DB.prepare('SELECT id, phone, name, main, version, size, updated, created, devices, meta FROM ksr_shops ORDER BY COALESCE(updated, created) DESC LIMIT 2000').all(),
+      env.DB.prepare("SELECT id, phone, name, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip, (hash <> '') AS haspass FROM ksr_shops ORDER BY created DESC LIMIT 3000").all(),
       env.DB.prepare('SELECT * FROM ksr_lic').all(),
       env.DB.prepare('SELECT * FROM ksr_codes ORDER BY created DESC LIMIT 3000').all(),
       env.DB.prepare('SELECT * FROM ksr_dev ORDER BY last DESC LIMIT 3000').all(),
@@ -351,8 +420,11 @@ async function admin(env, request, b) {
       let d = {}, meta = {}; try { d = JSON.parse(s.devices || '{}'); } catch {} try { meta = JSON.parse(s.meta || '{}'); } catch {}
       const L = lic['shop:' + s.id];
       const lastSeen = Math.max(0, ...Object.values(d).map((x) => x.last || 0));
-      return { kind: 'shop', id: s.id, phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: meta.trialEnds || null, legacyExp: meta.lic || null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
+      return { kind: 'shop', id: s.id, acct: s.acct, owner: s.owner || '', haspass: !!s.haspass, fp: s.fp || '', phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: s.trial_end || meta.trialEnds || null, legacyExp: null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
     });
+    // same phone/browser fingerprint behind several accounts = probably the same person repeating the free trial
+    const fpN = {}; for (const s of shops) if (s.fp) fpN[s.fp] = (fpN[s.fp] || 0) + 1;
+    for (const s of shops) { s.dup = s.fp && fpN[s.fp] > 1 ? shops.filter((x) => x.fp === s.fp && x.id !== s.id).map((x) => x.acct + ' ' + (x.owner || x.name)).slice(0, 4) : []; }
     // installs without a shop account (trial, or activated with a code on this device only)
     const inShop = new Set(); for (const s of shops) for (const d of s.devices) inShop.add(d.id);
     const devIds = new Set([...Object.keys(devs), ...(licR.results || []).filter((l) => l.id.startsWith('dev:')).map((l) => l.id.slice(4))]);
@@ -368,15 +440,33 @@ async function admin(env, request, b) {
     const plan = PLANS[q.plan] ? q.plan : null;
     const days = plan ? PLANS[plan][1] : Math.max(1, Math.min(3650, parseInt(q.days, 10) || 0));
     if (!plan && !q.days) return err('اختار مدة الكود');
-    const count = Math.max(1, Math.min(50, parseInt(q.count, 10) || 1));
-    const price = Math.max(0, Number(q.price) || 0), note = clean(q.note, 120), t = nowMs();
+    const acct = parseInt(q.acct, 10);
+    const sh = acct ? await env.DB.prepare('SELECT * FROM ksr_shops WHERE acct = ?').bind(acct).first() : null;
+    if (!sh) return err('رقم الحساب مش موجود. الزبون بيلاقيه بالتطبيق بصفحة التفعيل');
+    const owner = clean(q.owner, 60) || sh.owner || '';
+    if (owner.length < 2) return err('اكتب اسم صاحب المحل');
+    if (!sh.owner) await env.DB.prepare('UPDATE ksr_shops SET owner = ? WHERE id = ?').bind(owner, sh.id).run();
+    const count = Math.max(1, Math.min(5, parseInt(q.count, 10) || 1));
+    const price = Math.max(0, Number(q.price) || 0), note = clean(q.note, 120) || (owner + ' · ' + (sh.name || '')), t = nowMs();
     const out = [];
     for (let i = 0; i < count; i++) {
       let code; for (let k = 0; k < 5; k++) { code = newCode(); const ex = await env.DB.prepare('SELECT 1 FROM ksr_codes WHERE code = ?').bind(code).first(); if (!ex) break; }
-      await env.DB.prepare('INSERT INTO ksr_codes (code, plan, days, price, note, created, status, kind) VALUES (?, ?, ?, ?, ?, ?, \'new\', \'code\')').bind(code, plan || ('d' + days), days, price, note || null, t).run();
+      await env.DB.prepare('INSERT INTO ksr_codes (code, plan, days, price, note, created, status, kind, acct, owner) VALUES (?, ?, ?, ?, ?, ?, \'new\', \'code\', ?, ?)').bind(code, plan || ('d' + days), days, price, note || null, t, acct, owner).run();
       out.push(code);
     }
-    return json({ codes: out });
+    return json({ codes: out, acct, owner, shop: sh.name || '', phone: sh.phone });
+  }
+  if (b === 'acct' && m === 'GET') {
+    const url = new URL(request.url); const n = parseInt(url.searchParams.get('n'), 10);
+    const sh = n ? await env.DB.prepare('SELECT acct, owner, name, phone FROM ksr_shops WHERE acct = ?').bind(n).first() : null;
+    return sh ? json({ shop: sh }) : err('رقم الحساب مش موجود', 404);
+  }
+  if (b === 'move' && m === 'POST') { // the owner moves a shop to a new device (old one stops selling)
+    const sh = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(clean(q.id, 40)).first();
+    const dev = clean(q.device, 40);
+    if (!sh || !dev) return err('بيانات ناقصة');
+    await env.DB.prepare('UPDATE ksr_shops SET main = ? WHERE id = ?').bind(dev, sh.id).run();
+    return json({ ok: true });
   }
   if (b === 'void' && m === 'POST') {
     const code = normCode(q.code);
