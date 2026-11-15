@@ -58,6 +58,21 @@ header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F7F1E1;
 header h1{font-family:var(--display);font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
 header h1 b{color:#E6C878;font-weight:700}
 header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plantag{margin-top:3px;display:inline-flex;align-items:center;gap:5px;max-width:100%;border:1px solid rgba(230,200,120,.55);background:rgba(230,200,120,.14);color:#F3DC9A;font:inherit;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plantag.life{background:linear-gradient(180deg,#FFE7A6,#D7A845);color:#2a1c04;border-color:transparent}
+.plantag.trial{color:#CFE2FF;border-color:rgba(160,195,255,.5);background:rgba(120,160,255,.14)}
+.plantag.over{color:#FFC9C9;border-color:rgba(255,140,140,.55);background:rgba(255,90,90,.16)}
+#celeb{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(6,16,31,.72);backdrop-filter:blur(3px);padding:22px;animation:cfade .25s ease-out}
+#celeb .cbox{position:relative;width:100%;max-width:380px;background:linear-gradient(160deg,#18407a,#0B1F3A 60%,#06111F);border:1.5px solid #E6C878;border-radius:28px;padding:30px 22px 22px;text-align:center;color:#F7F1E1;box-shadow:0 20px 60px rgba(0,0,0,.5);animation:cpop .45s cubic-bezier(.2,1.4,.4,1)}
+#celeb .cic{width:92px;height:92px;margin:-74px auto 10px;border-radius:50%;display:grid;place-items:center;font-size:48px;background:radial-gradient(circle at 35% 30%,#FFF1C6,#E6B24A 70%);box-shadow:0 10px 30px rgba(230,178,74,.55),0 0 0 6px rgba(230,200,120,.25)}
+#celeb h2{font-family:var(--display);font-size:27px;margin:4px 0;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
+#celeb p{margin:6px 0;color:#D5DDEA;line-height:1.7}
+#celeb .cplan{margin:14px 0 6px;padding:14px;border-radius:18px;background:rgba(230,200,120,.12);border:1px solid rgba(230,200,120,.45)}
+#celeb .cplan b{display:block;font-size:22px;color:#F3DC9A}
+#celeb .btn{margin-top:14px;width:100%}
+#celeb i{position:absolute;top:-10px;width:9px;height:14px;border-radius:2px;opacity:.95;animation:cfall linear forwards}
+@keyframes cfade{from{opacity:0}to{opacity:1}}@keyframes cpop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes cfall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
 .modebtn{background:rgba(255,255,255,.08);color:#F7F1E1;border:1px solid rgba(230,200,120,.6);border-radius:999px;padding:5px 12px;font-size:12px;cursor:pointer;white-space:nowrap}
 main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
 nav{display:grid;grid-template-columns:repeat(6,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
@@ -245,7 +260,7 @@ main{padding-bottom:44px}
 <body>
 <div class="app">
   <header>
-    <div class="brand"><span id="hdrLogo"></span><div style="min-width:0"><h1>كاشيرك <b>الذكي</b></h1><div class="sub" id="today"></div></div></div>
+    <div class="brand"><span id="hdrLogo"></span><div style="min-width:0"><h1>كاشيرك <b>الذكي</b></h1><div class="sub" id="today"></div><button class="plantag" id="planTag" data-act="license" hidden></button></div></div>
     <button class="cloudbtn" id="cloudBtn" data-act="cloudSheet" hidden aria-label="حساب المحل على السحابة"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/></svg><i></i></button>
     <button class="modebtn" id="modeBtn" data-act="mode"></button>
   </header>
@@ -388,13 +403,13 @@ async function licCheckStored(){ const was=JSON.stringify(status());
   LIC=S&&S.licTok?await licVerify(S.licTok):null;
   if(S){ S.licExp=LIC&&LIC.e>=0?LIC.e:null; S.licPlan=LIC?LIC.p:null; delete S.licLegacy; persist() }
   LICREADY=true; if(JSON.stringify(status())!==was) render(); expGate() }
-async function licApply(tok){const o=await licVerify(tok); if(!o) return false; LIC=o; S.licTok=tok; S.licExp=o.e>=0?o.e:null; S.licPlan=o.p; if(CL&&o.a&&CL.acct!==o.a){CL.acct=o.a;clSave()} persist(); EXPSNAP=null; render(); return o}
+async function licApply(tok){const o=await licVerify(tok); if(!o) return false; const prevE=LIC?LIC.e:(S&&S.licExp!=null?S.licExp:-1), grew=o.e>prevE&&o.e>=dayNum(Date.now())&&!isViewer(); LIC=o; S.licTok=tok; S.licExp=o.e>=0?o.e:null; S.licPlan=o.p; if(CL&&o.a&&CL.acct!==o.a){CL.acct=o.a;clSave()} persist(); EXPSNAP=null; render(); if(grew) setTimeout(()=>celebrate(o),150); return o}
 async function licRefresh(){ if(!navigator.onLine) return;
   if(!S||!linked()){ api('/license?'+new URLSearchParams({device:devInfo().id,v:APPVER,shop:S&&S.shop||'',phone:S&&S.phone||''})).catch(()=>{}); return }
   try{ const q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q);
     if(r&&r.license&&(!LIC||licKey(r.license)!==licKey(S.licTok))) await licApply(r.license); expGate() }catch(e){ if(e.status===401) cloudSignedOut() } }
 const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return [o.t,o.id,o.d,o.e,o.tr].join(':')}catch(e){return ''}};
-const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||'';
+const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||(/^d\d+$/.test(p||'')?p.slice(1)+' يوم':'');
 
 const LOGO=(id)=>`<img class="lg3d" src="icons/logo-3d-256.png" alt="" width="256" height="256" decoding="async">`;
 function devInfo(){
@@ -414,6 +429,23 @@ function status(){
   const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id;
   return {...base,active:now<end&&(mine||isViewer()),paid,daysLeft:Math.ceil((end-now)/DAY),end,why:!mine&&!isViewer()?'moved':(paid?'paid':'trial')};
 }
+function planTagUI(){ const t=$('#planTag'); if(!t) return; if(!S||!LICREADY||!linked()||!LIC){t.hidden=true;return}
+  const st=status(), sd=d=>new Date(d).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short',year:'numeric'});
+  let cls='', txt;
+  if(!st.active&&!isViewer()){cls='over'; txt=st.paid?'⛔ انتهى الاشتراك · جدّد الآن':'⛔ انتهت التجربة · اشترك الآن'}
+  else if(st.paid&&S.licExp>=LIC_LIFE){cls='life'; txt='⭐ اشتراك مفتوح'}
+  else if(st.paid){txt=`⭐ ${planName(S.licPlan)||'مشترك'} · لغاية ${sd(dayTs(LIC.e))}`}
+  else {cls='trial'; txt=`🎁 تجربة مجانية · باقي ${Math.max(0,st.daysLeft)} يوم`}
+  t.className='plantag '+cls; t.textContent=txt; t.hidden=false}
+function celebrate(o){ const life=o.e>=LIC_LIFE, end=fday(dayTs(o.e)), pn=planName(o.p);
+  const old=$('#celeb'); if(old) old.remove(); const d=document.createElement('div'); d.id='celeb';
+  const cols=['#F0CF7A','#25D366','#5AA9FF','#FF7A7A','#FFFFFF','#C7962F'];
+  d.innerHTML=Array.from({length:46},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%cols.length]};animation-duration:${2.2+Math.random()*2.2}s;animation-delay:${Math.random()*.8}s;transform:rotate(${Math.random()*180}deg)"></i>`).join('')+
+   `<div class="cbox"><div class="cic">🎉</div><h2>مبروك!</h2><p>تم تفعيل اشتراكك في «كاشيرك الذكي» بنجاح</p>
+    <div class="cplan">${life?'<span>نوع الاشتراك</span><b>⭐ اشتراك مفتوح</b><span>ما بينتهي أبدًا</span>':`<span>مدة الاشتراك</span><b>${pn||'اشتراك مفعّل'}</b><span>لغاية ${end}</span>`}</div>
+    <p style="font-size:13.5px">شكرًا لثقتك 🌟 · شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</p>
+    <button class="btn accent big" data-act="celebOk">يلا نبيع</button></div>`;
+  document.body.appendChild(d); try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){} try{beep(true)}catch(e){} }
 function needActive(){const st=status(); if(st.active) return true; expiredSheet(); return false}
 const expiredSheet=()=>subSheet();
 let EXPSNAP=null;
@@ -442,7 +474,7 @@ function subSheet(){ if(!S) return; const st=status(); setTimeout(()=>{const bx=
   if(!st.active) return openSheet(`<div class="exphd"><div class="expic">⏰</div><h2>${st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</h2><p>خلص وقتك. عشان ترجع تبيع وتضيف بيانات، اشترك الآن.<br><b>بياناتك كلها محفوظة</b> وبترجع تشتغل من نفس المكان.</p></div>
     ${acct}${wa}${code}<button class="btn block" data-act="close">بس بدي أتفرّج على بياناتي</button>`,true);
   openSheet(`${sheetHead('الاشتراك')}${acct}<div class="list"><div class="li"><span>الحالة</span><span class="pill ${st.paid?'ok':'warn'}">${st.paid?(S.licPlan?'مشترك · '+planName(S.licPlan):'مشترك'):'تجربة مجانية'}</span></div>
-    <div class="li"><span>ينتهي في</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)+' · باقي <span class="num">'+st.daysLeft+'</span> يوم'}</span></div></div>${wa}${code}`)}
+    <div class="li"><span>ينتهي في</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.paid?dayTs(LIC.e):st.end)+' · باقي <span class="num">'+st.daysLeft+'</span> يوم'}</span></div></div>${wa}${code}`)}
 async function devFp(){ try{ const c=document.createElement('canvas'); c.width=220; c.height=40; const x=c.getContext('2d'); x.textBaseline='top'; x.font='16px Arial'; x.fillStyle='#f60'; x.fillRect(10,5,90,20); x.fillStyle='#069'; x.fillText('كاشيرك ksr 2026 😀',2,12);
   const raw=[navigator.userAgent,screen.width+'x'+screen.height,devicePixelRatio,Intl.DateTimeFormat().resolvedOptions().timeZone,navigator.language,navigator.hardwareConcurrency,navigator.deviceMemory,c.toDataURL()].join('|');
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw)))].slice(0,16).map(b=>b.toString(16).padStart(2,'0')).join('') }catch(e){return ''}}
@@ -1234,6 +1266,7 @@ function render(){
   norm(S); if(tab==='staff') facePrewarm();
   $('.app>header').hidden=false; $('#nav').hidden=false; $('#hdrLogo').innerHTML=LOGO('h');
   $('#today').textContent=S.shop+' · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
+  planTagUI();
   $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير'; setCloudUI();
   $('#view').innerHTML=V[tab]();
   $('#nav').innerHTML=TABS.map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&sub==='rep'))?'aria-current="page"':''}><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg></span>${v}</button>`).join('')
@@ -1883,6 +1916,7 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+celebOk(){const c=$('#celeb'); if(c) c.remove()},
 joinGo(){joinRun(true)},
 async subRetry(){const b=$('[data-act=subRetry]'); if(b){b.disabled=true;b.textContent='جاري التحقق…'} await licRefresh(); closeSheet(); expGate(); if(status().active) toast('✓ تمام')},
 async activate(){const v=$('#licIn').value.trim(), btn=$('[data-act=activate]'); if(!v){toast('اكتب كود التفعيل');return}
@@ -1891,7 +1925,7 @@ async activate(){const v=$('#licIn').value.trim(), btn=$('[data-act=activate]');
   btn.disabled=true; btn.textContent='جاري التفعيل…';
   try{ const r=await api('/redeem',{method:'POST',body:{code:v,device:devInfo().id}}); const o=await licApply(r.license);
     if(!o) throw new Error('شهادة التفعيل مش صحيحة. تواصل مع الدعم');
-    audit('تفعيل الاشتراك بكود '+v.toUpperCase()); closeSheet(); render(); toast(o.e>=LIC_LIFE?'✓ تم التفعيل: اشتراك مفتوح':'✓ تم التفعيل لغاية '+fday(dayTs(o.e)));
+    audit('تفعيل الاشتراك بكود '+v.toUpperCase()); save(); closeSheet(); render();
   }catch(e){toast(e.message); if(e.status===401) cloudSignedOut(); btn.disabled=false; btn.textContent='تفعيل'}},
 printSale(d){const s=S.sales.find(x=>x.id===+d.id), img=s&&receiptImage(s); if(!img){toast('تعذّر تجهيز الإيصال');return}
   $('#printArea').innerHTML=`<img src="${img}" alt="">`; setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا، جرّب طابعة البلوتوث')}},150)},
@@ -1916,7 +1950,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 };
 
 const VIEW_OK=new Set(['go','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
-const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
+const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
@@ -1982,7 +2016,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115183840'; let UPD=false;
+const BUILD='20261115185507'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
