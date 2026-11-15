@@ -419,10 +419,11 @@ function expMayKeep(){ if(!LICREADY||!S||isViewer()||status().active){EXPSNAP=nu
   if(EXPSNAP==null){EXPSNAP=stripLocal(S);return true}
   if(stripLocal(S)===EXPSNAP) return true;
   const keep={};LOCALF.forEach(k=>keep[k]=S[k]); S=norm(JSON.parse(EXPSNAP)); Object.assign(S,keep); persist(); setTimeout(()=>{render();subSheet()},0); return false}
-function expGate(){ if(!S||!LICREADY) return; if(isViewer()||status().active){EXPSNAP=null;return}
-  if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!document.querySelector('#sheet.open')) subSheet()}
+function expGate(){ if(!S||!LICREADY) return; const open=document.querySelector('#sheet.open'), sub=open&&$('#sheetBox').dataset.sub;
+  if(isViewer()||status().active){EXPSNAP=null; if(sub) closeSheet(); return}
+  if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!open||sub) subSheet()}
 function waMsg(){const st=status(); return `مرحبًا، بدي ${st.why==='paid'?'أجدّد':'أشترك في'} «كاشيرك الذكي».\nاسم صاحب المحل: ${CL&&CL.owner||S.owner||''}\nاسم المحل: ${S.shop}\nرقم الحساب: ${st.acct||'—'}\nرقم الجوال: ${CL&&CL.phone||S.phone||''}`}
-function subSheet(){ if(!S) return; const st=status();
+function subSheet(){ if(!S) return; const st=status(); setTimeout(()=>{const bx=$('#sheetBox'); if(bx&&$('#sheet.open')&&bx.querySelector('[data-act=activate],[data-act=joinGo],[data-act=subRetry],[data-act=cloudTake]')) bx.dataset.sub='1'},0);
   const wa=`<a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
   const code=`<label for="licIn">عندك كود تفعيل؟<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
     <button class="btn primary block" data-act="activate">تفعيل</button><p class="muted" style="margin:0;font-size:13px">الكود بيشتغل بس على رقم حسابك وعلى هذا الجهاز. التفعيل بدّه نت مرة وحدة.</p>`;
@@ -914,7 +915,7 @@ function receive(it,qty,cost){ /* weighted average cost */
 let iq='', tab='home', carts=[0,1,2].map(()=>newCart()), ci=0, period='today', sub='menu', q='';
 const cart=()=>carts[ci];
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400)}
-function openSheet(html){$('#sheetBox').innerHTML=html;$('#sheet').classList.add('open')}
+function openSheet(html){const bx=$('#sheetBox'); delete bx.dataset.sub; bx.innerHTML=html;$('#sheet').classList.add('open')}
 function closeSheet(){$('#sheet').classList.remove('open'); if(typeof CAM!=='undefined'&&CAM.stream){camStop(); setTimeout(syncLive,50)} if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
 const sheetHead=(t,act='close')=>`<div class="row"><h2>${esc(t)}</h2><button class="btn sm" data-act="${act}">إغلاق</button></div>`;
 const stat=(l,v)=>`<div class="li"><span>${l}</span>${v}</div>`;
@@ -1726,14 +1727,14 @@ cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
 async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'main';
   const btn=$('[data-act=cloudLoginGo]'); btn.disabled=true; btn.textContent='جاري الدخول…';
   try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel()}});
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,ver:-1,last:r.shop.updated,nopass:false}; clSave(); upSet({}); setTimeout(licRefresh,2500);
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,ver:-1,last:r.shop.updated,nopass:false}; clSave(); upSet({});
     if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; clSave()}
     btn.textContent='جاري استرجاع المحل…';
     const st=await api('/state?have=-1&device='+devInfo().id);
     if(st.data){applyRemote(await gunz(st.data),st.shop.version,st.shop.updated)}
     else if(S&&isMain()){CL.ver=0;clSave();await cloudPush()}
     else {toast('الحساب فاضي. اعمل المحل من الجهاز الأساسي أول'); CL=null; clSave(); btn.disabled=false; btn.textContent='دخول'; return}
-    CLS.state='ok'; closeSheet(); tab='home'; render(); toast(isMain()?'✓ رجعت بيانات المحل، وهذا الجهاز صار الأساسي':'✓ هذا الجهاز صار يتابع المحل'); cloudPullBlobs();
+    CLS.state='ok'; closeSheet(); tab='home'; await licRefresh(); render(); toast(isMain()?'✓ رجعت بيانات المحل، وهذا الجهاز صار الأساسي':'✓ هذا الجهاز صار يتابع المحل'); cloudPullBlobs();
   }catch(e){toast(e.message); btn.disabled=false; btn.textContent='دخول'}},
 cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
   <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
