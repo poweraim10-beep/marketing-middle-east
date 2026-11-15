@@ -70,6 +70,8 @@ async function ensure(env) {
     'CREATE TABLE IF NOT EXISTS ksr_hist (shop TEXT NOT NULL, ver INTEGER NOT NULL, t INTEGER NOT NULL, size INTEGER NOT NULL, meta TEXT, why TEXT, PRIMARY KEY (shop, ver))',
     'CREATE TABLE IF NOT EXISTS ksr_hist_chunks (shop TEXT NOT NULL, ver INTEGER NOT NULL, i INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, ver, i))',
     'ALTER TABLE ksr_shops ADD COLUMN restored INTEGER',
+    'CREATE TABLE IF NOT EXISTS ksr_sig (shop TEXT NOT NULL, k TEXT NOT NULL, v TEXT, t INTEGER NOT NULL, PRIMARY KEY (shop, k))',
+    'CREATE TABLE IF NOT EXISTS ksr_scans (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, t INTEGER NOT NULL)',
   ]) { try { await env.DB.prepare(q).run(); } catch {} }
   ready = true;
 }
@@ -399,6 +401,33 @@ export async function onRequest({ request, env, params }) {
       const salt = randomHex(16);
       await env.DB.prepare('UPDATE ksr_shops SET salt = ?, hash = ? WHERE id = ?').bind(salt, await hashSecret(String(q.password), salt), shop.id).run();
       return json({ token: await makeToken(env, { ...shop, salt }) });
+    }
+
+    // ----- phone as a wireless scanner for the laptop: tiny pairing mailbox (WebRTC offer/answer) + fallback relay -----
+    if (a === 'sig' && m === 'POST') {
+      const q = await body(request); const k = q.k === 'offer' ? 'offer' : q.k === 'answer' ? 'answer' : null;
+      if (!k) return err('مفتاح غير معروف');
+      await env.DB.prepare('INSERT OR REPLACE INTO ksr_sig (shop, k, v, t) VALUES (?, ?, ?, ?)').bind(shop.id, k, String(q.v || '').slice(0, 20000), nowMs()).run();
+      return json({ ok: true });
+    }
+    if (a === 'sig' && m === 'GET') {
+      const k = url.searchParams.get('k') === 'answer' ? 'answer' : 'offer';
+      const r = await env.DB.prepare('SELECT v, t FROM ksr_sig WHERE shop = ? AND k = ?').bind(shop.id, k).first();
+      return json(r && r.v && nowMs() - r.t < 15 * 60e3 ? { v: r.v, t: r.t } : { v: null });
+    }
+    if (a === 'scan' && m === 'POST') {
+      const q = await body(request); const code = clean(q.code, 64);
+      if (!code) return err('الباركود فاضي');
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO ksr_scans (shop, code, t) VALUES (?, ?, ?)').bind(shop.id, code, nowMs()),
+        env.DB.prepare('DELETE FROM ksr_scans WHERE t < ?').bind(nowMs() - 10 * 60e3),
+      ]);
+      return json({ ok: true });
+    }
+    if (a === 'scans' && m === 'GET') {
+      const after = parseInt(url.searchParams.get('after') || '0', 10) || 0;
+      const r = await env.DB.prepare('SELECT id, code FROM ksr_scans WHERE shop = ? AND id > ? AND t > ? ORDER BY id LIMIT 20').bind(shop.id, after, nowMs() - 2 * 60e3).all();
+      return json({ list: r.results || [] });
     }
 
     if (a === 'blobs' && m === 'GET') {

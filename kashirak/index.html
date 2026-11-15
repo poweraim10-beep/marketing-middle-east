@@ -58,6 +58,21 @@ header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F7F1E1;
 header h1{font-family:var(--display);font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
 header h1 b{color:#E6C878;font-weight:700}
 header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#remOv{position:fixed;inset:0;z-index:160;background:#06111F;color:#F7F1E1;display:flex;flex-direction:column}
+#remOv .rhd{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:linear-gradient(135deg,#132D52,#0B1F3A);border-bottom:2px solid #C8A24A;font-size:18px}
+#remOv .rcam{position:relative;flex:none;height:46vh;background:#000;overflow:hidden}
+#remOv video{width:100%;height:100%;max-height:none;object-fit:cover;display:block;border-radius:0}
+#remOv .rhd .btn{background:rgba(255,255,255,.08);color:#F3DC9A;border-color:rgba(230,200,120,.5)}
+#remOv .aim{position:absolute;inset:18% 10%;border:3px solid #E6C878;border-radius:18px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+#remOv .aim i{position:absolute;left:6%;right:6%;top:50%;height:2px;background:#FF4D4D;box-shadow:0 0 10px #FF4D4D;animation:sweep 1.6s ease-in-out infinite alternate}
+#remFlash{position:absolute;top:14px;left:50%;transform:translateX(-50%);padding:8px 16px;border-radius:999px;font-weight:700;opacity:0;transition:opacity .15s;white-space:nowrap}
+#remFlash.show{opacity:1}#remFlash.ok{background:#1F9A55;color:#fff}#remFlash.bad{background:#D63B40;color:#fff}
+#remOv .rst{padding:12px 16px;text-align:center;font-weight:700;color:#F3DC9A}
+#remOv .rlist{flex:1;overflow:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+#remOv .rlist p{color:#C9D2E0;text-align:center;margin:8px 0}
+#remOv .ri{display:flex;justify-content:space-between;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(230,200,120,.25)}
+.rempill{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-radius:16px;background:#E3F4EA;color:#17713F;font-weight:700;border:1px solid #9BD7B1}
+.rembtn{border:1.5px dashed #C8A24A!important;background:#FFF9EA!important;color:#6b4d0e!important;font-weight:700}
 .plantag{margin-top:3px;display:inline-flex;align-items:center;gap:5px;max-width:100%;border:1px solid rgba(230,200,120,.55);background:rgba(230,200,120,.14);color:#F3DC9A;font:inherit;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plantag.life{background:linear-gradient(180deg,#FFE7A6,#D7A845);color:#2a1c04;border-color:transparent}
 .plantag.trial{color:#CFE2FF;border-color:rgba(160,195,255,.5);background:rgba(120,160,255,.14)}
@@ -498,6 +513,77 @@ function nagSheet(st){ const d=Math.max(1,st.daysLeft), used=Math.min(TRIAL_DAYS
    <div class="grid2"><button class="btn" data-act="license">عندي كود تفعيل</button><button class="btn" data-act="close">لاحقًا</button></div>`)}
 setTimeout(nagCheck,4000); setInterval(nagCheck,10*60e3);
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') setTimeout(nagCheck,2500) });
+
+/* ===== الجوال ماسح لاسلكي للابتوب =====
+   اللابتوب (الجهاز الأساسي) بيفتح قناة، والجوال (جهاز متابعة بنفس الحساب) بيتصل فيها مباشرة (WebRTC) عبر الواي فاي أو النت.
+   كل باركود بيقرأه الجوال بيروح فورًا لسلة اللابتوب. إذا الاتصال المباشر ما زبط، بنستعمل السيرفر كوسيط احتياطي. */
+const REM={role:null,pc:null,dc:null,st:'',after:0,relayT:null,pollT:null,last:'',lastT:0,sent:[],n:''};
+const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+const waitIce=pc=>new Promise(r=>{ if(pc.iceGatheringState==='complete') return r(); const t=setTimeout(r,2500); pc.addEventListener('icegatheringstatechange',()=>{ if(pc.iceGatheringState==='complete'){clearTimeout(t);r()} }) });
+function remClose(){ setTimeout(()=>{try{syncLive()}catch(e){}},50); clearInterval(REM.relayT); clearInterval(REM.pollT); try{REM.dc&&REM.dc.close()}catch(e){} try{REM.pc&&REM.pc.close()}catch(e){} if(REM.stream){REM.stream.getTracks().forEach(t=>t.stop()); REM.stream=null} clearInterval(REM.scanT); REM.role=null; REM.pc=REM.dc=null; REM.st=''; const o=$('#remOv'); if(o) o.remove(); render() }
+function remSetSt(t){ REM.st=t; const e=$('#remSt'); if(e) e.innerHTML=t; const b=$('#remPill'); if(b) b.innerHTML=remPill() }
+const remPill=()=>REM.role==='host'?`<span>📱 ${REM.dc&&REM.dc.readyState==='open'?'الجوال متصل كماسح ✓':REM.st||'بانتظار الجوال…'}</span><button class="btn sm" data-act="remStop">إيقاف</button>`:'';
+/* ---- اللابتوب ---- */
+async function remHost(){ if(REM.role) remClose(); REM.role='host'; REM.n=Math.random().toString(36).slice(2,10); REM.after=0; REM.after0=false;
+  openSheet(`${sheetHead('📱 استعمل الجوال كماسح باركود')}
+   <p style="margin:0">بدل ما تكتب أو تبحث عن الصنف على اللابتوب، صوّر الباركود بكاميرا الجوال، والصنف بينضاف هون لحاله.</p>
+   <div class="list">
+    <div class="li"><span><b>1.</b> على الجوال افتح التطبيق وادخل بنفس الحساب كـ«جهاز متابعة»</span></div>
+    <div class="li"><span><b>2.</b> على الجوال اضغط <b>«📷 ماسح للابتوب»</b> (فوق، بشريط المتابعة)</span></div>
+    <div class="li"><span><b>3.</b> وجّه الكاميرا على الباركود، وبيوصل للسلة هون فورًا ✓</span></div></div>
+   <div class="tile" style="text-align:center"><b id="remSt">جاري تجهيز الاتصال…</b></div>
+   <p class="muted" style="margin:0;font-size:13px">ملاحظات: الأسرع يكون الجوال واللابتوب على نفس الواي فاي. لازم النت شغّال على الجهازين، وخلّي شاشة الجوال مفتوحة وقت المسح. الاتصال بيضل شغّال طول ما هالصفحة مفتوحة على اللابتوب.</p>
+   <button class="btn block" data-act="remStop">إلغاء</button>`);
+  try{ const pc=REM.pc=new RTCPeerConnection(ICE), dc=REM.dc=pc.createDataChannel('scan');
+    dc.onopen=()=>{ remSetSt('✓ الجوال متصل. ابلّش امسح'); beep(true); try{stopLive()}catch(_){} syncLive(); toast('📱 الجوال صار ماسح للابتوب'); setTimeout(()=>{ if($('#remSt')) closeSheet(); render() },900) };
+    dc.onclose=()=>{ if(REM.role==='host'){ remSetSt('انقطع الجوال، بنستنى يرجع…'); render() } };
+    dc.onmessage=e=>{ try{const m=JSON.parse(e.data); if(m.code) remGot(m.code)}catch(_){} };
+    await pc.setLocalDescription(await pc.createOffer()); await waitIce(pc);
+    await api('/sig',{method:'POST',body:{k:'answer',v:''}});
+    await api('/sig',{method:'POST',body:{k:'offer',v:JSON.stringify({n:REM.n,sdp:pc.localDescription})}});
+    remSetSt('جاهز ✓ هلأ اضغط «ماسح للابتوب» على الجوال');
+    let tries=0; REM.pollT=setInterval(async()=>{ if(REM.role!=='host'||++tries>150){clearInterval(REM.pollT);return}
+      try{ const r=await api('/sig?k=answer'); if(r.v){ const a=JSON.parse(r.v); if(a.n===REM.n&&!pc.currentRemoteDescription){ clearInterval(REM.pollT); await pc.setRemoteDescription(a.sdp); remSetSt('جاري الاتصال بالجوال…') } } }catch(e){} },1500);
+  }catch(e){ remSetSt('الاتصال المباشر مش مدعوم هون، بنستعمل السيرفر') }
+  /* وسيط احتياطي عبر السيرفر: بيشتغل بس إذا الاتصال المباشر مش مفتوح */
+  REM.relayT=setInterval(async()=>{ if(REM.role!=='host'||(REM.dc&&REM.dc.readyState==='open')||document.hidden) return;
+    try{ const r=await api('/scans?after='+REM.after); for(const x of r.list){ REM.after=Math.max(REM.after,x.id); if(REM.after0) remGot(x.code) } REM.after0=true }catch(e){} },1500);
+}
+function remGot(code){ code=String(code).trim(); if(!code) return; if(code===REM.last&&Date.now()-REM.lastT<900) return; REM.last=code; REM.lastT=Date.now();
+  if(tab!=='sell'){tab='sell'} const op=document.querySelector('#sheet.open'); if(op&&$('#remSt')) closeSheet(); scan.target='sell'; onScan(code);
+  const it=S.items.find(i=>i.barcode===code); liveFlash(it?`📱 ${it.name}`:'📱 باركود غير مسجّل',!!it) }
+/* ---- الجوال ---- */
+async function remScan(){ if(REM.role) remClose(); REM.role='scanner'; REM.sent=[];
+  const ov=document.createElement('div'); ov.id='remOv';
+  ov.innerHTML=`<div class="rhd"><b>📷 ماسح للابتوب</b><button class="btn sm" data-act="remStop">إنهاء</button></div>
+   <div class="rcam"><video id="remVid" playsinline muted autoplay></video><div class="aim"><i></i></div><div id="remFlash"></div></div>
+   <div class="rst" id="remSt">جاري الاتصال باللابتوب…</div>
+   <div class="rlist" id="remList"><p>وجّه الكاميرا على باركود الصنف، وبيوصل لسلة اللابتوب فورًا.</p></div>`;
+  document.body.appendChild(ov);
+  try{ const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false}); REM.stream=st; const v=$('#remVid'); v.srcObject=st; try{await v.play()}catch(_){} }
+  catch(e){ remSetSt('اسمح للتطبيق باستخدام الكاميرا وجرّب مرة ثانية'); return }
+  try{ LIVE.det=LIVE.det||await detector(); if(!LIVE.det&&!LIVE.zx){ if(await loadZX()&&ZXing.MultiFormatReader) LIVE.zx=new ZXing.MultiFormatReader() } }catch(e){}
+  REM.scanT=setInterval(remTick,170);
+  try{ const r=await api('/sig?k=offer'); if(!r.v){ remSetSt('افتح على اللابتوب: البيع ← «📱 الجوال كماسح» وبعدين ارجع هون'); REM.relayOnly=true; return }
+    const o=JSON.parse(r.v), pc=REM.pc=new RTCPeerConnection(ICE);
+    pc.ondatachannel=e=>{ REM.dc=e.channel; REM.dc.onopen=()=>{ remSetSt('✓ متصل باللابتوب. امسح'); beep(true) }; REM.dc.onclose=()=>remSetSt('انقطع الاتصال المباشر، المسح بيكمّل عبر السيرفر') };
+    await pc.setRemoteDescription(o.sdp); await pc.setLocalDescription(await pc.createAnswer()); await waitIce(pc);
+    await api('/sig',{method:'POST',body:{k:'answer',v:JSON.stringify({n:o.n,sdp:pc.localDescription})}});
+    remSetSt('جاري الاتصال باللابتوب…');
+    setTimeout(()=>{ if(REM.role==='scanner'&&!(REM.dc&&REM.dc.readyState==='open')) remSetSt('✓ جاهز، المسح بيوصل عبر السيرفر') },6000);
+  }catch(e){ remSetSt('✓ جاهز، المسح بيوصل عبر السيرفر') } }
+async function remTick(){ if(REM.role!=='scanner'||REM.busy) return; const v=$('#remVid'); if(!v||v.readyState<2||!v.videoWidth) return; REM.busy=true;
+  try{ let code=null;
+    if(LIVE.det){const r=await LIVE.det.detect(v); if(r.length) code=r[0].rawValue}
+    else if(LIVE.zx){const c=REM.cv=REM.cv||document.createElement('canvas'), w=720, hh=Math.round(v.videoHeight*w/v.videoWidth); c.width=w; c.height=hh; c.getContext('2d').drawImage(v,0,0,w,hh);
+      try{code=LIVE.zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)))).getText()}catch(e){}}
+    if(code) remSend(code) }catch(e){} REM.busy=false }
+async function remSend(code){ code=String(code).trim(); if(code===REM.last&&Date.now()-REM.lastT<1300) return; REM.last=code; REM.lastT=Date.now();
+  const it=S&&S.items.find(i=>i.barcode===code); beep(!!it||true); try{navigator.vibrate&&navigator.vibrate(40)}catch(e){}
+  let ok=false; if(REM.dc&&REM.dc.readyState==='open'){ try{REM.dc.send(JSON.stringify({code})); ok=true}catch(e){} }
+  if(!ok){ try{ await api('/scan',{method:'POST',body:{code}}); ok=true }catch(e){ toast('ما انبعت: '+e.message) } }
+  const f=$('#remFlash'); if(f){ f.textContent=(ok?'✓ ':'✗ ')+(it?it.name:code); f.className='show '+(ok?'ok':'bad'); clearTimeout(remSend.t); remSend.t=setTimeout(()=>f.className='',900) }
+  if(ok){ REM.sent.unshift({code,name:it?it.name:'',t:Date.now()}); REM.sent=REM.sent.slice(0,8); const l=$('#remList'); if(l) l.innerHTML=REM.sent.map(x=>`<div class="ri"><span>${x.name?esc(x.name):'باركود'}</span><span class="num">${esc(x.code)}</span></div>`).join('') } }
 function celebrate(o){ const life=o.e>=LIC_LIFE, end=fday(dayTs(o.e)), pn=planName(o.p);
   const old=$('#celeb'); if(old) old.remove(); const d=document.createElement('div'); d.id='celeb';
   const cols=['#F0CF7A','#25D366','#5AA9FF','#FF7A7A','#FFFFFF','#C7962F'];
@@ -733,7 +819,7 @@ function setCloudUI(){
   if(!S||!linked()){b.hidden=true; if(bar) bar.hidden=true; return}
   b.hidden=false; const st=isViewer()?'view':(CLS.dirty&&CLS.state!=='sync'?'wait':CLS.state);
   b.dataset.st=st; b.title={ok:'محفوظ على السحابة',sync:'جاري الرفع…',wait:'بانتظار الرفع',off:'بدون نت: رح يرفع لما يرجع النت',err:'ما انرفع: '+CLS.err,view:'جهاز متابعة',idle:'السحابة'}[st]||'';
-  if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث من الجهاز الأساسي <span class="num">${CL.last?hm(CL.last):'—'}</span></span><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button>`}
+  if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث <span class="num">${CL.last?hm(CL.last):'—'}</span></span><span style="display:flex;gap:6px"><button class="btn sm accent" data-act="remScan">📷 ماسح للابتوب</button><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button></span>`}
 }
 function cloudCard(){
   if(!linked()) return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>
@@ -1066,6 +1152,7 @@ home(){
 sell(){
   const c=cart(), tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount), fee=appFeeOf(tt.total,c), gt=r2(tt.total+fee);
   return `
+  ${REM.role==='host'?`<div class="rempill" id="remPill">${remPill()}</div>`:(isMain()&&matchMedia('(pointer:fine)').matches&&innerWidth>=760?'<button class="btn block rembtn" data-act="remHost">📱 استعمل الجوال كماسح باركود للابتوب</button>':'')}
   <div class="seg">${carts.map((x,k)=>`<button data-act="cart" data-k="${k}" aria-pressed="${k===ci}">سلة ${k+1}${x.lines.length?` (${x.lines.length})`:''}</button>`).join('')}</div>
   <div class="card">
     <label for="q">إضافة صنف بالاسم
@@ -1376,7 +1463,7 @@ const LIVE={stream:null,timer:null,busy:false,starting:false,last:'',lastSeen:0,
 const liveMsg=t=>{const m=$('#liveMsg'); if(m) m.textContent=t};
 function syncLive(){
   const box=$('#live'); if(!box) return;
-  const show=!!S&&tab==='sell', on=show&&S.liveCam!==false&&!document.hidden&&!$('#scanSheet').classList.contains('open');
+  const show=!!S&&tab==='sell'&&REM.role!=='host', on=show&&S.liveCam!==false&&!document.hidden&&!$('#scanSheet').classList.contains('open');
   box.hidden=!show; box.classList.toggle('off',!!S&&S.liveCam===false);
   $('#liveToggle').textContent=S&&S.liveCam===false?'تشغيل الكاميرا':'إيقاف الكاميرا';
   if(S&&S.liveCam===false) liveMsg('الكاميرا موقفة. المسح بقارئ الباركود أو بالكتابة');
@@ -2011,6 +2098,9 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+remHost(){remHost()},
+remScan(){closeSheet(); remScan()},
+remStop(){closeSheet(); remClose(); toast('انتهى ربط الماسح')},
 devHelp(){ const pw=!(CL&&CL.nopass);
   openSheet(`${sheetHead('البيع من اللابتوب أو جهاز ثاني')}
    <p class="muted" style="margin:0">الحساب الواحد بيبيع من جهاز واحد بس (الجهاز الأساسي)، وباقي الأجهزة بتتابع. بتقدر تبدّل بينهم بأي وقت:</p>
@@ -2058,7 +2148,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
@@ -2125,7 +2215,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115204352'; let UPD=false;
+const BUILD='20261115205347'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
