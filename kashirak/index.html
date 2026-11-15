@@ -1,7 +1,15 @@
 <!DOCTYPE html>
+<!--
+  «كاشيرك الذكي» — © 2026 شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي (د. محمود أيمن نصرالله). جميع الحقوق محفوظة.
+  هذا البرنامج وتصميمه وشعاره وكوده ملك خاص لصاحبه. يُمنع نسخه أو تعديله أو إعادة بيعه أو نشره كليًا أو جزئيًا بدون إذن خطي من المالك.
+  Kashirak Smart — Copyright (c) 2026 Abu Omar Al-Ghazawi Advertising & Digital Marketing. All rights reserved. Unauthorized copying, modification or redistribution is prohibited.
+-->
+
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
+<meta name="author" content="شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي">
+<meta name="copyright" content="© 2026 شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي. جميع الحقوق محفوظة">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B1F3A">
 <meta name="description" content="كاشيرك الذكي: كاشير ومحاسبة ودفتر ديون للمحلات، يشتغل بدون إنترنت.">
@@ -447,6 +455,7 @@ async function restoreFromIdb(){ /* if the browser cleared localStorage, bring t
 /* ===== حساب المحل على السحابة: نسخة تلقائية + أجهزة متابعة =====
    جهاز واحد «أساسي» بيبيع وبيرفع نسخة من المحل كل ما يتغيّر إشي. أي جهاز ثاني بيدخل بنفس الحساب
    بيتابع المحل مباشرة (قراءة بس)، وبيقدر يصير هو الأساسي بكلمة السر. */
+const APPVER='1.8';
 const API=(()=>{try{return localStorage.getItem('kashirak-api')||'https://academy.marketingmiddleeast.com/kashirak-api'}catch(e){return 'https://academy.marketingmiddleeast.com/kashirak-api'}})();
 const CKEY='kashirak-cloud', UPKEY='kashirak-cloud-up';
 let CL=(()=>{try{return JSON.parse(localStorage.getItem(CKEY)||'null')}catch(e){return null}})();
@@ -1085,6 +1094,7 @@ more(){
       <details><summary class="muted">بدون ملفات: نسخ النص ولصقه</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       <textarea id="bk" rows="4" placeholder="الصق هنا نص نسخة سابقة"></textarea>
       <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>
+    <div class="card"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>
     <div class="card"><h2>الدعم</h2><p class="muted" style="margin:0">لأي مشكلة أو تجديد اشتراك تواصل معنا على واتساب.</p><a class="btn" href="https://wa.me/${SUPPORT_WA}" target="_blank" rel="noopener">واتساب الدعم <span class="num">+${SUPPORT_WA}</span></a></div>
     <div class="card"><h2>مسح كل البيانات</h2><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`;
   const from=period==='today'?sod():period==='week'?sod(Date.now()-6*DAY):sod(Date.now()-29*DAY), r=report(from);
