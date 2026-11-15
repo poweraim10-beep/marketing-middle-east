@@ -636,7 +636,7 @@ function cloudCard(){
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
-  if(isViewer()) cloudPull(); else if(CLS.tick%4===0) cloudPull(); if(isMain()&&CLS.dirty) cloudPush() },15000);
+  if(isViewer()) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(isMain()&&CLS.dirty) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
 window.addEventListener('online',()=>{ licRefresh(); if(isMain()) cloudPush(); else if(linked()) cloudPull() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()) cloudPull() });
