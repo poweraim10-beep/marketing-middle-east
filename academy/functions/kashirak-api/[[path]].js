@@ -13,7 +13,7 @@ const ACADEMY_OWNER = 'power.ai.m10@gmail.com';
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
-  'access-control-allow-headers': 'authorization, content-type',
+  'access-control-allow-headers': 'authorization, content-type, x-device',
   'access-control-max-age': '86400',
 };
 const json = (data, status = 200) =>
