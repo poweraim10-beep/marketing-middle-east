@@ -333,8 +333,8 @@ function eanSvg(c){
 /* internal codes use GS1 prefix 2 (restricted circulation, in-store use only) */
 function newInternalCode(){const d12='2'+String(S.nextCode++).padStart(11,'0');return d12+eanCheck(d12)}
 
-/* ---------- licensing: trial + activation codes (HMAC-SHA256, offline) ---------- */
-const LIC_SECRET='KSR-9f3b7c21-Gz-26-آمنة-a81d';
+/* ---------- licensing: trial + server-signed licences (ECDSA P-256). The app holds only the public key ---------- */
+const LIC_PUB={"kty":"EC","crv":"P-256","x":"0y7W4Bjkgscq8TmSGYim3wcj-UBAaO1iA_OSzGnSpOs","y":"63Ll5cTfTB82oVMkHw4rOcVM_m5CfdJzcHXvbb3GcXM"};
 const LIC_EPOCH=Date.UTC(2026,0,1), TRIAL_DAYS=5, SUPPORT_WA='970567686774';
 function sha256(bytes){
   const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
@@ -362,21 +362,30 @@ function hmac(key,msg){
 const B32='0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 function b32enc(bytes){let bits='';bytes.forEach(b=>bits+=b.toString(2).padStart(8,'0'));while(bits.length%5)bits+='0';let s='';for(let i=0;i<bits.length;i+=5)s+=B32[parseInt(bits.substr(i,5),2)];return s}
 function b32dec(s){let bits='';for(const c of s){const v=B32.indexOf(c);if(v<0)return null;bits+=v.toString(2).padStart(5,'0')}const out=[];for(let i=0;i+8<=bits.length;i+=8)out.push(parseInt(bits.substr(i,8),2));return out}
-function licCode(dev,expDay){
-  const sig=hmac(LIC_SECRET,`${dev}|${expDay}`);
-  const s=b32enc([expDay>>8,expDay&255,sig[0],sig[1],sig[2],sig[3],sig[4]]).slice(0,12);
-  return s.match(/.{4}/g).join('-');
-}
-function licCheck(dev,code){
-  const c=String(code||'').toUpperCase().replace(/[^0-9A-Z]/g,'').replace(/O/g,'0').replace(/[IL]/g,'1');
-  if(c.length!==12) return null;
-  const b=b32dec(c); if(!b||b.length<2) return null;
-  const expDay=(b[0]<<8)|b[1];
-  return licCode(dev,expDay).replace(/-/g,'')===c?expDay:null;
-}
 const dayNum=t=>Math.floor((t-LIC_EPOCH)/DAY);
 const dayTs=d=>LIC_EPOCH+d*DAY;
 const fday=t=>new Date(t).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'});
+const LIC_LIFE=29200, LEGACY_MAX=dayNum(Date.UTC(2027,11,31));
+const ub64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+let LICKEY=null;
+async function licVerify(tok){ try{
+  const [p,sig]=String(tok||'').split('.'); if(!p||!sig) return null;
+  LICKEY=LICKEY||await crypto.subtle.importKey('jwk',LIC_PUB,{name:'ECDSA',namedCurve:'P-256'},false,['verify']);
+  const ok=await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},LICKEY,ub64(sig),new TextEncoder().encode(p)); if(!ok) return null;
+  const o=JSON.parse(new TextDecoder().decode(ub64(p)));
+  if(o.t==='dev'&&o.id===devInfo().id) return o;
+  if(o.t==='shop'&&typeof CL!=='undefined'&&CL&&CL.shopId===o.id) return o;
+  return null }catch(e){return null}}
+/* عند التشغيل: الاشتراك بيعتمد بس على الشهادة الموقّعة. التفعيلات القديمة (قبل الشهادات) بتضل محترمة لحد نهاية 2027 */
+async function licCheckStored(){ if(!S) return; const before=S.licExp;
+  if(S.licTok){ const o=await licVerify(S.licTok); S.licExp=o?o.e:(S.licLegacy!=null?Math.min(S.licLegacy,LEGACY_MAX):null); S.licPlan=o?o.p:S.licPlan }
+  else if(S.licExp!=null){ if(S.licLegacy==null) S.licLegacy=S.licExp; S.licExp=Math.min(S.licLegacy,LEGACY_MAX) }
+  if(before!==S.licExp){persist(); render()}}
+async function licApply(tok){const o=await licVerify(tok); if(!o) return false; S.licTok=tok; S.licExp=o.e; S.licPlan=o.p; save(); render(); return o}
+async function licRefresh(){ if(!S||!navigator.onLine) return;
+  try{ const st=status(), q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',trial:String(Math.min(devInfo().ts,S.trialTs||Infinity)+TRIAL_DAYS*DAY),sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q); if(r&&r.license&&licKey(r.license)!==licKey(S.licTok)) await licApply(r.license) }catch(e){} }
+const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return o.t+':'+o.id+':'+o.e}catch(e){return ''}};
+const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||'';
 
 const LOGO=(id)=>`<img class="lg3d" src="icons/logo-3d-256.png" alt="" width="256" height="256" decoding="async">`;
 function devInfo(){
@@ -465,7 +474,7 @@ function clSave(){try{CL?localStorage.setItem(CKEY,JSON.stringify(CL)):localStor
 const linked=()=>!!(CL&&CL.token);
 const isMain=()=>linked()&&CL.main===devInfo().id;
 const isViewer=()=>linked()&&CL.main!==devInfo().id;
-const LOCALF=['mode','liveCam','sound'];
+const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','licLegacy'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
 function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
   if(!CLSNAP||stripLocal(S)===CLSNAP){persist();return false}
@@ -525,14 +534,14 @@ async function cloudPullBlobs(){
 function applyRemote(txt,ver,updated){
   const keep={}; if(S) LOCALF.forEach(k=>{if(S[k]!==undefined) keep[k]=S[k]});
   S=norm(JSON.parse(txt)); Object.assign(S,keep); if(!S.mode) S.mode='owner';
-  CLSNAP=stripLocal(S); CL.ver=ver; CL.last=updated; clSave(); persist();
+  CLSNAP=stripLocal(S); CL.ver=ver; CL.last=updated; clSave(); persist(); setTimeout(licCheckStored,0);
 }
 async function cloudPull(full){
   if(!linked()||CLS.busy) return; if(!navigator.onLine){CLS.state='off';setCloudUI();return}
   CLS.busy=true;
   try{
     const r=await api('/state?have='+(full?-1:(CL.ver||0))+'&device='+devInfo().id), sh=r.shop, was=isMain();
-    CL.name=sh.name; CL.mainLast=sh.updated;
+    CL.name=sh.name; CL.mainLast=sh.updated; if(sh.id&&!CL.shopId){CL.shopId=sh.id; clSave()}
     if(was&&sh.main!==devInfo().id){CLS.busy=false; await cloudLostMain(sh); return}
     CL.main=sh.main; clSave();
     if(r.data&&(!isMain()||full)){ applyRemote(await gunz(r.data),sh.version,sh.updated); if(!document.querySelector('#sheet.show')) render(); cloudPullBlobs() }
@@ -571,7 +580,8 @@ function cloudCard(){
     <button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button></div>`}
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
   if(isViewer()) cloudPull(); else if(CLS.tick%4===0) cloudPull(); if(isMain()&&CLS.dirty) cloudPush() },15000);
-window.addEventListener('online',()=>{ if(isMain()) cloudPush(); else if(linked()) cloudPull() });
+setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
+window.addEventListener('online',()=>{ licRefresh(); if(isMain()) cloudPush(); else if(linked()) cloudPull() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()) cloudPull() });
 /* scanner beep: short square tone like a supermarket scanner */
 let AC=null;
@@ -1086,7 +1096,8 @@ more(){
     ${(()=>{const st=status();return `<div class="card"><h2>الاشتراك</h2><div class="list">
       <div class="li"><span>رقم الجهاز</span><span class="code">${st.dev}</span></div>
       <div class="li"><span>الحالة</span><span class="pill ${st.active?'ok':'bad'}">${st.active?(st.paid?'مفعّل':'تجربة مجانية'):'منتهي'}</span></div>
-      <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${fday(st.end)}</span></div></div>
+      ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
+      <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
       <button class="btn primary" data-act="license">إدخال كود تفعيل</button></div>`})()}
     <div class="card"><h2>نسخة احتياطية</h2><p class="muted" style="margin:0">البيانات محفوظة على هذا الجهاز. نزّل نسخة كل أسبوع واحفظها على واتساب أو الدرايف، لأنه لو ضاع الجوال بتضيع البيانات.</p>
       <div class="grid2"><button class="btn primary" data-act="bkFile">تنزيل ملف نسخة</button><label class="btn" for="bkPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center;align-items:center">استرجاع من ملف</label></div>
@@ -1640,7 +1651,7 @@ async cloudNewGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, p
   if(pw!==pw2){toast('كلمتين السر مش متطابقات');return}
   const btn=$('[data-act=cloudNewGo]'); btn.disabled=true; btn.textContent='جاري الإنشاء…';
   try{const r=await api('/register',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}});
-    CL={token:r.token,phone:r.shop.phone,main:devInfo().id,ver:0,last:null}; clSave(); upSet({});
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,main:devInfo().id,ver:0,last:null}; clSave(); upSet({}); setTimeout(licRefresh,400);
     if(!S.trialTs) S.trialTs=devInfo().ts; if(!S.phone) S.phone=ph; audit('إنشاء حساب للمحل على السحابة'); persist();
     closeSheet(); render(); toast('انعمل الحساب. جاري رفع بيانات المحل…'); await cloudPush(); render();
     if(CLS.state==='ok') toast('✓ بيانات المحل محفوظة على السحابة');
@@ -1656,7 +1667,7 @@ cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
 async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'main';
   const btn=$('[data-act=cloudLoginGo]'); btn.disabled=true; btn.textContent='جاري الدخول…';
   try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel()}});
-    CL={token:r.token,phone:r.shop.phone,main:r.shop.main,ver:-1,last:r.shop.updated}; clSave(); upSet({});
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,main:r.shop.main,ver:-1,last:r.shop.updated}; clSave(); upSet({}); setTimeout(licRefresh,2500);
     if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; clSave()}
     btn.textContent='جاري استرجاع المحل…';
     const st=await api('/state?have=-1&device='+devInfo().id);
@@ -1798,14 +1809,18 @@ setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.trim(), p
   S=d.demo?Object.assign(seed(),{shop,pin,phone}):emptyState(shop,pin,phone); save(); tab=d.demo?'home':'items'; render(); toast(d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')},
 license(){const st=status(), msg=`مرحبًا، بدي أفعّل اشتراك كاشيرك الذكي.\nاسم المحل: ${S.shop}\nرقم الجهاز: ${st.dev}`;
   openSheet(`${sheetHead('تفعيل الاشتراك')}
-    <div class="tile hl"><div class="lbl">رقم الجهاز، ابعته للدعم</div><div class="val code" style="color:#E6C878">${st.dev}</div><div class="lbl">${st.active?(st.paid?'مفعّل':'تجربة')+' لغاية '+fday(st.end):'منتهي'}</div></div>
+    <div class="tile hl"><div class="lbl">رقم الجهاز، ابعته للدعم</div><div class="val code" style="color:#E6C878">${st.dev}</div><div class="lbl">${st.active?(st.paid?(S.licExp>=LIC_LIFE?'مفعّل · اشتراك مفتوح':'مفعّل لغاية '+fday(st.end)):'تجربة لغاية '+fday(st.end)):'منتهي'}</div></div>
     <a class="btn accent block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">اطلب كود التفعيل على واتساب</a>
-    <label for="licIn">كود التفعيل<input id="licIn" class="code" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters"></label>
+    <label for="licIn">كود التفعيل<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
+    <p class="muted" style="margin:0;font-size:13px">التفعيل بدّه نت مرة وحدة بس. بعدها التطبيق بيشتغل بدون نت لآخر الاشتراك.</p>
     <button class="btn primary block" data-act="activate">تفعيل</button>`)},
-activate(){const st=status(), exp=licCheck(st.dev,$('#licIn').value);
-  if(exp===null){toast('الكود غير صحيح لهذا الجهاز');return}
-  if(dayTs(exp+1)<=Math.max(Date.now(),devInfo().seen)){toast('هذا الكود منتهي');return}
-  S.licExp=Math.max(exp,S.licExp||0); save(); closeSheet(); render(); toast('تم التفعيل لغاية '+fday(dayTs(exp)))},
+async activate(){const v=$('#licIn').value.trim(), btn=$('[data-act=activate]'); if(!v){toast('اكتب كود التفعيل');return}
+  if(!navigator.onLine){toast('التفعيل بدّه نت مرة وحدة. شغّل النت وجرّب');return}
+  btn.disabled=true; btn.textContent='جاري التفعيل…';
+  try{ const r=await api('/redeem',{method:'POST',body:{code:v,device:devInfo().id,shop:S.shop}}); const o=await licApply(r.license);
+    if(!o) throw new Error('شهادة التفعيل مش صحيحة. تواصل مع الدعم');
+    audit('تفعيل الاشتراك بكود '+v.toUpperCase()); closeSheet(); render(); toast(o.e>=LIC_LIFE?'✓ تم التفعيل: اشتراك مفتوح':'✓ تم التفعيل لغاية '+fday(dayTs(o.e)));
+  }catch(e){toast(e.message); btn.disabled=false; btn.textContent='تفعيل'}},
 printSale(d){const s=S.sales.find(x=>x.id===+d.id), img=s&&receiptImage(s); if(!img){toast('تعذّر تجهيز الإيصال');return}
   $('#printArea').innerHTML=`<img src="${img}" alt="">`; setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا، جرّب طابعة البلوتوث')}},150)},
 async btPrint(d){const s=S.sales.find(x=>x.id===+d.id), cv=s&&receiptCanvas(s); if(!cv) return;
@@ -1891,7 +1906,7 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); route(); restoreFromIdb(); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
+load(); route(); restoreFromIdb(); setTimeout(()=>{licCheckStored().then(licRefresh)},600); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 </script>
 </body>

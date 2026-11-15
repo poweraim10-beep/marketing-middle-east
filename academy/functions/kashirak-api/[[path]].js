@@ -56,6 +56,9 @@ async function ensure(env) {
     env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_chunks (shop TEXT NOT NULL, i INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, i))'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_blobs (shop TEXT NOT NULL, id TEXT NOT NULL, data TEXT NOT NULL, t INTEGER NOT NULL, PRIMARY KEY (shop, id))'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_fail (ip TEXT NOT NULL, t INTEGER NOT NULL)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_codes (code TEXT PRIMARY KEY, plan TEXT NOT NULL, days INTEGER NOT NULL, price REAL NOT NULL DEFAULT 0, note TEXT, created INTEGER NOT NULL, status TEXT NOT NULL DEFAULT \'new\', used_at INTEGER, used_for TEXT, used_label TEXT, kind TEXT NOT NULL DEFAULT \'code\')'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_lic (id TEXT PRIMARY KEY, exp INTEGER NOT NULL, plan TEXT, updated INTEGER NOT NULL, label TEXT, note TEXT)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS ksr_dev (id TEXT PRIMARY KEY, shop TEXT, phone TEXT, first INTEGER NOT NULL, last INTEGER NOT NULL, trial_end INTEGER, sales INTEGER, items INTEGER, ver TEXT, account TEXT)'),
   ]);
   ready = true;
 }
@@ -106,6 +109,45 @@ async function readState(env, id) {
   const r = await env.DB.prepare('SELECT data FROM ksr_chunks WHERE shop = ? ORDER BY i').bind(id).all();
   return (r.results || []).map((x) => x.data).join('');
 }
+// ---------- licences: ECDSA P-256. The private key lives only in D1; the app embeds the public key ----------
+const LIC_EPOCH = Date.UTC(2026, 0, 1);
+const DAYMS = 864e5;
+const LIFETIME = 29200; // ~80 years, shown as «مفتوح»
+const todayDay = () => Math.floor((Date.now() - LIC_EPOCH) / DAYMS);
+const PLANS = { m1: ['شهر', 30], m2: ['شهرين', 60], m3: ['3 شهور', 90], m6: ['6 شهور', 182], y1: ['سنة', 365], life: ['مفتوح', 0] };
+const b64uBytes = (u8) => { let s = ''; for (const b of u8) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+async function signKey(env) {
+  let r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('sign_priv').first();
+  if (!r) {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    const priv = JSON.stringify(await crypto.subtle.exportKey('jwk', kp.privateKey));
+    const pub = JSON.stringify(await crypto.subtle.exportKey('jwk', kp.publicKey));
+    await env.DB.batch([
+      env.DB.prepare('INSERT OR IGNORE INTO ksr_kv (k, v) VALUES (?, ?)').bind('sign_priv', priv),
+      env.DB.prepare('INSERT OR IGNORE INTO ksr_kv (k, v) VALUES (?, ?)').bind('sign_pub', pub),
+    ]);
+    r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('sign_priv').first();
+  }
+  return crypto.subtle.importKey('jwk', JSON.parse(r.v), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+}
+async function signLicense(env, row) {
+  const [t, id] = row.id.split(':');
+  const payload = b64u(JSON.stringify({ t, id, e: row.exp, p: row.plan || '', i: Date.now() }));
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await signKey(env), new TextEncoder().encode(payload)));
+  return payload + '.' + b64uBytes(sig);
+}
+async function extendLic(env, id, days, plan, label) {
+  const cur = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(id).first();
+  const base = Math.max(todayDay(), cur ? cur.exp : 0);
+  const exp = days === 0 ? LIFETIME : Math.min(LIFETIME, (cur && cur.exp >= LIFETIME ? LIFETIME : base + days));
+  await env.DB.prepare('INSERT INTO ksr_lic (id, exp, plan, updated, label) VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET exp = excluded.exp, plan = excluded.plan, updated = excluded.updated, label = COALESCE(excluded.label, ksr_lic.label)')
+    .bind(id, exp, plan, nowMs(), label || null).run();
+  return { id, exp, plan };
+}
+const CODE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function newCode() { const b = crypto.getRandomValues(new Uint8Array(8)); let s = ''; for (const x of b) s += CODE_ABC[x % CODE_ABC.length]; return 'KSR-' + s.slice(0, 4) + '-' + s.slice(4); }
+const normCode = (c) => { const s = String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/^KSR/, ''); return s.length === 8 ? 'KSR-' + s.slice(0, 4) + '-' + s.slice(4) : ''; };
+
 async function isAcademyOwner(env, req) {
   const c = req.headers.get('cookie') || '';
   const m = c.match(/(?:^|;\s*)mme_s=([^;]+)/);
@@ -145,6 +187,13 @@ export async function onRequest({ request, env, params }) {
       const shop = { id: randomHex(10), phone, name: clean(q.name, 80), salt, hash: await hashSecret(password, salt), main: device, version: 0, size: 0, updated: null, created: nowMs() };
       await env.DB.prepare('INSERT INTO ksr_shops (id, phone, name, salt, hash, main, version, size, updated, created, devices, meta) VALUES (?, ?, ?, ?, ?, ?, 0, 0, NULL, ?, ?, ?)')
         .bind(shop.id, phone, shop.name, salt, shop.hash, device, shop.created, JSON.stringify({ [device]: { label: clean(q.label, 60), first: nowMs(), last: nowMs() } }), '{}').run();
+      // a subscription bought on this device before the account existed now belongs to the shop
+      const dl = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('dev:' + device).first();
+      if (dl) await env.DB.batch([
+        env.DB.prepare('INSERT OR REPLACE INTO ksr_lic (id, exp, plan, updated, label, note) VALUES (?, ?, ?, ?, ?, ?)').bind('shop:' + shop.id, dl.exp, dl.plan, nowMs(), shop.name || dl.label, dl.note),
+        env.DB.prepare('DELETE FROM ksr_lic WHERE id = ?').bind('dev:' + device),
+        env.DB.prepare('UPDATE ksr_codes SET used_for = ? WHERE used_for = ?').bind('shop:' + shop.id, 'dev:' + device),
+      ]);
       return json({ token: await makeToken(env, shop), shop: pubShop(shop) });
     }
 
@@ -157,6 +206,51 @@ export async function onRequest({ request, env, params }) {
       if (!shop || !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('رقم الجوال أو كلمة السر غلط', 401); }
       await seen(env, shop, clean(q.device, 40), q.label);
       return json({ token: await makeToken(env, shop), shop: pubShop(shop) });
+    }
+
+    if (a === 'pubkey') {
+      await signKey(env);
+      const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('sign_pub').first();
+      return json({ jwk: JSON.parse(r.v) });
+    }
+
+    // ----- redeem an activation code (shop account if signed in, otherwise this device) -----
+    if (a === 'redeem' && m === 'POST') {
+      const q = await body(request);
+      if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
+      const code = normCode(q.code), device = clean(q.device, 40);
+      if (!code) { await noteFail(env, ip); return err('الكود لازم يكون بالشكل KSR-XXXX-XXXX'); }
+      if (!device) return err('رقم الجهاز ناقص');
+      const shopRow = await readShop(env, request);
+      const target = shopRow ? 'shop:' + shopRow.id : 'dev:' + device;
+      const row = await env.DB.prepare('SELECT * FROM ksr_codes WHERE code = ?').bind(code).first();
+      if (!row) { await noteFail(env, ip); return err('الكود غير صحيح', 404); }
+      if (row.status === 'void') return err('هذا الكود ملغي. تواصل مع الدعم', 410);
+      if (row.status === 'used' && row.used_for !== target) return err('هذا الكود مستعمل على محل ثاني', 409);
+      let lic;
+      if (row.status === 'used') lic = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(target).first();
+      else {
+        const label = shopRow ? (shopRow.name || shopRow.phone) : clean(q.shop || '', 80);
+        lic = await extendLic(env, target, row.days, row.plan, label);
+        await env.DB.prepare("UPDATE ksr_codes SET status = 'used', used_at = ?, used_for = ?, used_label = ? WHERE code = ?").bind(nowMs(), target, label || null, code).run();
+      }
+      return json({ license: await signLicense(env, lic), exp: lic.exp, plan: lic.plan });
+    }
+
+    // ----- latest licence for this shop / device (the app asks whenever it is online) -----
+    if (a === 'license' && m === 'GET') {
+      const shopRow = await readShop(env, request);
+      const device = clean(url.searchParams.get('device') || '', 40);
+      if (device) { // every install checks in, so the owner sees trial shops too
+        const sp = url.searchParams, t = nowMs();
+        await env.DB.prepare('INSERT INTO ksr_dev (id, shop, phone, first, last, trial_end, sales, items, ver, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET shop = excluded.shop, phone = COALESCE(excluded.phone, ksr_dev.phone), last = excluded.last, trial_end = excluded.trial_end, sales = excluded.sales, items = excluded.items, ver = excluded.ver, account = excluded.account')
+          .bind(device, clean(sp.get('shop') || '', 80) || null, clean(sp.get('phone') || '', 20) || null, t, t, parseInt(sp.get('trial'), 10) || null, parseInt(sp.get('sales'), 10) || 0, parseInt(sp.get('items'), 10) || 0, clean(sp.get('v') || '', 10) || null, shopRow ? shopRow.id : null).run().catch(() => {});
+      }
+      const ids = []; if (shopRow) ids.push('shop:' + shopRow.id); if (device) ids.push('dev:' + device);
+      let best = null;
+      for (const id of ids) { const r = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(id).first(); if (r && (!best || r.exp > best.exp)) best = r; }
+      if (!best) return json({ license: null });
+      return json({ license: await signLicense(env, best), exp: best.exp, plan: best.plan });
     }
 
     // ----- everything below needs a shop token -----
@@ -234,31 +328,83 @@ export async function onRequest({ request, env, params }) {
   }
 }
 
-// ---------- the seller's dashboard (academy owner session only) ----------
+// ---------- the owner's control panel API (academy owner session only) ----------
 async function admin(env, request, b) {
+  const m = request.method;
   if (!(await isAcademyOwner(env, request))) {
-    if (b === 'shops') return err('لازم تسجّل دخول بحساب الأدمن بالأكاديمية', 403);
-    return new Response(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:system-ui;direction:rtl;padding:24px;background:#0B1F3A;color:#F7F1E1">
-<h2>لوحة مشتركين كاشيرك</h2><p>سجّل دخول بحسابك (الأدمن) على <a style="color:#F0CF7A" href="/">academy.marketingmiddleeast.com</a> بنفس المتصفح، وبعدها افتح هالصفحة من جديد.</p></body>`, { status: 403, headers: { 'content-type': 'text/html; charset=utf-8' } });
+    if (!b) return new Response(null, { status: 302, headers: { location: '/kashirak-admin/' } });
+    return err('لازم تسجّل دخول بحساب الأدمن بالأكاديمية', 403, { code: 'login' });
   }
-  const r = await env.DB.prepare('SELECT id, phone, name, main, version, size, updated, created, devices, meta FROM ksr_shops ORDER BY COALESCE(updated, created) DESC LIMIT 1000').all();
-  const shops = (r.results || []).map((s) => {
-    let d = {}, meta = {}; try { d = JSON.parse(s.devices || '{}'); } catch {} try { meta = JSON.parse(s.meta || '{}'); } catch {}
-    const last = Math.max(0, ...Object.values(d).map((x) => x.last || 0));
-    return { phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, version: s.version, size: s.size, devices: Object.keys(d).length, lastSeen: last, lic: meta.lic || null, sales: meta.sales || 0, items: meta.items || 0, trialEnds: meta.trialEnds || null, device: s.main };
-  });
-  if (b === 'shops') return json({ shops });
-  const rows = shops.map((s) => {
-    const day = (t) => t ? new Date(t).toLocaleDateString('ar-u-nu-latn', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-    const ago = s.lastSeen ? Math.floor((Date.now() - s.lastSeen) / 864e5) : null;
-    const lic = s.lic ? (s.lic > Date.now() ? `مفعّل لـ ${day(s.lic)}` : `منتهي ${day(s.lic)}`) : (s.trialEnds ? (s.trialEnds > Date.now() ? `تجربة لـ ${day(s.trialEnds)}` : 'انتهت التجربة') : '—');
-    const esc = (x) => String(x ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    return `<tr><td><b>${esc(s.name)}</b><br><span style="opacity:.7">${esc(s.phone)}</span></td><td>${lic}</td><td>${s.sales}</td><td>${s.devices}</td><td>${ago == null ? '—' : ago === 0 ? 'اليوم' : `قبل ${ago} يوم`}</td><td>${day(s.created)}</td><td>${Math.round(s.size / 1024)} KB</td></tr>`;
-  }).join('');
-  const active = shops.filter((s) => s.lastSeen && Date.now() - s.lastSeen < 7 * 864e5).length;
-  return new Response(`<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>مشتركين كاشيرك</title>
-<style>body{font-family:system-ui,'IBM Plex Sans Arabic',sans-serif;margin:0;background:#F5F1E8;color:#0B1F3A}header{background:linear-gradient(150deg,#16325A,#0B1F3A);color:#F7F1E1;padding:22px 18px;border-bottom:3px solid #C8A24A}h1{margin:0;font-size:22px}.k{display:flex;gap:10px;flex-wrap:wrap;padding:14px}.k div{background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}.k b{display:block;font-size:24px}table{width:calc(100% - 28px);margin:0 14px 30px;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden;font-size:14px}th,td{padding:10px;text-align:right;border-bottom:1px solid #eee}th{background:#0B1F3A;color:#F0CF7A;font-weight:600}</style>
-<header><h1>لوحة مشتركين «كاشيرك الذكي»</h1></header>
-<div class="k"><div>كل المحلات<b>${shops.length}</b></div><div>شغّالين آخر 7 أيام<b>${active}</b></div></div>
-<div style="overflow-x:auto"><table><tr><th>المحل</th><th>الاشتراك</th><th>الفواتير</th><th>الأجهزة</th><th>آخر ظهور</th><th>من</th><th>الحجم</th></tr>${rows || '<tr><td colspan="7">ما في محلات لسا</td></tr>'}</table></div></html>`, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+  if (!b) return new Response(null, { status: 302, headers: { location: '/kashirak-admin/' } });
+  const q = m === 'POST' ? await body(request) : {};
+
+  if (b === 'summary' && m === 'GET') {
+    const [shopsR, licR, codesR, devR] = await Promise.all([
+      env.DB.prepare('SELECT id, phone, name, main, version, size, updated, created, devices, meta FROM ksr_shops ORDER BY COALESCE(updated, created) DESC LIMIT 2000').all(),
+      env.DB.prepare('SELECT * FROM ksr_lic').all(),
+      env.DB.prepare('SELECT * FROM ksr_codes ORDER BY created DESC LIMIT 3000').all(),
+      env.DB.prepare('SELECT * FROM ksr_dev ORDER BY last DESC LIMIT 3000').all(),
+    ]);
+    const devs = {}; for (const d of devR.results || []) devs[d.id] = d;
+    const lic = {}; for (const l of licR.results || []) lic[l.id] = l;
+    const shops = (shopsR.results || []).map((s) => {
+      let d = {}, meta = {}; try { d = JSON.parse(s.devices || '{}'); } catch {} try { meta = JSON.parse(s.meta || '{}'); } catch {}
+      const L = lic['shop:' + s.id];
+      const lastSeen = Math.max(0, ...Object.values(d).map((x) => x.last || 0));
+      return { kind: 'shop', id: s.id, phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: meta.trialEnds || null, legacyExp: meta.lic || null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
+    });
+    // installs without a shop account (trial, or activated with a code on this device only)
+    const inShop = new Set(); for (const s of shops) for (const d of s.devices) inShop.add(d.id);
+    const devIds = new Set([...Object.keys(devs), ...(licR.results || []).filter((l) => l.id.startsWith('dev:')).map((l) => l.id.slice(4))]);
+    for (const id of devIds) {
+      const d = devs[id] || {}, l = lic['dev:' + id];
+      if (inShop.has(id) && !l) continue;
+      shops.push({ kind: 'device', id, phone: d.phone || '', name: d.shop || (l && l.label) || 'محل بدون اسم', created: d.first || (l && l.updated), lastSeen: d.last || null, devices: [{ id, label: 'جهاز', last: d.last, main: true }], sales: d.sales || 0, items: d.items || 0, trialEnds: d.trial_end || null, lic: l ? { exp: l.exp, plan: l.plan, updated: l.updated } : null, note: (l && l.note) || '', ver: d.ver || '' });
+    }
+    return json({ today: todayDay(), epoch: LIC_EPOCH, lifetime: LIFETIME, plans: PLANS, shops, codes: codesR.results || [] });
+  }
+
+  if (b === 'codes' && m === 'POST') {
+    const plan = PLANS[q.plan] ? q.plan : null;
+    const days = plan ? PLANS[plan][1] : Math.max(1, Math.min(3650, parseInt(q.days, 10) || 0));
+    if (!plan && !q.days) return err('اختار مدة الكود');
+    const count = Math.max(1, Math.min(50, parseInt(q.count, 10) || 1));
+    const price = Math.max(0, Number(q.price) || 0), note = clean(q.note, 120), t = nowMs();
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      let code; for (let k = 0; k < 5; k++) { code = newCode(); const ex = await env.DB.prepare('SELECT 1 FROM ksr_codes WHERE code = ?').bind(code).first(); if (!ex) break; }
+      await env.DB.prepare('INSERT INTO ksr_codes (code, plan, days, price, note, created, status, kind) VALUES (?, ?, ?, ?, ?, ?, \'new\', \'code\')').bind(code, plan || ('d' + days), days, price, note || null, t).run();
+      out.push(code);
+    }
+    return json({ codes: out });
+  }
+  if (b === 'void' && m === 'POST') {
+    const code = normCode(q.code);
+    const r = await env.DB.prepare("UPDATE ksr_codes SET status = 'void' WHERE code = ? AND status = 'new'").bind(code).run();
+    if (!r.meta || !r.meta.changes) return err('ما بنقدر نلغي كود مستعمل أو مش موجود');
+    return json({ ok: true });
+  }
+  if (b === 'extend' && m === 'POST') {
+    const target = q.kind === 'device' ? 'dev:' + clean(q.id, 40) : 'shop:' + clean(q.id, 40);
+    const plan = PLANS[q.plan] ? q.plan : null;
+    const days = plan ? PLANS[plan][1] : Math.max(1, Math.min(3650, parseInt(q.days, 10) || 0));
+    if (!plan && !q.days) return err('اختار المدة');
+    const lic = await extendLic(env, target, days, plan || ('d' + days), clean(q.label, 80));
+    const t = nowMs();
+    await env.DB.prepare("INSERT INTO ksr_codes (code, plan, days, price, note, created, status, used_at, used_for, used_label, kind) VALUES (?, ?, ?, ?, ?, ?, 'used', ?, ?, ?, 'direct')")
+      .bind('DIR-' + randomHex(4).toUpperCase(), plan || ('d' + days), days, Math.max(0, Number(q.price) || 0), clean(q.note, 120) || null, t, t, target, clean(q.label, 80) || null).run();
+    return json({ lic });
+  }
+  if (b === 'setexp' && m === 'POST') {
+    const target = q.kind === 'device' ? 'dev:' + clean(q.id, 40) : 'shop:' + clean(q.id, 40);
+    const exp = Math.max(0, Math.min(LIFETIME, parseInt(q.exp, 10)));
+    await env.DB.prepare('INSERT INTO ksr_lic (id, exp, plan, updated) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET exp = excluded.exp, updated = excluded.updated').bind(target, exp, 'manual', nowMs()).run();
+    return json({ ok: true });
+  }
+  if (b === 'note' && m === 'POST') {
+    const target = q.kind === 'device' ? 'dev:' + clean(q.id, 40) : 'shop:' + clean(q.id, 40);
+    await env.DB.prepare('INSERT INTO ksr_lic (id, exp, plan, updated, note) VALUES (?, 0, NULL, ?, ?) ON CONFLICT(id) DO UPDATE SET note = excluded.note').bind(target, nowMs(), clean(q.note, 300)).run();
+    return json({ ok: true });
+  }
+  return err('مسار غير معروف', 404);
 }
