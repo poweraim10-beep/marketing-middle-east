@@ -133,13 +133,14 @@ a.btn{text-decoration:none;color:var(--ink);display:flex;align-items:center;just
 .btn.primary{background:var(--brand);color:var(--brand-ink);border-color:transparent}
 .btn.accent{background:linear-gradient(180deg,#E6C878,#C39A3E);color:#0B1F3A;border-color:transparent}
 .btn.wa{background:#25D366;color:#fff;border-color:transparent;text-decoration:none}
-.btn.wa{gap:10px}.btn.wa svg{flex:none}
+.btn.wa{gap:10px}.btn.wa svg{flex:none;margin-inline-end:10px}
 .supcard{border:1.5px solid rgba(200,162,74,.5)}
 .suphd{display:flex;align-items:center;gap:12px}.suphd .lg3d{width:52px;height:52px;border-radius:14px}.suphd b{font-size:15.5px;line-height:1.5}
 .btn.big{gap:10px;min-height:58px;font-size:17px;box-shadow:0 8px 20px rgba(37,211,102,.35)}
 .exphd{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px 2px}
 .exphd .expic{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:40px;background:radial-gradient(circle at 35% 30%,#FFE9B0,#E6B24A);box-shadow:0 8px 22px rgba(199,150,47,.4)}
-.exphd h2{font-size:22px;margin:0}.exphd p{margin:0;color:var(--muted);line-height:1.7}
+.exphd h2{font-size:22px;margin:0}
+.nagbar{padding:12px 14px;border-radius:16px;background:var(--surface,#fff);border:1px solid rgba(200,162,74,.4);display:flex;flex-direction:column;gap:8px}.nagbar .row{display:flex;justify-content:space-between;font-size:14px}.nagbar .nb{height:10px;border-radius:999px;background:#EFEAE0;overflow:hidden}.nagbar .nb i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#C7962F,#F0CF7A)}.exphd p{margin:0;color:var(--muted);line-height:1.7}
 .btn.danger{color:var(--bad)}
 .btn.block{width:100%;display:block}
 .btn.sm{min-height:34px;padding:4px 10px;font-size:13px;border-radius:10px;white-space:nowrap}
@@ -478,6 +479,25 @@ function showIntro(){ if($('#intro')) return; const d=document.createElement('di
    <div class="ibar"><button class="btn accent big" data-act="introClose">${S?'تمام، رجوع للتطبيق':'ابدأ الآن مجانًا'}</button>${S?'':'<button class="ilog" data-act="introLogin" style="background:none;border:0;color:#C9D2E0;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer">عندي حساب؟ ادخل واسترجع محلك</button>'}</div>`;
   document.body.appendChild(d); document.body.style.overflow='hidden' }
 function closeIntro(){ const d=$('#intro'); if(d) d.remove(); document.body.style.overflow=''; try{localStorage.setItem('ksr-intro','1')}catch(e){} }
+
+/* تذكير الاشتراك: رسالتين باليوم بالكثير للي بفترة التجربة، وبينهم 4 ساعات على الأقل، وما بتطلع وهو بيبيع */
+function nagCheck(){ try{
+  if(!S||!LICREADY||!linked()||isViewer()||!LIC) return; const st=status(); if(!st.active||st.paid) return;
+  if(document.querySelector('#sheet.open')||$('#intro')||$('#celeb')||carts.some(c=>c.lines.length)||document.visibilityState!=='visible') return;
+  const now=Date.now(); if(LIC.tr&&now<LIC.tr-TRIAL_DAYS*DAY+15*60e3) return;
+  let n={}; try{n=JSON.parse(localStorage.getItem('ksr-nag')||'{}')}catch(e){}
+  const today=new Date().toDateString(); if(n.d!==today) n={d:today,c:0,last:0};
+  if(n.c>=2||now-n.last<4*3600e3) return; n.c++; n.last=now; localStorage.setItem('ksr-nag',JSON.stringify(n)); nagSheet(st) }catch(e){} }
+function nagSheet(st){ const d=Math.max(1,st.daysLeft), used=Math.min(TRIAL_DAYS,Math.max(0,TRIAL_DAYS-d)), pct=Math.round(used/TRIAL_DAYS*100);
+  const M=d>=4?['🚀','محلّك صار منظّم 👌','عجبك «كاشيرك الذكي»؟ اشترك الآن وخلّي شغلك يكمّل بدون أي توقف. الاشتراك بكبسة على الواتساب.']
+   :d>=2?['⏳',`باقي ${d} أيام بس على تجربتك`,'بعدها البيع والإضافة بيتوقفوا لحد ما تشترك. اشترك الآن وريّح بالك، وبياناتك كلها بتضل زي ما هي.']
+   :['⚠️','اليوم آخر يوم تجربة!','اشترك قبل ما يوقف البيع عندك. بكبسة وحدة بتطلب كود التفعيل، وبتكمّل شغلك من نفس المكان.'];
+  openSheet(`<div class="exphd"><div class="expic">${M[0]}</div><h2>${M[1]}</h2><p>${M[2]}</p></div>
+   <div class="nagbar"><div class="row"><span>تجربتك المجانية</span><b>باقي <span class="num">${d}</span> ${d===1?'يوم':'أيام'}</b></div><div class="nb"><i style="width:${pct}%"></i></div></div>
+   <a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}اشترك الآن على واتساب</a>
+   <div class="grid2"><button class="btn" data-act="license">عندي كود تفعيل</button><button class="btn" data-act="close">لاحقًا</button></div>`)}
+setTimeout(nagCheck,4000); setInterval(nagCheck,10*60e3);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') setTimeout(nagCheck,2500) });
 function celebrate(o){ const life=o.e>=LIC_LIFE, end=fday(dayTs(o.e)), pn=planName(o.p);
   const old=$('#celeb'); if(old) old.remove(); const d=document.createElement('div'); d.id='celeb';
   const cols=['#F0CF7A','#25D366','#5AA9FF','#FF7A7A','#FFFFFF','#C7962F'];
@@ -716,6 +736,7 @@ function cloudCard(){
     <div class="li"><span>الحالة</span><span>${{ok:'✓ محفوظ',sync:'جاري الرفع…',off:'بدون نت، رح يرفع لما يرجع',err:'ما انرفع: '+esc(CLS.err)}[st]||'—'}</span></div></div>
     <div class="grid2">${main?'<button class="btn primary" data-act="cloudNow">ارفع الآن</button>':'<button class="btn primary" data-act="cloudTake">خلّي هذا الجهاز أساسي</button>'}<button class="btn" data-act="cloudNow2">حدّث من السحابة</button></div>
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
+    <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
   if(isViewer()) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(isMain()&&CLS.dirty) cloudPush() },15000);
@@ -1958,6 +1979,17 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+devHelp(){ const pw=!(CL&&CL.nopass);
+  openSheet(`${sheetHead('البيع من اللابتوب أو جهاز ثاني')}
+   <p class="muted" style="margin:0">الحساب الواحد بيبيع من جهاز واحد بس (الجهاز الأساسي)، وباقي الأجهزة بتتابع. بتقدر تبدّل بينهم بأي وقت:</p>
+   <div class="list">
+    <div class="li"><span><b>1.</b> ${pw?'✓ كلمة سر الحساب محدّدة':'حدّد كلمة سر للحساب من هون'}</span>${pw?'':'<button class="btn sm accent" data-act="cloudNew">تحديد</button>'}</div>
+    <div class="li"><span><b>2.</b> افتح على اللابتوب الرابط: <b dir="ltr">marketingmiddleeast.com/kashirak</b></span></div>
+    <div class="li"><span><b>3.</b> اضغط «عندي حساب؟ ادخل واسترجع محلك»، واكتب رقم الجوال <b class="num">${esc(CL&&CL.phone||'')}</b> وكلمة السر</span></div>
+    <div class="li"><span><b>4.</b> اختار «هذا الجهاز للبيع (الجهاز الأساسي)» واضغط دخول</span></div>
+    <div class="li"><span>✓ اللابتوب صار هو اللي بيبيع، وهذا الجوال صار للمتابعة لحاله، وبتشوف عليه المبيعات لحظة بلحظة.</span></div></div>
+   <p class="muted" style="margin:0;font-size:13px">بدك ترجّع البيع للجوال؟ من الجوال اضغط «خلّي هذا الجهاز أساسي» واكتب كلمة السر.</p>
+   <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي مساعدة أخلّي اللابتوب هو الجهاز الأساسي.\nرقم الحساب: '+(status().acct||''))}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`)},
 introClose(){closeIntro(); if(!S) setTimeout(()=>{const i=$('#suShop'); if(i) i.focus()},200)},
 introLogin(){closeIntro(); A.cloudLogin()},
 introShow(){closeSheet(); showIntro()},
@@ -1994,7 +2026,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
@@ -2061,7 +2093,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115190448'; let UPD=false;
+const BUILD='20261115202324'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
