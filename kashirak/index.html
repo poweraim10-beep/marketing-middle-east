@@ -982,6 +982,8 @@ function smart(){
   S.cheques.filter(q=>q.status==='pending').forEach(q=>{const t=new Date(q.due+'T00:00').getTime(); if(t<=now+3*DAY) out.push({p:t<now?0:1,ic:'wallet',t:`شيك ${q.dir==='in'?'وارد':'صادر'} ${t<now?'متأخر':'قرّب موعده'}`,d:`${esc(q.partyName||q.bank)} · ${money(q.amount)} · ${esc(q.due)}`,act:'data-act="openSub" data-s="chq"'})});
   if(isOwner()&&S.sales.some(s=>s.ts>now-7*DAY)&&(!S.lastWeekly||S.lastWeekly<now-7*DAY)) out.push({p:2,ic:'pdf',t:'تقرير الأسبوع جاهز',d:'كل يوم وكل سلة بأصنافها وأرباحها',act:'data-act="pdfGo" data-sel="summary,items,daily,att" data-per="week"'});
   S.staff.forEach(st=>{const lp=lastPunch(st.id); if(lp&&lp.type==='in'&&sod(lp.ts)<sod()) out.push({p:2,ic:'users',t:`${esc(st.name)} ما بصم خروج`,d:`آخر دخول ${new Date(lp.ts).toLocaleDateString('ar',{weekday:'long'})} ${hm(lp.ts)}`,act:'data-act="go" data-tab="staff"'})});
+  { const dl=S.customers.filter(c=>balance(c)>0), dt=r2(dl.reduce((a,c)=>a+balance(c),0)); let seen=''; try{seen=localStorage.getItem('ksr-debtpdf')||''}catch(e){}
+    if(isOwner()&&dl.length&&seen!==new Date().toDateString()) out.push({p:1,ic:'pdf',t:'📄 سجل ديون اليوم جاهز',d:`${dl.length} زبون عليهم ${money(dt)} · اضغط وابعته واتساب`,act:'data-act="debtPdf"'}) }
   const pend=S.sales.filter(s=>s.confirmed===false).length; if(pend&&isOwner()) out.push({p:1,ic:'wallet',t:`${pend} تحويل بانتظار التأكيد`,d:'تأكد إنها وصلت حسابك',act:'data-act="openSub" data-s="cash"'});
   if(isOwner()&&!linked()&&S.items.length) out.push({p:1,ic:'gear',t:'احمِ بيانات محلك',d:'اعمل حساب للمحل وبتنحفظ نسخة تلقائية على السحابة',act:'data-act="cloudNew"'});
   if(isOwner()&&!linked()&&(!S.lastBackup||S.lastBackup<now-7*DAY)&&S.sales.length) out.push({p:3,ic:'gear',t:'نزّل نسخة احتياطية',d:S.lastBackup?`آخر نسخة من ${Math.floor((now-S.lastBackup)/DAY)} يوم`:'ما في نسخة لسا',act:'data-act="bkFile"'});
@@ -1139,7 +1141,7 @@ debts(){
   const total=r2(S.customers.reduce((a,c)=>a+balance(c),0));
   return `
   <div class="tile hl"><div class="lbl">مجموع الديون على الزبائن</div><div class="val">${money(total)}</div></div>
-  <div class="row"><h2>الزبائن</h2><div class="row" style="gap:6px"><button class="btn sm" data-act="debtList">كشف الديون</button><button class="btn primary sm" data-act="addParty" data-kind="customers">إضافة زبون</button></div></div>
+  <div class="row"><h2>الزبائن</h2><div class="row" style="gap:6px"><button class="btn sm" data-act="debtList">كشف الديون</button><button class="btn sm accent" data-act="debtPdf">📄 PDF</button><button class="btn primary sm" data-act="addParty" data-kind="customers">إضافة زبون</button></div></div>
   <div class="card"><div class="list">${S.customers.map(c=>{const b=balance(c);return `<button class="li" data-act="party" data-kind="customers" data-id="${c.id}">
     <span class="t">${esc(c.name)}</span><span>${b>0?`${money(b)} <span class="pill warn">عليه</span>`:b<0?`${money(-b)} <span class="pill ok">له رصيد</span>`:'<span class="pill ok">خالص</span>'}</span></button>`}).join('')}</div></div>`;
 },
@@ -1581,6 +1583,18 @@ function statementPdf(c){
   return makePdf(docPages(`كشف حساب: ${c.name}`,`${S.shop} · الرصيد المستحق ${fx(balance(c))} ₪`,[{kv:[['الرصيد المستحق',fx(balance(c))+' ₪',1],['عدد الحركات',String(c.ledger.length)]]},
     {h:'الحركات'},{table:{cols:[['التاريخ',2.2,'n'],['البيان',4],['المبلغ ₪',1.6,'n'],['الرصيد ₪',1.6,'n']],rows}}]));
 }
+/* سجل الديون PDF: بيتجهّز من بيانات اللحظة كل ما ينطلب، فهو دايمًا محدّث */
+function debtsPdf(){ const dn=t=>{const d=new Date(t),z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}/${z(d.getMonth()+1)}/${d.getFullYear()}`}, now=Date.now(), lt=c=>c.ledger.length?Math.max(...c.ledger.map(x=>x.ts)):0;
+  const L=S.customers.map(c=>({c,b:balance(c),t:lt(c)})).filter(x=>x.b>0).sort((a,b)=>b.b-a.b), tot=r2(L.reduce((a,x)=>a+x.b,0));
+  const CR=S.customers.map(c=>({c,b:balance(c)})).filter(x=>x.b<0), SU=S.suppliers.map(c=>({c,b:balance(c)})).filter(x=>x.b>0);
+  const old=L.filter(x=>x.t&&x.t<now-30*DAY);
+  const B=[{kv:[['مجموع الديون على الزبائن',fx(tot)+' ₪',1],['عدد الزبائن المدينين',String(L.length)],['أكبر دين',L.length?L[0].c.name:'—'],['قيمة أكبر دين',L.length?fx(L[0].b)+' ₪':'—'],['ديون ما تحركت من شهر',old.length?`${old.length} زبون · ${fx(old.reduce((a,x)=>a+x.b,0))} ₪`:'لا يوجد'],['محدّث بتاريخ',dn(now)]]},
+    {h:'ديون الزبائن'},{table:{cols:[['#',.6,'n'],['الزبون',3.4],['الجوال',2.2,'n'],['آخر حركة',2.2,'n'],['المستحق ₪',1.8,'n']],
+      rows:L.map((x,i)=>[String(i+1),x.c.name,x.c.phone||'',x.t?dn(x.t):'',fx(x.b)]),foot:L.length?['','المجموع','','',fx(tot)]:null}}];
+  if(!L.length) B.push({p:'ما في ديون على الزبائن حاليًا ✓'});
+  if(CR.length) B.push({h:'زبائن إلهم رصيد عند المحل'},{table:{cols:[['الزبون',4],['الجوال',2.2,'n'],['الرصيد ₪',1.8,'n']],rows:CR.map(x=>[x.c.name,x.c.phone||'',fx(-x.b)])}});
+  if(SU.length) B.push({h:'المستحق للموردين'},{table:{cols:[['المورد',4],['الجوال',2.2,'n'],['المستحق له ₪',1.8,'n']],rows:SU.map(x=>[x.c.name,x.c.phone||'',fx(x.b)]),foot:['المجموع','',fx(SU.reduce((a,x)=>a+x.b,0))]}});
+  return makePdf(docPages(`سجل الديون · ${S.shop}`,`محدّث بتاريخ ${dn(now)}`,B)) }
 async function sharePdf(bytes,name,text){
   if(!bytes){toast('تعذّر تجهيز الملف');return}
   const file=new File([bytes],name,{type:'application/pdf'});
@@ -1754,7 +1768,7 @@ confirmPay(d){const s=S.sales.find(x=>x.id===+d.id); if(s){s.confirmed=true; if(
 savePhone(d){const c=S[d.kind].find(x=>x.id===+d.id); c.phone=$('#pPhone').value.trim(); save(); A.party(d); toast('تم حفظ الرقم')},
 debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]), tot=r2(list.reduce((a,x)=>a+x[1],0));
   const txt=[`كشف ديون ${S.shop} · ${fdate(Date.now())}`,'',...list.map(([n,v])=>`${n}: ${fx(v)} ₪`),'',`المجموع: ${fx(tot)} ₪`].join('\n');
-  openSheet(`${sheetHead('كشف الديون')}<textarea id="dlTxt" rows="10" readonly>${esc(txt)}</textarea><button class="btn primary block" data-act="copy" data-id="dlTxt">نسخ الكشف</button>`)},
+  openSheet(`${sheetHead('كشف الديون')}<textarea id="dlTxt" rows="10" readonly>${esc(txt)}</textarea><button class="btn accent block" data-act="debtPdf">📄 سجل الديون PDF، ابعته واتساب</button><button class="btn primary block" data-act="copy" data-id="dlTxt">نسخ الكشف</button>`)},
 sub(d){if(d.s==='att'){tab='staff'; render(); $('#view').scrollTop=0; return} sub=d.s; render(); $('#view').scrollTop=0},
 period(d){period=d.p; render()},
 addExp(){const n=$('#exName').value.trim(), a=r2(parseFloat($('#exAmt').value)||0);
@@ -1968,6 +1982,7 @@ pdfGo(d){pdfSel=new Set(d.sel.split(',')); if(d.per) pdfPer=d.per; tab='more'; s
 pdfMake(d){ if(!pdfSel.size){toast('اختار قسم واحد على الأقل');return}
   const {bytes,name}=buildPdf(pdfPer,pdfSel); if(pdfSel.has('daily')&&pdfPer==='week'){S.lastWeekly=Date.now(); save()} if(d.how==='share') sharePdf(bytes,name,`${S.shop}: ${name.replace('.pdf','')}`); else downloadPdf(bytes,name)},
 invPdf(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; sharePdf(invoicePdf(s),fileSafe(`فاتورة ${s.id} ${S.shop}`)+'.pdf',`فاتورة رقم ${s.id} من ${S.shop}`)},
+debtPdf(){ try{localStorage.setItem('ksr-debtpdf',new Date().toDateString())}catch(e){} const tot=r2(S.customers.reduce((a,c)=>a+Math.max(0,balance(c)),0)); sharePdf(debtsPdf(),fileSafe(`سجل الديون ${S.shop} ${new Date().toISOString().slice(0,10)}`)+'.pdf',`سجل الديون · ${S.shop} · مجموع الديون ${fx(tot)} ₪`); setTimeout(render,300)},
 stmtPdf(d){const c=S[d.kind].find(x=>x.id===+d.id); if(!c) return; sharePdf(statementPdf(c),fileSafe(`كشف حساب ${c.name}`)+'.pdf',`كشف حساب ${c.name} من ${S.shop}`)},
 liveToggle(){S.liveCam=S.liveCam===false; save(); syncLive(); if(S.liveCam!==false) toast('الكاميرا شغّالة: مرّر الأغراض قدامها')},
 wipeAsk(){openSheet(`${sheetHead('مسح كل البيانات')}<p style="margin:0">اكتب كلمة <b>مسح</b> للتأكيد. هالخطوة ما بترجع.</p><input id="wipeTxt" autocomplete="off"><button class="btn danger block" data-act="wipe">مسح نهائي</button>`)},
@@ -2026,7 +2041,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
@@ -2093,7 +2108,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115202324'; let UPD=false;
+const BUILD='20261115202837'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
