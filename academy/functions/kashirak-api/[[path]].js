@@ -359,7 +359,7 @@ async function admin(env, request, b) {
     for (const id of devIds) {
       const d = devs[id] || {}, l = lic['dev:' + id];
       if (inShop.has(id) && !l) continue;
-      shops.push({ kind: 'device', id, phone: d.phone || '', name: d.shop || (l && l.label) || 'محل بدون اسم', created: d.first || (l && l.updated), lastSeen: d.last || null, devices: [{ id, label: 'جهاز', last: d.last, main: true }], sales: d.sales || 0, items: d.items || 0, trialEnds: d.trial_end || null, lic: l ? { exp: l.exp, plan: l.plan, updated: l.updated } : null, note: (l && l.note) || '', ver: d.ver || '' });
+      shops.push({ kind: 'device', id, visit: !d.shop && !l, demo: false, phone: d.phone || '', name: d.shop || (l && l.label) || 'زائر · لسا ما جهّز المحل', created: d.first || (l && l.updated), lastSeen: d.last || null, devices: [{ id, label: 'جهاز', last: d.last, main: true }], sales: d.sales || 0, items: d.items || 0, trialEnds: d.trial_end || null, lic: l ? { exp: l.exp, plan: l.plan, updated: l.updated } : null, note: (l && l.note) || '', ver: d.ver || '' });
     }
     return json({ today: todayDay(), epoch: LIC_EPOCH, lifetime: LIFETIME, plans: PLANS, shops, codes: codesR.results || [] });
   }

@@ -43,7 +43,8 @@ h2{font-family:'Readex Pro';font-size:17px;font-weight:700}
 .li:last-child{border-bottom:0}
 .av{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-family:'Readex Pro';font-weight:700;color:#fff;flex:none;background:linear-gradient(150deg,#18407a,#0B1F3A)}
 .li .t{font-weight:700}.li .s{font-size:13px;color:var(--muted)}
-.grow{flex:1;min-width:0}.grow .t,.grow .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grow{flex:1;min-width:0}.grow .t,.grow .s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grow br{display:none}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
 .pill.ok{background:#E3F4EA;color:#17713F}.pill.trial{background:#E8F1FD;color:#1E5FA8}.pill.warn{background:#FDF1DC;color:#9A5F06}.pill.bad{background:#FBE7E8;color:#A8262B}.pill.gold{background:linear-gradient(180deg,#FFF1C6,#F0CF7A);color:#5A3E05}.pill.mute{background:#EFEDE7;color:#5F6675}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 16px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:700;cursor:pointer;text-decoration:none;color:var(--ink)}
@@ -124,12 +125,14 @@ async function call(path,body){
 /* ---------- status of each shop ---------- */
 function stateOf(s){
   const t=D.today, now=Date.now();
+  if(s.visit) return {k:'visit',left:0,exp:null};
   if(s.lic&&s.lic.exp>=t){const left=s.lic.exp-t; return {k:s.lic.exp>=D.lifetime?'life':left<=7?'soon':'paid',left,exp:dayTs(s.lic.exp+1),plan:s.lic.plan}}
   if(s.legacyExp&&s.legacyExp>now){const left=Math.ceil((s.legacyExp-now)/DAY); return {k:left<=7?'soon':'paid',left,exp:s.legacyExp,plan:'قديم'}}
   if(s.trialEnds&&s.trialEnds>now) return {k:'trial',left:Math.ceil((s.trialEnds-now)/DAY),exp:s.trialEnds};
   const ended=(s.lic&&s.lic.exp>0)?dayTs(s.lic.exp+1):(s.legacyExp||s.trialEnds||null);
-  return {k:'over',left:0,exp:ended,wasPaid:!!(s.lic&&s.lic.exp>0)||!!s.legacyExp}}
-function pillOf(st){return {life:'<span class="pill gold">⭐ مفتوح</span>',paid:`<span class="pill ok">مشترك · ${st.left} يوم</span>`,soon:`<span class="pill warn">بينتهي بعد ${st.left} يوم</span>`,trial:`<span class="pill trial">تجربة · ${st.left} يوم</span>`,over:`<span class="pill bad">${st.wasPaid?'منتهي':'خلصت التجربة'}</span>`}[st.k]}
+  const wasPaid=!!(s.lic&&s.lic.exp>0)||!!s.legacyExp; return {k:wasPaid?'over':'tover',left:0,exp:ended,wasPaid}}
+function pillOf(st){return {life:'<span class="pill gold">⭐ مفتوح</span>',paid:`<span class="pill ok">مشترك · ${st.left} يوم</span>`,soon:`<span class="pill warn">بينتهي بعد ${st.left} يوم</span>`,trial:`<span class="pill trial">تجربة · ${st.left} يوم</span>`,over:'<span class="pill bad">منتهي</span>',tover:'<span class="pill warn">خلصت التجربة</span>',visit:'<span class="pill mute">زائر</span>'}[st.k]}
+function inFilter(st,f=shopFilter){ if(f==='all') return true; if(f==='paid') return ['paid','life','soon'].includes(st.k); if(f==='tryall') return ['trial','tover','visit'].includes(st.k); return st.k===f }
 const initials=n=>esc(String(n||'؟').trim().slice(0,1));
 
 /* ---------- rendering ---------- */
@@ -147,27 +150,32 @@ home(){
   const inc=D.codes.filter(x=>x.status!=='void'&&x.created>=+month).reduce((a,x)=>a+(+x.price||0),0);
   const ready=D.codes.filter(x=>x.status==='new'&&x.kind==='code').length;
   const active7=D.shops.filter(s=>s.lastSeen&&Date.now()-s.lastSeen<7*DAY).length;
-  const follow=sh.filter(x=>x.st.k==='soon'||x.st.k==='over'&&x.st.exp&&Date.now()-x.st.exp<30*DAY||x.st.k==='trial'&&x.st.left<=2).sort((a,b)=>(a.st.exp||0)-(b.st.exp||0)).slice(0,12);
+  const follow=sh.filter(x=>x.st.k==='soon'||(x.st.k==='over'||x.st.k==='tover')&&x.st.exp&&Date.now()-x.st.exp<30*DAY||x.st.k==='trial'&&x.st.left<=2).sort((a,b)=>(a.st.exp||0)-(b.st.exp||0)).slice(0,12);
   return `<div class="kpis">
     <button class="kpi hero" data-a="tab" data-t="money"><span class="l">دخل هذا الشهر</span><span class="v"><span class="num">${fmt(inc)}</span> ₪</span><span class="l">${paid} محل مشترك · ${active7} محل اشتغل آخر 7 أيام</span></button>
     <button class="kpi ok" data-a="filter" data-f="paid"><span class="l">مشتركين فعّالين</span><span class="v num">${paid}</span></button>
-    <button class="kpi" data-a="filter" data-f="trial"><span class="l">بفترة التجربة</span><span class="v num">${c('trial')}</span></button>
+    <button class="kpi" data-a="filter" data-f="trial"><span class="l">بفترة التجربة هلأ</span><span class="v num">${c('trial')}</span></button>
+    <button class="kpi warn" data-a="filter" data-f="tover"><span class="l">خلصت تجربتهم وما اشتركوا</span><span class="v num">${c('tover')}</span></button>
+    <button class="kpi" data-a="filter" data-f="visit"><span class="l">زوار ما جهّزوا المحل</span><span class="v num">${c('visit')}</span></button>
     <button class="kpi warn" data-a="filter" data-f="soon"><span class="l">بينتهوا خلال 7 أيام</span><span class="v num">${c('soon')}</span></button>
     <button class="kpi bad" data-a="filter" data-f="over"><span class="l">منتهيين</span><span class="v num">${c('over')}</span></button>
-    <button class="kpi" data-a="filter" data-f="all"><span class="l">كل المحلات</span><span class="v num">${D.shops.length}</span></button>
+    <button class="kpi" data-a="filter" data-f="tryall"><span class="l">كل اللي جرّبوا التطبيق</span><span class="v num">${c('trial')+c('tover')+c('visit')}</span></button>
     <button class="kpi" data-a="tab" data-t="codes"><span class="l">أكواد جاهزة للبيع</span><span class="v num">${ready}</span></button>
   </div>
   <div class="grid2"><button class="btn gold" data-a="newCode">＋ كود تفعيل جديد</button><button class="btn primary" data-a="tab" data-t="shops">المشتركين</button></div>
   <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
-    <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>`},
+    <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
+  <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
+    <div class="list">${sh.filter(x=>['trial','tover','visit'].includes(x.st.k)).sort((a,b)=>(b.s.created||0)-(a.s.created||0)).slice(0,8).map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">لسا ما حدا جرّب. أول ما حدا يفتح التطبيق بيطلع هون</div>'}</div></div>`},
 shops(){
   let sh=D.shops.map(s=>({s,st:stateOf(s)}));
-  if(shopFilter==='paid') sh=sh.filter(x=>['paid','life','soon'].includes(x.st.k)); else if(shopFilter!=='all') sh=sh.filter(x=>x.st.k===shopFilter);
+  sh=sh.filter(x=>inFilter(x.st));
   const q=shopQ.trim(); if(q) sh=sh.filter(x=>(x.s.name+' '+x.s.phone+' '+x.s.id).includes(q));
-  sh.sort((a,b)=>(b.s.lastSeen||b.s.created||0)-(a.s.lastSeen||a.s.created||0));
-  const F=[['all','الكل'],['paid','مشتركين'],['trial','تجربة'],['soon','قرب ينتهي'],['over','منتهي']];
+  sh.sort(['tryall','trial','tover','visit'].includes(shopFilter)?(a,b)=>(b.s.created||0)-(a.s.created||0):(a,b)=>(b.s.lastSeen||b.s.created||0)-(a.s.lastSeen||a.s.created||0));
+  const cnt=k=>D.shops.filter(s=>inFilter(stateOf(s),k)).length;
+  const F=[['all','الكل'],['paid','مشتركين'],['tryall','كل المجرّبين'],['trial','بالتجربة هلأ'],['tover','خلصت تجربتهم'],['visit','زوار'],['soon','قرب ينتهي'],['over','منتهي']];
   return `<div class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="shopQ" placeholder="ابحث باسم المحل أو رقم الجوال" value="${esc(shopQ)}" inputmode="search"></div>
-  <div class="chips">${F.map(([k,l])=>`<button class="chip" data-a="filter" data-f="${k}" aria-pressed="${shopFilter===k}">${l}</button>`).join('')}</div>
+  <div class="chips">${F.map(([k,l])=>`<button class="chip" data-a="filter" data-f="${k}" aria-pressed="${shopFilter===k}">${l} <span class="num">${cnt(k)}</span></button>`).join('')}</div>
   <div class="card"><div class="list" id="shopList">${sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في محلات بهالتصنيف</div>'}</div></div>`},
 codes(){
   let cs=D.codes.filter(c=>c.kind==='code');
@@ -194,7 +202,7 @@ money(){
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
   <div class="card"><h2>الحساب</h2><a class="btn" href="/" target="_blank" rel="noopener">فتح الأكاديمية</a><button class="btn danger" data-a="logout">تسجيل خروج</button></div>`}
 };
-function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}</span><br><span class="s">${s.phone?`<span class="num">${esc(s.phone)}</span> · `:''}${ago(s.lastSeen)}</span></span>${pillOf(st)}</div>`}
+function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}</span><br><span class="s">${s.phone?`<span class="num">${esc(s.phone)}</span> · `:''}${['trial','tover','visit'].includes(st.k)&&s.created?'بدأ '+new Date(s.created).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short'})+' · ':''}${ago(s.lastSeen)}</span></span>${pillOf(st)}</div>`}
 function codeRow(c){const st={new:'<span class="pill ok">جاهز</span>',used:'<span class="pill mute">مستعمل</span>',void:'<span class="pill bad">ملغي</span>'}[c.status];
   return `<div class="li" data-a="code" data-c="${esc(c.code)}"><span class="grow"><span class="t code">${esc(c.code)}</span><br><span class="s">${planLabel(c.plan)} · <span class="num">${fmt(+c.price||0)}</span> ₪${c.note?' · '+esc(c.note):''}${c.status==='used'?' · فعّله '+esc(c.used_label||'محل')+' '+fday(c.used_at):''}</span></span>${st}</div>`}
 
@@ -219,15 +227,16 @@ function codesResult(list,plan){
   <button class="btn block" data-a="close">تمام</button>`)}
 function shopSheet(id,kind){
   const s=D.shops.find(x=>x.id===id&&x.kind===kind); if(!s) return; const st=stateOf(s), P=prices();
-  const msgRenew=`أهلًا ${s.name||''} 👋\nحابين نذكّرك إن اشتراك «كاشيرك الذكي» ${st.k==='over'?'انتهى':`بينتهي بعد ${st.left} يوم`}.\nللتجديد: شهر ${P.m1} ₪ · 3 شهور ${P.m3} ₪ · سنة ${P.y1} ₪\nابعتلنا إشعار التحويل وبنجدّدلك فورًا 🌟`;
+  const tail=`\nالأسعار: شهر ${P.m1} ₪ · 3 شهور ${P.m3} ₪ · سنة ${P.y1} ₪\nابعتلنا إشعار التحويل وبنبعتلك كود التفعيل فورًا 🌟`;
+  const msgRenew=`أهلًا ${s.name&&!s.visit?s.name:''} 👋\n`+({trial:`شكرًا إنك جرّبت «كاشيرك الذكي». فترة التجربة المجانية بتخلص بعد ${st.left} يوم، وعشان تضل تبيع بدون توقف فعّل اشتراكك.`,tover:`خلصت فترة التجربة المجانية لـ«كاشيرك الذكي». بياناتك كلها محفوظة، وبمجرد ما تفعّل الاشتراك بترجع تبيع من نفس المكان.`,visit:`شفناك فتحت «كاشيرك الذكي» 🙌 إذا بدك مساعدة بتجهيز محلك وإضافة الأصناف، إحنا جاهزين.`,over:`اشتراك «كاشيرك الذكي» انتهى. بياناتك محفوظة، جدّد وارجع بيع فورًا.`}[st.k]||`حابين نذكّرك إن اشتراك «كاشيرك الذكي» بينتهي بعد ${st.left} يوم.`)+tail;
   open(`${head(esc(s.name||'محل'))}
   <div class="row">${pillOf(st)}${s.phone?`<a class="btn sm wa" href="https://wa.me/${waNum(s.phone)}" target="_blank" rel="noopener">واتساب</a>`:''}</div>
   <div class="card" style="gap:0">
     ${s.phone?`<div class="kv"><span>رقم الجوال</span><span class="num">${esc(s.phone)}</span></div>`:''}
-    <div class="kv"><span>الاشتراك</span><span>${st.k==='life'?'مفتوح، ما بينتهي':st.k==='trial'?'تجربة لغاية '+fday(st.exp):st.exp?(st.k==='over'?'انتهى ':'لغاية ')+fday(st.exp):'—'}</span></div>
+    <div class="kv"><span>الاشتراك</span><span>${st.k==='visit'?'فتح التطبيق وما جهّز محله':st.k==='life'?'مفتوح، ما بينتهي':st.k==='trial'?'تجربة لغاية '+fday(st.exp):st.exp?(st.k==='over'?'انتهى ':st.k==='tover'?'خلصت التجربة ':'لغاية ')+fday(st.exp):'—'}</span></div>
     ${s.lic&&s.lic.plan?`<div class="kv"><span>آخر باقة</span><span>${planLabel(s.lic.plan)}</span></div>`:''}
     <div class="kv"><span>آخر ظهور</span><span>${ago(s.lastSeen)}</span></div>
-    ${s.kind==='shop'?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div><div class="kv"><span>الأصناف</span><span class="num">${s.items}</span></div><div class="kv"><span>من</span><span>${fday(s.created)}</span></div>`:`<div class="kv"><span>النوع</span><span>جهاز مفعّل بكود، بدون حساب</span></div>`}
+    ${s.kind==='shop'?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div><div class="kv"><span>الأصناف</span><span class="num">${s.items}</span></div><div class="kv"><span>من</span><span>${fday(s.created)}</span></div>`:`<div class="kv"><span>النوع</span><span>${s.lic?'جهاز مفعّل بكود، بدون حساب سحابي':'جهاز بدون حساب سحابي'}</span></div><div class="kv"><span>أول مرة فتح</span><span>${fday(s.created)}</span></div>${s.sales?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div>`:''}`}
     <div class="kv"><span>الأجهزة</span><span>${s.devices.map(d=>`${esc(d.label||'جهاز')}${d.main?' (أساسي)':''}`).join('، ')||'—'}</span></div>
     <div class="kv"><span>رقم ${s.kind==='shop'?'الحساب':'الجهاز'}</span><span class="code" style="font-size:12px">${esc(s.id)}</span></div>
   </div>
@@ -237,7 +246,7 @@ function shopSheet(id,kind){
   <label>المبلغ المدفوع (₪)<input id="exPrice" class="num" inputmode="decimal" value="${P.m1}"></label>
   <button class="btn gold block" data-a="extend" data-id="${esc(s.id)}" data-k="${s.kind}">تمديد الآن</button>
   <p style="font-size:13px;color:var(--muted);margin-top:-4px">المدة بتنضاف على اشتراكه، والتطبيق بياخدها لحاله أول ما يتصل بالنت.</p>
-  <a class="btn wa block" href="https://wa.me/${s.phone?waNum(s.phone):''}?text=${encodeURIComponent(msgRenew)}" target="_blank" rel="noopener">رسالة تذكير بالتجديد</a>
+  <a class="btn wa block" href="https://wa.me/${s.phone?waNum(s.phone):''}?text=${encodeURIComponent(msgRenew)}" target="_blank" rel="noopener">${st.k==='visit'?'رسالة ترحيب ومساعدة':['trial','tover'].includes(st.k)?'رسالة لتحويله لمشترك':'رسالة تذكير بالتجديد'}</a>
   <label>ملاحظات عن المحل<textarea id="shNote" rows="2" placeholder="مثلاً: دفع نقدًا، بدّه طابعة…">${esc(s.note||'')}</textarea></label>
   <button class="btn" data-a="saveNote" data-id="${esc(s.id)}" data-k="${s.kind}">حفظ الملاحظة</button>
   ${s.lic&&s.lic.exp>=D.today?`<button class="btn danger" data-a="cancelLic" data-id="${esc(s.id)}" data-k="${s.kind}">إيقاف الاشتراك</button>`:''}`)}
@@ -290,7 +299,7 @@ const A={
 };
 document.addEventListener('click',e=>{const t=e.target.closest('[data-a]'); if(!t) return; if(t.id==='sheet'&&e.target!==t) return; const a=A[t.dataset.a]; if(a){e.preventDefault&&t.tagName!=='A'&&e.preventDefault(); a(t.dataset)}});
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet') close()});
-document.addEventListener('input',e=>{ if(e.target.id==='shopQ'){shopQ=e.target.value; const sh=D.shops.map(s=>({s,st:stateOf(s)})).filter(x=>{const q=shopQ.trim(); return (shopFilter==='all'||(shopFilter==='paid'?['paid','life','soon'].includes(x.st.k):x.st.k===shopFilter))&&(!q||(x.s.name+' '+x.s.phone+' '+x.s.id).includes(q))}); $('#shopList').innerHTML=sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في نتائج</div>'}
+document.addEventListener('input',e=>{ if(e.target.id==='shopQ'){shopQ=e.target.value; const sh=D.shops.map(s=>({s,st:stateOf(s)})).filter(x=>{const q=shopQ.trim(); return inFilter(x.st)&&(!q||(x.s.name+' '+x.s.phone+' '+x.s.id).includes(q))}); $('#shopList').innerHTML=sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في نتائج</div>'}
   if(e.target.id==='codeQ'){codeQ=e.target.value; const pos=e.target.selectionStart; render(); const i=$('#codeQ'); i.focus(); i.setSelectionRange(pos,pos)} });
 document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP'||e.target.id==='lgE')) A.login() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });

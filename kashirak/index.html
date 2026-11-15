@@ -382,7 +382,8 @@ async function licCheckStored(){ if(!S) return; const before=S.licExp;
   else if(S.licExp!=null){ if(S.licLegacy==null) S.licLegacy=S.licExp; S.licExp=Math.min(S.licLegacy,LEGACY_MAX) }
   if(before!==S.licExp){persist(); render()}}
 async function licApply(tok){const o=await licVerify(tok); if(!o) return false; S.licTok=tok; S.licExp=o.e; S.licPlan=o.p; save(); render(); return o}
-async function licRefresh(){ if(!S||!navigator.onLine) return;
+async function licRefresh(){ if(!navigator.onLine) return;
+  if(!S){ api('/license?'+new URLSearchParams({device:devInfo().id,v:APPVER,visit:'1'})).catch(()=>{}); return }
   try{ const st=status(), q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',trial:String(Math.min(devInfo().ts,S.trialTs||Infinity)+TRIAL_DAYS*DAY),sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q); if(r&&r.license&&licKey(r.license)!==licKey(S.licTok)) await licApply(r.license) }catch(e){} }
 const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return o.t+':'+o.id+':'+o.e}catch(e){return ''}};
 const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||'';
@@ -1806,7 +1807,7 @@ wipeAsk(){openSheet(`${sheetHead('مسح كل البيانات')}<p style="margi
 wipe(){if($('#wipeTxt').value.trim()!=='مسح'){toast('اكتب كلمة مسح للتأكيد');return} try{localStorage.removeItem(KEY)}catch(e){} S=null; carts=carts.map(()=>newCart()); closeSheet(); tab='home'; render()},
 setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.trim(), phone=$('#suPhone').value.trim();
   if(!shop){toast('اكتب اسم المحل');return} if(!/^\d{4,8}$/.test(pin)){toast('الرمز السري لازم يكون 4 لـ8 أرقام');return}
-  S=d.demo?Object.assign(seed(),{shop,pin,phone}):emptyState(shop,pin,phone); save(); tab=d.demo?'home':'items'; render(); toast(d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')},
+  S=d.demo?Object.assign(seed(),{shop,pin,phone}):emptyState(shop,pin,phone); save(); setTimeout(licRefresh,300); tab=d.demo?'home':'items'; render(); toast(d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')},
 license(){const st=status(), msg=`مرحبًا، بدي أفعّل اشتراك كاشيرك الذكي.\nاسم المحل: ${S.shop}\nرقم الجهاز: ${st.dev}`;
   openSheet(`${sheetHead('تفعيل الاشتراك')}
     <div class="tile hl"><div class="lbl">رقم الجهاز، ابعته للدعم</div><div class="val code" style="color:#E6C878">${st.dev}</div><div class="lbl">${st.active?(st.paid?(S.licExp>=LIC_LIFE?'مفعّل · اشتراك مفتوح':'مفعّل لغاية '+fday(st.end)):'تجربة لغاية '+fday(st.end)):'منتهي'}</div></div>
