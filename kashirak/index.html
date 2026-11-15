@@ -96,6 +96,9 @@ a.btn{text-decoration:none;color:var(--ink);display:flex;align-items:center;just
 .btn.primary{background:var(--brand);color:var(--brand-ink);border-color:transparent}
 .btn.accent{background:linear-gradient(180deg,#E6C878,#C39A3E);color:#0B1F3A;border-color:transparent}
 .btn.wa{background:#25D366;color:#fff;border-color:transparent;text-decoration:none}
+.btn.wa{gap:10px}.btn.wa svg{flex:none}
+.supcard{border:1.5px solid rgba(200,162,74,.5)}
+.suphd{display:flex;align-items:center;gap:12px}.suphd .lg3d{width:52px;height:52px;border-radius:14px}.suphd b{font-size:15.5px;line-height:1.5}
 .btn.big{gap:10px;min-height:58px;font-size:17px;box-shadow:0 8px 20px rgba(37,211,102,.35)}
 .exphd{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px 2px}
 .exphd .expic{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:40px;background:radial-gradient(circle at 35% 30%,#FFE9B0,#E6B24A);box-shadow:0 8px 22px rgba(199,150,47,.4)}
@@ -422,9 +425,10 @@ function expMayKeep(){ if(!LICREADY||!S||isViewer()||status().active){EXPSNAP=nu
 function expGate(){ if(!S||!LICREADY) return; const open=document.querySelector('#sheet.open'), sub=open&&$('#sheetBox').dataset.sub;
   if(isViewer()||status().active){EXPSNAP=null; if(sub) closeSheet(); return}
   if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!open||sub) subSheet()}
+const WAIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>';
 function waMsg(){const st=status(); return `مرحبًا، بدي ${st.why==='paid'?'أجدّد':'أشترك في'} «كاشيرك الذكي».\nاسم صاحب المحل: ${CL&&CL.owner||S.owner||''}\nاسم المحل: ${S.shop}\nرقم الحساب: ${st.acct||'—'}\nرقم الجوال: ${CL&&CL.phone||S.phone||''}`}
 function subSheet(){ if(!S) return; const st=status(); setTimeout(()=>{const bx=$('#sheetBox'); if(bx&&$('#sheet.open')&&bx.querySelector('[data-act=activate],[data-act=joinGo],[data-act=subRetry],[data-act=cloudTake]')) bx.dataset.sub='1'},0);
-  const wa=`<a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
+  const wa=`<a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
   const code=`<label for="licIn">عندك كود تفعيل؟<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
     <button class="btn primary block" data-act="activate">تفعيل</button><p class="muted" style="margin:0;font-size:13px">الكود بيشتغل بس على رقم حسابك وعلى هذا الجهاز. التفعيل بدّه نت مرة وحدة.</p>`;
   const acct=st.acct?`<div class="tile hl"><div class="lbl">رقم حسابك</div><div class="val code" style="color:#E6C878;font-size:30px;letter-spacing:3px">${st.acct}</div><div class="lbl">${esc(CL&&CL.owner||'')} · ${esc(S.shop)}</div></div>`:'';
@@ -1163,7 +1167,10 @@ more(){
       <textarea id="bk" rows="4" placeholder="الصق هنا نص نسخة سابقة"></textarea>
       <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>
     <div class="card"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>
-    <div class="card"><h2>الدعم</h2><p class="muted" style="margin:0">لأي مشكلة أو تجديد اشتراك تواصل معنا على واتساب.</p><a class="btn" href="https://wa.me/${SUPPORT_WA}" target="_blank" rel="noopener">واتساب الدعم <span class="num">+${SUPPORT_WA}</span></a></div>
+    <div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div></div>
+      <a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}تواصل معنا الآن واطلب كود التفعيل</a>
+      <a class="btn wa block" style="background:#fff;color:#128C4A;border:1.5px solid #25D366" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي استفسار بخصوص «كاشيرك الذكي».\nاسم المحل: '+S.shop+(status().acct?'\nرقم الحساب: '+status().acct:''))}" target="_blank" rel="noopener">${WAIC}للدعم والاستشارة تواصل معنا</a>
+      <p class="muted" style="margin:0;text-align:center;font-size:13px">واتساب: <span class="num">+${SUPPORT_WA}</span></p></div>
     <div class="card"><h2>مسح كل البيانات</h2><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`;
   const from=period==='today'?sod():period==='week'?sod(Date.now()-6*DAY):sod(Date.now()-29*DAY), r=report(from);
   const mx=Math.max(1,...r.top.map(t=>t[1]));
