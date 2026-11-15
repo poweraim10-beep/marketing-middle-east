@@ -468,6 +468,41 @@ async function admin(env, request, b) {
     await env.DB.prepare('UPDATE ksr_shops SET main = ? WHERE id = ?').bind(dev, sh.id).run();
     return json({ ok: true });
   }
+  // ----- full control of an account from the owner panel -----
+  if (['setpass', 'edit', 'trial', 'delete'].includes(b) && m === 'POST') {
+    const sh = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(clean(q.id, 40)).first();
+    if (!sh) return err('الحساب مش موجود', 404);
+    if (b === 'setpass') { // new password; every device signs in again (the selling device reconnects by itself)
+      const pw = String(q.password || '');
+      if (pw.length < 6) return err('كلمة السر لازم تكون 6 أحرف أو أرقام على الأقل');
+      const salt = randomHex(16);
+      await env.DB.prepare('UPDATE ksr_shops SET salt = ?, hash = ? WHERE id = ?').bind(salt, await hashSecret(pw, salt), sh.id).run();
+      return json({ ok: true });
+    }
+    if (b === 'edit') {
+      const owner = clean(q.owner, 60), name = clean(q.name, 80), phone = q.phone ? phoneOf(q.phone) : sh.phone;
+      if (phone.length < 9) return err('رقم الجوال مش صحيح');
+      if (phone !== sh.phone && (await env.DB.prepare('SELECT 1 FROM ksr_shops WHERE phone = ? AND id <> ?').bind(phone, sh.id).first())) return err('هذا الرقم عليه حساب ثاني');
+      await env.DB.prepare('UPDATE ksr_shops SET owner = ?, name = ?, phone = ? WHERE id = ?').bind(owner || sh.owner, name || sh.name, phone, sh.id).run();
+      return json({ ok: true });
+    }
+    if (b === 'trial') {
+      const days = Math.max(-60, Math.min(90, parseInt(q.days, 10) || 0));
+      const base = q.fresh ? nowMs() : Math.max(nowMs(), sh.trial_end || 0);
+      await env.DB.prepare('UPDATE ksr_shops SET trial_end = ? WHERE id = ?').bind(base + days * 864e5, sh.id).run();
+      return json({ ok: true });
+    }
+    if (b === 'delete') {
+      if (String(q.confirm || '') !== String(sh.acct)) return err('اكتب رقم الحساب للتأكيد');
+      await env.DB.batch([
+        env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(sh.id),
+        env.DB.prepare('DELETE FROM ksr_blobs WHERE shop = ?').bind(sh.id),
+        env.DB.prepare('DELETE FROM ksr_lic WHERE id = ?').bind('shop:' + sh.id),
+        env.DB.prepare('DELETE FROM ksr_shops WHERE id = ?').bind(sh.id),
+      ]);
+      return json({ ok: true });
+    }
+  }
   if (b === 'void' && m === 'POST') {
     const code = normCode(q.code);
     const r = await env.DB.prepare("UPDATE ksr_codes SET status = 'void' WHERE code = ? AND status = 'new'").bind(code).run();

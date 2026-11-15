@@ -617,7 +617,12 @@ async function cloudLostMain(sh){
     <p class="muted" style="margin:0">إذا كان في بيع أو تعديل على هذا الجهاز ما انرفع قبل، حفظنا منه نسخة. بتقدر تنزّلها كملف.</p>
     <button class="btn" data-act="cloudUnsynced">تنزيل نسخة هذا الجهاز</button><button class="btn primary" data-act="cloudTake">رجّع هذا الجهاز أساسي</button>`);
 }
-function cloudSignedOut(){CL=null;clSave();CLS.state='idle';setCloudUI();toast('انتهى الدخول لحساب المحل. ادخل من جديد من الإعدادات')}
+async function cloudSignedOut(){ const prev=CL;
+  /* جهاز البيع الأساسي (مثلًا بعد ما الإدارة غيّرت كلمة السر): بيرجع يتصل لحاله بنفس الحساب */
+  if(prev&&prev.main===devInfo().id&&prev.phone&&S&&!cloudSignedOut.busy){ cloudSignedOut.busy=1;
+    try{ const r=await api('/join',{method:'POST',body:{owner:prev.owner||S.owner||'صاحب المحل',phone:prev.phone,shop:S.shop,device:devInfo().id,label:devLabel()}});
+      CL=Object.assign(prev,{token:r.token,acct:r.shop.acct,nopass:!r.shop.haspass}); clSave(); cloudSignedOut.busy=0; await licApply(r.license); setCloudUI(); return }catch(e){} cloudSignedOut.busy=0 }
+  CL=null;clSave();CLS.state='idle';setCloudUI();toast('انتهى الدخول لحساب المحل. ادخل من جديد من الإعدادات')}
 function setCloudUI(){
   const b=$('#cloudBtn'), bar=$('#cloudBar'); if(!b) return;
   if(!S||!linked()){b.hidden=true; if(bar) bar.hidden=true; return}
@@ -1977,10 +1982,10 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261115183617'; let UPD=false;
+const BUILD='20261115183840'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
-  try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const BUILD='20261115183617']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
+  try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
   applyUpdate() }
 function applyUpdate(){ if(!UPD||!idleNow()) return; try{sessionStorage.setItem('ksr-upd','1')}catch(e){} location.reload() }
 setInterval(checkUpdate,5*60e3); setTimeout(checkUpdate,8000);

@@ -133,6 +133,7 @@ function stateOf(s){
   const wasPaid=!!(s.lic&&s.lic.exp>0)||!!s.legacyExp; return {k:wasPaid?'over':'tover',left:0,exp:ended,wasPaid}}
 function pillOf(st){return {life:'<span class="pill gold">⭐ مفتوح</span>',paid:`<span class="pill ok">مشترك · ${st.left} يوم</span>`,soon:`<span class="pill warn">بينتهي بعد ${st.left} يوم</span>`,trial:`<span class="pill trial">تجربة · ${st.left} يوم</span>`,over:'<span class="pill bad">منتهي</span>',tover:'<span class="pill warn">خلصت التجربة</span>',visit:'<span class="pill mute">زائر</span>'}[st.k]}
 function inFilter(st,f=shopFilter){ if(f==='all') return true; if(f==='paid') return ['paid','life','soon'].includes(st.k); if(f==='tryall') return ['trial','tover','visit'].includes(st.k); return st.k===f }
+const shopById=id=>D.shops.find(x=>x.id===id&&x.kind==='shop');
 const initials=n=>esc(String(n||'؟').trim().slice(0,1));
 
 /* ---------- rendering ---------- */
@@ -263,7 +264,13 @@ function shopSheet(id,kind){
   ${s.dup&&s.dup.length?`<div class="card" style="background:#FDF1DC;border-color:#F0D49B;gap:4px"><b>⚠️ نفس الجوال جرّب بحساب ثاني</b><span style="font-size:13.5px">${s.dup.map(esc).join('، ')}. ممكن يكون نفس الشخص بيعيد التجربة المجانية برقم جديد.</span></div>`:''}
   ${s.kind==='shop'?`<div class="card" style="gap:0"><h2 style="margin-bottom:6px">الأجهزة</h2>${s.devices.map(d=>`<div class="kv"><span>${esc(d.label||'جهاز')} <span class="code" style="font-size:11px">${esc(d.id)}</span>${d.last?' · '+ago(d.last):''}</span><span>${d.main?'<span class="pill ok">بيبيع</span>':`<button class="btn sm" data-a="move" data-id="${esc(s.id)}" data-dev="${esc(d.id)}">خلّيه هو اللي يبيع</button>`}</span></div>`).join('')}
     <p style="font-size:12.5px;color:var(--muted);margin-top:6px">الحساب بيبيع من جهاز واحد بس. لو الزبون غيّر جواله، افتح التطبيق عنده بنفس الرقم وبعدين انقله من هون.</p></div>
-    <button class="btn gold block" data-a="codeFor" data-acct="${s.acct}" data-owner="${esc(s.owner||'')}">＋ كود تفعيل لهذا الحساب</button>`:''}
+    <button class="btn gold block" data-a="codeFor" data-acct="${s.acct}" data-owner="${esc(s.owner||'')}">＋ كود تفعيل لهذا الحساب</button>
+    <div class="card"><h2>إدارة الحساب</h2><div class="grid2">
+      <button class="btn" data-a="passSheet" data-id="${esc(s.id)}">🔑 كلمة سر جديدة</button>
+      <button class="btn" data-a="editSheet" data-id="${esc(s.id)}">✏️ تعديل البيانات</button>
+      <button class="btn" data-a="trialSheet" data-id="${esc(s.id)}">⏳ تمديد التجربة</button>
+      <button class="btn danger" data-a="delSheet" data-id="${esc(s.id)}">🗑 حذف الحساب</button></div>
+      <p style="font-size:12.5px;color:var(--muted)">كلمات السر محفوظة مشفّرة وما حدا بيقدر يشوفها، بس بتقدر تعطي الزبون كلمة سر جديدة إذا نسيها.</p></div>`:''}
   <h2>تمديد الاشتراك</h2>
   <div class="plans">${PLAN_ORDER.map(p=>`<button class="plan" data-a="pickExt" data-p="${p}" aria-pressed="${p==='m1'}">${PLAN_NAME[p]}<small>${P[p]} ₪</small></button>`).join('')}</div>
   <input type="hidden" id="exPlan" value="m1">
@@ -305,6 +312,30 @@ const A={
     try{const plan=$('#ncPlan').value, r=await call('codes',{plan,count:1,price:+$('#ncPrice').value||0,acct:$('#ncAcct').value.trim(),owner:$('#ncOwner').value.trim()});
       await load(); codesResult(r,plan)}catch(e){ if(e.message!=='login'){toast(e.message); b.disabled=false; b.textContent='إنشاء الكود'} }},
   copy(d){copy(d.v)},
+  passSheet(d){const s=shopById(d.id), pw=String(100000+Math.floor(Math.random()*900000));
+    open(`${head('كلمة سر جديدة · '+esc(s.name))}<p style="font-size:14px">اكتب كلمة سر جديدة للزبون (6 أحرف أو أرقام على الأقل)، أو خلّي المقترحة.</p>
+    <label>كلمة السر الجديدة<input id="npw" class="num" value="${pw}" dir="ltr" style="font-size:22px;letter-spacing:3px;text-align:center"></label>
+    <button class="btn gold block" data-a="setPass" data-id="${esc(d.id)}">حفظ كلمة السر</button>
+    <p style="font-size:12.5px;color:var(--muted)">بعد التغيير، كل الأجهزة اللي فاتحة الحساب للمتابعة بتحتاج تدخل بكلمة السر الجديدة. جهاز البيع الأساسي بيكمّل شغله لحاله.</p>`)},
+  async setPass(d){const pw=$('#npw').value.trim(), s=shopById(d.id); if(pw.length<6){toast('6 أحرف أو أرقام على الأقل');return}
+    try{await call('setpass',{id:d.id,password:pw}); const msg=`أهلًا ${s.owner||''} 👋\nكلمة السر الجديدة لحساب «كاشيرك الذكي»:\n\n${pw}\n\nرقم الجوال للدخول: ${s.phone}\nرقم الحساب: ${s.acct}\n\nبتقدر تغيّرها من الإعدادات ← حساب المحل.`;
+      open(`${head('✓ تغيّرت كلمة السر')}<div class="codebox"><span class="code">${esc(pw)}</span><button class="btn sm" data-a="copy" data-v="${esc(pw)}">نسخ</button></div>
+      <a class="btn wa block" href="https://wa.me/${waNum(s.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">ابعتها لـ«${esc(s.owner||s.name)}» على واتساب</a><button class="btn block" data-a="close">تمام</button>`); load()}catch(e){toast(e.message)}},
+  editSheet(d){const s=shopById(d.id);
+    open(`${head('تعديل بيانات الحساب')}<label>اسم صاحب المحل<input id="edO" value="${esc(s.owner||'')}"></label><label>اسم المحل<input id="edN" value="${esc(s.name||'')}"></label>
+    <label>رقم الجوال<input id="edP" class="num" inputmode="tel" value="${esc(s.phone||'')}" dir="ltr"></label><button class="btn gold block" data-a="saveEdit" data-id="${esc(d.id)}">حفظ</button>
+    <p style="font-size:12.5px;color:var(--muted)">لو غيّرت رقم الجوال، الزبون بيدخل من الأجهزة الثانية بالرقم الجديد.</p>`)},
+  async saveEdit(d){try{await call('edit',{id:d.id,owner:$('#edO').value,name:$('#edN').value,phone:$('#edP').value}); await load(); shopSheet(d.id,'shop'); toast('✓ انحفظت')}catch(e){toast(e.message)}},
+  trialSheet(d){const s=shopById(d.id);
+    open(`${head('تمديد التجربة المجانية')}<p style="font-size:14px">${s.trialEnds?(s.trialEnds>Date.now()?'التجربة الحالية لغاية ':'التجربة خلصت ')+fday(s.trialEnds):''}</p>
+    <div class="grid2">${[3,7,14,30].map(n=>`<button class="btn" data-a="addTrial" data-id="${esc(d.id)}" data-n="${n}">＋ ${n} أيام</button>`).join('')}</div>
+    <label>أو عدد أيام ثاني<input id="trD" class="num" inputmode="numeric" placeholder="مثلاً 10"></label><button class="btn gold block" data-a="addTrial" data-id="${esc(d.id)}" data-n="x">تمديد</button>`)},
+  async addTrial(d){const n=d.n==='x'?parseInt($('#trD').value,10):+d.n; if(!n){toast('اكتب عدد الأيام');return}
+    try{await call('trial',{id:d.id,days:n}); await load(); shopSheet(d.id,'shop'); toast('✓ انمدّدت التجربة '+n+' يوم. بتوصله أول ما يتصل بالنت')}catch(e){toast(e.message)}},
+  delSheet(d){const s=shopById(d.id);
+    open(`${head('حذف الحساب نهائيًا')}<p style="color:var(--bad);font-weight:700">انتبه: هذا بيمسح حساب «${esc(s.name)}» ونسخته على السحابة واشتراكه، وما بيرجع.</p>
+    <label>للتأكيد اكتب رقم الحساب <b class="num">${s.acct}</b><input id="delC" class="num" inputmode="numeric"></label><button class="btn danger block" data-a="doDel" data-id="${esc(d.id)}">حذف نهائي</button>`)},
+  async doDel(d){try{await call('delete',{id:d.id,confirm:$('#delC').value.trim()}); close(); await load(); toast('انحذف الحساب')}catch(e){toast(e.message)}},
   codeFor(d){newCodeSheet({acct:d.acct,owner:d.owner})},
   async move(d){ if(!confirm('أكيد؟ الجهاز الحالي بيوقف بيع، وهذا الجهاز بيصير هو اللي يبيع.')) return;
     try{await call('move',{id:d.id,device:d.dev}); await load(); shopSheet(d.id,'shop'); toast('✓ انتقل الحساب')}catch(e){toast(e.message)}},
@@ -333,8 +364,8 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261115183617'; let UPD=false;
-async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const BUILD='20261115183617']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
+const BUILD='20261115183840'; let UPD=false;
+async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
