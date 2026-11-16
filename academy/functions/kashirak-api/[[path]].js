@@ -73,6 +73,7 @@ async function ensure(env) {
     'ALTER TABLE ksr_shops ADD COLUMN wa TEXT',
     'CREATE TABLE IF NOT EXISTS ksr_sig (shop TEXT NOT NULL, k TEXT NOT NULL, v TEXT, t INTEGER NOT NULL, PRIMARY KEY (shop, k))',
     'CREATE TABLE IF NOT EXISTS ksr_scans (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, t INTEGER NOT NULL)',
+    'CREATE TABLE IF NOT EXISTS ksr_push (endpoint TEXT PRIMARY KEY, shop TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL, last INTEGER NOT NULL DEFAULT 0, bc TEXT)',
   ]) { try { await env.DB.prepare(q).run(); } catch {} }
   ready = true;
 }
@@ -215,6 +216,62 @@ async function isAcademyOwner(env, req) {
   } catch { return false; }
 }
 
+
+// ---------- إشعارات الجوال (Web Push + VAPID بدون محتوى: الـ service worker بيسأل السيرفر عن نص الإشعار) ----------
+// نفس مفاتيح VAPID تبعت الأكاديمية (جدول settings)، فمفتاح واحد للموقع كله.
+const pB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+async function pSetting(env, k) { try { const r = await env.DB.prepare('SELECT value FROM settings WHERE key = ?').bind(k).first(); return r ? r.value : null; } catch { return null; } }
+async function pKeys(env) {
+  let pub = await pSetting(env, 'vapid_pub'), priv = await pSetting(env, 'vapid_priv');
+  if (!pub || !priv) {
+    const kp = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)').run();
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('vapid_pub', ?)").bind(pB64(await crypto.subtle.exportKey('raw', kp.publicKey))).run();
+    await env.DB.prepare("INSERT OR IGNORE INTO settings (key, value) VALUES ('vapid_priv', ?)").bind(JSON.stringify(await crypto.subtle.exportKey('jwk', kp.privateKey))).run();
+    pub = await pSetting(env, 'vapid_pub'); priv = await pSetting(env, 'vapid_priv');
+  }
+  return { pub, priv };
+}
+async function pAuth(env, endpoint) {
+  const { pub, priv } = await pKeys(env);
+  const key = await crypto.subtle.importKey('jwk', JSON.parse(priv), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const enc = (o) => pB64(new TextEncoder().encode(JSON.stringify(o)));
+  const head = enc({ typ: 'JWT', alg: 'ES256' }), bodyP = enc({ aud: new URL(endpoint).origin, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: 'mailto:info@marketingmiddleeast.com' });
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(head + '.' + bodyP));
+  return 'vapid t=' + head + '.' + bodyP + '.' + pB64(sig) + ', k=' + pub;
+}
+async function pSend(env, endpoint) {
+  try {
+    const r = await fetch(endpoint, { method: 'POST', headers: { TTL: '7200', Urgency: 'normal', Authorization: await pAuth(env, endpoint), 'Content-Length': '0' } });
+    if (r.status === 404 || r.status === 410) { await env.DB.prepare('DELETE FROM ksr_push WHERE endpoint = ?').bind(endpoint).run(); return false; }
+    return r.ok;
+  } catch { return false; }
+}
+const gazaHour = () => parseInt(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Gaza', hour: '2-digit', hour12: false }).format(new Date()), 10) % 24;
+// نص الإشعار حسب الساعة ووضع المحل (تجربة، قرب الانتهاء، خلص الاشتراك)
+async function pMessage(env, shopId) {
+  const sh = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(shopId).first();
+  if (!sh) return null;
+  const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('shop:' + sh.id).first();
+  const paidEnd = L && L.exp >= 0 ? LIC_EPOCH + (L.exp + 1) * DAYMS : 0, end = Math.max(sh.trial_end || 0, paidEnd), paid = paidEnd > (sh.trial_end || 0);
+  const left = Math.ceil((end - nowMs()) / DAYMS), first = String(sh.owner || '').trim().split(/\s+/)[0] || '';
+  const ya = first ? ' يا ' + first : '', h = gazaHour(), slot = Math.floor(h / 2) * 2;
+  if (left <= 0 && [10, 16].includes(slot)) return { title: paid ? '⚠️ اشتراكك خلص' : '⚠️ انتهت التجربة المجانية', body: 'بياناتك كلها محفوظة. اشترك من التطبيق وكمّل شغلك بدون ما تخسر ولا إشي' };
+  if (left > 0 && left <= (paid ? 3 : 5) && [12, 18].includes(slot)) return { title: paid ? `⏳ اشتراكك بينتهي بعد ${left} يوم` : `🎁 باقي ${left} ${left === 1 ? 'يوم' : 'أيام'} على تجربتك`, body: 'اشترك الآن من «اشترك الآن» داخل التطبيق، وكمّل شغلك بدون توقف' };
+  const M = {
+    6: ['صباح الخير' + ya + ' ☀️', 'افتح كاشيرك وابدأ يومك، أول بيعة على بركة الله'],
+    8: ['صباح الخير' + ya + ' ☀️', 'افتح كاشيرك وابدأ يومك، أول بيعة على بركة الله'],
+    10: ['يلا' + ya + ' 💪', 'سجّل كل بيعة أول بأول، وخلي حسابك مضبوط بالقرش'],
+    12: ['نص النهار 📊', 'شوف قديش بعت لهلأ وكم ربحت، كله بكاشيرك'],
+    14: ['دفتر الديون 📒', 'في زبون عليه دين؟ ابعتله كشف حسابه على الواتساب بضغطة'],
+    16: ['شيك على المخزون 📦', 'شوف الأصناف اللي قرّبت تخلص قبل ما تنقطع عندك'],
+    18: ['مساء الخير' + ya + ' 🌙', 'كيف كانت مبيعات اليوم؟ افتح التقارير وشوف ربحك'],
+    20: ['قبل ما تسكّر المحل 💰', 'اقفل الصندوق وشوف صافي ربح اليوم'],
+  };
+  const [title, body] = M[slot] || M[18];
+  return { title, body };
+}
+
 export async function onRequest({ request, env, params }) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (!env.DB) return err('قاعدة البيانات غير مربوطة', 500);
@@ -348,11 +405,43 @@ export async function onRequest({ request, env, params }) {
       return json({ license: await signShop(env, shopRow), main: shopRow.main });
     }
 
+
+    // ----- إشعارات: مفتاح VAPID، ونص الإشعار للـ service worker، والتشغيل الدوري -----
+    if (a === 'push' && b === 'key' && m === 'GET') return json({ key: (await pKeys(env)).pub });
+    if (a === 'push' && b === 'msg' && m === 'GET') {
+      const e = clean(url.searchParams.get('e') || '', 1000);
+      const sub = e ? await env.DB.prepare('SELECT * FROM ksr_push WHERE endpoint = ?').bind(e).first() : null;
+      if (!sub) return json({ title: 'كاشيرك الذكي', body: 'افتح التطبيق وكمّل شغلك' });
+      let bc = null; try { bc = JSON.parse((await env.DB.prepare("SELECT v FROM ksr_kv WHERE k = 'push_bc'").first() || {}).v || 'null'); } catch {}
+      if (bc && bc.id && sub.bc !== bc.id && nowMs() - bc.t < 12 * 3600e3) {
+        await env.DB.prepare('UPDATE ksr_push SET bc = ? WHERE endpoint = ?').bind(bc.id, e).run();
+        return json({ title: bc.title, body: bc.body });
+      }
+      return json((await pMessage(env, sub.shop)) || { title: 'كاشيرك الذكي', body: 'افتح التطبيق وكمّل شغلك' });
+    }
+    if (a === 'cron' && b === 'push') { // GitHub Actions كل ساعتين. آمن لو انطلب أكثر: كل جهاز إشعار وحد بالساعتين بالكثير، وبس بين 8 الصبح و 9 المسا
+      const h = gazaHour();
+      if (h < 7 || h > 21) return json({ ok: true, skipped: 'night', hour: h });
+      const subs = (await env.DB.prepare('SELECT endpoint FROM ksr_push WHERE last < ?').bind(nowMs() - 100 * 60e3).all()).results || [];
+      let sent = 0;
+      for (const x of subs) { await env.DB.prepare('UPDATE ksr_push SET last = ? WHERE endpoint = ?').bind(nowMs(), x.endpoint).run(); if (await pSend(env, x.endpoint)) sent++; }
+      return json({ ok: true, hour: h, subs: subs.length, sent });
+    }
+
     // ----- everything below needs a shop token -----
     const shop = await readShop(env, request);
     if (a === 'admin') return admin(env, request, b);
     if (!shop) return err('سجّل دخول من جديد', 401);
     const device = clean(url.searchParams.get('device') || request.headers.get('x-device') || '', 40);
+    if (a === 'push' && b === 'sub' && m === 'POST') {
+      const q = await body(request), e = clean(q.endpoint, 1000);
+      if (!/^https:\/\//.test(e)) return err('اشتراك الإشعارات مش صحيح');
+      await env.DB.prepare('INSERT INTO ksr_push (endpoint, shop, dev, t, last) VALUES (?, ?, ?, ?, 0) ON CONFLICT(endpoint) DO UPDATE SET shop = excluded.shop, dev = excluded.dev, t = excluded.t').bind(e, shop.id, device || null, nowMs()).run();
+      return json({ ok: true });
+    }
+    if (a === 'push' && b === 'off' && m === 'POST') {
+      const q = await body(request); await env.DB.prepare('DELETE FROM ksr_push WHERE endpoint = ? AND shop = ?').bind(clean(q.endpoint, 1000), shop.id).run(); return json({ ok: true });
+    }
 
     if (a === 'state' && m === 'GET') {
       await seen(env, shop, device);
@@ -465,6 +554,24 @@ async function admin(env, request, b) {
   }
   if (!b) return new Response(null, { status: 302, headers: { location: '/kashirak-admin/' } });
   const q = m === 'POST' ? await body(request) : {};
+
+  if (b === 'push' && m === 'POST') { // رسالة من الإدارة لكل المحلات (أو محل واحد)
+    const title = clean(q.title, 80), text = clean(q.body, 240);
+    if (!title || !text) return err('اكتب عنوان ونص الإشعار');
+    if (q.shop) { const subs = (await env.DB.prepare('SELECT endpoint FROM ksr_push WHERE shop = ?').bind(clean(q.shop, 40)).all()).results || [];
+      const id = 'bc' + nowMs(); await env.DB.prepare("INSERT INTO ksr_kv (k, v) VALUES ('push_bc', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(JSON.stringify({ id, t: nowMs(), title, body: text })).run();
+      await env.DB.prepare("UPDATE ksr_push SET bc = ? WHERE shop <> ?").bind(id, clean(q.shop, 40)).run();
+      let sent = 0; for (const x of subs) if (await pSend(env, x.endpoint)) sent++; return json({ ok: true, subs: subs.length, sent }); }
+    const id = 'bc' + nowMs();
+    await env.DB.prepare("INSERT INTO ksr_kv (k, v) VALUES ('push_bc', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(JSON.stringify({ id, t: nowMs(), title, body: text })).run();
+    const subs = (await env.DB.prepare('SELECT endpoint FROM ksr_push').all()).results || [];
+    let sent = 0; for (const x of subs) { if (await pSend(env, x.endpoint)) sent++; }
+    return json({ ok: true, subs: subs.length, sent });
+  }
+  if (b === 'pushstats' && m === 'GET') {
+    const r = await env.DB.prepare('SELECT COUNT(*) AS n, COUNT(DISTINCT shop) AS shops FROM ksr_push').first();
+    return json({ subs: r ? r.n : 0, shops: r ? r.shops : 0 });
+  }
 
   if (b === 'summary' && m === 'GET') {
     const [shopsR, licR, codesR, devR] = await Promise.all([

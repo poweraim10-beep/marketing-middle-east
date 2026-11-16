@@ -1,0 +1,11 @@
+name: Kashirak phone reminders
+on:
+  schedule:
+    - cron: '0 6-18/2 * * *'   # every 2 hours, 08:00–20:00 Gaza time (UTC+2)
+  workflow_dispatch:
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send «كاشيرك» reminders
+        run: curl -fsS -X POST https://academy.marketingmiddleeast.com/kashirak-api/cron/push

@@ -1,5 +1,5 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v43';
+const CACHE='kashirak-v44';
 const PAGE='./';                 /* مفتاح واحد ثابت لصفحة التطبيق */
 const FILES=['manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png','icons/feat/barcode.jpg','icons/feat/chart.jpg','icons/feat/ledger.jpg','icons/feat/card.jpg','icons/feat/shield.jpg','icons/feat/receipt.jpg','icons/feat/coins.jpg','icons/feat/gift.jpg','icons/feat/calc.jpg'];
 /* المتصفح ما بيقبل يفتح صفحة محفوظة جاية من تحويل (redirect) وقت ما في نت، فبنحفظها دايمًا كنسخة نظيفة */
@@ -34,3 +34,15 @@ self.addEventListener('fetch',e=>{
     e.respondWith(caches.match(r,{ignoreSearch:u.origin===location.origin&&/\.(png|jpg|svg|webmanifest|bin|json)$/.test(u.pathname)}).then(hit=>hit||fetch(r).then(res=>{if(res.ok||res.type==='opaque'){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res})));
   }
 });
+/* إشعارات كاشيرك: السيرفر بيبعت تنبيه فاضي، وإحنا بنسأله عن نص الإشعار المناسب لهالمحل وهالساعة */
+const KAPI='https://academy.marketingmiddleeast.com/kashirak-api';
+self.addEventListener('push',e=>{e.waitUntil((async()=>{
+  let m={title:'كاشيرك الذكي',body:'افتح التطبيق وكمّل شغلك'};
+  try{ const s=await self.registration.pushManager.getSubscription(); const r=await fetch(KAPI+'/push/msg?e='+encodeURIComponent(s?s.endpoint:''),{cache:'no-store'}); if(r.ok){const j=await r.json(); if(j&&j.title) m=j} }catch(err){}
+  await self.registration.showNotification(m.title,{body:m.body,icon:'icons/icon-192-v2.png',badge:'icons/icon-192-v2.png',tag:'kashirak',renotify:true,dir:'rtl',lang:'ar',data:{url:'./'}});
+})())});
+self.addEventListener('notificationclick',e=>{e.notification.close(); e.waitUntil((async()=>{
+  const cs=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+  for(const c of cs){ if('focus' in c) return c.focus() }
+  return self.clients.openWindow('./');
+})())});

@@ -1194,7 +1194,7 @@ home(){
   const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
-  return `${greetCard()}${installCard()}${ban}
+  return `${greetCard()}${pushCard()}${installCard()}${ban}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl"><div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
@@ -1403,7 +1403,7 @@ more(){
     <p class="muted" style="margin:0">${ok.length} صنف له باركود صالح. الطباعة على طابعة الملصقات تتفعّل في النسخة المستضافة.</p>
     ${ok.map(i=>`<div class="label"><b>${esc(i.name)}</b> · ${fx(i.price)} ₪<br>${eanSvg(i.barcode)}</div>`).join('')}`}
   if(sub==='acct') return acctView();
-  if(sub==='set') return back('الإعدادات')+cloudCard()+`
+  if(sub==='set') return back('الإعدادات')+cloudCard()+pushSetCard()+`
     <div class="card"><h2>بيانات المحل</h2>
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <div class="grid2"><label for="stRate">سعر الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
@@ -1531,6 +1531,25 @@ function acctView(){ const st={...status(),lifetime:!!(LIC&&LIC.e>=29000)}, own=
   <div class="card"><h2>هالجهاز والسحابة</h2><div class="list">${li('هذا الجهاز',linked()?(isMain()?'<span class="pill ok">الأساسي (بيبيع)</span>':'<span class="pill warn">للمتابعة</span>'):'غير مربوط')}
     ${li('النسخة على السحابة',!linked()?'—':cloudPending()?'⏳ بانتظار الرفع':CL.last?'✓ '+fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا')}</div>
     <div class="grid2"><button class="btn" data-act="devHelp">💻 اللابتوب</button><button class="btn" data-act="sub" data-s="set">⚙️ الإعدادات</button></div></div>`}
+/* ===== إشعارات الجوال: تذكير خلال اليوم (كل ساعتين بالنهار) ===== */
+const PUSH={ok:()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&location.protocol==='https:'};
+const pushIOSNeedsInstall=()=>/iPhone|iPad/.test(navigator.userAgent)&&!(matchMedia('(display-mode: standalone)').matches||navigator.standalone);
+function b64ToU8(b){const p='='.repeat((4-b.length%4)%4), r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(r,c=>c.charCodeAt(0))}
+async function pushSubscribe(ask){
+  if(!PUSH.ok()||!linked()) return false;
+  if(Notification.permission==='denied') return false;
+  if(Notification.permission!=='granted'){ if(!ask) return false; const r=await Notification.requestPermission(); if(r!=='granted') return false }
+  const reg=await navigator.serviceWorker.ready; let sub=await reg.pushManager.getSubscription();
+  if(!sub){ const {key}=await api('/push/key'); sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToU8(key)}) }
+  await api('/push/sub',{method:'POST',body:{endpoint:sub.endpoint}}); try{localStorage.setItem('ksr-push','1')}catch(e){} return true }
+async function pushOff(){ try{ const reg=await navigator.serviceWorker.ready, sub=await reg.pushManager.getSubscription(); if(sub){ await api('/push/off',{method:'POST',body:{endpoint:sub.endpoint}}).catch(()=>{}); await sub.unsubscribe() } }catch(e){} try{localStorage.setItem('ksr-push','0')}catch(e){} }
+const pushState=()=>!PUSH.ok()?'na':Notification.permission==='denied'?'denied':(Notification.permission==='granted'&&localStorage.getItem('ksr-push')!=='0')?'on':'off';
+function pushCard(){ if(!S||!linked()||!PUSH.ok()||pushState()!=='off'||localStorage.getItem('ksr-push')==='0') return '';
+  return `<div class="banner trial wide" style="flex-wrap:wrap"><span>🔔 <b>فعّل الإشعارات</b><br><span class="muted">تذكير خلال اليوم بمبيعاتك وديونك ومخزونك واشتراكك</span></span><span style="display:flex;gap:6px"><button class="btn sm primary" data-act="pushOn">تفعيل</button><button class="btn sm" data-act="pushLater">لاحقًا</button></span></div>`}
+function pushSetCard(){ const st=pushState();
+  return `<div class="card"><div class="row"><h2>🔔 الإشعارات</h2><span class="pill ${st==='on'?'ok':'warn'}">${{on:'شغّالة',off:'مطفية',denied:'ممنوعة من الجوال',na:'غير مدعومة هنا'}[st]}</span></div>
+    <p class="muted" style="margin:0">تذكير كل ساعتين بالنهار (من 8 الصبح لـ 8 المسا): افتتاح اليوم، الديون، المخزون، إقفال الصندوق، ووضع اشتراكك.</p>
+    ${st==='on'?'<button class="btn block" data-act="pushOffGo">إيقاف الإشعارات</button>':st==='off'?'<button class="btn primary block" data-act="pushOn">تشغيل الإشعارات</button>':st==='denied'?'<p class="muted" style="margin:0">الإشعارات ممنوعة من إعدادات الجوال. افتح إعدادات المتصفح ← الإشعارات ← اسمح لـ marketingmiddleeast.com</p>':pushIOSNeedsInstall()?'<p class="muted" style="margin:0">على الآيفون: ثبّت التطبيق على الشاشة الرئيسية أول (مشاركة ← إضافة إلى الشاشة الرئيسية)، وافتحه من الأيقونة، بعدين شغّل الإشعارات.</p>':''}</div>`}
 function render(){
   if(!S){renderSetup();return}
   norm(S); if(tab==='staff') facePrewarm();
@@ -2213,6 +2232,10 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+async pushOn(){ if(pushIOSNeedsInstall()){ openSheet(`${sheetHead('الإشعارات على الآيفون')}<p style="margin:0">الآيفون بيسمح بالإشعارات بس للتطبيق المثبّت.</p><p class="muted" style="margin:0">اضغط زر المشاركة ⬆️ ← «إضافة إلى الشاشة الرئيسية»، وافتح كاشيرك من الأيقونة الجديدة، بعدين شغّل الإشعارات من الإعدادات.</p>`); return }
+  try{ localStorage.removeItem('ksr-push'); const ok=await pushSubscribe(true); render(); toast(ok?'✓ انشغلت الإشعارات':Notification.permission==='denied'?'الإشعارات ممنوعة من الجوال، اسمح فيها من إعدادات المتصفح':'ما انشغلت الإشعارات') }catch(e){ toast('ما قدرنا نشغّل الإشعارات: '+(e.message||'')) } },
+pushLater(){ try{localStorage.setItem('ksr-push','0')}catch(e){} render(); toast('بتقدر تشغّلها من الإعدادات وقت ما بدك') },
+async pushOffGo(){ await pushOff(); render(); toast('انطفت الإشعارات') },
 acctEdit(){ openSheet(`${sheetHead('تعديل بيانات الحساب')}
   <label for="acShop">الاسم التجاري للمحل<input id="acShop" value="${esc(S.shop)}" autocomplete="organization"></label>
   <label for="acOwn">اسم صاحب المحل<input id="acOwn" value="${esc(ownerName())}" autocomplete="name"></label>
@@ -2282,7 +2305,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
@@ -2350,8 +2373,9 @@ document.addEventListener('keydown',e=>{
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
+setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116103344'; let UPD=false;
+const BUILD='20261116111433'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}

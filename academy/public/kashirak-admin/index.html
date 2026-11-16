@@ -164,6 +164,7 @@ home(){
     <button class="kpi" data-a="tab" data-t="codes"><span class="l">أكواد جاهزة للبيع</span><span class="v num">${ready}</span></button>
   </div>
   <div class="grid2"><button class="btn gold" data-a="newCode">＋ كود تفعيل جديد</button><button class="btn primary" data-a="tab" data-t="shops">المشتركين</button></div>
+  <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار لكل المحلات</button>
   <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
     <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
   <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
@@ -308,6 +309,15 @@ const A={
   cfilter(d){codeFilter=d.f; render()},
   reload(){$('#app').innerHTML='<div class="spin"></div>'; load()},
   close, newCode(){newCodeSheet()},
+  async pushSheet(){ open(`${head('🔔 إشعار لكل المحلات')}<div class="spin"></div>`); let st={subs:0,shops:0}; try{st=await call('pushstats')}catch(e){}
+    open(`${head('🔔 إشعار لكل المحلات')}<p style="font-size:14px">بيوصل فورًا على جوالات المحلات اللي مشغّلين الإشعارات: <b class="num">${st.shops}</b> محل (<span class="num">${st.subs}</span> جهاز).</p>
+    <p style="font-size:13px;color:var(--muted)">وغير هيك، التطبيق بيبعت تذكير تلقائي كل ساعتين بالنهار (8 الصبح لـ 8 المسا) حسب وضع كل محل.</p>
+    <label>العنوان<input id="puT" maxlength="80" placeholder="مثلًا: عرض خاص 🎉"></label>
+    <label>النص<textarea id="puB" rows="3" maxlength="240" placeholder="مثلًا: خصم 20% على الاشتراك السنوي لآخر الأسبوع"></textarea></label>
+    <button class="btn gold block" data-a="pushSend">إرسال الآن</button>`)},
+  async pushSend(){ const t=$('#puT').value.trim(), b=$('#puB').value.trim(); if(!t||!b){toast('اكتب العنوان والنص');return}
+    if(!confirm('أكيد بدك تبعت هالإشعار لكل المحلات؟')) return; const btn=$('[data-a=pushSend]'); btn.disabled=true; btn.textContent='جاري الإرسال…';
+    try{const r=await call('push',{title:t,body:b}); close(); toast(`✓ انبعت لـ ${r.sent} جهاز`)}catch(e){toast(e.message); btn.disabled=false; btn.textContent='إرسال الآن'}},
   pickPlan(d){document.querySelectorAll('[data-a=pickPlan]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); $('#ncPlan').value=d.p; $('#ncPrice').value=prices()[d.p]},
   pickExt(d){document.querySelectorAll('[data-a=pickExt]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); $('#exPlan').value=d.p; $('#exPrice').value=prices()[d.p]},
   async genCodes(){const b=$('[data-a=genCodes]'); b.disabled=true; b.textContent='جاري الإنشاء…';
@@ -377,7 +387,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261116103344'; let UPD=false;
+const BUILD='20261116111433'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);
