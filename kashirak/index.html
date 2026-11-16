@@ -298,6 +298,32 @@ main{padding-bottom:44px}
 .fab[aria-current="page"]{box-shadow:0 8px 20px rgba(185,142,50,.6),0 0 28px 8px rgba(230,200,120,.7)}
 .fab:active{transform:translateX(-50%) scale(.95)}
 @media (prefers-reduced-motion: reduce){.fab::before,.fab::after{animation:none;opacity:0}}
+/* ===== اللابتوب والشاشات الكبيرة: كل الشاشة، قائمة جانبية، والمحتوى بعمودين ===== */
+@media (min-width:900px){
+  .app{max-width:none;display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);grid-template-areas:"hdr hdr" "nav bar" "nav live" "nav view"}
+  .app>header{grid-area:hdr;padding-inline:28px}
+  #cloudBar{grid-area:bar} #live{grid-area:live;margin:16px 28px 0;height:230px;max-width:760px;width:calc(100% - 56px);justify-self:center}
+  main#view{grid-area:view;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;align-items:start;gap:18px;padding:22px max(28px,calc((100% - 1180px)/2)) 40px}
+  main#view>*{min-width:0}
+  main#view:not([data-v=home]):not([data-v=sell]):not([data-v=more-acct])>*{grid-column:1/-1}
+  main#view[data-v=items] .list,main#view[data-v=debts] .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
+  main#view>.row,main#view>.greet,main#view>.banner,main#view>.pdfhero,main#view>.acchero,main#view>.nagbar,main#view>.seg,main#view>.rempill,main#view>.btn.block,main#view>.rejbar,main#view>p,main#view>.mgroup,main#view>.grid2,main#view>.tiles,main#view>.wide{grid-column:1/-1}
+  nav#nav{grid-area:nav;display:flex!important;flex-direction:column;gap:4px;padding:18px 12px;border-top:0;border-inline-end:1px solid var(--line);overflow-y:auto}
+  nav#nav>span[aria-hidden]{display:none}
+  nav#nav button{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:15px}
+  nav#nav button svg{width:22px;height:22px}
+  nav#nav button:hover{background:color-mix(in srgb,var(--gold) 10%,transparent)}
+  nav#nav button[aria-current="page"]{background:color-mix(in srgb,var(--gold) 18%,transparent);color:var(--ink)}
+  nav#nav .fab{order:-1;position:static;transform:none;width:100%;height:58px;border-radius:16px;border:0;flex-direction:row;gap:10px;font-size:17px;margin-bottom:12px}
+  nav#nav .fab::before,nav#nav .fab::after{display:none}
+  nav#nav .fab:active{transform:scale(.98)}
+  .menu{grid-template-columns:repeat(3,1fr)}
+  .tiles{grid-template-columns:repeat(4,1fr)} .card .tiles{grid-template-columns:1fr 1fr}
+  .sheet{align-items:center}
+  .sheet .box{max-width:560px;border-radius:22px;max-height:88%}
+  .toast{bottom:36px}
+}
+@media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
 @media print{
   @page{size:58mm auto;margin:0}
@@ -1512,6 +1538,7 @@ function render(){
   $('#today').textContent=S.shop+' · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
   planTagUI();
   $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير'; setCloudUI();
+  $('#view').dataset.v=tab==='more'?'more-'+sub:tab;
   $('#view').innerHTML=V[tab]();
   $('#nav').innerHTML=TABS.map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&sub==='rep'))?'aria-current="page"':''}><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg></span>${v}</button>`).join('')
     +`<button class="fab" data-act="go" data-tab="sell" aria-label="بيع" ${tab==='sell'?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON.sell}</svg><span>بيع</span></button>`;
@@ -2324,7 +2351,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116102715'; let UPD=false;
+const BUILD='20261116103344'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
