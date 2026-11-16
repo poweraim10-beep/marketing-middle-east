@@ -54,6 +54,18 @@ button,input,select,textarea{font:inherit;color:inherit}
 .app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg)}
 header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F7F1E1;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid #C8A24A;padding-top:max(12px,env(safe-area-inset-top))}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
+.avbtn{width:42px;height:42px;border-radius:50%;overflow:hidden;flex:none;border:2px solid var(--gold);padding:0;background:#0b1f3a;cursor:pointer;display:grid;place-items:center;color:#F0CF7A;font-weight:700;font-size:18px;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.avbtn img{width:100%;height:100%;object-fit:cover;display:block}
+.greet{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:20px;background:linear-gradient(135deg,#0B1F3A 0%,#18407a 100%);color:#F7F1E1;border:1px solid rgba(240,207,122,.35);box-shadow:0 10px 26px rgba(11,31,58,.22);text-align:start;width:100%;cursor:pointer;font:inherit}
+.greet .gav{width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid #F0CF7A;flex:none;background:#0b1f3a;display:grid;place-items:center;font-size:24px;font-weight:700;color:#F0CF7A;overflow:hidden}
+.greet .gav img{width:100%;height:100%;object-fit:cover}
+.greet b{display:block;font-size:18px;line-height:1.35}.greet small{display:block;color:#C9D2E0;font-size:13.5px;margin-top:2px}
+.acchero{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:24px 16px 18px;border-radius:24px;background:radial-gradient(420px 260px at 50% 0%,#1d4b8c,#0B1F3A 70%);color:#F7F1E1;border:1px solid rgba(240,207,122,.35);box-shadow:0 14px 34px rgba(11,31,58,.25)}
+.acchero .bav{position:relative;width:108px;height:108px;border-radius:50%;border:3px solid #F0CF7A;background:#0b1f3a;display:grid;place-items:center;font-size:44px;font-weight:700;color:#F0CF7A;overflow:visible;cursor:pointer;margin-bottom:8px;box-shadow:0 0 0 6px rgba(240,207,122,.15)}
+.acchero .bav img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.acchero .cam{position:absolute;bottom:-2px;inset-inline-start:-2px;width:34px;height:34px;border-radius:50%;background:linear-gradient(180deg,#FFE7A6,#D7A845);color:#2a1c04;display:grid;place-items:center;font-size:16px;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+.acchero .pill,.acchero .pill.ok{background:rgba(240,207,122,.16);color:#FFE7A6;border:1px solid rgba(240,207,122,.5)}.acchero .pill.bad{background:rgba(179,38,30,.25);color:#ffb4ad;border-color:#ff8a80}
+.acchero h2{color:#F7F1E1;font-size:22px;margin:0}.acchero .own{color:#F0CF7A;font-weight:700}.acchero .muted{color:#C9D2E0}
 .brand svg,.brand .lg3d{width:40px;height:40px;flex:none;border-radius:10px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))}
 header h1{font-family:var(--display);font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
 header h1 b{color:#E6C878;font-weight:700}
@@ -300,6 +312,7 @@ main{padding-bottom:44px}
 <div class="app">
   <header>
     <div class="brand"><span id="hdrLogo"></span><div style="min-width:0"><h1>كاشيرك <b>الذكي</b></h1><div class="sub" id="today"></div><button class="plantag" id="planTag" data-act="license" hidden></button></div></div>
+    <button class="avbtn" id="hdrAv" data-act="openSub" data-s="acct" aria-label="حسابي" hidden></button>
     <button class="cloudbtn" id="cloudBtn" data-act="cloudSheet" hidden aria-label="حساب المحل على السحابة"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/></svg><i></i></button>
     <button class="modebtn" id="modeBtn" data-act="mode"></button>
   </header>
@@ -637,7 +650,7 @@ async function joinRun(existing){ const owner=($('#jnOwner')||$('#suOwner')).val
   if(!navigator.onLine){toast('تسجيل المحل بدّه نت أول مرة. شغّل النت وجرّب');return false}
   const shop=existing?S.shop:$('#suShop').value.trim();
   try{ const r=await api('/join',{method:'POST',body:{owner,phone,wa,shop,device:devInfo().id,label:devLabel(),fp:await devFp(),since:existing?Math.min(devInfo().ts,S.trialTs||Infinity):0}});
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner||owner,main:devInfo().id,ver:existing?0:r.shop.version,last:null,nopass:!r.shop.haspass}; clSave(); upSet({});
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner||owner,main:devInfo().id,ver:existing?0:r.shop.version,last:null,nopass:!r.shop.haspass,wa:r.shop.wa||wa}; clSave(); upSet({});
     if(existing){ S.owner=owner; if(!S.phone) S.phone=phone; await licApply(r.license); EXPSNAP=null; persist(); closeSheet(); render(); toast('✓ انسجّل المحل · رقم حسابك '+r.shop.acct); cloudPush() }
     return r;
   }catch(e){
@@ -1155,7 +1168,7 @@ home(){
   const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
-  return `${installCard()}${ban}
+  return `${greetCard()}${installCard()}${ban}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl"><div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
@@ -1272,7 +1285,7 @@ more(){
     const tile=([k,t,d,ic])=>`<button data-act="sub" data-s="${k}"><span class="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg></span><b>${t}</b><span class="muted">${d}</span></button>`;
     const grp=(title,list)=>{const l=list.filter(([k])=>isOwner()||k==='log');return l.length?`<div class="mgroup"><h3>${title}</h3><div class="menu">${l.map(tile).join('')}</div></div>`:''};
     const r=report(sod());
-    return `${isOwner()?`<button class="pdfhero" data-act="sub" data-s="pdf"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC.pdf}</svg></span>
+    return `${greetCard()}${isOwner()?`<button class="pdfhero" data-act="sub" data-s="pdf"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC.pdf}</svg></span>
       <span style="flex:1;text-align:start"><b>مركز ملفات PDF</b><br><span>اختار شو بدك تحمّل: الأرباح، المبيعات، الديون، المخزون أو الكل</span></span><span class="chev">‹</span></button>
       <div class="tiles"><div class="tile"><div class="lbl">مبيعات اليوم</div><div class="val">${money(r.rev)}</div></div><div class="tile"><div class="lbl">صافي ربح اليوم</div><div class="val" style="color:var(--${r.net>=0?'good':'bad'})">${money(r.net)}</div></div></div>`:''}
     ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list']])}
@@ -1363,6 +1376,7 @@ more(){
   if(sub==='lab'){const ok=S.items.filter(i=>eanValid(i.barcode));return back('ملصقات الباركود')+`
     <p class="muted" style="margin:0">${ok.length} صنف له باركود صالح. الطباعة على طابعة الملصقات تتفعّل في النسخة المستضافة.</p>
     ${ok.map(i=>`<div class="label"><b>${esc(i.name)}</b> · ${fx(i.price)} ₪<br>${eanSvg(i.barcode)}</div>`).join('')}`}
+  if(sub==='acct') return acctView();
   if(sub==='set') return back('الإعدادات')+cloudCard()+`
     <div class="card"><h2>بيانات المحل</h2>
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
@@ -1450,10 +1464,51 @@ function renderSetup(){
     <p class="muted" style="text-align:center;margin:0">تجربة مجانية ${TRIAL_DAYS} أيام · رقم الجهاز <span class="num">${devInfo().id}</span></p>
   </div>`;
 }
+/* ===== حسابي: صورة صاحب المحل والاسم التجاري وبيانات الحساب ===== */
+const waOf=()=>(S&&S.wa)||(CL&&CL.wa)||'';
+const ownerName=()=>(S&&(S.owner||(CL&&CL.owner)))||'';
+const avHTML=()=>S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0));
+function greetTxt(){ const h=new Date().getHours(); return h<12?'صباح الخير':h<17?'نهارك سعيد':'مساء الخير' }
+function greetCard(){ const n=ownerName(), first=n.split(/\s+/)[0]||'';
+  return `<button class="greet" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span style="flex:1;min-width:0">
+    <b>${greetTxt()}${isOwner()&&n?' يا '+esc(n):''} 👋</b><small>${isOwner()?'يسعد أوقاتك':'أهلًا فيك'} · ${esc(S.shop)}</small></span><span aria-hidden="true" style="color:#F0CF7A;font-size:20px">‹</span></button>`}
+async function avatarImg(f){ const u=URL.createObjectURL(f); try{ const im=new Image(); im.src=u; await im.decode();
+  const z=256, c=document.createElement('canvas'); c.width=c.height=z; const m=Math.min(im.naturalWidth,im.naturalHeight);
+  c.getContext('2d').drawImage(im,(im.naturalWidth-m)/2,(im.naturalHeight-m)/2,m,m,0,0,z,z); return c.toDataURL('image/jpeg',.8) } finally{URL.revokeObjectURL(u)} }
+function acctView(){ const st={...status(),lifetime:!!(LIC&&LIC.e>=29000)}, own=isOwner(), mo=new Date(); mo.setDate(1); mo.setHours(0,0,0,0);
+  const m=report(mo.getTime()), d=report(sod()), debts=r2(S.customers.reduce((a,c)=>a+balance(c),0));
+  const planTxt=st.paid?(st.lifetime?'اشتراك مفتوح':'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
+  const endTxt=st.lifetime?'مفتوح':st.end?new Date(st.end).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'}):'—';
+  const li=(k,v)=>`<div class="li"><span>${k}</span><span>${v}</span></div>`;
+  return back('حسابي')+`<div class="acchero">
+    <label class="bav" for="avIn" title="تغيير الصورة">${S.avatar?`<img src="${S.avatar}" alt="">`:avHTML()}${own?'<span class="cam">📷</span>':''}</label>
+    ${own?'<input id="avIn" type="file" accept="image/*" hidden>':''}
+    <h2>${esc(S.shop)}</h2><div class="own">${esc(ownerName()||'صاحب المحل')}</div>
+    ${S.bizType||S.addr?`<div class="muted">${[S.bizType,S.addr].filter(Boolean).map(esc).join(' · ')}</div>`:''}
+    <span class="pill ${st.active?'ok':'bad'}" style="margin-top:6px">${planTxt}${st.active&&!st.lifetime&&st.daysLeft!=null?' · باقي '+st.daysLeft+' يوم':''}</span></div>
+  ${own?`<div class="grid2"><button class="btn primary" data-act="acctEdit">✏️ تعديل البيانات</button>${S.avatar?'<button class="btn" data-act="avDel">إزالة الصورة</button>':'<label class="btn" for="avIn">📷 إضافة صورة</label>'}</div>`:''}
+  ${own?`<div class="card"><div class="row"><h2>أرباحك هالشهر</h2><span class="muted">${mo.toLocaleDateString('ar-u-nu-latn',{month:'long'})}</span></div>
+    <div class="tiles"><div class="tile"><div class="lbl">المبيعات</div><div class="val">${money(m.rev)}</div></div>
+      <div class="tile"><div class="lbl">صافي الربح</div><div class="val" style="color:var(--${m.net>=0?'good':'bad'})">${money(m.net)}</div></div>
+      <div class="tile"><div class="lbl">المصروفات</div><div class="val">${money(m.ex)}</div></div>
+      <div class="tile"><div class="lbl">عدد الفواتير</div><div class="val num">${m.count}</div></div></div>
+    <div class="list">${li('مبيعات اليوم',money(d.rev))}${li('ربح اليوم',money(d.net))}${li('ديون الزبائن',money(debts))}${li('الأصناف',`<span class="num">${S.items.length}</span>`)}</div>
+    <button class="btn block" data-act="openSub" data-s="rep">📊 التقارير الكاملة</button></div>`:''}
+  <div class="card"><h2>بيانات الحساب</h2><div class="list">
+    ${li('الاسم التجاري',esc(S.shop))}${li('صاحب المحل',esc(ownerName()||'—'))}
+    ${li('رقم الجوال',`<span class="num" dir="ltr">${esc((CL&&CL.phone)||S.phone||'—')}</span>`)}
+    ${li('واتساب',`<span class="num" dir="ltr">${waOf()?'+'+esc(waOf()):'—'}</span>`)}
+    ${S.addr?li('العنوان',esc(S.addr)):''}${S.bizType?li('نوع المحل',esc(S.bizType)):''}
+    ${li('رقم الحساب',`<span class="num" style="font-weight:700">${esc(st.acct||(CL&&CL.acct)||'—')}</span>`)}</div></div>
+  <div class="card"><h2>الاشتراك</h2><div class="list">${li('الحالة',`<span class="pill ${st.active?'ok':'bad'}">${planTxt}</span>`)}${li(st.paid?'ينتهي':'نهاية التجربة',endTxt)}</div>
+    ${!st.lifetime?`<button class="btn accent block" data-act="license">${st.paid?'تجديد الاشتراك':'اشترك الآن'}</button>`:''}</div>
+  <div class="card"><h2>هالجهاز والسحابة</h2><div class="list">${li('هذا الجهاز',linked()?(isMain()?'<span class="pill ok">الأساسي (بيبيع)</span>':'<span class="pill warn">للمتابعة</span>'):'غير مربوط')}
+    ${li('النسخة على السحابة',!linked()?'—':cloudPending()?'⏳ بانتظار الرفع':CL.last?'✓ '+fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا')}</div>
+    <div class="grid2"><button class="btn" data-act="devHelp">💻 اللابتوب</button><button class="btn" data-act="sub" data-s="set">⚙️ الإعدادات</button></div></div>`}
 function render(){
   if(!S){renderSetup();return}
   norm(S); if(tab==='staff') facePrewarm();
-  $('.app>header').hidden=false; $('#nav').hidden=false; $('#hdrLogo').innerHTML=LOGO('h');
+  $('.app>header').hidden=false; $('#nav').hidden=false; $('#hdrLogo').innerHTML=LOGO('h'); { const av=$('#hdrAv'); if(av){ av.hidden=false; av.innerHTML=avHTML() } }
   $('#today').textContent=S.shop+' · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
   planTagUI();
   $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير'; setCloudUI();
@@ -2131,6 +2186,19 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+acctEdit(){ openSheet(`${sheetHead('تعديل بيانات الحساب')}
+  <label for="acShop">الاسم التجاري للمحل<input id="acShop" value="${esc(S.shop)}" autocomplete="organization"></label>
+  <label for="acOwn">اسم صاحب المحل<input id="acOwn" value="${esc(ownerName())}" autocomplete="name"></label>
+  <label for="acType">نوع المحل (اختياري)<input id="acType" value="${esc(S.bizType||'')}" placeholder="سوبر ماركت، ملابس، صيدلية…"></label>
+  <label for="acAddr">العنوان (اختياري)<input id="acAddr" value="${esc(S.addr||'')}" placeholder="المدينة، الشارع"></label>
+  <label for="acWa">رقم الواتساب<span class="wacc"><input id="acWa" inputmode="tel" dir="ltr" value="${esc(String(waOf()).replace(/^97[02]/,''))}" placeholder="59xxxxxxx"><select id="acWaCc" dir="ltr" aria-label="المقدمة"><option value="970">+970</option><option value="972"${String(waOf()).startsWith('972')?' selected':''}>+972</option></select></span></label>
+  <p class="muted" style="margin:0">رقم الجوال هو رقم الدخول للحساب، وبيتغير من الإدارة بس.</p>
+  <button class="btn primary block" data-act="acctSave">حفظ</button>`)},
+acctSave(){ const shop=$('#acShop').value.trim(), own=$('#acOwn').value.trim(), w=$('#acWa').value.replace(/\D/g,'').replace(/^0+/,'');
+  if(!shop){toast('اكتب الاسم التجاري');return} if(w&&!/^5[69]\d{7}$/.test(w)){toast('رقم الواتساب لازم يبلّش بـ59 أو 56 وفيه 9 أرقام');return}
+  S.shop=shop; S.owner=own; S.bizType=$('#acType').value.trim(); S.addr=$('#acAddr').value.trim(); S.wa=w?$('#acWaCc').value+w:'';
+  audit('تعديل بيانات الحساب'); save(); closeSheet(); render(); toast('✓ انحفظت بيانات الحساب')},
+avDel(){ delete S.avatar; save(); render(); toast('انشالت الصورة')},
 findSale(){ openSheet(`${sheetHead('🔎 فاتورة سابقة')}<p class="muted" style="margin:0">ابحث برقم الفاتورة أو اسم الزبون أو جواله، وافتحها عشان ترجّع أصناف منها أو تضيف عليها.</p>
   <label for="fsQ">بحث<input id="fsQ" inputmode="search" autocomplete="off" placeholder="مثلاً 1045 أو أبو محمد"></label><div class="list" id="fsList">${fsRows('')}</div>`); setTimeout(()=>{const f=$('#fsQ'); if(f) f.focus()},60)},
 addToSale(d){ const o=S.sales.find(x=>x.id===+d.id); if(!o) return; let k=carts.findIndex(x=>!x.lines.length); if(k<0){toast('كل السلال فيها أصناف. خلّص أو علّق وحدة منهم أول');return}
@@ -2198,7 +2266,7 @@ document.addEventListener('click',e=>{
   const a=el.dataset.act, d=el.dataset;
   if(S&&LICREADY&&!isViewer()&&!EXP_OK.has(a)&&!status().active){subSheet();return}
   if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
-  if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
+  if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
 document.addEventListener('input',e=>{ const t=e.target; if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
@@ -2212,6 +2280,8 @@ document.addEventListener('input',e=>{ const t=e.target; if(t.id==='fsQ'){const 
 });
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.id==='avIn'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; if(!isOwner()) return;
+    avatarImg(f).then(d=>{S.avatar=d; save(); render(); toast('✓ انحطّت صورتك')}).catch(()=>toast('ما قدرنا نقرأ الصورة، جرّب صورة ثانية')); return }
   if(t.id==='rcvC'){cart().rcvC=t.value; const g=$('#chg'); if(g){const c=cart(),tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount); g.innerHTML=changeTxt(r2(tt.total+appFeeOf(tt.total,c)),c)} return}
   if(t.id==='disc'){cart().discount=Math.max(0,r2(parseFloat(t.value)||0)); render()}
   if(t.classList&&t.classList.contains('wt')){const l=cart().lines[+t.dataset.k], it=itemById(l.itemId), w=r3(parseFloat(t.value)||0);
@@ -2254,7 +2324,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116093600'; let UPD=false;
+const BUILD='20261116102715'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
