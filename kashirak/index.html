@@ -107,6 +107,10 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 #intro .ihero img{width:120px;height:120px;border-radius:30px;filter:drop-shadow(0 12px 26px rgba(0,0,0,.5));animation:ifloat 3.5s ease-in-out infinite}
 #intro h2{font-family:var(--display);font-size:30px;margin:6px 0 2px;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
 #intro .itag{color:#D5DDEA;font-size:16px;margin:0 0 14px}
+.repcard{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#0B1F3A,#18407a);color:#F7F1E1;border:1.5px solid rgba(240,207,122,.55);box-shadow:0 10px 24px rgba(11,31,58,.2);text-align:start}
+.repcard .rh{display:flex;align-items:center;gap:12px}.repcard .ri{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:26px;background:linear-gradient(180deg,#FFE7A6,#D7A845)}
+.repcard b{display:block;font-size:16.5px;color:#FFE7A6}.repcard span.s{display:block;font-size:13.5px;color:#C9D2E0;margin-top:2px;line-height:1.5}
+.repcard .btn.wa{margin:0}
 #intro .igift{display:flex;align-items:center;gap:12px;margin:0 auto 16px;padding:10px 14px;border-radius:18px;background:linear-gradient(90deg,rgba(230,200,120,.2),rgba(230,200,120,.06));border:1px solid rgba(230,200,120,.5);text-align:start}
 #intro .igift img{width:54px;height:54px;border-radius:14px}
 #intro .igift b{display:block;color:#F3DC9A;font-size:16.5px}
@@ -525,11 +529,16 @@ const FEATS=[['barcode','بيع بلمح البصر','امسح باركود ال
  ['coins','مخزونك مضبوط','بتعرف إيش قرب يخلص، والمدير الذكي بيقترحلك شو تطلب وقديش.'],
  ['receipt','فواتير احترافية','اطبع الفاتورة على طابعة بلوتوث، أو ابعتها PDF على واتساب الزبون.'],
  ['calc','محلك معك وين ما كنت','بيشتغل بدون نت، وبياناتك محفوظة على السحابة، وبتتابع محلك من اللابتوب أو جوالك وإنت برا.']];
+/* «مندوبنا بيجيك»: بيطلع للزبون الجديد، وزر الواتساب على رقم الاشتراكات */
+function repMsg(){ const st=S?status():{}; return `مرحبًا، بدي مندوب يجيني يجهّزلي «كاشيرك الذكي» ويعلّمني عليه.${S?`\nاسم المحل: ${S.shop}\nاسم صاحب المحل: ${ownerName()}`:''}\nالعنوان: \n${st.acct?'رقم الحساب: '+st.acct:''}`.trim() }
+function repCard(cls){ return `<div class="repcard ${cls||''}"><div class="rh"><span class="ri">🤝</span><div><b>مستعدين نبعتلك مندوبنا</b><span class="s">بيقعد معك، بيجهّزلك الأصناف والديون والعمال، وبيعلّمك التطبيق كامل لحد ما تصير تشتغل لحالك. <b style="display:inline;font-size:13.5px">مجانًا مع باقة 6 شهور أو السنة.</b></span></div></div>
+  <a class="btn wa block" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(repMsg())}" target="_blank" rel="noopener">${WAIC}احجز زيارة المندوب على واتساب</a></div>` }
 function showIntro(){ if($('#intro')) return; const d=document.createElement('div'); d.id='intro';
   d.innerHTML=`<div class="iwrap"><button class="ix" data-act="introClose" aria-label="إغلاق">×</button>
    <div class="ihero"><img src="icons/logo-3d-256.png" alt=""><h2>كاشيرك الذكي</h2><p class="itag">كاشير ومحاسبة محلك، كله من جوالك 📱</p></div>
    <div class="igift"><img src="icons/feat/gift.jpg" alt=""><div><b>جرّبه مجانًا ${TRIAL_DAYS} أيام</b><span>بدون أي دفع، وبتجرّب كل المميزات.</span></div></div>
    <div class="ifeats">${FEATS.map(([ic,t,x],i)=>`<div class="ift" style="animation-delay:${.08+i*.07}s"><span class="ii"><img src="icons/feat/${ic}.jpg" alt="" loading="lazy"></span><div><b>${t}</b><span>${x}</span></div></div>`).join('')}</div>
+   <div style="margin:16px 0 4px">${repCard()}</div>
    <p class="ifoot">تطوير شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</p></div>
    <div class="ibar"><button class="btn accent big" data-act="introClose">${S?'تمام، رجوع للتطبيق':'ابدأ الآن مجانًا'}</button>${S?'':'<button class="ilog" data-act="introLogin" style="background:none;border:0;color:#C9D2E0;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer">عندي حساب؟ ادخل واسترجع محلك</button>'}</div>`;
   document.body.appendChild(d); document.body.style.overflow='hidden' }
@@ -1194,7 +1203,7 @@ home(){
   const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
-  return `${greetCard()}${pushCard()}${installCard()}${ban}
+  return `${greetCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl"><div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
@@ -1474,6 +1483,7 @@ function renderSetup(){
   $('#view').innerHTML=`<div class="setup">
     <div class="hero">${LOGO('s')}<h1>كاشيرك <b>الذكي</b></h1><p>كاشير ومخزون ودفتر ديون لمحلك، يشتغل بدون إنترنت.</p></div>
     ${installCard()}
+    ${repCard()}
     <div class="card"><h2>تجهيز المحل</h2>
       <label for="suShop">اسم المحل<input id="suShop" placeholder="مثال: سوبر ماركت الأمل" autocomplete="organization"></label>
       <label for="suOwner">اسم صاحب المحل<input id="suOwner" autocomplete="name" placeholder="مثال: أبو محمد الأغا"></label>
@@ -2375,7 +2385,7 @@ window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116111433'; let UPD=false;
+const BUILD='20261116122605'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
