@@ -397,7 +397,7 @@ function newInternalCode(){const d12='2'+String(S.nextCode++).padStart(11,'0');r
 
 /* ---------- licensing: trial + server-signed licences (ECDSA P-256). The app holds only the public key ---------- */
 const LIC_PUB={"kty":"EC","crv":"P-256","x":"0y7W4Bjkgscq8TmSGYim3wcj-UBAaO1iA_OSzGnSpOs","y":"63Ll5cTfTB82oVMkHw4rOcVM_m5CfdJzcHXvbb3GcXM"};
-const LIC_EPOCH=Date.UTC(2026,0,1), TRIAL_DAYS=5, SUPPORT_WA='970567686774';
+const LIC_EPOCH=Date.UTC(2026,0,1), TRIAL_DAYS=5, SUPPORT_WA='970567686774', SALES_WA='970594627887';
 function sha256(bytes){
   const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
   const H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
@@ -510,7 +510,7 @@ function nagSheet(st){ const d=Math.max(1,st.daysLeft), used=Math.min(TRIAL_DAYS
    :['⚠️','اليوم آخر يوم تجربة!','اشترك قبل ما يوقف البيع عندك. بكبسة وحدة بتطلب كود التفعيل، وبتكمّل شغلك من نفس المكان.'];
   openSheet(`<div class="exphd"><div class="expic">${M[0]}</div><h2>${M[1]}</h2><p>${M[2]}</p></div>
    <div class="nagbar"><div class="row"><span>تجربتك المجانية</span><b>باقي <span class="num">${d}</span> ${d===1?'يوم':'أيام'}</b></div><div class="nb"><i style="width:${pct}%"></i></div></div>
-   <a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}اشترك الآن على واتساب</a>
+   <a class="btn wa block big" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}اشترك الآن على واتساب</a>
    <div class="grid2"><button class="btn" data-act="license">عندي كود تفعيل</button><button class="btn" data-act="close">لاحقًا</button></div>`)}
 setTimeout(nagCheck,4000); setInterval(nagCheck,10*60e3);
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') setTimeout(nagCheck,2500) });
@@ -608,7 +608,7 @@ function expGate(){ if(!S||!LICREADY) return; const open=document.querySelector(
 const WAIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>';
 function waMsg(){const st=status(); return `مرحبًا، بدي ${st.why==='paid'?'أجدّد':'أشترك في'} «كاشيرك الذكي».\nاسم صاحب المحل: ${CL&&CL.owner||S.owner||''}\nاسم المحل: ${S.shop}\nرقم الحساب: ${st.acct||'—'}\nرقم الجوال: ${CL&&CL.phone||S.phone||''}`}
 function subSheet(){ if(!S) return; const st=status(); setTimeout(()=>{const bx=$('#sheetBox'); if(bx&&$('#sheet.open')&&bx.querySelector('[data-act=activate],[data-act=joinGo],[data-act=subRetry],[data-act=cloudTake]')) bx.dataset.sub='1'},0);
-  const wa=`<a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
+  const wa=`<a class="btn wa block big" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
   const code=`<label for="licIn">عندك كود تفعيل؟<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
     <button class="btn primary block" data-act="activate">تفعيل</button><p class="muted" style="margin:0;font-size:13px">الكود بيشتغل بس على رقم حسابك وعلى هذا الجهاز. التفعيل بدّه نت مرة وحدة.</p>`;
   const acct=st.acct?`<div class="tile hl"><div class="lbl">رقم حسابك</div><div class="val code" style="color:#E6C878;font-size:30px;letter-spacing:3px">${st.acct}</div><div class="lbl">${esc(CL&&CL.owner||'')} · ${esc(S.shop)}</div></div>`:'';
@@ -1376,9 +1376,9 @@ more(){
       <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>
     <div class="card"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>
     <div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div></div>
-      <a class="btn wa block big" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}تواصل معنا الآن واطلب كود التفعيل</a>
+      <a class="btn wa block big" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}تواصل معنا الآن واطلب كود التفعيل</a>
       <a class="btn wa block" style="background:#fff;color:#128C4A;border:1.5px solid #25D366" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي استفسار بخصوص «كاشيرك الذكي».\nاسم المحل: '+S.shop+(status().acct?'\nرقم الحساب: '+status().acct:''))}" target="_blank" rel="noopener">${WAIC}للدعم والاستشارة تواصل معنا</a>
-      <p class="muted" style="margin:0;text-align:center;font-size:13px">واتساب: <span class="num">+${SUPPORT_WA}</span></p>
+      <p class="muted" style="margin:0;text-align:center;font-size:13px">الاشتراك والأكواد: <span class="num">+${SALES_WA}</span> · الدعم: <span class="num">+${SUPPORT_WA}</span></p>
       <button class="btn" data-act="introShow">✨ مميزات التطبيق</button></div>
     <div class="card"><h2>مسح كل البيانات</h2><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`;
   const from=period==='today'?sod():period==='week'?sod(Date.now()-6*DAY):sod(Date.now()-29*DAY), r=report(from);
@@ -2239,7 +2239,7 @@ function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116072110'; let UPD=false;
+const BUILD='20261116074416'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
