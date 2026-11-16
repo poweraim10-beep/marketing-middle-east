@@ -107,6 +107,7 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 #intro .ihero img{width:120px;height:120px;border-radius:30px;filter:drop-shadow(0 12px 26px rgba(0,0,0,.5));animation:ifloat 3.5s ease-in-out infinite}
 #intro h2{font-family:var(--display);font-size:30px;margin:6px 0 2px;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
 #intro .itag{color:#D5DDEA;font-size:16px;margin:0 0 14px}
+.chips .btn[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 .repcard{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#0B1F3A,#18407a);color:#F7F1E1;border:1.5px solid rgba(240,207,122,.55);box-shadow:0 10px 24px rgba(11,31,58,.2);text-align:start}
 .repcard .rh{display:flex;align-items:center;gap:12px}.repcard .ri{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:26px;background:linear-gradient(180deg,#FFE7A6,#D7A845)}
 .repcard b{display:block;font-size:16.5px;color:#FFE7A6}.repcard span.s{display:block;font-size:13.5px;color:#C9D2E0;margin-top:2px;line-height:1.5}
@@ -923,6 +924,9 @@ function beep(ok=true){ if(S&&S.sound===false) return;
 const balance=c=>r2(c.ledger.reduce((a,l)=>a+l.amt,0));
 const itemById=id=>S.items.find(i=>i.id===+id);
 const qtyTxt=i=>i.byWeight?`${r3(i.qty)} كغ`:`${i.qty}`;
+/* الوزن: أقل من كيلو بينكتب بالغرام (15 غ)، والكيلو وفوق بالكيلو (1.25 كغ) */
+const wtTxt=kg=>{kg=+kg||0; return kg<1?`${Math.round(kg*1000)} غ`:`${r3(kg)} كغ`};
+const lineQtyTxt=l=>l.unit==='كغ'?wtTxt(l.count):`${l.count} ${l.unit}`;
 
 /* ---------- pure calculations ---------- */
 function lineOf(it,unit,count){
@@ -955,7 +959,7 @@ function receiptCanvas(s,k=1){
     const W=384,P=12,p=payOf(s),ops=[];
     const C=(t,sz,b)=>ops.push({k:'c',t,sz,b}), LR=(r,l,sz,b)=>ops.push({k:'lr',r,l,sz:sz||19,b}), HR=()=>ops.push({k:'hr'});
     C(S.shop,26,1); C(`فاتورة رقم ${s.id}`,18); C(fdate(s.ts),17); HR();
-    s.lines.forEach(l=>{LR(l.name,'',19,1); LR(`${l.count} ${l.unit} × ${fx(l.price)}`,fx(l.price*l.count))});
+    s.lines.forEach(l=>{LR(l.name,'',19,1); LR(`${lineQtyTxt(l)} × ${fx(l.price)}${l.unit==='كغ'?'/كغ':''}`,fx(l.price*l.count))});
     HR(); if(s.discount) LR('خصم','-'+fx(s.discount)); LR('الإجمالي ₪',fx(s.total),24,1);
     Object.keys(PAY).forEach(k=>{if(p[k]>0) LR(PAY[k]+(k==='app'&&s.appMethod?` (${s.appMethod})`:'')+(k==='debt'&&s.custId?` على ${(S.customers.find(x=>x.id===s.custId)||{}).name||''}`:''),fx(p[k]),17)});
     HR(); C('شكرًا لزيارتكم',18); C('كاشيرك الذكي',14);
@@ -1235,7 +1239,11 @@ sell(){
       <div class="cartline">
         <div class="row"><span class="t" style="font-weight:600">${esc(it.name)}</span>${money(ln.price*ln.count)}</div>
         <div class="row" style="flex-wrap:wrap">
-          ${it.byWeight?`<label for="w${k}" style="flex-direction:row;align-items:center;gap:6px">الوزن كغ<input id="w${k}" class="wt" data-k="${k}" type="number" inputmode="decimal" step="0.05" min="0.05" value="${l.count}" style="width:90px"></label><span class="muted">${fx(it.price)} ₪ للكيلو</span>`
+          ${it.byWeight?`<div class="wbox" style="display:flex;flex-direction:column;gap:8px;width:100%">
+            <div class="grid2"><label for="wg${k}">الوزن بالغرام<input id="wg${k}" class="wtg" data-k="${k}" type="number" inputmode="numeric" step="1" min="1" value="${Math.round(l.count*1000)}"></label>
+              <label for="wm${k}">أو بالمبلغ (₪)<input id="wm${k}" class="wtm" data-k="${k}" type="number" inputmode="decimal" step="0.5" min="0.1" placeholder="مثلًا 5"></label></div>
+            <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap">${[50,100,250,500,1000].map(g=>`<button class="btn sm" data-act="wset" data-k="${k}" data-g="${g}" aria-pressed="${Math.round(l.count*1000)===g}">${g<1000?g+' غ':'1 كغ'}</button>`).join('')}</div>
+            <span class="muted"><b class="num">${wtTxt(l.count)}</b> × ${fx(ln.price)} ₪ للكيلو = <b class="num">${fx(ln.price*l.count)} ₪</b>${isOwner()&&it.cost>0?` · ربحك <span class="num">${fx((ln.price-it.cost)*l.count)}</span> ₪`:''}</span></div>`
           :`<div class="qty"><button data-act="dec" data-k="${k}" aria-label="نقّص">−</button><span class="num" style="min-width:24px;text-align:center">${l.count}</span><button data-act="inc" data-k="${k}" aria-label="زوّد">+</button></div>
           ${it.cartonSize>1?`<div class="seg" style="flex:0 0 auto"><button data-act="unit" data-k="${k}" data-u="piece" aria-pressed="${l.unit!=='carton'}">حبة</button><button data-act="unit" data-k="${k}" data-u="carton" aria-pressed="${l.unit==='carton'}">كرتونة ${it.cartonSize}</button></div>`:`<span class="muted">${fx(ln.price)} ₪ للحبة</span>`}`}
           <button class="btn sm danger" data-act="rm" data-k="${k}">حذف</button>
@@ -1791,7 +1799,7 @@ function buildPdf(per,sel){
         {kv:[['عدد السلات (الفواتير)',String(ds.length)],['عدد الأصناف المباعة',String(n)],['المبيعات',fx(rev)+' ₪'],['تكلفة الشراء',fx(cost)+' ₪'],['ربح اليوم',fx(rev-cost)+' ₪',1]]});
       const rows=[]; ds.forEach(s=>{const z=n=>String(n).padStart(2,'0'), d=new Date(s.ts);
         rows.push([`▪ سلة ${s.id} · ${z(d.getHours())}:${z(d.getMinutes())} · ${payLabel(s)}${s.custId?' · '+((S.customers.find(x=>x.id===s.custId)||{}).name||''):''}`,'','','',fx(s.total),fx(s.total-s.cost)]);
-        s.lines.forEach(l=>{const per=l.baseQty/l.count||1; rows.push([`    ${l.name}`,`${l.count} ${l.unit}`,fx(l.cost*per),fx(l.price),fx(l.price*l.count),fx(l.price*l.count-l.cost*l.baseQty)])});
+        s.lines.forEach(l=>{const per=l.baseQty/l.count||1; rows.push([`    ${l.name}`,lineQtyTxt(l),fx(l.cost*per),fx(l.price),fx(l.price*l.count),fx(l.price*l.count-l.cost*l.baseQty)])});
         if((s.discount||0)+(s.promo||0)>0) rows.push(['    خصم وعروض','','','',fx(-((s.discount||0)+(s.promo||0))),''])});
       B.push({table:{cols:[['السلة / الصنف',4],['الكمية',1.3,'n'],['سعر الشراء ₪',1.4,'n'],['سعر البيع ₪',1.4,'n'],['المبلغ ₪',1.4,'n'],['الربح ₪',1.3,'n']],rows,foot:['مجموع اليوم','','','',fx(rev),fx(rev-cost)]}})})}
   if(sel.has('att')){const {rows,tot}=attRows(from,to); B.push({h:'دوام العمال'},{table:{cols:[['العامل',2.6],['اليوم',1.8,'n'],['دخول',1.1,'n'],['خروج',1.1,'n'],['الساعات',1.1,'n'],['ملاحظة',2]],rows,foot:rows.length?['المجموع','','','',tot,'']:null}})}
@@ -1840,16 +1848,19 @@ const fileSafe=s=>String(s).replace(/[\\/:*?"<>|]+/g,'-').slice(0,110);
 
 /* ---------- actions ---------- */
 function usedQty(itemId){return cart().lines.filter(l=>l.itemId===itemId).reduce((a,l)=>a+lineOf(itemById(itemId),l.unit,l.count).baseQty,0)}
+function wPrevTxt(on,cost,price){ cost=+cost||0; price=+price||0; if(!on||!(price>0)) return '';
+  const g=x=>fx(price*x/1000);
+  return `💡 بالغرام: 15 غ = <b class="num">${g(15)}</b> ₪ · 50 غ = <b class="num">${g(50)}</b> · 100 غ = <b class="num">${g(100)}</b> · 250 غ = <b class="num">${g(250)}</b>${cost>0?` · ربحك بالكيلو <b class="num">${fx(price-cost)}</b> ₪`:''}` }
 function addToCart(id){
   const it=itemById(id); if(!it) return;
-  const step=it.byWeight?Math.min(1,it.qty):1;
+  const step=it.byWeight?Math.min(0.1,it.qty):1;
   if(step<=0||usedQty(it.id)+step>it.qty){toast(`المتوفر من ${it.name} هو ${qtyTxt(it)} فقط`);render();return}
   const l=cart().lines.find(l=>l.itemId===it.id&&l.unit!=='carton');
   if(l) l.count=r3(l.count+step); else cart().lines.push({itemId:it.id,unit:'piece',count:step});
   q=''; render(); toast(`أُضيف ${it.name}`);
 }
 function invoiceText(s){
-  return [`${S.shop}`,`فاتورة رقم ${s.id} · ${fdate(s.ts)}`,s.addTo?`(إضافة على فاتورة رقم ${s.addTo})`:null,'',...s.lines.map(l=>`${l.name} × ${l.count} ${l.unit} = ${fx(l.price*l.count)} ₪`),
+  return [`${S.shop}`,`فاتورة رقم ${s.id} · ${fdate(s.ts)}`,s.addTo?`(إضافة على فاتورة رقم ${s.addTo})`:null,'',...s.lines.map(l=>`${l.name} × ${lineQtyTxt(l)} = ${fx(l.price*l.count)} ₪`),
     s.discount?`خصم: ${fx(s.discount)} ₪`:null,`الإجمالي: ${fx(s.total)} ₪`,...Object.keys(PAY).filter(k=>payOf(s)[k]>0).map(k=>`${PAY[k]}${k==='app'&&s.appMethod?` (${s.appMethod}${s.payer?' باسم '+s.payer:''})`:''}${k==='debt'&&s.custId?` على ${(S.customers.find(x=>x.id===s.custId)||{}).name||''}`:''}: ${fx(payOf(s)[k])} ₪`),'شكرًا لزيارتكم'].filter(x=>x!==null).join('\n');
 }
 function copyBox(id){const t=$('#'+id); if(!t) return; t.select();
@@ -1890,6 +1901,7 @@ scanClose(){closeScan()},
 scanTyped(){onScan($('#scanTxt').value)},
 cart(d){ci=+d.k; render()},
 add(d){addToCart(d.id)},
+wset(d){const l=cart().lines[+d.k], it=itemById(l.itemId), kg=(+d.g)/1000; if(kg>it.qty+1e-9){toast(`المتوفر ${wtTxt(it.qty)} فقط`);return} l.count=kg; render()},
 inc(d){const l=cart().lines[+d.k], it=itemById(l.itemId), step=lineOf(it,l.unit,1).baseQty;
   if(usedQty(it.id)+step>it.qty){toast(`المتوفر ${it.qty} فقط`);return} l.count++; render()},
 dec(d){const l=cart().lines[+d.k]; if(l.count>1) l.count--; else cart().lines.splice(+d.k,1); render()},
@@ -1938,7 +1950,8 @@ editItem(d){
     <label for="fName">اسم الصنف<input id="fName" value="${esc(it.name)}"></label>
     <label for="fBar">الباركود<input id="fBar" inputmode="numeric" value="${esc(it.barcode)}"></label>
     <div class="grid2"><button class="btn" data-act="scan" data-target="field">مسح بالكاميرا</button><button class="btn" data-act="genCode">توليد باركود داخلي</button></div>
-    <label class="chk" for="fW"><input type="checkbox" id="fW" ${it.byWeight?'checked':''}>يُباع بالوزن (السعر للكيلو)</label>
+    <label class="chk" for="fW"><input type="checkbox" id="fW" ${it.byWeight?'checked':''}>يُباع بالوزن: التكلفة والسعر للكيلو، والبيع بالغرام</label>
+    <div id="wPrev" class="muted" style="font-size:13.5px;margin-top:-4px">${wPrevTxt(it.byWeight,it.cost,it.price)}</div>
     <div class="grid2"><label for="fCost">سعر التكلفة (₪)<input id="fCost" type="number" inputmode="decimal" value="${it.cost}"></label>
       <label for="fPrice">سعر البيع (₪)<input id="fPrice" type="number" inputmode="decimal" value="${it.price}"></label></div>
     <div class="grid2"><label for="fQty">الكمية (حبة أو كغ)<input id="fQty" type="number" inputmode="decimal" value="${it.qty}"></label>
@@ -2329,7 +2342,7 @@ document.addEventListener('click',e=>{
   if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
-document.addEventListener('input',e=>{ const t=e.target; if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
+document.addEventListener('input',e=>{ const t=e.target; if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
   if(t.classList&&t.classList.contains('retq')){const m=+t.dataset.max; if(+t.value>m) t.value=m; if(+t.value<0) t.value=0; return}
   if(t.id==='iq'){iq=t.value; const pos=t.selectionStart; render(); const n=$('#iq'); if(n){n.focus(); try{n.setSelectionRange(pos,pos)}catch(_){}} return}
   if(t.id==='q'){q=t.value; renderResults()}
@@ -2344,6 +2357,10 @@ document.addEventListener('change',e=>{
     avatarImg(f).then(d=>{S.avatar=d; save(); render(); toast('✓ انحطّت صورتك')}).catch(()=>toast('ما قدرنا نقرأ الصورة، جرّب صورة ثانية')); return }
   if(t.id==='rcvC'){cart().rcvC=t.value; const g=$('#chg'); if(g){const c=cart(),tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount); g.innerHTML=changeTxt(r2(tt.total+appFeeOf(tt.total,c)),c)} return}
   if(t.id==='disc'){cart().discount=Math.max(0,r2(parseFloat(t.value)||0)); render()}
+  if(t.classList&&(t.classList.contains('wtg')||t.classList.contains('wtm'))){const l=cart().lines[+t.dataset.k], it=itemById(l.itemId), v=parseFloat(t.value)||0;
+    if(v<=0){toast(t.classList.contains('wtm')?'اكتب مبلغ أكبر من صفر':'اكتب وزنًا أكبر من صفر');return}
+    const pk=lineOf(it,l.unit,1).price; let kg=t.classList.contains('wtg')?v/1000:(pk>0?v/pk:0); kg=Math.max(0.001,Math.round(kg*1000)/1000);
+    if(kg>it.qty+1e-9){toast(`المتوفر ${wtTxt(it.qty)} فقط`);render();return} l.count=kg; render(); return}
   if(t.classList&&t.classList.contains('wt')){const l=cart().lines[+t.dataset.k], it=itemById(l.itemId), w=r3(parseFloat(t.value)||0);
     if(w<=0) toast('اكتب وزنًا أكبر من صفر'); else if(w>it.qty) toast(`المتوفر ${qtyTxt(it)} فقط`); else l.count=w; render()}
   if(t.classList&&t.classList.contains('pdfchk')){t.checked?pdfSel.add(t.dataset.k):pdfSel.delete(t.dataset.k); render(); return}
@@ -2385,7 +2402,7 @@ window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116122605'; let UPD=false;
+const BUILD='20261116183453'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
