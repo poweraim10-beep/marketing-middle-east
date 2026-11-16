@@ -723,7 +723,7 @@ function clSave(){try{CL?localStorage.setItem(CKEY,JSON.stringify(CL)):localStor
 const linked=()=>!!(CL&&CL.token);
 const isMain=()=>linked()&&CL.main===devInfo().id;
 const isViewer=()=>linked()&&CL.main!==devInfo().id;
-const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','_t'];
+const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','_t','_by'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
 function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
   if(!CLSNAP||stripLocal(S)===CLSNAP){persist();return false}
@@ -747,16 +747,31 @@ const upGet=()=>{try{return JSON.parse(localStorage.getItem(UPKEY)||'{}')}catch(
 const upSet=o=>{try{localStorage.setItem(UPKEY,JSON.stringify(o))}catch(e){}};
 function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length}}
 function cloudOnSave(){ if(!isMain()) return; CLS.dirty=true; clearTimeout(cloudOnSave.t); cloudOnSave.t=setTimeout(cloudPush,4000); setCloudUI()}
-async function cloudPush(){
+/* في تغييرات على الجهاز الأساسي لسا ما انرفعت؟ محفوظة بالتخزين (مش بالذاكرة بس)، فلو انسكّر التطبيق وهو بدون نت، بيرفعها أول ما يفتح مع نت */
+const cloudPending=()=>isMain()&&!!S&&(CLS.dirty||!CL.ver||(S._t||0)>(CL.sentT||0));
+async function cloudPush(rebase){
   if(!isMain()||!S) return; if(CLS.busy){CLS.dirty=true;return}
-  if(!navigator.onLine){CLS.state='off';setCloudUI();return}
+  if(!navigator.onLine){CLS.state='off';CLS.dirty=true;setCloudUI();return}
   CLS.busy=true; CLS.dirty=false; CLS.state='sync'; setCloudUI();
   try{
-    const r=await api('/state',{method:'PUT',body:{device:devInfo().id,base:CL.ver||0,data:await gz(JSON.stringify(S)),name:S.shop,meta:cloudMeta()}});
-    CL.ver=r.version; CL.last=r.updated; clSave(); CLS.state='ok'; CLS.err='';
+    const t0=S._t||0, txt=JSON.stringify(Object.assign({},S,{_by:devInfo().id}));
+    CL.triedT=Math.max(CL.triedT||0,t0); clSave();
+    const r=await api('/state',{method:'PUT',body:{device:devInfo().id,base:CL.ver||0,data:await gz(txt),name:S.shop,meta:cloudMeta()}});
+    CL.ver=r.version; CL.last=r.updated; CL.sentT=Math.max(CL.sentT||0,t0); clSave(); CLS.state='ok'; CLS.err='';
     await cloudPushBlobs();
   }catch(e){
-    if(e.status===409) await cloudLostMain(e.shop);
+    if(e.status===409&&e.code!=='not_main'&&(rebase||0)<3){
+      /* «نسخة أحدث على الحساب» وهذا الجهاز لسا هو الأساسي: غالبًا رفعة سابقة وصلت السيرفر وانقطع الرد بسبب النت.
+         نسخة الجهاز هي الأحدث، فبنكمّل عليها ونعيد الرفع بدل ما نستبدلها، عشان ما يضيع ولا بيع */
+      let sh=e.shop, mine=false;
+      try{ const g=await api('/state?have=-1&device='+devInfo().id); sh=g.shop||sh;
+        if(g.data){ const o=JSON.parse(await gunz(g.data)); mine=o._by===devInfo().id&&(o._t||0)<=(CL.triedT||0) } }catch(_){}
+      const restored=sh&&sh.restored&&sh.restored===sh.version&&sh.restored>(CL.rseen||0);
+      if(sh&&sh.main===devInfo().id&&!restored&&mine){ CL.ver=sh.version; clSave(); CLS.busy=false; CLS.dirty=false; return cloudPush((rebase||0)+1) }
+      if(sh&&sh.main===devInfo().id&&restored){ CLS.busy=false; return cloudPull() }
+      await cloudLostMain(sh);
+    }
+    else if(e.status===409) await cloudLostMain(e.shop);
     else if(e.status===401) cloudSignedOut();
     else {CLS.state=navigator.onLine&&e.status?'err':'off'; CLS.err=e.message; CLS.dirty=true}
   }finally{CLS.busy=false; setCloudUI(); if(CLS.dirty&&isMain()){clearTimeout(cloudOnSave.t);cloudOnSave.t=setTimeout(cloudPush,15000)}}
@@ -822,7 +837,7 @@ async function cloudSignedOut(){ const prev=CL;
 function setCloudUI(){
   const b=$('#cloudBtn'), bar=$('#cloudBar'); if(!b) return;
   if(!S||!linked()){b.hidden=true; if(bar) bar.hidden=true; return}
-  b.hidden=false; const st=isViewer()?'view':(CLS.dirty&&CLS.state!=='sync'?'wait':CLS.state);
+  b.hidden=false; const st=isViewer()?'view':(cloudPending()&&CLS.state!=='sync'?(navigator.onLine?'wait':'off'):CLS.state);
   b.dataset.st=st; b.title={ok:'محفوظ على السحابة',sync:'جاري الرفع…',wait:'بانتظار الرفع',off:'بدون نت: رح يرفع لما يرجع النت',err:'ما انرفع: '+CLS.err,view:'جهاز متابعة',idle:'السحابة'}[st]||'';
   if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث <span class="num">${CL.last?hm(CL.last):'—'}</span></span><span style="display:flex;gap:6px"><button class="btn sm accent" data-act="remScan">📷 ماسح للابتوب</button><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button></span>`}
 }
@@ -836,16 +851,16 @@ function cloudCard(){
     <div class="li"><span>الجوال</span><span class="num">${esc(CL.phone||'')}</span></div>
     <div class="li"><span>هذا الجهاز</span><span class="pill ${main?'ok':'warn'}">${main?'الأساسي (بيبيع ويرفع)':'للمتابعة بس'}</span></div>
     <div class="li"><span>آخر نسخة على السحابة</span><span>${CL.last?fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا'}</span></div>
-    <div class="li"><span>الحالة</span><span>${{ok:'✓ محفوظ',sync:'جاري الرفع…',off:'بدون نت، رح يرفع لما يرجع',err:'ما انرفع: '+esc(CLS.err)}[st]||'—'}</span></div></div>
+    <div class="li"><span>الحالة</span><span>${CLS.state==='sync'?'جاري الرفع…':cloudPending()?(navigator.onLine?'⏳ في بيع لسا ما انرفع، رح يرفع لحاله':'📴 بدون نت: البيع محفوظ على الجهاز، ورح يرفع لحاله لما يرجع النت'):({ok:'✓ محفوظ على السحابة',off:'بدون نت، رح يرفع لما يرجع',err:'ما انرفع: '+esc(CLS.err)}[st]||'—')}</span></div></div>
     <div class="grid2">${main?'<button class="btn primary" data-act="cloudNow">ارفع الآن</button>':'<button class="btn primary" data-act="cloudTake">خلّي هذا الجهاز أساسي</button>'}<button class="btn" data-act="cloudNow2">حدّث من السحابة</button></div>
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
-  if(isViewer()) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(isMain()&&CLS.dirty) cloudPush() },15000);
+  if(isViewer()) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
 window.addEventListener('online',()=>{ licRefresh(); if(isMain()) cloudPush(); else if(linked()) cloudPull() });
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()) cloudPull() });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()){ if(cloudPending()) cloudPush(); else cloudPull() } });
 /* scanner beep: short square tone like a supermarket scanner */
 let AC=null;
 function beep(ok=true){ if(S&&S.sound===false) return;
@@ -2237,9 +2252,9 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(isMain()&&!CL.ver) cloudPush(); else cloudPull() },800);
+load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116080648'; let UPD=false;
+const BUILD='20261116093600'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
