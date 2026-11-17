@@ -266,7 +266,7 @@ function shopSheet(id,kind){
     ${s.kind==='shop'?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div><div class="kv"><span>الأصناف</span><span class="num">${s.items}</span></div><div class="kv"><span>من</span><span>${fday(s.created)}</span></div>`:`<div class="kv"><span>النوع</span><span>${s.lic?'جهاز مفعّل بكود، بدون حساب سحابي':'جهاز بدون حساب سحابي'}</span></div><div class="kv"><span>أول مرة فتح</span><span>${fday(s.created)}</span></div>${s.sales?`<div class="kv"><span>عدد الفواتير</span><span class="num">${s.sales}</span></div>`:''}`}
   </div>
   ${s.dup&&s.dup.length?`<div class="card" style="background:#FDF1DC;border-color:#F0D49B;gap:4px"><b>⚠️ نفس الجوال جرّب بحساب ثاني</b><span style="font-size:13.5px">${s.dup.map(esc).join('، ')}. ممكن يكون نفس الشخص بيعيد التجربة المجانية برقم جديد.</span></div>`:''}
-  ${s.kind==='shop'?`<div class="card" style="gap:0"><h2 style="margin-bottom:6px">الأجهزة</h2>${s.devices.map(d=>`<div class="kv"><span>${esc(d.label||'جهاز')} <span class="code" style="font-size:11px">${esc(d.id)}</span>${d.last?' · '+ago(d.last):''}</span><span>${d.main?`<span class="pill ok">${/لابتوب|ماك/.test(d.label||'')?'💻 بيبيع من لابتوب':'بيبيع'}</span>`:`<button class="btn sm" data-a="move" data-id="${esc(s.id)}" data-dev="${esc(d.id)}">خلّيه هو اللي يبيع</button>`}</span></div>`).join('')}
+  ${s.kind==='shop'?`<div class="card" style="gap:0"><h2 style="margin-bottom:6px">الأجهزة</h2>${s.devices.map(d=>`<div class="kv"><span>${esc(d.label||'جهاز')} <span class="code" style="font-size:11px">${esc(d.id)}</span>${d.last?' · '+ago(d.last):''}</span><span>${/طلب دخول/.test(d.label||'')?'<span class="pill warn">طلب قديم</span>':`<span class="pill ok">${/لابتوب|ماك|windows|Windows/.test(d.label||'')?'💻 مفعّل':'📱 مفعّل'}</span>`}</span></div>`).join('')}
     <p style="font-size:12.5px;color:var(--muted);margin-top:6px">الحساب بيبيع من جهاز واحد بس. لو الزبون غيّر جواله، افتح التطبيق عنده بنفس الرقم وبعدين انقله من هون.</p></div>
     <button class="btn gold block" data-a="codeFor" data-acct="${s.acct}" data-owner="${esc(s.owner||'')}">＋ كود تفعيل لهذا الحساب</button>
     <div class="card"><h2>إدارة الحساب</h2><div class="grid2">
@@ -365,7 +365,7 @@ const A={
     <label>للتأكيد اكتب رقم الحساب <b class="num">${s.acct}</b><input id="delC" class="num" inputmode="numeric"></label><button class="btn danger block" data-a="doDel" data-id="${esc(d.id)}">حذف نهائي</button>`)},
   async doDel(d){try{await call('delete',{id:d.id,confirm:$('#delC').value.trim()}); close(); await load(); toast('انحذف الحساب')}catch(e){toast(e.message)}},
   codeFor(d){newCodeSheet({acct:d.acct,owner:d.owner})},
-  async move(d){ if(!confirm('أكيد؟ الجهاز الحالي بيوقف بيع، وهذا الجهاز بيصير هو اللي يبيع.')) return;
+  async move(d){ return; if(!confirm('أكيد؟ الجهاز الحالي بيوقف بيع، وهذا الجهاز بيصير هو اللي يبيع.')) return;
     try{await call('move',{id:d.id,device:d.dev}); await load(); shopSheet(d.id,'shop'); toast('✓ انتقل الحساب')}catch(e){toast(e.message)}},
   shop(d){shopSheet(d.id,d.k)}, code(d){codeSheet(d.c)},
   async voidCode(d){ if(!confirm('أكيد بدك تلغي الكود '+d.c+'؟')) return; try{await call('void',{code:d.c}); close(); await load(); toast('انلغى الكود')}catch(e){toast(e.message)}},

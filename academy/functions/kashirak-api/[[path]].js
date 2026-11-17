@@ -378,7 +378,8 @@ export async function onRequest({ request, env, params }) {
         if (!rp || !act.some((x) => x.id === rp)) return err(`الحساب مفتوح على ${MAX_DEV} أجهزة، وهذا الحد. اختار جهاز تطلّعه من الحساب`, 409, { code: 'limit', devices: act });
         await dropDev(env, shop, rp); shop.devices = (await env.DB.prepare('SELECT devices FROM ksr_shops WHERE id = ?').bind(shop.id).first()).devices;
       }
-      await seen(env, shop, ldev, q.label);
+      const oldLbl = (devsOf(shop)[ldev] || {}).label || '';
+      await seen(env, shop, ldev, (q.label ? clean(q.label, 60) : oldLbl).replace(/ \(طلب دخول\)$/, ''));
       return json({ token: await makeToken(env, shop), shop: pubShop(shop) });
     }
 
