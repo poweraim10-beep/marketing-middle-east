@@ -71,6 +71,9 @@ async function ensure(env) {
     'CREATE TABLE IF NOT EXISTS ksr_hist_chunks (shop TEXT NOT NULL, ver INTEGER NOT NULL, i INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, ver, i))',
     'ALTER TABLE ksr_shops ADD COLUMN restored INTEGER',
     'ALTER TABLE ksr_shops ADD COLUMN wa TEXT',
+    'ALTER TABLE ksr_shops ADD COLUMN sellers TEXT',
+    'ALTER TABLE ksr_shops ADD COLUMN multi INTEGER',
+    'CREATE TABLE IF NOT EXISTS ksr_ops (shop TEXT NOT NULL, id TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, id))',
     'CREATE TABLE IF NOT EXISTS ksr_sig (shop TEXT NOT NULL, k TEXT NOT NULL, v TEXT, t INTEGER NOT NULL, PRIMARY KEY (shop, k))',
     'CREATE TABLE IF NOT EXISTS ksr_scans (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, t INTEGER NOT NULL)',
     'CREATE TABLE IF NOT EXISTS ksr_push (endpoint TEXT PRIMARY KEY, shop TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL, last INTEGER NOT NULL DEFAULT 0, bc TEXT)',
@@ -125,7 +128,12 @@ async function readShop(env, req) {
   return shop;
 }
 const waOf = (w) => { const d = String(w || '').replace(/\D/g, '').replace(/^00/, ''); return /^97[02]5\d{8}$/.test(d) ? d : ''; };
-const pubShop = (s) => ({ restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
+// البيع من جوالين: الجهاز الأساسي + جوال بائع ثاني واحد. والحساب كله بينفتح على 3 أجهزة بالكثير (بائعين + جهاز متابعة)
+const MAX_DEV = 3, DEV_ACTIVE = 30 * 864e5;
+const sellersOf = (s) => { try { const a = JSON.parse(s.sellers || '[]'); return Array.isArray(a) ? a.filter((x) => x && x !== s.main).slice(0, 1) : []; } catch { return []; } };
+const devsOf = (s) => { try { return JSON.parse(s.devices || '{}') || {}; } catch { return {}; } };
+const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: sellersOf(s).includes(k) }));
+const pubShop = (s) => ({ multi: !!s.multi, sellers: s.multi ? sellersOf(s) : [], restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
 async function seen(env, shop, device, label) {
   if (!device) return;
   let d = {}; try { d = JSON.parse(shop.devices || '{}'); } catch {}
@@ -134,6 +142,10 @@ async function seen(env, shop, device, label) {
   const keys = Object.keys(d).sort((a, b) => d[b].last - d[a].last).slice(0, 12);
   const out = {}; for (const k of keys) out[k] = d[k];
   await env.DB.prepare('UPDATE ksr_shops SET devices = ? WHERE id = ?').bind(JSON.stringify(out), shop.id).run();
+}
+async function dropDev(env, shop, dev) {
+  const d = devsOf(shop); delete d[dev];
+  await env.DB.prepare('UPDATE ksr_shops SET devices = ?, sellers = ? WHERE id = ?').bind(JSON.stringify(d), JSON.stringify(sellersOf(shop).filter((x) => x !== dev)), shop.id).run();
 }
 // ---------- version history: every shop keeps its recent cloud copies, so nothing can be lost by one bad upload ----------
 const HIST_KEEP = 20, HIST_EVERY = 6 * 3600e3;
@@ -188,7 +200,7 @@ async function signLicense(env, row) {
 async function signShop(env, shop) {
   shop = await ensureAcct(env, shop);
   const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('shop:' + shop.id).first();
-  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, e: L ? L.exp : -1, tr: shop.trial_end || 0, p: L ? (L.plan || '') : 'trial', i: Date.now() }));
+  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, s: shop.multi ? sellersOf(shop) : [], e: L ? L.exp : -1, tr: shop.trial_end || 0, p: L ? (L.plan || '') : 'trial', i: Date.now() }));
   const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await signKey(env), new TextEncoder().encode(payload)));
   return payload + '.' + b64uBytes(sig);
 }
@@ -356,7 +368,13 @@ export async function onRequest({ request, env, params }) {
       const shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
       if (shop && !shop.hash) { await noteFail(env, ip); return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
       if (!shop || !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('رقم الجوال أو كلمة السر غلط', 401); }
-      await seen(env, shop, clean(q.device, 40), q.label);
+      const ldev = clean(q.device, 40), act = activeDevs(shop);
+      if (ldev && !act.some((x) => x.id === ldev) && act.length >= MAX_DEV) {
+        const rp = clean(q.replace, 40);
+        if (!rp || !act.some((x) => x.id === rp)) return err(`الحساب مفتوح على ${MAX_DEV} أجهزة، وهذا الحد. اختار جهاز تطلّعه من الحساب`, 409, { code: 'limit', devices: act });
+        await dropDev(env, shop, rp); shop.devices = (await env.DB.prepare('SELECT devices FROM ksr_shops WHERE id = ?').bind(shop.id).first()).devices;
+      }
+      await seen(env, shop, ldev, q.label);
       return json({ token: await makeToken(env, shop), shop: pubShop(shop) });
     }
 
@@ -399,7 +417,7 @@ export async function onRequest({ request, env, params }) {
         const sp = url.searchParams, t = nowMs();
         await env.DB.prepare('INSERT INTO ksr_dev (id, shop, phone, first, last, trial_end, sales, items, ver, account) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET shop = COALESCE(excluded.shop, ksr_dev.shop), phone = COALESCE(excluded.phone, ksr_dev.phone), last = excluded.last, sales = excluded.sales, items = excluded.items, ver = excluded.ver, account = COALESCE(excluded.account, ksr_dev.account)')
           .bind(device, clean(sp.get('shop') || '', 80) || null, clean(sp.get('phone') || '', 20) || null, t, t, null, parseInt(sp.get('sales'), 10) || 0, parseInt(sp.get('items'), 10) || 0, clean(sp.get('v') || '', 10) || null, shopRow ? shopRow.id : null).run().catch(() => {});
-        if (shopRow) await seen(env, shopRow, device);
+        if (shopRow && (devsOf(shopRow)[device] || activeDevs(shopRow).length < MAX_DEV)) await seen(env, shopRow, device);
       }
       if (!shopRow) return json({ license: null });
       return json({ license: await signShop(env, shopRow), main: shopRow.main });
@@ -444,10 +462,13 @@ export async function onRequest({ request, env, params }) {
     }
 
     if (a === 'state' && m === 'GET') {
+      if (device && !devsOf(shop)[device] && activeDevs(shop).length >= MAX_DEV) return err('هذا الجهاز انطلع من حساب المحل. ادخل من جديد', 401, { code: 'dropped' });
       await seen(env, shop, device);
       const have = parseInt(url.searchParams.get('have') || '-1', 10);
       const out = { shop: pubShop(shop) };
       if (shop.version > have && shop.version > 0) out.data = await readState(env, shop.id);
+      const ops = (await env.DB.prepare('SELECT data FROM ksr_ops WHERE shop = ? ORDER BY t LIMIT 800').bind(shop.id).all()).results || [];
+      if (ops.length) out.ops = ops.map((x) => { try { return JSON.parse(x.data); } catch { return null; } }).filter(Boolean);
       return json(out);
     }
 
@@ -473,6 +494,8 @@ export async function onRequest({ request, env, params }) {
         throw e;
       }
       await seen(env, shop, dev);
+      const done = Array.isArray(q.done) ? q.done.map((x) => clean(x, 40)).filter(Boolean).slice(0, 800) : [];
+      for (let i = 0; i < done.length; i += 90) { const part = done.slice(i, i + 90); await env.DB.prepare(`DELETE FROM ksr_ops WHERE shop = ? AND id IN (${part.map(() => '?').join(',')})`).bind(shop.id, ...part).run(); }
       return json({ version: shop.version + 1, updated: t });
     }
 
@@ -481,9 +504,59 @@ export async function onRequest({ request, env, params }) {
       if (!same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('كلمة السر غلط', 401); }
       const dev = clean(q.device, 40);
       if (!dev) return err('رقم الجهاز ناقص');
-      await env.DB.prepare('UPDATE ksr_shops SET main = ? WHERE id = ?').bind(dev, shop.id).run();
+      const sl = sellersOf(shop).filter((x) => x !== dev);
+      await env.DB.prepare('UPDATE ksr_shops SET main = ?, sellers = ? WHERE id = ?').bind(dev, JSON.stringify(sl), shop.id).run();
       await seen(env, shop, dev, q.label);
-      return json({ shop: { ...pubShop(shop), main: dev } });
+      const sh2 = { ...shop, main: dev, sellers: JSON.stringify(sl) };
+      return json({ shop: pubShop(sh2), license: await signShop(env, sh2) });
+    }
+
+    // ----- البيع من جوالين -----
+    if (a === 'devices' && m === 'GET') return json({ devices: activeDevs(shop), max: MAX_DEV, multi: !!shop.multi });
+    if (a === 'multi' && m === 'POST') { // الجهاز الأساسي بيشغّل/بيطفي البيع من جوالين
+      const q = await body(request);
+      if (device !== shop.main) return err('هذا بيتفعّل من الجهاز الأساسي للمحل', 403, { code: 'not_main' });
+      const on = q.on ? 1 : 0;
+      await env.DB.prepare('UPDATE ksr_shops SET multi = ?, sellers = ? WHERE id = ?').bind(on, on ? (shop.sellers || '[]') : '[]', shop.id).run();
+      const sh2 = { ...shop, multi: on, sellers: on ? shop.sellers : '[]' };
+      return json({ shop: pubShop(sh2), license: await signShop(env, sh2), devices: activeDevs(sh2) });
+    }
+    if (a === 'seller' && m === 'POST') { // جوال يصير بائع ثاني (من الجهاز الأساسي، أو الجوال نفسه) أو يرجع للمتابعة
+      const q = await body(request), dev = clean(q.dev, 40) || device;
+      if (device !== shop.main && device !== dev) return err('هذا بيصير من الجهاز الأساسي', 403);
+      if (!dev || dev === shop.main) return err('الجهاز الأساسي بيبيع أصلًا');
+      let sl = sellersOf(shop).filter((x) => x !== dev);
+      if (q.on) {
+        if (!shop.multi) return err('شغّل «البيع من جوالين» من الإعدادات بالجهاز الأساسي أول', 403, { code: 'multi_off' });
+        if (!activeDevs(shop).some((x) => x.id === dev)) return err('هذا الجهاز مش داخل على الحساب');
+        if (sl.length && device !== shop.main) return err('في جوال بائع ثاني مفعّل. بدّله من الجهاز الأساسي', 409, { code: 'seller_taken' });
+        sl = [dev]; // من الجهاز الأساسي: بيبدّل البائع القديم بالجديد
+      }
+      await env.DB.prepare('UPDATE ksr_shops SET sellers = ? WHERE id = ?').bind(JSON.stringify(sl), shop.id).run();
+      const sh2 = { ...shop, sellers: JSON.stringify(sl) };
+      return json({ shop: pubShop(sh2), license: await signShop(env, sh2), devices: activeDevs(sh2) });
+    }
+    if (a === 'devdrop' && m === 'POST') { // الجهاز الأساسي بيطلّع جهاز من الحساب
+      const q = await body(request), dev = clean(q.dev, 40);
+      if (device !== shop.main) return err('هذا بيصير من الجهاز الأساسي', 403);
+      if (!dev || dev === shop.main) return err('ما بتقدر تطلّع الجهاز الأساسي');
+      await dropDev(env, shop, dev);
+      const sh2 = await env.DB.prepare('SELECT * FROM ksr_shops WHERE id = ?').bind(shop.id).first();
+      return json({ shop: pubShop(sh2), license: await signShop(env, sh2), devices: activeDevs(sh2) });
+    }
+    if (a === 'ops' && m === 'POST') { // عمليات الجوال البائع الثاني (بيع، دفعة، مصروف): بتستنى هون لحد ما الجهاز الأساسي يضيفها للمحل
+      const q = await body(request);
+      if (!shop.multi || !sellersOf(shop).includes(device)) return err('هذا الجوال مش مفعّل كبائع', 403, { code: 'not_seller', shop: pubShop(shop) });
+      const list = Array.isArray(q.ops) ? q.ops.slice(0, 200) : [];
+      const stmts = [];
+      for (const o of list) {
+        const id = clean(o && o.id, 40), txt = JSON.stringify(o);
+        if (!id || txt.length > 200000 || !['sale', 'pay', 'exp'].includes(o.k)) continue;
+        stmts.push(env.DB.prepare('INSERT OR IGNORE INTO ksr_ops (shop, id, dev, t, data) VALUES (?, ?, ?, ?, ?)').bind(shop.id, id, device, nowMs(), txt));
+      }
+      if (stmts.length) await env.DB.batch(stmts);
+      await seen(env, shop, device);
+      return json({ ok: true, n: stmts.length });
     }
 
     if (a === 'password' && m === 'POST') {
@@ -527,7 +600,7 @@ export async function onRequest({ request, env, params }) {
       return json({ ids: (r.results || []).map((x) => x.id) });
     }
     if (a === 'blob' && b && m === 'PUT') {
-      if (device !== shop.main) return err('جهاز ثاني صار هو الأساسي', 409, { code: 'not_main' });
+      if (device !== shop.main && !(shop.multi && sellersOf(shop).includes(device))) return err('جهاز ثاني صار هو الأساسي', 409, { code: 'not_main' });
       const q = await body(request);
       const data = String(q.data || '');
       if (!data.startsWith('data:image/') || data.length > MAX_BLOB) return err('صورة غير مقبولة', 413);

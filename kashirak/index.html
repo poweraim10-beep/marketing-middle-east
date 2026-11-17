@@ -527,7 +527,7 @@ async function licRefresh(){ if(!navigator.onLine) return;
   if(!S||!linked()){ api('/license?'+new URLSearchParams({device:devInfo().id,v:APPVER,shop:S&&S.shop||'',phone:S&&S.phone||''})).catch(()=>{}); return }
   try{ const q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q);
     if(r&&r.license&&(!LIC||licKey(r.license)!==licKey(S.licTok))) await licApply(r.license); expGate() }catch(e){ if(e.status===401) cloudSignedOut() } }
-const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return [o.t,o.id,o.d,o.e,o.tr].join(':')}catch(e){return ''}};
+const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return [o.t,o.id,o.d,(o.s||[]).join(','),o.e,o.tr].join(':')}catch(e){return ''}};
 const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||(/^d\d+$/.test(p||'')?p.slice(1)+' يوم':'');
 
 const LOGO=(id)=>`<img class="lg3d" src="icons/logo-3d-256.png" alt="" width="256" height="256" decoding="async">`;
@@ -545,7 +545,7 @@ function status(){
   if(!S||!linked()) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'reg'};
   if(!LIC) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'nolic'};
   const now=Math.max(Date.now(),d.seen||0,LIC.i||0), trialEnd=LIC.tr||0, licEnd=LIC.e>=0?dayTs(LIC.e+1):0;
-  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id;
+  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id||(isSeller2()&&(LIC.s||[]).includes(d.id));
   return {...base,active:now<end&&(mine||isViewer()),paid,daysLeft:Math.ceil((end-now)/DAY),end,why:!mine&&!isViewer()?'moved':(paid?'paid':'trial')};
 }
 function planTagUI(){ const t=$('#planTag'); if(!t) return; if(!S||!LICREADY||!linked()||!LIC){t.hidden=true;return}
@@ -789,7 +789,7 @@ function persist(){ if(!S) return; S._t=Date.now(); const j=JSON.stringify(S);
 persist.flush=()=>{ const j=persist.j; if(!j) return; persist.j=null; return idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}).catch(()=>{ persist.j=persist.j||j })};
 window.addEventListener('pagehide',()=>persist.flush&&persist.flush());
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&persist.flush) persist.flush() });
-function save(){ norm(S); if(isViewer()&&!viewerMayKeep()) return; if(!expMayKeep()) return; persist(); cloudOnSave()}
+function save(){ norm(S); if(isSeller2()){ if(!rebuild()) persist(); return } if(isViewer()&&!viewerMayKeep()) return; if(!expMayKeep()) return; persist(); cloudOnSave()}
 async function restoreFromIdb(){ /* if the browser cleared localStorage, bring the shop back from IndexedDB */
   const [j,dv]=await Promise.all([idb('readonly',st=>st.get(KEY)),idb('readonly',st=>st.get(DEVKEY))]);
   try{if(dv&&!localStorage.getItem(DEVKEY))localStorage.setItem(DEVKEY,dv)}catch(e){}
@@ -807,7 +807,9 @@ let CLSNAP=null;
 function clSave(){try{CL?localStorage.setItem(CKEY,JSON.stringify(CL)):localStorage.removeItem(CKEY)}catch(e){}}
 const linked=()=>!!(CL&&CL.token);
 const isMain=()=>linked()&&CL.main===devInfo().id;
-const isViewer=()=>linked()&&CL.main!==devInfo().id;
+/* البيع من جوالين: جوال «بائع ثاني» بيبيع وبيسجّل عملياته (بيع، دفعة، مصروف) بصندوق على السيرفر، والجهاز الأساسي بيضيفها للمحل */
+const isSeller2=()=>linked()&&CL.main!==devInfo().id&&!!CL.multi&&(CL.sellers||[]).includes(devInfo().id);
+const isViewer=()=>linked()&&CL.main!==devInfo().id&&!isSeller2();
 const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','_t','_by'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
 function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
@@ -820,7 +822,7 @@ async function api(path,opt={}){
   let r; try{r=await fetch(API+path,{method:opt.method||'GET',headers:h,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'})}
   catch(e){const x=new Error('ما في اتصال بالنت');x.status=0;throw x}
   let j={}; try{j=await r.json()}catch(e){}
-  if(!r.ok){const x=new Error(j.error||('خطأ '+r.status));x.status=r.status;x.code=j.code;x.shop=j.shop;throw x} return j}
+  if(!r.ok){const x=new Error(j.error||('خطأ '+r.status));x.status=r.status;x.code=j.code;x.shop=j.shop;x.data=j;throw x} return j}
 async function gz(str){ if(!window.CompressionStream) return 'p:'+str;
   const buf=new Uint8Array(await new Response(new Blob([str]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
   let bin='';for(let i=0;i<buf.length;i+=0x8000) bin+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000)); return 'g:'+btoa(bin)}
@@ -831,6 +833,68 @@ const idbKeys=()=>idb('readonly',st=>st.getAllKeys()).then(r=>r||[]);
 const upGet=()=>{try{return JSON.parse(localStorage.getItem(UPKEY)||'{}')}catch(e){return {}}};
 const upSet=o=>{try{localStorage.setItem(UPKEY,JSON.stringify(o))}catch(e){}};
 function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length}}
+/* ===== البيع من جوالين: صندوق العمليات =====
+   الجوال الثاني ما بيرفع نسخة كاملة من المحل (لأنها بتمسح شغل الجهاز الأساسي). كل بيعة أو دفعة أو مصروف عليه بتصير «عملية»
+   بتنحفظ عليه وبتنرفع لما يكون في نت، والجهاز الأساسي بيضيفها للمحل (بيخصم المخزون وبيسجّل الدين) وبيرفع النسخة.
+   كل جهاز بيعرض: آخر نسخة من المحل + العمليات اللي لسا ما انضافت، فالكل بيشوف كل المبيعات. وكل عملية إلها رقم، فما بتنضاف مرتين. */
+const OPQKEY='kashirak-opq';
+let OPQ=(()=>{try{return JSON.parse(localStorage.getItem(OPQKEY)||'[]')||[]}catch(e){return []}})(), SRVOPS=[], BASE=null, MDEV=null;
+const opqSave=()=>{try{localStorage.setItem(OPQKEY,JSON.stringify(OPQ))}catch(e){}};
+const opId=()=>devInfo().id+'-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const opWho=()=>(isSeller2()?'الجوال الثاني · ':'')+(isOwner()?'المالك':'الكاشير');
+const opPending=id=>!isMain()&&(OPQ.some(o=>o.id===id)||SRVOPS.some(o=>o.id===id));
+function opAudit(op,what){S.audit.push({ts:op.ts,who:op.who||'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
+function opSale(op){
+  const pays=op.pays, dName=String(op.dName||'').trim(); let debtor=null;
+  if(pays.debt>0){debtor=S.customers.find(x=>x.name.trim()===dName);
+    if(!debtor){debtor={id:S.nextId++,name:dName,phone:op.dPhone||'',ledger:[]};S.customers.push(debtor)}
+    else if(op.dPhone&&!debtor.phone) debtor.phone=op.dPhone}
+  op.lines.forEach(l=>{const it=itemById(l.itemId); if(it) it.qty=r3(it.qty-l.baseQty)});
+  const app=pays.app>0;
+  const sale={id:S.nextInv++,ts:op.ts,lines:op.lines,discount:op.disc,promo:op.promo||0,wholesale:!!op.wholesale,fee:op.fee,total:op.total,cost:op.cost,pays,appMethod:app?op.appMethod:'',ref:app?op.ref||'':'',confirmed:!app,payer:app?op.payer||'':'',proof:app&&op.proof?op.proof:'',proofHash:app&&op.proof?op.proofHash:'',custId:debtor?debtor.id:null};
+  if(op.s2){sale.s2=1; sale.op=op.id}
+  const orig=op.addTo?S.sales.find(x=>x.id===op.addTo):null;
+  if(orig){ sale.addTo=orig.id; orig.adds=[...(orig.adds||[]),sale.id]; opAudit(op,`إضافة أصناف بقيمة ${fx(sale.total)} ₪ على فاتورة ${orig.id}`) }
+  S.sales.push(sale);
+  if(sale.custId){debtor.ledger.push({ts:sale.ts,amt:pays.debt,note:orig?`إضافة على فاتورة رقم ${orig.id}`:`فاتورة رقم ${sale.id}`})}
+  if(op.disc>0) opAudit(op,`خصم ${fx(op.disc)} ₪ على فاتورة ${sale.id}`);
+  if(S.loyal.on&&dName){let cu=debtor||S.customers.find(x=>x.name.trim()===dName); if(!cu){cu={id:S.nextId++,name:dName,phone:op.dPhone||'',ledger:[]};S.customers.push(cu)}
+    const pts=Math.floor(sale.total/(S.loyal.per||10)); if(pts>0){cu.points=(cu.points||0)+pts; sale.points=pts; sale.ptsCust=cu.id}}
+  return sale}
+function applyOp(op){ S._ops=S._ops||[]; if(S._ops.includes(op.id)) return null; let r=null;
+  try{
+    if(op.k==='sale') r=opSale(op);
+    else if(op.k==='pay'){const c=S.customers.find(x=>x.id===op.cid&&x.name===op.cname)||S.customers.find(x=>x.name.trim()===String(op.cname||'').trim());
+      if(c) c.ledger.push({ts:op.ts,amt:-op.amt,note:'دفعة نقدية'+(op.s2?' (الجوال الثاني)':'')})}
+    else if(op.k==='exp') S.expenses.push({id:S.nextId++,ts:op.ts,name:op.name,amt:op.amt,per:op.per||'day'});
+  }catch(e){}
+  S._ops.push(op.id); if(S._ops.length>3000) S._ops.splice(0,S._ops.length-3000); return r}
+/* أي جهاز مش أساسي: المحل = آخر نسخة من السحابة + العمليات اللي لسا ما انضافت */
+function rebuild(){ if(BASE==null) return false;
+  const keep={}; if(S){LOCALF.forEach(k=>{if(S[k]!==undefined) keep[k]=S[k]}); if(isSeller2()) keep.held=S.held}
+  S=norm(JSON.parse(BASE)); const done=new Set(S._ops||[]);
+  const q=OPQ.filter(o=>!done.has(o.id)); if(q.length!==OPQ.length){OPQ=q; opqSave()}
+  [...SRVOPS,...(isSeller2()?OPQ:[])].filter((o,i,a)=>a.findIndex(x=>x.id===o.id)===i).sort((a,b)=>a.ts-b.ts).forEach(applyOp);
+  Object.assign(S,keep); if(!S.mode) S.mode='owner'; CLSNAP=stripLocal(S); persist(); return true}
+function opQueue(op){ op.s2=1; op.dev=devInfo().id; OPQ.push(op); opqSave();
+  if(!rebuild()){ applyOp(op); persist() } opSend(); setCloudUI() }
+async function opSend(){ if(!isSeller2()||opSend.busy||!navigator.onLine) return; const list=OPQ.filter(o=>!o.sent); if(!list.length) return;
+  opSend.busy=1;
+  try{ await api('/ops',{method:'POST',body:{ops:list.map(o=>{const c=Object.assign({},o); delete c.sent; return c})}});
+    const ids=new Set(list.map(o=>o.id)); OPQ.forEach(o=>{if(ids.has(o.id)) o.sent=1}); opqSave(); CLS.state='ok'; CLS.err=''; cloudPushBlobs();
+  }catch(e){
+    if(e.code==='not_seller'){ const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id)); CL.lost=id;
+      if(e.shop){CL.multi=e.shop.multi; CL.sellers=e.shop.sellers} clSave(); render();
+      openSheet(`${sheetHead('هذا الجوال رجع للمتابعة')}<p style="margin:0">الجهاز الأساسي وقّف البيع من هذا الجوال. في مبيعات عليه لسا ما وصلت، فحفظنا منها نسخة.</p><p class="muted" style="margin:0">رجّع تفعيله كبائع من الجهاز الأساسي وبتنرفع لحالها، أو نزّل النسخة كملف.</p><button class="btn" data-act="cloudUnsynced">تنزيل نسخة هذا الجهاز</button>`) }
+    else if(e.status===401) cloudSignedOut();
+    else {CLS.state=navigator.onLine&&e.status?'err':'off'; CLS.err=e.message}
+  }finally{opSend.busy=0; setCloudUI()}}
+/* الجهاز الأساسي: بياخد عمليات الجوال الثاني من السيرفر وبيضيفها للمحل، وبالرفعة الجاية بينمسحوا من الصندوق */
+function mainMerge(ops){ if(!isMain()||!S) return; CL.done=CL.done||[]; let n=0; const had=new Set(S._ops||[]);
+  (ops||[]).slice().sort((a,b)=>a.ts-b.ts).forEach(o=>{ if(!had.has(o.id)){applyOp(o); n++} if(!CL.done.includes(o.id)) CL.done.push(o.id) });
+  clSave(); if(!(ops||[]).length) return;
+  if(n){ save(); if(!document.querySelector('#sheet.open')) render(); if(ops.some(o=>o.proof)) setTimeout(cloudPullBlobs,4000); toast(n===1?'📱 وصلت عملية من الجوال الثاني':`📱 وصلت ${n} عمليات من الجوال الثاني`) }
+  else { CLS.dirty=true; clearTimeout(cloudOnSave.t); cloudOnSave.t=setTimeout(cloudPush,3000) }}
 function cloudOnSave(){ if(!isMain()) return; CLS.dirty=true; clearTimeout(cloudOnSave.t); cloudOnSave.t=setTimeout(cloudPush,4000); setCloudUI()}
 /* في تغييرات على الجهاز الأساسي لسا ما انرفعت؟ محفوظة بالتخزين (مش بالذاكرة بس)، فلو انسكّر التطبيق وهو بدون نت، بيرفعها أول ما يفتح مع نت */
 const cloudPending=()=>isMain()&&!!S&&(CLS.dirty||!CL.ver||(S._t||0)>(CL.sentT||0));
@@ -841,7 +905,9 @@ async function cloudPush(rebase){
   try{
     const t0=S._t||0, txt=JSON.stringify(Object.assign({},S,{_by:devInfo().id}));
     CL.triedT=Math.max(CL.triedT||0,t0); clSave();
-    const r=await api('/state',{method:'PUT',body:{device:devInfo().id,base:CL.ver||0,data:await gz(txt),name:S.shop,meta:cloudMeta()}});
+    const done=(CL.done||[]).slice(0,800);
+    const r=await api('/state',{method:'PUT',body:{device:devInfo().id,base:CL.ver||0,data:await gz(txt),name:S.shop,meta:cloudMeta(),done}});
+    if(done.length){const dn=new Set(done); CL.done=(CL.done||[]).filter(x=>!dn.has(x))}
     CL.ver=r.version; CL.last=r.updated; CL.sentT=Math.max(CL.sentT||0,t0); clSave(); CLS.state='ok'; CLS.err='';
     await cloudPushBlobs();
   }catch(e){
@@ -881,6 +947,7 @@ async function cloudPullBlobs(){
   }catch(e){} cloudPullBlobs.on=0;
 }
 function applyRemote(txt,ver,updated){
+  if(linked()&&!isMain()){ BASE=txt; CL.ver=ver; CL.last=updated; clSave(); if(!rebuild()){S=norm(JSON.parse(txt))} setTimeout(licCheckStored,0); return }
   const keep={}; if(S) LOCALF.forEach(k=>{if(S[k]!==undefined) keep[k]=S[k]});
   S=norm(JSON.parse(txt)); Object.assign(S,keep); if(!S.mode) S.mode='owner';
   CLSNAP=stripLocal(S); CL.ver=ver; CL.last=updated; clSave(); persist(); setTimeout(licCheckStored,0);
@@ -889,7 +956,8 @@ async function cloudPull(full){
   if(!linked()||CLS.busy) return; if(!navigator.onLine){CLS.state='off';setCloudUI();return}
   CLS.busy=true;
   try{
-    const r=await api('/state?have='+(full?-1:(CL.ver||0))+'&device='+devInfo().id), sh=r.shop, was=isMain();
+    const r=await api('/state?have='+(full||(!isMain()&&BASE==null)?-1:(CL.ver||0))+'&device='+devInfo().id), sh=r.shop, was=isMain(), wasS2=isSeller2();
+    CL.multi=!!sh.multi; CL.sellers=sh.sellers||[];
     CL.name=sh.name; CL.mainLast=sh.updated; if(sh.id&&!CL.shopId){CL.shopId=sh.id; clSave()}
     if(was&&sh.main!==devInfo().id){CLS.busy=false; await cloudLostMain(sh); return}
     CL.main=sh.main; clSave();
@@ -899,6 +967,11 @@ async function cloudPull(full){
       if(restored&&S){ await idb('readwrite',st=>st.put(JSON.stringify(S),'unsynced-'+Date.now())); CL.rseen=sh.restored }
       applyRemote(await gunz(r.data),sh.version,sh.updated); if(!document.querySelector('#sheet.open')) render(); cloudPullBlobs();
       if(restored) toast('✓ رجعت بيانات المحل لنسخة سابقة من الإدارة') }
+    const ops=r.ops||[];
+    if(isMain()) mainMerge(ops);
+    else { const k=o=>o.map(x=>x.id).join(','), ch=k(ops)!==k(SRVOPS)||wasS2!==isSeller2(); SRVOPS=ops;
+      if((ch||r.data)&&rebuild()&&!document.querySelector('#sheet.open')) render();
+      if(wasS2!==isSeller2()){ licRefresh(); render() } if(isSeller2()) opSend() }
     CLS.state='ok'; CLS.err='';
   }catch(e){ if(e.status===401) cloudSignedOut(); else {CLS.state=e.status?'err':'off'; CLS.err=e.message} }
   finally{CLS.busy=false; setCloudUI()}
@@ -922,7 +995,7 @@ async function cloudSignedOut(){ const prev=CL;
 function setCloudUI(){
   const b=$('#cloudBtn'), bar=$('#cloudBar'); if(!b) return;
   if(!S||!linked()){b.hidden=true; if(bar) bar.hidden=true; return}
-  b.hidden=false; const st=isViewer()?'view':(cloudPending()&&CLS.state!=='sync'?(navigator.onLine?'wait':'off'):CLS.state);
+  b.hidden=false; const st=isSeller2()?(OPQ.some(o=>!o.sent)?(navigator.onLine?'wait':'off'):CLS.state):isViewer()?'view':(cloudPending()&&CLS.state!=='sync'?(navigator.onLine?'wait':'off'):CLS.state);
   b.dataset.st=st; b.title={ok:'محفوظ على السحابة',sync:'جاري الرفع…',wait:'بانتظار الرفع',off:'بدون نت: رح يرفع لما يرجع النت',err:'ما انرفع: '+CLS.err,view:'جهاز متابعة',idle:'السحابة'}[st]||'';
   if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث <span class="num">${CL.last?hm(CL.last):'—'}</span></span><span style="display:flex;gap:6px"><button class="btn sm accent" data-act="remScan">📷 ماسح للابتوب</button><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button></span>`}
 }
@@ -930,19 +1003,39 @@ function cloudCard(){
   if(!linked()) return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>
     <p class="muted" style="margin:0">بيانات المحل الآن على هذا الجهاز بس. اعمل حساب للمحل، وبتنحفظ نسخة تلقائية كل ما تبيع، وبترجع كلها لو ضاع الجوال. وبتقدر تتابع المحل من لابتوب أو جوال ثاني.</p>
     <div class="grid2"><button class="btn accent" data-act="cloudNew">إنشاء حساب للمحل</button><button class="btn" data-act="cloudLogin">عندي حساب</button></div></div>`;
-  const st=CLS.state, main=isMain();
+  const st=CLS.state, main=isMain(), s2=isSeller2(), unsent=OPQ.filter(o=>!o.sent).length;
   return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2><div class="list">
     <div class="li"><span>رقم الحساب</span><span class="num" style="font-weight:700">${esc(CL.acct||'—')}</span></div>
     <div class="li"><span>الجوال</span><span class="num">${esc(CL.phone||'')}</span></div>
-    <div class="li"><span>هذا الجهاز</span><span class="pill ${main?'ok':'warn'}">${main?'الأساسي (بيبيع ويرفع)':'للمتابعة بس'}</span></div>
+    <div class="li"><span>هذا الجهاز</span><span class="pill ${main||s2?'ok':'warn'}">${main?'الأساسي (بيبيع ويرفع)':s2?'📱 بائع ثاني':'للمتابعة بس'}</span></div>
     <div class="li"><span>آخر نسخة على السحابة</span><span>${CL.last?fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا'}</span></div>
+    ${s2?`<div class="li"><span>مبيعات هذا الجوال</span><span>${unsent?(navigator.onLine?`⏳ ${unsent} لسا بترفع`:`📴 ${unsent} محفوظة على الجوال، بترفع لما يرجع النت`):'✓ كلها وصلت'}</span></div>`:''}
     <div class="li"><span>الحالة</span><span>${CLS.state==='sync'?'جاري الرفع…':cloudPending()?(navigator.onLine?'⏳ في بيع لسا ما انرفع، رح يرفع لحاله':'📴 بدون نت: البيع محفوظ على الجهاز، ورح يرفع لحاله لما يرجع النت'):({ok:'✓ محفوظ على السحابة',off:'بدون نت، رح يرفع لما يرجع',err:'ما انرفع: '+esc(CLS.err)}[st]||'—')}</span></div></div>
     <div class="grid2">${main?'<button class="btn primary" data-act="cloudNow">ارفع الآن</button>':'<button class="btn primary" data-act="cloudTake">خلّي هذا الجهاز أساسي</button>'}<button class="btn" data-act="cloudNow2">حدّث من السحابة</button></div>
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
+function multiCard(){ if(!linked()) return '';
+  const main=isMain(), s2=isSeller2(), on=!!CL.multi;
+  if(main&&!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; CL.multi=r.multi; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
+  const role=x=>x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">📱 بائع ثاني</span>':'<span class="pill">متابعة</span>';
+  const rows=(MDEV||[]).map(x=>`<div class="li"><span>${esc(x.label||'جهاز')}${x.id===devInfo().id?' <span class="muted">(هذا الجهاز)</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span>
+    <span class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">${role(x)}${!x.main&&on?(x.seller?`<button class="btn sm" data-act="sellerSet" data-dev="${x.id}" data-on="">رجّعه متابعة</button>`:`<button class="btn sm accent" data-act="sellerSet" data-dev="${x.id}" data-on="1">خلّيه بائع</button>`):''}${!x.main?`<button class="btn sm danger" data-act="devDrop" data-dev="${x.id}">تطليع</button>`:''}</span></div>`).join('');
+  return `<div class="card multicard" style="gap:10px"><h2>📱📱 البيع من جوالين</h2>
+    <p class="muted" style="margin:0">إذا عندك كاشيرين، كل واحد ببيع من جواله، حتى لو بعاد عن بعض أو بدون نت. المبيعات والديون والمخزون بتتجمع بنفس المحل لحالها، وما حدا بيمسح شغل الثاني.</p>
+    <p class="muted" style="margin:0">الحساب بينفتح على <b>3 أجهزة</b>: الجوال الأساسي + جوال بائع ثاني + جهاز متابعة (لابتوب مثلًا).</p>
+    ${main?(on?`<div class="pill ok" style="align-self:flex-start">✓ مفعّل</div>
+      <div class="list">${rows||'<div class="li muted">جاري تحميل الأجهزة…</div>'}</div>
+      <p class="muted" style="margin:0;font-size:13px">الأجهزة: <b class="num">${(MDEV||[]).length}</b> من 3</p>
+      ${(MDEV||[]).some(x=>x.seller)?'':`<div class="list"><div class="li"><span><b>لإضافة الجوال الثاني:</b> افتح عليه <b dir="ltr">marketingmiddleeast.com/kashirak</b> ← «عندي حساب» ← اكتب الرقم <b class="num">${esc(CL.phone||'')}</b> وكلمة السر ← اختار «جوال بائع ثاني».</span></div></div>`}
+      <div class="grid2"><button class="btn" data-act="multiLoad">تحديث القائمة</button><button class="btn danger" data-act="multiSet" data-on="">إيقاف</button></div>`
+      :`<button class="btn primary block" data-act="multiSet" data-on="1">تفعيل البيع من جوالين</button>${CL.nopass?'<p class="muted" style="margin:0;color:var(--bad)">حدّد كلمة سر للحساب أول، عشان تدخل فيها من الجوال الثاني.</p>':''}`)
+    :s2?`<div class="pill ok" style="align-self:flex-start">📱 هذا الجوال بائع ثاني</div><p class="muted" style="margin:0">بتبيع وبتسجّل ديون ودفعات ومصاريف، وكلها بتوصل للجهاز الأساسي. تعديل الأصناف والأسعار والإعدادات بيصير من الجهاز الأساسي.</p><button class="btn" data-act="sellerSet" data-dev="${devInfo().id}" data-on="">رجّع هذا الجوال للمتابعة بس</button>`
+    :on?`<button class="btn primary block" data-act="sellerSet" data-dev="${devInfo().id}" data-on="1">خلّي هذا الجوال بائع ثاني</button>`
+    :`<p class="muted" style="margin:0">بيتفعّل من الإعدادات على الجهاز الأساسي.</p>`}
+  </div>`}
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
-  if(isViewer()) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
+  if(!isMain()||CL.multi) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
 window.addEventListener('online',()=>{ licRefresh(); if(isMain()) cloudPush(); else if(linked()) cloudPull() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()){ if(cloudPending()) cloudPush(); else cloudPull() } });
@@ -1475,7 +1568,7 @@ more(){
       ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
       <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
       <div class="grid2"><button class="btn primary" data-act="license">إدخال كود تفعيل</button><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button></div></div>`})()}`,true)}
-  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، كلمة سر الحساب، واللابتوب',cloudCard())}
+  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، البيع من جوالين، واللابتوب',cloudCard()+multiCard())}
   ${setSec('🏪','المحل والأسعار','اسم المحل، الدولار والدينار، رسوم التطبيق، والخصم',`<div class="sin">
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <div class="grid2"><label for="stRate">سعر الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
@@ -1985,6 +2078,7 @@ function fsRows(q){ q=String(q||'').trim(); const cn=s=>{const c=s.custId?S.cust
 function saleSheet(sale,title){
   openSheet(`${sheetHead(title)}
     <div class="card"><div class="row"><span>فاتورة رقم <span class="num">${sale.id}</span></span><span class="pill ${sale.confirmed===false?'warn':'ok'}">${payLabel(sale)}${sale.confirmed===false?' · بانتظار التأكيد':''}</span></div>
+      ${sale.s2?`<div class="row muted" style="font-size:13px"><span>📱 من الجوال البائع الثاني</span>${sale.op&&opPending(sale.op)?'<span>⏳ لسا ما وصلت للجهاز الأساسي (الرقم ممكن يتغيّر)</span>':''}</div>`:''}
       <div class="row"><span class="muted">الإجمالي</span><span class="total">${money(sale.total)}</span></div>
       ${sale.payer?`<div class="row muted"><span>محوّل باسم</span><span>${esc(sale.payer)}</span></div>`:''}
       ${payOf(sale).app>0?(sale.proof?`<button class="btn" data-act="proofView" data-k="${sale.id}">عرض إشعار التحويل${sale.ref?` · رقم ${esc(sale.ref)}`:''}</button>`:`<label class="btn" for="prLate">إرفاق صورة إشعار التحويل</label><input id="prLate" type="file" accept="image/*" data-sale="${sale.id}" hidden>`):''}
@@ -2032,21 +2126,13 @@ checkout(){
   if(pays.debt>0&&!dName){toast(`اكتب اسم الشخص لتسجيل الدين (${fx(pays.debt)} ₪)`);const f=$('#dName');if(f)f.focus();return}
   if(pays.app>0){ if(S.proofReq&&!c.proof){beep(false); toast('صوّر إشعار التحويل قبل إتمام البيع'); const b=$('.pbtns'); if(b) b.scrollIntoView({block:'center'}); return}
     const dr=refDup(c); if(dr){beep(false); toast(`رقم العملية مستعمل قبل بفاتورة ${dr.id}. تأكد منه`); const f=$('#apR'); if(f) f.focus(); return}}
-  let debtor=null;
-  if(pays.debt>0){debtor=S.customers.find(x=>x.name.trim()===dName);
-    if(!debtor){debtor={id:S.nextId++,name:dName,phone:String(c.custPhone||'').trim(),ledger:[]};S.customers.push(debtor)}
-    else if(c.custPhone&&!debtor.phone) debtor.phone=String(c.custPhone).trim()}
-  lines.forEach(l=>{const it=itemById(l.itemId); it.qty=r3(it.qty-l.baseQty)});
-  const sale={id:S.nextInv++,ts:Date.now(),lines,discount:tt.disc,promo:tt.promo||0,wholesale:!!c.wholesale,fee,total:tt.total,cost:tt.cost,pays,appMethod:pays.app>0?c.appMethod:'',ref:pays.app>0?String(c.ref||'').trim():'',confirmed:!(pays.app>0),payer:pays.app>0?String(c.payer||'').trim():'',proof:pays.app>0&&c.proof?c.proof:'',proofHash:pays.app>0&&c.proof?c.proofHash:'',custId:debtor?debtor.id:null};
   if(c.proof&&!(pays.app>0)) idb('readwrite',st=>st.delete(c.proof));
-  const orig=c.addTo?S.sales.find(x=>x.id===c.addTo):null;
-  if(orig){ sale.addTo=orig.id; orig.adds=[...(orig.adds||[]),sale.id]; audit(`إضافة أصناف بقيمة ${fx(sale.total)} ₪ على فاتورة ${orig.id}`) }
-  S.sales.push(sale);
-  if(sale.custId){S.customers.find(x=>x.id===sale.custId).ledger.push({ts:sale.ts,amt:pays.debt,note:orig?`إضافة على فاتورة رقم ${orig.id}`:`فاتورة رقم ${sale.id}`})}
-  if(tt.disc>0) audit(`خصم ${fx(tt.disc)} ₪ على فاتورة ${sale.id}`);
-  if(S.loyal.on&&dName){let cu=debtor||S.customers.find(x=>x.name.trim()===dName); if(!cu){cu={id:S.nextId++,name:dName,phone:String(c.custPhone||'').trim(),ledger:[]};S.customers.push(cu)}
-    const pts=Math.floor(sale.total/(S.loyal.per||10)); if(pts>0){cu.points=(cu.points||0)+pts; sale.points=pts; sale.ptsCust=cu.id}}
-  carts[ci]=newCart(); save(); render(); if(orig) saleSheet(orig,`✓ انضافت الأصناف على الفاتورة ${orig.id}`); else saleSheet(sale,'تم البيع');
+  const op={id:opId(),k:'sale',ts:Date.now(),who:opWho(),lines,disc:tt.disc,promo:tt.promo||0,wholesale:!!c.wholesale,fee,total:tt.total,cost:tt.cost,pays,appMethod:c.appMethod||'',ref:String(c.ref||'').trim(),payer:String(c.payer||'').trim(),proof:c.proof||'',proofHash:c.proofHash||'',dName,dPhone:String(c.custPhone||'').trim(),addTo:c.addTo||null};
+  let sale; carts[ci]=newCart();
+  if(isSeller2()){ opQueue(op); sale=S.sales.find(x=>x.op===op.id) } else { sale=opSale(op); save() }
+  if(!sale){render(); toast('تم البيع'); return}
+  const orig=sale.addTo?S.sales.find(x=>x.id===sale.addTo):null, debtor=sale.custId?S.customers.find(x=>x.id===sale.custId):null;
+  render(); if(orig) saleSheet(orig,`✓ انضافت الأصناف على الفاتورة ${orig.id}`); else saleSheet(sale,'تم البيع');
   if(debtor) toast(`انسجل ${fx(pays.debt)} ₪ على ${debtor.name} بدفتر الديون`);
 },
 sale(d){const s=S.sales.find(x=>x.id===+d.id); if(s) saleSheet(s,'تفاصيل الفاتورة')},
@@ -2119,6 +2205,8 @@ party(d){
 },
 payParty(d){const c=S[d.kind].find(x=>x.id===+d.id), a=r2(parseFloat($('#payAmt').value)||0), b=balance(c);
   if(a<=0){toast('اكتب مبلغ الدفعة');return} if(a>b){toast(`المبلغ أكبر من الرصيد ${fx(b)} ₪`);return}
+  if(isSeller2()){ if(d.kind!=='customers'){toast('دفعات الموردين بتنسجّل من الجهاز الأساسي');return}
+    opQueue({id:opId(),k:'pay',ts:Date.now(),who:opWho(),cid:c.id,cname:c.name,amt:a}); render(); A.party(d); toast('تم تسجيل الدفعة'); return }
   c.ledger.push({ts:Date.now(),amt:-a,note:WORD[d.kind].note}); save(); render(); A.party(d); toast('تم تسجيل الدفعة')},
 addBuy(){
   const it=itemById($('#pItem').value), sup=S.suppliers.find(x=>x.id===+$('#pSup').value), qty=r3(parseFloat($('#pQty').value)||0), cost=r2(parseFloat($('#pCost').value)||0), paid=$('#pPaid').value;
@@ -2143,7 +2231,9 @@ debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).
 sub(d){if(d.s==='att'){tab='staff'; render(); $('#view').scrollTop=0; return} sub=d.s; render(); $('#view').scrollTop=0},
 period(d){period=d.p; render()},
 addExp(){const n=$('#exName').value.trim(), a=r2(parseFloat($('#exAmt').value)||0);
-  if(!n||a<=0){toast('اكتب البيان والمبلغ');return} S.expenses.push({id:S.nextId++,ts:Date.now(),name:n,amt:a,per:EXP_PER}); const sp=EXPER[EXP_PER][0]; save(); render(); toast(sp>1?`تم حفظ المصروف: ${fx(a/sp)} ₪ باليوم لمدة ${sp} يوم`:'تم حفظ المصروف')},
+  if(!n||a<=0){toast('اكتب البيان والمبلغ');return}
+  if(isSeller2()){ opQueue({id:opId(),k:'exp',ts:Date.now(),who:opWho(),name:n,amt:a,per:EXP_PER}); render(); toast('تم حفظ المصروف'); return }
+  S.expenses.push({id:S.nextId++,ts:Date.now(),name:n,amt:a,per:EXP_PER}); const sp=EXPER[EXP_PER][0]; save(); render(); toast(sp>1?`تم حفظ المصروف: ${fx(a/sp)} ₪ باليوم لمدة ${sp} يوم`:'تم حفظ المصروف')},
 exPer(d){ EXP_PER=d.p; document.querySelectorAll('[data-act=exPer]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); const h=$('#exHint'); if(h) h.innerHTML=expHint() },
 delExp(d){ const e=S.expenses.find(x=>x.id===+d.id); if(!e) return; if(!confirm(`حذف مصروف «${e.name}» (${fx(e.amt)} ₪)؟`)) return; S.expenses=S.expenses.filter(x=>x.id!==e.id); audit(`حذف مصروف ${e.name} ${fx(e.amt)} ₪`); save(); render(); toast('انحذف المصروف')},
 closeDay(){const d=drawer(), raw=$('#cnt').value, counted=raw===''?d.expected:r2(parseFloat(raw)||0); if(r2(counted-d.expected)!==0) audit(`إقفال صندوق بفرق ${fx(counted-d.expected)} ₪`);
@@ -2194,7 +2284,7 @@ faceRej(){const t0=sod(), rs=(S.attRej||[]).slice().reverse(); Promise.all(rs.ma
     return `<div class="li"><span class="pair">${img?`<img src="${img}" alt="">`:''}<img src="${st?refImg(st):''}" alt=""></span><span style="flex:1"><span class="t">باسم ${esc(st?st.name:'—')} · <span style="color:var(--bad)">${W[r.why]||''}</span>${o?` (${esc(o.name)})`:''}</span><br><span class="muted">${r.ts>=t0?'اليوم':new Date(r.ts).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})} · <span class="num">${hm(r.ts)}</span></span></span></div>`}).join('')||'<div class="empty">ما في محاولات مرفوضة</div>'}</div>
   ${xs.length?'<button class="btn sm" data-act="faceRejClear">مسح السجل</button>':''}`)})},
 refRetry(){if(A._ref) A._ref()},
-cloudSheet(){openSheet(sheetHead('حساب المحل')+cloudCard().replace('<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>','<div style="display:flex;flex-direction:column;gap:12px">'))},
+cloudSheet(){openSheet(sheetHead('حساب المحل')+cloudCard().replace('<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>','<div style="display:flex;flex-direction:column;gap:12px">')+multiCard())},
 cloudNew(){openSheet(`${sheetHead(linked()?'كلمة سر حساب المحل':'إنشاء حساب للمحل')}<p class="muted" style="margin:0">رقم الجوال وكلمة السر هم مفتاح محلك. بيهم بترجع بياناتك على أي جهاز، وبتتابع محلك من اللابتوب أو جوال ثاني.</p>
   <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" value="${esc(linked()?CL.phone:(S.phone||''))}" ${linked()?'readonly':''} placeholder="059xxxxxxx"></label>
   <label for="clPass">كلمة السر (6 أحرف أو أرقام على الأقل)<input id="clPass" type="password" autocomplete="new-password"></label>
@@ -2216,34 +2306,58 @@ cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
   <label for="clPass">كلمة السر<input id="clPass" type="password" autocomplete="current-password"></label>
   <div class="seg" role="radiogroup" aria-label="شو دور هذا الجهاز؟" style="display:grid;gap:8px">
     <label class="chk"><input type="radio" name="clRole" value="main" checked>هذا الجهاز للبيع (الجهاز الأساسي)</label>
+    <label class="chk"><input type="radio" name="clRole" value="seller">📱 جوال بائع ثاني (كاشير ثاني بنفس المحل)</label>
     <label class="chk"><input type="radio" name="clRole" value="view">للمتابعة بس (لابتوب أو جوال صاحب المحل)</label></div>
   ${S?'<p class="muted" style="margin:0;color:var(--bad)">بيانات هذا الجهاز رح تنستبدل ببيانات الحساب.</p>':''}
   <button class="btn primary block" data-act="cloudLoginGo">دخول</button>`)},
 async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'main';
   const btn=$('[data-act=cloudLoginGo]'); btn.disabled=true; btn.textContent='جاري الدخول…';
-  try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel()}});
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,ver:-1,last:r.shop.updated,nopass:false}; clSave(); upSet({});
-    if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; clSave()}
+  const rp=A.loginReplace.p&&A.loginReplace.p.ph===ph?A.loginReplace.p.replace:''; A.loginReplace.p=null;
+  try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel(),replace:rp||undefined}});
+    OPQ=[]; opqSave(); SRVOPS=[]; BASE=null;
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,multi:!!r.shop.multi,sellers:r.shop.sellers||[],ver:-1,last:r.shop.updated,nopass:false}; clSave(); upSet({});
+    if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; CL.sellers=m.shop.sellers||[]; clSave()}
+    if(role==='seller'){ try{const s2=await api('/seller',{method:'POST',body:{on:true}}); CL.multi=s2.shop.multi; CL.sellers=s2.shop.sellers; clSave()}
+      catch(e){ toast(e.code==='multi_off'?'البيع من جوالين مش مفعّل. فعّله من الإعدادات بالجهاز الأساسي، والجوال هذا دخل للمتابعة':e.message) } }
     btn.textContent='جاري استرجاع المحل…';
     const st=await api('/state?have=-1&device='+devInfo().id);
     if(st.data){applyRemote(await gunz(st.data),st.shop.version,st.shop.updated)}
     else if(S&&isMain()){CL.ver=0;clSave();await cloudPush()}
     else {toast('الحساب فاضي. اعمل المحل من الجهاز الأساسي أول'); CL=null; clSave(); btn.disabled=false; btn.textContent='دخول'; return}
-    CLS.state='ok'; closeSheet(); tab='home'; await licRefresh(); render(); toast(isMain()?'✓ رجعت بيانات المحل، وهذا الجهاز صار الأساسي':'✓ هذا الجهاز صار يتابع المحل'); cloudPullBlobs();
-  }catch(e){toast(e.message); btn.disabled=false; btn.textContent='دخول'}},
+    CLS.state='ok'; closeSheet(); tab='home'; await licRefresh(); render(); toast(isMain()?'✓ رجعت بيانات المحل، وهذا الجهاز صار الأساسي':isSeller2()?'✓ هذا الجوال صار بائع ثاني بالمحل':'✓ هذا الجهاز صار يتابع المحل'); cloudPullBlobs(); cloudPull();
+  }catch(e){ btn.disabled=false; btn.textContent='دخول';
+    if(e.code==='limit'&&e.data&&e.data.devices){ A.loginReplace.p={ph,pw,role};
+      openSheet(`${sheetHead('الحساب مفتوح على 3 أجهزة')}<p style="margin:0">هذا الحد لكل محل: جوالين للبيع وجهاز للمتابعة. اختار جهاز تطلّعه من الحساب، وهذا الجهاز بيدخل مكانه:</p>
+        <div class="list">${e.data.devices.map(x=>`<div class="li"><span>${esc(x.label||'جهاز')} ${x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">بائع ثاني</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><button class="btn sm danger" data-act="loginReplace" data-dev="${x.id}">طلّعه</button></div>`).join('')}</div>`); return }
+    toast(e.message)}},
 cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
   <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-act="cloudTakeGo">تأكيد</button>`)},
 async cloudTakeGo(){const pw=$('#clPass').value, btn=$('[data-act=cloudTakeGo]'); btn.disabled=true;
+  if(isSeller2()&&OPQ.some(o=>!o.sent)){ await opSend(); if(OPQ.some(o=>!o.sent)){toast('في مبيعات على هذا الجوال لسا ما انرفعت. شغّل النت أول');btn.disabled=false;return} }
   try{const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}});
-    const st=await api('/state?have=-1&device='+devInfo().id); CL.main=m.shop.main; clSave();
+    const st=await api('/state?have=-1&device='+devInfo().id); CL.main=m.shop.main; CL.sellers=m.shop.sellers||[]; CL.multi=!!m.shop.multi; OPQ=[]; opqSave(); SRVOPS=[]; BASE=null; clSave(); if(m.license) await licApply(m.license);
     if(st.data) applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); else CL.ver=st.shop.version;
     CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); toast('✓ هذا الجهاز صار الأساسي'); cloudPullBlobs(); licRefresh();
   }catch(e){toast(e.message); btn.disabled=false}},
 async cloudNow(){await cloudPush(); render(); toast(CLS.state==='ok'?'✓ انرفع':CLS.err||'ما انرفع')},
 async cloudNow2(){await cloudPull(isViewer()); render(); toast(CLS.state==='ok'?'✓ محدّث':CLS.err||'ما في اتصال')},
 cloudOut(){openSheet(`${sheetHead('تسجيل خروج من حساب المحل')}<p style="margin:0">بيانات المحل بتضل على هذا الجهاز، بس ما رح تنرفع نسخ جديدة للسحابة.</p><button class="btn danger block" data-act="cloudOutGo">تسجيل خروج</button>`)},
-cloudOutGo(){CL=null; clSave(); upSet({}); CLSNAP=null; closeSheet(); render(); toast('سجّلت خروج من حساب المحل')},
+async multiLoad(){ try{const r=await api('/devices'); MDEV=r.devices; CL.multi=r.multi; clSave(); render()}catch(e){toast(e.message)} },
+async multiSet(d){ const on=!!d.on;
+  if(!on&&!confirm('توقيف البيع من جوالين؟ الجوال الثاني بيرجع للمتابعة بس.')) return;
+  if(on&&CL.nopass){A.cloudNew();return}
+  try{const r=await api('/multi',{method:'POST',body:{on}}); CL.multi=r.shop.multi; CL.sellers=r.shop.sellers; MDEV=r.devices; clSave(); if(r.license) await licApply(r.license); render();
+    toast(on?'✓ انفعّل البيع من جوالين. ادخل من الجوال الثاني بنفس الحساب':'وقف البيع من جوالين')}catch(e){toast(e.message)} },
+async sellerSet(d){ const on=!!d.on, me=d.dev===devInfo().id;
+  if(!on&&me&&OPQ.some(o=>!o.sent)){ await opSend(); if(OPQ.some(o=>!o.sent)){toast('في مبيعات على هذا الجوال لسا ما انرفعت. شغّل النت أول');return} }
+  try{const r=await api('/seller',{method:'POST',body:{dev:d.dev,on}}); CL.multi=r.shop.multi; CL.sellers=r.shop.sellers; if(r.devices&&isMain()) MDEV=r.devices; clSave();
+    if(r.license) await licApply(r.license); if(me) await cloudPull(true); render();
+    toast(on?(me?'✓ هذا الجوال صار بائع ثاني':'✓ الجهاز صار بائع ثاني'):(me?'هذا الجوال رجع للمتابعة':'الجهاز رجع للمتابعة'))}catch(e){toast(e.message)} },
+async devDrop(d){ const x=(MDEV||[]).find(y=>y.id===d.dev); if(!confirm(`تطليع «${x?x.label:'الجهاز'}» من حساب المحل؟`)) return;
+  try{const r=await api('/devdrop',{method:'POST',body:{dev:d.dev}}); CL.multi=r.shop.multi; CL.sellers=r.shop.sellers; MDEV=r.devices; clSave(); if(r.license) await licApply(r.license); render(); toast('انطلع الجهاز من الحساب')}catch(e){toast(e.message)} },
+loginReplace(d){ const p=A.loginReplace.p; if(!p) return; p.replace=d.dev; A.cloudLogin(); setTimeout(()=>{ $('#clPhone').value=p.ph; $('#clPass').value=p.pw; const r=document.querySelector(`[name=clRole][value="${p.role}"]`); if(r) r.checked=true; A.cloudLoginGo() },50) },
+cloudOutGo(){ if(isSeller2()&&OPQ.some(o=>!o.sent)){closeSheet(); toast('في مبيعات على هذا الجوال لسا ما انرفعت. شغّل النت أول عشان ما تضيع');return} OPQ=[]; opqSave(); SRVOPS=[]; BASE=null; CL=null; clSave(); upSet({}); CLSNAP=null; closeSheet(); render(); toast('سجّلت خروج من حساب المحل')},
 async cloudUnsynced(){const id=CL&&CL.lost; const j=id&&await idb('readonly',st=>st.get(id)); if(!j){toast('ما في نسخة محفوظة');return}
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([j],{type:'application/json'})); a.download=`كاشيرك-نسخة-الجهاز-${new Date().toISOString().slice(0,10)}.json`; a.click()},
 apM(d){cart().appMethod=d.m; render()},
@@ -2398,7 +2512,7 @@ acctSave(){ const shop=$('#acShop').value.trim(), own=$('#acOwn').value.trim(), 
 avDel(){ delete S.avatar; save(); render(); toast('انشالت الصورة')},
 findSale(){ openSheet(`${sheetHead('🔎 فاتورة سابقة')}<p class="muted" style="margin:0">ابحث برقم الفاتورة أو اسم الزبون أو جواله، وافتحها عشان ترجّع أصناف منها أو تضيف عليها.</p>
   <label for="fsQ">بحث<input id="fsQ" inputmode="search" autocomplete="off" placeholder="مثلاً 1045 أو أبو محمد"></label><div class="list" id="fsList">${fsRows('')}</div>`); setTimeout(()=>{const f=$('#fsQ'); if(f) f.focus()},60)},
-addToSale(d){ const o=S.sales.find(x=>x.id===+d.id); if(!o) return; let k=carts.findIndex(x=>!x.lines.length); if(k<0){toast('كل السلال فيها أصناف. خلّص أو علّق وحدة منهم أول');return}
+addToSale(d){ const tg=S.sales.find(x=>x.id===+d.id); if(tg&&tg.op&&opPending(tg.op)){toast('استنى لحد ما توصل هالفاتورة للجهاز الأساسي، وبعدها ضيف عليها');return} const o=S.sales.find(x=>x.id===+d.id); if(!o) return; let k=carts.findIndex(x=>!x.lines.length); if(k<0){toast('كل السلال فيها أصناف. خلّص أو علّق وحدة منهم أول');return}
   const cu=o.custId?S.customers.find(x=>x.id===o.custId):null; carts[k]=Object.assign(newCart(),{addTo:o.id},cu?{custName:cu.name,custPhone:cu.phone||'',pay:payOf(o).debt>0?'debt':'cash'}:{});
   ci=k; tab='sell'; closeSheet(); render(); toast(`➕ ضيف الأصناف، وبتنحسب على فاتورة ${o.id}`)},
 addCancel(){ const c=cart(); delete c.addTo; render(); toast('رجعت السلة فاتورة جديدة عادية')},
@@ -2407,7 +2521,7 @@ remScan(){closeSheet(); remScan()},
 remStop(){closeSheet(); remClose(); toast('انتهى ربط الماسح')},
 devHelp(){ const pw=!(CL&&CL.nopass);
   openSheet(`${sheetHead('البيع من اللابتوب أو جهاز ثاني')}
-   <p class="muted" style="margin:0">الحساب الواحد بيبيع من جهاز واحد بس (الجهاز الأساسي)، وباقي الأجهزة بتتابع. بتقدر تبدّل بينهم بأي وقت:</p>
+   <p class="muted" style="margin:0">الحساب بيبيع من الجهاز الأساسي، وبتقدر تضيف جوال بائع ثاني من «البيع من جوالين» بالإعدادات، وجهاز للمتابعة (3 أجهزة بالكثير). ولو بدك اللابتوب هو الأساسي:</p>
    <div class="list">
     <div class="li"><span><b>1.</b> ${pw?'✓ كلمة سر الحساب محدّدة':'حدّد كلمة سر للحساب من هون'}</span>${pw?'':'<button class="btn sm accent" data-act="cloudNew">تحديد</button>'}</div>
     <div class="li"><span><b>2.</b> افتح على اللابتوب الرابط: <b dir="ltr">marketingmiddleeast.com/kashirak</b></span></div>
@@ -2452,10 +2566,11 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
+const SELLER_NO=new Set(['refund','editItem','genCode','saveItem','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','variant','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
-const OWNER_ONLY=new Set(['delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -2463,6 +2578,7 @@ document.addEventListener('click',e=>{
   const a=el.dataset.act, d=el.dataset;
   if(S&&LICREADY&&!isViewer()&&!EXP_OK.has(a)&&!status().active){subSheet();return}
   if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
+  if(S&&isSeller2()&&SELLER_NO.has(a)){toast('هذا بيصير من الجهاز الأساسي. هذا الجوال للبيع والديون والمصاريف');return}
   if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
@@ -2527,7 +2643,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117071623'; let UPD=false;
+const BUILD='20261117080725'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
