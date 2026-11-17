@@ -139,6 +139,11 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 .mrow .mic{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold-deep)}
 .mrow .mic svg{width:21px;height:21px}.mrow .mt b{display:block;font-size:15.5px}
 .mprof .chev,.mrow .chev{font-size:20px;color:var(--muted)}
+.sugs{display:flex;flex-direction:column;gap:6px;margin-top:-4px}.sugs:empty{display:none}
+.sug{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 14px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);font:inherit;color:var(--ink);text-align:start;cursor:pointer;min-height:48px}
+.sug:active{background:color-mix(in srgb,var(--gold) 14%,transparent);border-color:var(--gold)}
+.sug .sn{font-weight:600}.sug .sn small{color:var(--muted);font-weight:400;margin-inline-start:6px}.sug .sb{font-size:13px;color:var(--bad);white-space:nowrap}.sug .sb.ok{color:var(--good)}
+.plcard #plOn:not(:checked)~.plBody,.plcard:not(:has(#plOn:checked)) .plBody{display:none}.plBody{display:flex;flex-direction:column;gap:10px;margin-top:6px}
 .repcard{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#0B1F3A,#18407a);color:#F7F1E1;border:1.5px solid rgba(240,207,122,.55);box-shadow:0 10px 24px rgba(11,31,58,.2);text-align:start}
 .repcard .rh{display:flex;align-items:center;gap:12px}.repcard .ri{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:26px;background:linear-gradient(180deg,#FFE7A6,#D7A845)}
 .repcard b{display:block;font-size:16.5px;color:#FFE7A6}.repcard span.s{display:block;font-size:13.5px;color:#C9D2E0;margin-top:2px;line-height:1.5}
@@ -1023,8 +1028,8 @@ function planStatus(c){const p=c.plan; if(!p) return null; const aft=c.ledger.fi
   const rows=[...Array(p.n)].map((_,k)=>{const due=p.start+k*p.every*DAY, amt=k===p.n-1?r2(p.total-p.amt*(p.n-1)):p.amt; cum=r2(cum+amt); const ok=paid>=cum-0.005; return {due,amt,ok,late:!ok&&due<now}});
   return {rows,paid,late:rows.filter(r=>r.late).length}}
 function planCard(c){const ps=planStatus(c);
-  if(!ps) return `<div class="card"><h2>تقسيط الدين</h2><div class="grid2"><label for="plN">عدد الدفعات<input id="plN" type="number" inputmode="numeric" min="2" value="4"></label><label for="plE">كل كم يوم<input id="plE" type="number" inputmode="numeric" min="1" value="30"></label></div>
-    <label for="plS">أول دفعة بتاريخ<input id="plS" type="date" value="${new Date(Date.now()+7*DAY).toISOString().slice(0,10)}"></label><button class="btn primary" data-act="makePlan" data-id="${c.id}">عمل جدول تقسيط لـ ${fx(balance(c))} ₪</button></div>`;
+  if(!ps) return `<div class="card plcard"><label class="chk" for="plOn"><input type="checkbox" id="plOn">تقسيط الدين على دفعات</label><div class="plBody"><div class="grid2"><label for="plN">عدد الدفعات<input id="plN" type="number" inputmode="numeric" min="2" value="4"></label><label for="plE">كل كم يوم<input id="plE" type="number" inputmode="numeric" min="1" value="30"></label></div>
+    <label for="plS">أول دفعة بتاريخ<input id="plS" type="date" value="${new Date(Date.now()+7*DAY).toISOString().slice(0,10)}"></label><button class="btn primary" data-act="makePlan" data-id="${c.id}">عمل جدول تقسيط لـ ${fx(balance(c))} ₪</button></div></div>`;
   return `<div class="card"><div class="row"><h2>جدول التقسيط</h2><span class="pill ${ps.late?'bad':'ok'}">${ps.late?ps.late+' متأخرة':'منتظم'}</span></div><div class="list">${ps.rows.map((r,k)=>`<div class="li"><span>الدفعة ${k+1} · ${new Date(r.due).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})}</span><span>${money(r.amt)} <span class="pill ${r.ok?'ok':r.late?'bad':'warn'}">${r.ok?'مدفوعة':r.late?'متأخرة':'قادمة'}</span></span></div>`).join('')}</div>
     <button class="btn sm danger" data-act="dropPlan" data-id="${c.id}">إلغاء الجدول</button></div>`}
 const hm=ts=>{const d=new Date(ts),H=d.getHours();return `\u2067${H%12||12}:${String(d.getMinutes()).padStart(2,'0')} ${H<12?'ص':'م'}\u2069`};
@@ -1295,11 +1300,11 @@ sell(){
       <div class="grid2"><label for="apR">رقم العملية<input id="apR" class="cf" data-f="ref" inputmode="numeric" value="${esc(c.ref)}" placeholder="من الإشعار"></label>
       <label for="apP">باسم مين؟<input id="apP" class="cf" data-f="payer" value="${esc(c.payer)}" placeholder="صاحب الحساب" autocomplete="off"></label></div>
       ${dupR?`<span class="pdup" id="refDupMsg">⚠ رقم العملية هذا مستعمل قبل بفاتورة ${dupR.id}</span>`:'<span id="refDupMsg"></span>'}</div>`})():''}
-    ${S.loyal.on&&c.pay!=='debt'&&c.pay!=='split'?`<label for="lName">اسم الزبون لجمع النقاط (اختياري)<input id="lName" class="cf" data-f="custName" list="custList" value="${esc(c.custName)}" autocomplete="off" placeholder="اكتب الاسم"></label><datalist id="custList">${S.customers.map(x=>`<option value="${esc(x.name)}">`).join('')}</datalist>`:''}
+    ${S.loyal.on&&c.pay!=='debt'&&c.pay!=='split'?`<label for="lName">اسم الزبون لجمع النقاط (اختياري)<input id="lName" class="cf csug" data-f="custName" value="${esc(c.custName)}" autocomplete="off" placeholder="اكتب الاسم"></label><div class="sugs" id="sug_lName"></div><datalist id="custList">${S.customers.map(x=>`<option value="${esc(x.name)}">`).join('')}</datalist>`:''}
     ${c.pay==='debt'||c.pay==='split'?`<div class="card" style="box-shadow:none;border-color:color-mix(in srgb,var(--gold) 50%,transparent);gap:8px">
       <div class="row"><b>تفاصيل الدين</b><span id="debtAmt">${money(splitPays(gt,c).debt)}</span></div>
-      <label for="dName">اسم الشخص<input id="dName" class="cf" data-f="custName" list="custList" value="${esc(c.custName)}" placeholder="اكتب الاسم أو اختر من الزبائن" autocomplete="off"></label>
-      <datalist id="custList">${S.customers.map(x=>`<option value="${esc(x.name)}">`).join('')}</datalist>
+      <label for="dName">اسم الشخص<input id="dName" class="cf csug" data-f="custName" value="${esc(c.custName)}" placeholder="اكتب أول حروف الاسم.. وبيطلعلك الزبائن" autocomplete="off"></label>
+      <div class="sugs" id="sug_dName"></div>
       <label for="dPhone">رقم جواله (اختياري)<input id="dPhone" class="cf" data-f="custPhone" inputmode="tel" value="${esc(c.custPhone)}" placeholder="059xxxxxxx"></label>
       <p class="muted" style="margin:0">المبلغ بينضاف مباشرة على حسابه بدفتر الديون.</p></div>`:''}
     ${tt.promo?`<div class="row" style="color:var(--good)"><span>عرض: ${esc(tt.promoTxt.join('، '))}</span><span>${money(-tt.promo)}</span></div>`:''}
@@ -1654,6 +1659,14 @@ function tourMaybe(){ try{ const v=localStorage.getItem('ksr-tour'); if(v==='don
   if(TOUR.asked||(TOUR.shows||0)>=2||!S||!isOwner()||isViewer()||TOUR.i>=0||$('#intro')||$('#sheet').classList.contains('open')||$('#tourOv')) return;
   TOUR.shows=(TOUR.shows||0)+1; tourWelcome() }
 addEventListener('resize',()=>{ if(TOUR.i>=0){ const st=TSTEPS[TOUR.i]; tourPlace(st.sel?document.querySelector(st.sel):null,st) } });
+/* اقتراح أسماء الزبائن وإنت بتكتب: «محمد» بيطلعلك كل المحمدات، بتختار واحد وبينحط اسمه وجواله */
+const arNorm=x=>String(x||'').toLowerCase().replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/\s+/g,' ').trim();
+function custSugs(q){ q=arNorm(q); if(!q) return [];
+  const words=q.split(' '); return S.customers.map(c=>({c,n:arNorm(c.name)})).filter(x=>words.every(w=>x.n.includes(w)||String(x.c.phone||'').includes(w)))
+    .sort((a,b)=>(b.n.startsWith(q)-a.n.startsWith(q))||(balance(b.c)-balance(a.c))).slice(0,8).map(x=>x.c) }
+function showSugs(inp){ const box=$('#sug_'+inp.id); if(!box) return; const L=custSugs(inp.value);
+  const exact=L.length===1&&arNorm(L[0].name)===arNorm(inp.value);
+  box.innerHTML=!L.length||exact?'':L.map(c=>{const b=balance(c);return `<button type="button" class="sug" data-act="pickCust" data-id="${c.id}" data-in="${inp.id}"><span class="sn">👤 ${esc(c.name)}${c.phone?` <small class="num" dir="ltr">${esc(c.phone)}</small>`:''}</span>${b>0?`<span class="sb">عليه <b class="num">${fx(b)}</b> ₪</span>`:b<0?`<span class="sb ok">رصيد <b class="num">${fx(-b)}</b> ₪</span>`:''}</button>`}).join('') }
 function render(){
   if(!S){renderSetup();return}
   norm(S); if(tab==='staff') facePrewarm();
@@ -2083,7 +2096,7 @@ party(d){
     ${d.kind==='customers'&&c.points>0?`<div class="card"><div class="row"><h2>نقاط الولاء</h2><span><span class="num">${c.points}</span> نقطة = ${money(c.points*S.loyal.val)}</span></div><button class="btn accent" data-act="redeem" data-id="${c.id}">تحويل النقاط لرصيد</button></div>`:''}
     ${d.kind==='customers'&&(b>0||c.plan)?planCard(c):''}
     ${d.kind==='customers'?`<div class="card"><h2>شحن رصيد مسبق</h2><p class="muted" style="margin:0">لما حدا يدفع مقدّمًا (أو قريبه يحوّل له)، بينسحب من رصيده مع كل شراء بالدين.</p><div class="row"><input id="topAmt" type="number" inputmode="decimal" placeholder="المبلغ بالشيكل" aria-label="مبلغ الشحن"><button class="btn accent" data-act="topUp" data-id="${c.id}">شحن</button></div></div>`:''}
-    <div class="card"><h2>تسجيل دفعة</h2><div class="row"><input id="payAmt" type="number" inputmode="decimal" placeholder="المبلغ بالشيكل" aria-label="مبلغ الدفعة"><button class="btn primary" data-act="payParty" data-kind="${d.kind}" data-id="${c.id}">تسجيل</button></div></div>
+    <div class="card"><h2>تسجيل دفعة</h2><div class="row"><input id="payAmt" type="number" inputmode="decimal" placeholder="المبلغ بالشيكل" aria-label="مبلغ الدفعة"><button class="btn primary" style="white-space:nowrap;flex:none" data-act="payParty" data-kind="${d.kind}" data-id="${c.id}">${d.kind==='customers'?'خصم من دينه':'دفعت له'}</button></div></div>
     <div class="card"><h2>كشف الحساب</h2><div class="list">${[...c.ledger].sort((a,b)=>b.ts-a.ts).map(l=>`<div class="li"><span><span class="t">${esc(l.note)}</span><br><span class="muted">${fdate(l.ts)}</span></span><span style="color:var(--${l.amt<0?'good':'ink'})">${money(l.amt)}</span></div>`).join('')||'<div class="empty">لا حركات</div>'}</div></div>
     <button class="btn primary block" data-act="stmtPdf" data-kind="${d.kind}" data-id="${c.id}">كشف الحساب PDF على واتساب</button>
     <div class="withbtn"><label for="pPhone">رقم الجوال<input id="pPhone" inputmode="tel" value="${esc(c.phone)}" placeholder="059xxxxxxx"></label><button class="btn" data-act="savePhone" data-kind="${d.kind}" data-id="${c.id}">حفظ</button></div>
@@ -2341,6 +2354,9 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+pickCust(d){ const cu=S.customers.find(x=>x.id===+d.id||String(x.id)===String(d.id)); if(!cu) return; const c=cart(); c.custName=cu.name; if(cu.phone) c.custPhone=cu.phone;
+  const inp=$('#'+d.in); if(inp) inp.value=cu.name; const ph=$('#dPhone'); if(ph&&cu.phone) ph.value=cu.phone; const box=$('#sug_'+d.in); if(box) box.innerHTML='';
+  const b=balance(cu); toast(`✓ ${cu.name}${b>0?` · عليه ${fx(b)} ₪ من قبل`:''}`) },
 tourStart(){ TOUR.asked=true; closeSheet(); TOUR.i=0; tourShow() },
 tourNext(){ TOUR.i++; tourShow() },
 tourPrev(){ TOUR.i=Math.max(0,TOUR.i-1); if(TOUR.i>=5&&TOUR.i<=9&&!$('#fName')){ tab='items'; render(); A.editItem({id:0}) } tourShow() },
@@ -2437,7 +2453,7 @@ document.addEventListener('input',e=>{ const t=e.target; if(['fW','fCost','fPric
   if(t.classList&&t.classList.contains('retq')){const m=+t.dataset.max; if(+t.value>m) t.value=m; if(+t.value<0) t.value=0; return}
   if(t.id==='iq'){iq=t.value; const pos=t.selectionStart; render(); const n=$('#iq'); if(n){n.focus(); try{n.setSelectionRange(pos,pos)}catch(_){}} return}
   if(t.id==='q'){q=t.value; renderResults()}
-  if(t.classList&&t.classList.contains('cf')){const c=cart(); c[t.dataset.f]=t.value;
+  if(t.classList&&t.classList.contains('cf')){const c=cart(); c[t.dataset.f]=t.value; if(t.classList.contains('csug')) showSugs(t);
     if(t.dataset.f==='ref'){const m=$('#refDupMsg'), d=refDup(c); if(m){m.className=d?'pdup':''; m.textContent=d?`⚠ رقم العملية هذا مستعمل قبل بفاتورة ${d.id}`:''}}
     if(t.dataset.f==='rcv'||t.dataset.f==='rcvC'){const g=$('#chg'); if(g){const tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount); g.innerHTML=changeTxt(r2(tt.total+appFeeOf(tt.total,c)),c)}} const r=$('#spRest');
     if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
@@ -2494,7 +2510,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117070607'; let UPD=false;
+const BUILD='20261117071029'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
