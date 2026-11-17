@@ -2188,7 +2188,8 @@ function saleSheet(sale,title){
     ${(sale.adds||[]).length?(()=>{const ad=sale.adds.map(id=>S.sales.find(x=>x.id===id)).filter(Boolean), tot=r2(sale.total+ad.reduce((a,x)=>a+x.total,0)-(sale.returns||[]).reduce((a,x)=>a+x,0)-ad.reduce((a,x)=>a+(x.returns||[]).reduce((b,y)=>b+y,0),0));
       return `<div class="card" style="gap:6px"><h2>إضافات على هالفاتورة</h2><div class="list">${ad.map(x=>`<div class="li" data-act="sale" data-id="${x.id}"><span>➕ ${x.lines.map(l=>esc(l.name)+' × '+l.count).join('، ')}<br><span class="muted">${fdate(x.ts)}</span></span><span class="num">${money(x.total)}</span></div>`).join('')}</div>
         <div class="row"><b>المجموع الكلي بعد الإضافات والمرتجع</b><span class="total">${money(tot)}</span></div></div>`})():''}
-    <div class="grid2"><button class="btn" data-act="addToSale" data-id="${sale.addTo||sale.id}">➕ إضافة أصناف</button>${isOwner()?`<button class="btn danger" data-act="retAsk" data-id="${sale.id}">↩️ إرجاع أصناف</button>`:'<span></span>'}</div>`);
+    <div class="grid2"><button class="btn" data-act="addToSale" data-id="${sale.addTo||sale.id}">➕ إضافة أصناف</button>${isOwner()?`<button class="btn danger" data-act="retAsk" data-id="${sale.id}">↩️ إرجاع أصناف</button>`:'<span></span>'}</div>
+    ${isOwner()?`<button class="btn danger block" data-act="delSaleAsk" data-id="${sale.id}">🗑 حذف الفاتورة</button>`:''}`);
 }
 const WORD={customers:{one:'زبون',note:'دفعة نقدية',bal:'الرصيد المستحق عليه'},suppliers:{one:'مورد',note:'دفعة للمورد',bal:'المستحق له علينا'}};
 
@@ -2553,6 +2554,23 @@ retAsk(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; s.ret=s.ret||{};
     <button class="btn sm" data-act="retAll">إرجاع الكل</button>
     <label for="retM">رجّع المبلغ<select id="retM"><option value="cash">نقدًا من الصندوق</option>${s.custId?`<option value="debt"${payOf(s).debt>0?' selected':''}>خصم من دين الزبون</option>`:''}</select></label>
     <button class="btn danger block" data-act="doReturn" data-id="${s.id}">تأكيد الإرجاع</button>`)},
+delSaleAsk(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return;
+  if((s.adds||[]).length){toast('في إضافات على هالفاتورة. احذف الإضافات أولاً');return}
+  openSheet(`${sheetHead('حذف الفاتورة '+s.id)}<p class="muted" style="margin:0">الفاتورة بتنحذف كاملة: البضاعة الباقية بترجع للمخزن، والدين والصندوق والتقارير بتتعدّل. ما في رجوع عنها.</p>
+    <div class="card"><div class="row"><span>الإجمالي</span><span class="total">${money(s.total)}</span></div></div>
+    <button class="btn danger block" data-act="delSale" data-id="${s.id}">نعم، احذف الفاتورة</button>`)},
+delSale(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return;
+  if((s.adds||[]).length){toast('في إضافات على هالفاتورة. احذف الإضافات أولاً');return}
+  s.ret=s.ret||{};
+  s.lines.forEach((l,k)=>{const it=itemById(l.itemId); if(!it) return; const left=r3(l.count-(s.ret[k]||0)); if(left>0) it.qty=r3(it.qty+(l.baseQty/l.count)*left)});
+  const debtBack=S.returns.filter(x=>x.saleId===s.id&&x.method==='debt').reduce((a,x)=>a+x.amount,0);
+  const net=r2(payOf(s).debt-debtBack);
+  if(s.custId&&net!==0){const c=S.customers.find(x=>x.id===s.custId); if(c) c.ledger.push({ts:Date.now(),amt:-net,note:`حذف فاتورة رقم ${s.id}`,noCash:true})}
+  if(s.addTo){const o=S.sales.find(x=>x.id===s.addTo); if(o) o.adds=(o.adds||[]).filter(x=>x!==s.id)}
+  S.returns=S.returns.filter(x=>x.saleId!==s.id);
+  S.sales=S.sales.filter(x=>x.id!==s.id);
+  audit(`حذف فاتورة ${s.id} بقيمة ${fx(s.total)} ₪`);
+  save(); closeSheet(); render(); toast('تم حذف الفاتورة')},
 retAll(){document.querySelectorAll('.retq').forEach(i=>i.value=i.dataset.max)},
 doReturn(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; s.ret=s.ret||{}; const sub=s.lines.reduce((a,l)=>a+l.price*l.count,0)||1, k=(s.total-(s.fee||0))/sub;
   const lines=[]; document.querySelectorAll('.retq').forEach(inp=>{const i=+inp.dataset.k, q=Math.min(r3(parseFloat(inp.value)||0),+inp.dataset.max); if(q>0){const l=s.lines[i], per=l.baseQty/l.count;
@@ -2699,11 +2717,11 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
+const SELLER_NO=new Set(['delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
-const OWNER_ONLY=new Set(['multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['delSaleAsk','delSale','multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -2779,7 +2797,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117150653'; let UPD=false;
+const BUILD='20261117151340'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
