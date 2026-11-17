@@ -130,7 +130,7 @@ async function readShop(env, req) {
 const waOf = (w) => { const d = String(w || '').replace(/\D/g, '').replace(/^00/, ''); return /^97[02]5\d{8}$/.test(d) ? d : ''; };
 // البيع من جوالين: الجهاز الأساسي + جوال بائع ثاني واحد. والحساب كله بينفتح على 3 أجهزة بالكثير (بائعين + جهاز متابعة)
 const MAX_DEV = 3, DEV_ACTIVE = 30 * 864e5;
-const sellersOf = (s) => { try { const a = JSON.parse(s.sellers || '[]'); return Array.isArray(a) ? a.filter((x) => x && x !== s.main).slice(0, 1) : []; } catch { return []; } };
+const sellersOf = (s) => { try { const a = JSON.parse(s.sellers || '[]'); return Array.isArray(a) ? a.filter((x) => x && x !== s.main).slice(0, MAX_DEV - 1) : []; } catch { return []; } };
 const devsOf = (s) => { try { return JSON.parse(s.devices || '{}') || {}; } catch { return {}; } };
 const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: sellersOf(s).includes(k) }));
 const pubShop = (s) => ({ multi: !!s.multi, sellers: s.multi ? sellersOf(s) : [], restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
@@ -529,8 +529,8 @@ export async function onRequest({ request, env, params }) {
       if (q.on) {
         if (!shop.multi) return err('شغّل «البيع من جوالين» من الإعدادات بالجهاز الأساسي أول', 403, { code: 'multi_off' });
         if (!activeDevs(shop).some((x) => x.id === dev)) return err('هذا الجهاز مش داخل على الحساب');
-        if (sl.length && device !== shop.main) return err('في جوال بائع ثاني مفعّل. بدّله من الجهاز الأساسي', 409, { code: 'seller_taken' });
-        sl = [dev]; // من الجهاز الأساسي: بيبدّل البائع القديم بالجديد
+        if (sl.length >= MAX_DEV - 1) return err('في جوالين بائعين مفعّلين (الحد). رجّع واحد للمتابعة من الجهاز الأساسي', 409, { code: 'seller_taken' });
+        sl = [...sl, dev];
       }
       await env.DB.prepare('UPDATE ksr_shops SET sellers = ? WHERE id = ?').bind(JSON.stringify(sl), shop.id).run();
       const sh2 = { ...shop, sellers: JSON.stringify(sl) };
@@ -551,7 +551,7 @@ export async function onRequest({ request, env, params }) {
       const stmts = [];
       for (const o of list) {
         const id = clean(o && o.id, 40), txt = JSON.stringify(o);
-        if (!id || txt.length > 200000 || !['sale', 'pay', 'exp'].includes(o.k)) continue;
+        if (!id || txt.length > 200000 || !['sale', 'pay', 'exp', 'item'].includes(o.k)) continue;
         stmts.push(env.DB.prepare('INSERT OR IGNORE INTO ksr_ops (shop, id, dev, t, data) VALUES (?, ?, ?, ?, ?)').bind(shop.id, id, device, nowMs(), txt));
       }
       if (stmts.length) await env.DB.batch(stmts);

@@ -854,7 +854,7 @@ function opSale(op){
   if(pays.debt>0){debtor=S.customers.find(x=>x.name.trim()===dName);
     if(!debtor){debtor={id:S.nextId++,name:dName,phone:op.dPhone||'',ledger:[]};S.customers.push(debtor)}
     else if(op.dPhone&&!debtor.phone) debtor.phone=op.dPhone}
-  op.lines.forEach(l=>{const it=itemById(l.itemId); if(it) it.qty=r3(it.qty-l.baseQty)});
+  op.lines.forEach(l=>{const it=S.items.find(x=>x.id===l.itemId&&x.name===l.name)||S.items.find(x=>x.name===l.name)||itemById(l.itemId); if(it){ l.itemId=it.id; it.qty=r3(it.qty-l.baseQty)}});
   const app=pays.app>0;
   const sale={id:S.nextInv++,ts:op.ts,lines:op.lines,discount:op.disc,promo:op.promo||0,wholesale:!!op.wholesale,fee:op.fee,total:op.total,cost:op.cost,pays,appMethod:app?op.appMethod:'',ref:app?op.ref||'':'',confirmed:!app,payer:app?op.payer||'':'',proof:app&&op.proof?op.proof:'',proofHash:app&&op.proof?op.proofHash:'',custId:debtor?debtor.id:null};
   if(op.s2){sale.s2=1; sale.op=op.id}
@@ -871,6 +871,14 @@ function applyOp(op){ S._ops=S._ops||[]; if(S._ops.includes(op.id)) return null;
     if(op.k==='sale') r=opSale(op);
     else if(op.k==='pay'){const c=S.customers.find(x=>x.id===op.cid&&x.name===op.cname)||S.customers.find(x=>x.name.trim()===String(op.cname||'').trim());
       if(c) c.ledger.push({ts:op.ts,amt:-op.amt,note:'دفعة نقدية'+(op.s2?' (الجوال الثاني)':'')})}
+    else if(op.k==='item'){ const d=Object.assign({},op.data);
+      let it=op.iid?(S.items.find(x=>x.id===op.iid&&x.name===op.oname)||(op.obar&&S.items.find(x=>x.barcode===op.obar))||S.items.find(x=>x.name===op.oname)):null;
+      if(!it&&d.barcode) it=S.items.find(x=>x.barcode===d.barcode);
+      if(!it&&!op.iid) it=S.items.find(x=>x.name.trim()===String(d.name).trim());
+      if(it){ const dq=op.iid&&it.name===op.oname?r3(d.qty-op.oqty):(op.iid?0:d.qty); delete d.qty;
+        if(it.price!==d.price) opAudit(op,`تغيير سعر ${it.name} من ${fx(it.price)} إلى ${fx(d.price)} ₪`);
+        Object.assign(it,d); if(dq){ it.qty=r3(it.qty+dq); opAudit(op,`تعديل كمية ${it.name} (${dq>0?'+':''}${dq})`) } }
+      else { S.items.push({id:S.nextId++,...d}); opAudit(op,`إضافة صنف ${d.name}`) } }
     else if(op.k==='exp') S.expenses.push({id:S.nextId++,ts:op.ts,name:op.name,amt:op.amt,per:op.per||'day'});
   }catch(e){}
   S._ops.push(op.id); if(S._ops.length>3000) S._ops.splice(0,S._ops.length-3000); return r}
@@ -1028,14 +1036,14 @@ function multiCard(){ if(!linked()) return '';
     <span class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">${role(x)}${!x.main&&on?(x.seller?`<button class="btn sm" data-act="sellerSet" data-dev="${x.id}" data-on="">رجّعه متابعة</button>`:`<button class="btn sm accent" data-act="sellerSet" data-dev="${x.id}" data-on="1">خلّيه بائع</button>`):''}${!x.main?`<button class="btn sm danger" data-act="devDrop" data-dev="${x.id}">تطليع</button>`:''}</span></div>`).join('');
   return `<div class="card multicard" style="gap:10px"><h2>📱📱 البيع من جوالين</h2>
     <p class="muted" style="margin:0">إذا عندك كاشيرين، كل واحد ببيع من جواله، حتى لو بعاد عن بعض أو بدون نت. المبيعات والديون والمخزون بتتجمع بنفس المحل لحالها، وما حدا بيمسح شغل الثاني.</p>
-    <p class="muted" style="margin:0">الحساب بينفتح على <b>3 أجهزة</b>: الجوال الأساسي + جوال بائع ثاني + جهاز متابعة (لابتوب مثلًا).</p>
+    <p class="muted" style="margin:0">الحساب بينفتح على <b>3 أجهزة</b>: الجوال الأساسي + جوالين بائعين، أو جوال بائع + جهاز متابعة (لابتوب مثلًا). والبائعين بيبيعوا وبيضيفوا أصناف وديون ومصاريف.</p>
     ${main?(on?`<div class="pill ok" style="align-self:flex-start">✓ مفعّل</div>
       <div class="list">${rows||'<div class="li muted">جاري تحميل الأجهزة…</div>'}</div>
       <p class="muted" style="margin:0;font-size:13px">الأجهزة: <b class="num">${(MDEV||[]).length}</b> من 3</p>
       ${(MDEV||[]).some(x=>x.seller)?'':`<div class="list"><div class="li"><span><b>لإضافة الجوال الثاني:</b> افتح عليه <b dir="ltr">marketingmiddleeast.com/kashirak</b> ← «عندي حساب» ← اكتب الرقم <b class="num">${esc(CL.phone||'')}</b> وكلمة السر ← اختار «جوال بائع ثاني».</span></div></div>`}
       <div class="grid2"><button class="btn" data-act="multiLoad">تحديث القائمة</button><button class="btn danger" data-act="multiSet" data-on="">إيقاف</button></div>`
       :`<button class="btn primary block" data-act="multiSet" data-on="1">تفعيل البيع من جوالين</button>${CL.nopass?'<p class="muted" style="margin:0;color:var(--bad)">حدّد كلمة سر للحساب أول، عشان تدخل فيها من الجوال الثاني.</p>':''}`)
-    :s2?`<div class="pill ok" style="align-self:flex-start">📱 هذا الجوال بائع ثاني</div><p class="muted" style="margin:0">بتبيع وبتسجّل ديون ودفعات ومصاريف، وكلها بتوصل للجهاز الأساسي. تعديل الأصناف والأسعار والإعدادات بيصير من الجهاز الأساسي.</p><button class="btn" data-act="sellerSet" data-dev="${devInfo().id}" data-on="">رجّع هذا الجوال للمتابعة بس</button>`
+    :s2?`<div class="pill ok" style="align-self:flex-start">📱 هذا الجوال بائع ثاني</div><p class="muted" style="margin:0">بتبيع، وبتضيف أصناف وبتعدّل أسعارها، وبتسجّل ديون ودفعات ومصاريف، وكلها بتوصل للجهاز الأساسي. الحذف والجرد والإعدادات من الجهاز الأساسي.</p><button class="btn" data-act="sellerSet" data-dev="${devInfo().id}" data-on="">رجّع هذا الجوال للمتابعة بس</button>`
     :on?`<button class="btn primary block" data-act="sellerSet" data-dev="${devInfo().id}" data-on="1">خلّي هذا الجوال بائع ثاني</button>`
     :`<p class="muted" style="margin:0">بيتفعّل من الإعدادات على الجهاز الأساسي.</p>`}
   </div>`}
@@ -1452,7 +1460,7 @@ items(){
   <div class="tiles"><div class="tile hl"><div class="lbl">عدد الأصناف</div><div class="val">${S.items.length}</div></div><div class="tile"><div class="lbl">قليلة أو خالصة</div><div class="val" style="color:var(--${low?'warn':'good'})">${low}</div></div></div>
   <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
-  <div class="row"><h2>الأصناف (${S.items.length})</h2>${isOwner()?'<div class="row" style="gap:6px"><button class="btn sm" data-act="importItems">استيراد</button><button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>':''}</div>
+  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
   <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||i.name.includes(iq)||i.barcode.includes(iq)).map(i=>{
     const st=i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
@@ -1618,7 +1626,9 @@ more(){
       <label class="chk" for="stProof"><input type="checkbox" id="stProof" ${S.proofReq?'checked':''}>صورة إشعار التحويل إجبارية للدفع بالتطبيق أو البنك</label>
       <p class="muted" style="margin:0">رسوم التطبيق بتنضاف لحالها لما الزبون يدفع كامل الفاتورة بالتطبيق أو المحفظة. خلّيها 0 لو ما بدك فرق.</p>
       <button class="btn primary" data-act="saveSet">حفظ</button></div>`)}
-  ${setSec('🔒','رمز المالك','الرمز اللي بيفصل وضع المالك عن وضع الكاشير',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في تعديل أصناف ولا إرجاع فواتير. الرمز الافتراضي 0000، غيّره.</p>
+  ${setSec('🔒','رمز المالك','الرمز اللي بيفصل وضع المالك عن وضع الكاشير',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في إرجاع فواتير ولا حذف. الرمز الافتراضي 0000، غيّره.</p>
+      <label class="chk" for="stCashItems"><input type="checkbox" id="stCashItems" ${S.cashItems?'checked':''}>الكاشير بيقدر يضيف أصناف جديدة ويعدّل أسعارها</label>
+      <p class="muted" style="margin:-4px 0 0;font-size:12.5px">الكاشير ما بيقدر يغيّر التكلفة ولا كمية صنف موجود، ولا يحذف. وكل تعديل بينسجّل باسمه بسجل الحركات.</p>
       <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
       <button class="btn primary" data-act="savePin">حفظ الرمز</button></div>`)}
   ${setSec('🔔','الإشعارات والصوت','تذكير خلال اليوم، وصوت مسح الباركود',pushSetCard()+`<div class="sin"><label class="chk" for="stSound"><input type="checkbox" id="stSound" ${S.sound===false?'':'checked'}>صوت «بيب» واهتزاز عند مسح الباركود</label><button class="btn" data-act="testBeep">تجربة الصوت</button></div>`)}
@@ -2192,10 +2202,11 @@ editItem(d){
     <div class="grid2"><button class="btn" data-act="scan" data-target="field">مسح بالكاميرا</button><button class="btn" data-act="genCode">توليد باركود داخلي</button></div>
     <label class="chk" for="fW"><input type="checkbox" id="fW" ${it.byWeight?'checked':''}>يُباع بالوزن: التكلفة والسعر للكيلو، والبيع بالغرام</label>
     <div id="wPrev" class="muted" style="font-size:13.5px;margin-top:-4px">${wPrevTxt(it.byWeight,it.cost,it.price)}</div>
-    <div class="grid2"><label for="fCost">سعر التكلفة (₪)<input id="fCost" type="number" inputmode="decimal" value="${it.cost}"></label>
+    ${!isOwner()&&it.id?`<input type="hidden" id="fCost" value="${it.cost}"><input type="hidden" id="fQty" value="${it.qty}"><input type="hidden" id="fMin" value="${it.min}">`:''}
+    <div class="grid2">${!isOwner()&&it.id?'':`<label for="fCost">سعر التكلفة (₪)<input id="fCost" type="number" inputmode="decimal" value="${it.cost}"></label>`}
       <label for="fPrice">سعر البيع (₪)<input id="fPrice" type="number" inputmode="decimal" value="${it.price}"></label></div>
-    <div class="grid2"><label for="fQty">الكمية (حبة أو كغ)<input id="fQty" type="number" inputmode="decimal" value="${it.qty}"></label>
-      <label for="fMin">نبّهني عند<input id="fMin" type="number" inputmode="decimal" value="${it.min}"></label></div>
+    ${!isOwner()&&it.id?'':`<div class="grid2"><label for="fQty">الكمية (حبة أو كغ)<input id="fQty" type="number" inputmode="decimal" value="${it.qty}"></label>
+      <label for="fMin">نبّهني عند<input id="fMin" type="number" inputmode="decimal" value="${it.min}"></label></div>`}
     <div class="grid2"><label for="fPw">سعر الجملة (₪)<input id="fPw" type="number" inputmode="decimal" value="${it.priceW||''}" placeholder="اختياري"></label>
       <label for="fPromo">عرض: اشتري كم وخذ كم مجانًا<span class="row" style="gap:6px"><input id="fPb" type="number" inputmode="numeric" min="0" value="${it.promoBuy||''}" placeholder="اشتري" aria-label="اشتري"><input id="fPg" type="number" inputmode="numeric" min="0" value="${it.promoGet||''}" placeholder="مجانًا" aria-label="مجانًا"></span></label></div>
     <div class="grid2"><label for="fCs">حبات الكرتونة<input id="fCs" type="number" inputmode="numeric" value="${it.cartonSize||''}" placeholder="اختياري"></label>
@@ -2203,9 +2214,9 @@ editItem(d){
     <label for="fExp">تاريخ انتهاء الصلاحية<input id="fExp" type="date" value="${esc(it.exp)}"></label>
     ${eanValid(it.barcode)?`<div class="label"><b>${esc(it.name)}</b> · ${fx(it.price)} ₪<br>${eanSvg(it.barcode)}</div>`:''}
     ${it.id?`<button class="btn block" data-act="variant" data-id="${it.id}">إضافة مقاس أو لون ثاني من هالصنف</button>`:''}
-    ${it.id?`<div class="grid2"><button class="btn" data-act="adjAsk" data-id="${it.id}">جرد / تعديل الكمية</button><button class="btn" data-act="itemLog" data-id="${it.id}">سجل حركة الصنف</button></div>`:''}
+    ${it.id&&isOwner()&&!isSeller2()?`<div class="grid2"><button class="btn" data-act="adjAsk" data-id="${it.id}">جرد / تعديل الكمية</button><button class="btn" data-act="itemLog" data-id="${it.id}">سجل حركة الصنف</button></div>`:''}
     <button class="btn primary block" data-act="saveItem">حفظ الصنف</button>
-    ${it.id?`<button class="btn danger block" data-act="delItem" data-id="${it.id}">حذف الصنف</button>`:''}`);
+    ${it.id&&isOwner()&&!isSeller2()?`<button class="btn danger block" data-act="delItem" data-id="${it.id}">حذف الصنف</button>`:''}`);
 },
 genCode(){const f=$('#fBar'); if(f.value.trim()){toast('للصنف باركود. امسحه أولًا لو بدك تولّد غيره');return} f.value=newInternalCode(); save(); toast('تولّد باركود داخلي يبدأ بـ 2')},
 saveItem(){
@@ -2221,6 +2232,8 @@ saveItem(){
     cartonSize:w?0:Math.round(n('fCs')),cartonPrice:w?0:n('fCp'),exp:v('fExp'),byWeight:w,priceW:n('fPw'),promoBuy:Math.round(n('fPb')),promoGet:Math.round(n('fPg'))};
   if((data.promoBuy>0)!==(data.promoGet>0)){toast('العرض بدّه رقمين: اشتري كم، ومجانًا كم');return}
   if(data.cartonSize>1&&!data.cartonPrice) data.cartonPrice=r2(data.price*data.cartonSize);
+  if(it&&!isOwner()){ data.cost=it.cost; data.qty=it.qty; data.min=it.min }
+  if(isSeller2()){ opQueue({id:opId(),k:'item',ts:Date.now(),who:opWho(),iid:it?it.id:0,oname:it?it.name:'',obar:it?it.barcode:'',oqty:it?it.qty:0,data}); closeSheet(); render(); toast('تم حفظ الصنف'); return }
   if(it){ if(it.price!==data.price) audit(`تغيير سعر ${it.name} من ${fx(it.price)} إلى ${fx(data.price)} ₪`); if(it.qty!==data.qty) audit(`تعديل كمية ${it.name} من ${it.qty} إلى ${data.qty} من شاشة الصنف`); Object.assign(it,data)}
   else {S.items.push({id:S.nextId++,...data}); audit(`إضافة صنف ${data.name}`)}
   save(); closeSheet(); render(); toast('تم حفظ الصنف');
@@ -2618,8 +2631,10 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['refund','editItem','genCode','saveItem','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','variant','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
+const SELLER_NO=new Set(['refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
+const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
+const canItems=()=>isOwner()||!!S.cashItems;
 const OWNER_ONLY=new Set(['multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
@@ -2628,8 +2643,8 @@ document.addEventListener('click',e=>{
   const a=el.dataset.act, d=el.dataset;
   if(S&&LICREADY&&!isViewer()&&!EXP_OK.has(a)&&!status().active){subSheet();return}
   if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
-  if(S&&isSeller2()&&SELLER_NO.has(a)){toast('هذا بيصير من الجهاز الأساسي. هذا الجوال للبيع والديون والمصاريف');return}
-  if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
+  if(S&&isSeller2()&&SELLER_NO.has(a)){toast('هذا بيصير من الجهاز الأساسي. هذا الجوال للبيع والأصناف والديون والمصاريف');return}
+  if(S&&!isOwner()&&((OWNER_ONLY.has(a)&&!(S.cashItems&&CASH_ITEM.has(a)))||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
 document.addEventListener('input',e=>{ const t=e.target; if(['pCost','pPrice','pPw'].includes(t.id)) pChgUI(); if(t.id==='exAmt'){const h=$('#exHint'); if(h) h.innerHTML=expHint()} if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
@@ -2642,7 +2657,7 @@ document.addEventListener('input',e=>{ const t=e.target; if(['pCost','pPrice','p
     if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
 });
 document.addEventListener('change',e=>{
-  const t=e.target; if(t.id==='pItem'){ pChgUI.no=0; const c=$('#pChg'); if(c) c.checked=false; pItemUI() } if(t.id==='pChg'){ pChgUI.no=!t.checked; pChgUI(true) }
+  const t=e.target; if(t.id==='stCashItems'&&isOwner()){ S.cashItems=t.checked; save(); toast(t.checked?'✓ الكاشير صار يضيف أصناف':'إضافة الأصناف للمالك بس') } if(t.id==='pItem'){ pChgUI.no=0; const c=$('#pChg'); if(c) c.checked=false; pItemUI() } if(t.id==='pChg'){ pChgUI.no=!t.checked; pChgUI(true) }
   if(t.id==='avIn'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; if(!isOwner()) return;
     avatarImg(f).then(d=>{S.avatar=d; save(); render(); toast('✓ انحطّت صورتك')}).catch(()=>toast('ما قدرنا نقرأ الصورة، جرّب صورة ثانية')); return }
   if(t.id==='rcvC'){cart().rcvC=t.value; const g=$('#chg'); if(g){const c=cart(),tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount); g.innerHTML=changeTxt(r2(tt.total+appFeeOf(tt.total,c)),c)} return}
@@ -2693,7 +2708,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117090924'; let UPD=false;
+const BUILD='20261117103726'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
