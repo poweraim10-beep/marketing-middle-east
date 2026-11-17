@@ -219,6 +219,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--line);bor
 input[type=checkbox]{width:22px;min-height:22px;height:22px;padding:0;accent-color:var(--gold-deep)}
 label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 label.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px}
+.lnk{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline dotted;text-underline-offset:4px}
 .pinfo{font-size:13.5px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:8px 10px}
 .pchgbox[hidden]{display:none}
 .pchgbox{display:grid;gap:10px;border:1.5px solid var(--accent,#e8c25a);border-radius:14px;padding:12px}
@@ -1333,6 +1334,19 @@ function pChgUI(auto){ const it=itemById($('#pItem').value), c=parseFloat(($('#p
   box.hidden=!ch.checked; if(box.hidden) return;
   const pr=parseFloat($('#pPrice').value)||it.price, pw=parseFloat($('#pPw').value)||0, cc=c>0?c:it.cost, m=$('#pMargin');
   if(m) m.innerHTML=`${c>0&&Math.abs(c-it.cost)>=0.005?`التكلفة ${c>it.cost?'زادت':'نزلت'} من <b class="num">${fx(it.cost)}</b> لـ <b class="num">${fx(c)}</b> ₪ · `:''}ربح ${it.byWeight?'الكيلو':'الحبة'} بالبيع: <b class="num" style="color:${pr-cc>0?'var(--ok,#2e7d32)':'var(--bad)'}">${fx(pr-cc)}</b> ₪${pw?` · بالجملة: <b class="num">${fx(pw-cc)}</b> ₪`:''}` }
+/* سجل أسعار الشراء لصنف: كل مرة اشتريته بكم، وإذا السعر طلع أو نزل عن المرة اللي قبلها */
+function costHist(it){ const ps=S.purchases.filter(p=>p.itemId===it.id).sort((a,b)=>a.ts-b.ts); const u=it.byWeight?'للكيلو':'للحبة';
+  const ch=(S.audit||[]).filter(a=>a.what.startsWith(`تغيير سعر ${it.name}:`)).slice(-5).reverse();
+  if(!ps.length&&!ch.length) return '';
+  const rows=ps.map((p,i)=>{const prev=i?ps[i-1].cost:null, d=prev==null?0:r2(p.cost-prev);
+    return {ts:p.ts,html:`<div class="li"><span><span class="t">${fdate(p.ts)}</span><br><span class="muted">${it.byWeight?wtTxt(p.qty):'<span class="num">'+p.qty+'</span> حبة'}${p.supId?' · '+esc((S.suppliers.find(x=>x.id===p.supId)||{}).name||''):''}</span></span>
+      <span style="text-align:left"><b class="num">${fx(p.cost)}</b> ₪${d?`<br><span class="num" style="font-size:12.5px;color:var(--${d>0?'bad':'good'})">${d>0?'▲':'▼'} ${fx(Math.abs(d))}</span>`:''}</span></div>`}}).reverse();
+  const costs=ps.map(p=>p.cost), mn=Math.min(...costs), mx=Math.max(...costs);
+  return `<div class="card" style="gap:8px"><h2>💲 أسعار الشراء</h2>
+    <div class="row muted" style="font-size:13.5px;flex-wrap:wrap;gap:4px 12px"><span>التكلفة المعتمدة الآن ${u}: <b class="num" style="color:var(--ink)">${fx(it.cost)}</b> ₪</span><span>البيع: <b class="num" style="color:var(--ink)">${fx(it.price)}</b> ₪</span>${it.priceW?`<span>الجملة: <b class="num" style="color:var(--ink)">${fx(it.priceW)}</b> ₪</span>`:''}</div>
+    ${ps.length>1&&mn!==mx?`<div class="muted" style="font-size:13.5px">اشتريته بين <b class="num">${fx(mn)}</b> و <b class="num">${fx(mx)}</b> ₪ ${u}</div>`:''}
+    ${rows.length?`<div class="list">${rows.slice(0,30).map(r=>r.html).join('')}</div>`:''}
+    ${ch.length?`<div class="list">${ch.map(a=>`<div class="li"><span><span class="t" style="font-size:13.5px">${esc(a.what.replace(`تغيير سعر ${it.name}: `,''))}</span><br><span class="muted">${fdate(a.ts)} · ${esc(a.who)}</span></span></div>`).join('')}</div>`:''}</div>`}
 function receive(it,qty,cost){ /* weighted average cost */
   const old=Math.max(it.qty,0); it.cost=r2(old+qty>0?(old*it.cost+qty*cost)/(old+qty):cost); it.qty=r3(it.qty+qty);
 }
@@ -1552,7 +1566,8 @@ more(){
       ${PHOTO.data?`<img src="${PHOTO.data}" alt="صورة فاتورة المورد" style="max-width:100%;border-radius:12px;border:1px solid var(--line)"><p class="muted" style="margin:0">الصورة بتنربط بكل صنف بتسجّله من هالفاتورة لحد ما تضغط «فاتورة جديدة».</p><button class="btn sm" data-act="photoClear">فاتورة جديدة</button>`:''}
       <button class="btn primary" data-act="addBuy">حفظ وإضافة للمخزون</button>
       <p class="muted" style="margin:0">إذا التكلفة اختلفت، بتنحسب متوسط بين البضاعة القديمة والجديدة، إلا إذا اخترت «اعتمد التكلفة الجديدة».</p></div>
-    <div class="card"><div class="list">${[...S.purchases].sort((a,b)=>b.ts-a.ts).map(p=>`<div class="li"><span><span class="t">${esc(p.name)} × ${p.qty}</span><br><span class="muted">${fdate(p.ts)} · ${esc((S.suppliers.find(x=>x.id===p.supId)||{}).name||'')} · ${p.paid==='cash'?'نقدًا':'على الحساب'}</span>${p.photo?`<br><button class="btn sm" data-act="viewPhoto" data-id="${p.photo}" style="margin-top:4px">صورة الفاتورة</button>`:''}</span>${money(p.total)}</div>`).join('')||'<div class="empty">لا مشتريات</div>'}</div></div>`;
+    <div class="card"><h2>المشتريات</h2><p class="muted" style="margin:0;font-size:13px">اضغط على أي صنف بتشوف كل مرة اشتريته بكم.</p><div class="list">${[...S.purchases].sort((a,b)=>b.ts-a.ts).map(p=>{const pv=S.purchases.filter(x=>x.itemId===p.itemId&&x.ts<p.ts).sort((a,b)=>b.ts-a.ts)[0], d=pv?r2(p.cost-pv.cost):0;
+      return `<div class="li"><span><button class="lnk" data-act="itemLog" data-id="${p.itemId}"><span class="t">${esc(p.name)} × ${p.qty}</span></button><br><span class="muted">${fdate(p.ts)}${p.supId?' · '+esc((S.suppliers.find(x=>x.id===p.supId)||{}).name||''):''} · ${p.paid==='cash'?'نقدًا':'على الحساب'}</span><br><span class="muted">تكلفة الوحدة <b class="num" style="color:var(--ink)">${fx(p.cost)}</b> ₪${d?` <span class="num" style="color:var(--${d>0?'bad':'good'})">${d>0?'▲':'▼'} ${fx(Math.abs(d))} عن المرة اللي قبلها</span>`:''}</span>${p.photo?`<br><button class="btn sm" data-act="viewPhoto" data-id="${p.photo}" style="margin-top:4px">صورة الفاتورة</button>`:''}</span>${money(p.total)}</div>`}).join('')||'<div class="empty">لا مشتريات</div>'}</div></div>`;
   if(sub==='sup') return back('الموردين')+`
     <div class="row"><span class="muted">المستحق للموردين ${money(S.suppliers.reduce((a,c)=>a+balance(c),0))}</span><button class="btn primary sm" data-act="addParty" data-kind="suppliers">إضافة مورد</button></div>
     <div class="card"><div class="list">${S.suppliers.map(c=>{const b=balance(c);return `<button class="li" data-act="party" data-kind="suppliers" data-id="${c.id}">
@@ -2493,11 +2508,11 @@ doAdj(d){const it=itemById(d.id), nq=r3(parseFloat($('#adjQ').value)), why=$('#a
   it.qty=nq; save(); closeSheet(); render(); toast(`تم: ${why} ${diff>0?'+':''}${diff}`)},
 itemLog(d){const it=itemById(d.id), ev=[];
   S.sales.forEach(s=>s.lines.forEach(l=>{if(l.itemId===it.id) ev.push([s.ts,`بيع فاتورة ${s.id}`,-l.baseQty])}));
-  S.purchases.forEach(p=>{if(p.itemId===it.id) ev.push([p.ts,`شراء من ${(S.suppliers.find(x=>x.id===p.supId)||{}).name||'مورد'}`,p.qty])});
+  S.purchases.forEach(p=>{if(p.itemId===it.id) ev.push([p.ts,`شراء${p.supId?' من '+((S.suppliers.find(x=>x.id===p.supId)||{}).name||'مورد'):''} · تكلفة ${fx(p.cost)} ₪`,p.qty])});
   S.returns.forEach(x=>x.lines.forEach(l=>{if(l.itemId===it.id) ev.push([x.ts,`مرتجع فاتورة ${x.saleId}`,l.baseQty])}));
   S.adjusts.forEach(a=>{if(a.itemId===it.id) ev.push([a.ts,a.reason,a.diff])});
   ev.sort((a,b)=>b[0]-a[0]);
-  openSheet(`${sheetHead('سجل حركة '+it.name)}<div class="card"><div class="list">${ev.slice(0,150).map(([ts,t,q])=>`<div class="li"><span><span class="t">${esc(t)}</span><br><span class="muted">${fdate(ts)}</span></span><span class="num" style="font-weight:700;color:var(--${q<0?'bad':'good'})">${q>0?'+':''}${r3(q)}</span></div>`).join('')||'<div class="empty">ما في حركات</div>'}</div></div>`)},
+  openSheet(`${sheetHead('سجل حركة '+it.name)}${costHist(it)}<div class="card"><h2>كل الحركات</h2><div class="list">${ev.slice(0,150).map(([ts,t,q])=>`<div class="li"><span><span class="t">${esc(t)}</span><br><span class="muted">${fdate(ts)}</span></span><span class="num" style="font-weight:700;color:var(--${q<0?'bad':'good'})">${q>0?'+':''}${r3(q)}</span></div>`).join('')||'<div class="empty">ما في حركات</div>'}</div></div>`)},
 pdfPer(d){pdfPer=d.p; if(d.p==='custom'&&!pdfFrom){pdfFrom=new Date(Date.now()-6*DAY).toISOString().slice(0,10); pdfTo=new Date().toISOString().slice(0,10)} render()},
 pdfAll(){const all=Object.keys(PDFSEC); pdfSel=all.every(k=>pdfSel.has(k))?new Set():new Set(all); render()},
 pdfGo(d){pdfSel=new Set(d.sel.split(',')); if(d.per) pdfPer=d.per; tab='more'; sub='pdf'; render(); $('#view').scrollTop=0},
@@ -2678,7 +2693,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117090617'; let UPD=false;
+const BUILD='20261117090924'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
