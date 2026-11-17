@@ -1393,6 +1393,7 @@ function openSheet(html){const bx=$('#sheetBox'); delete bx.dataset.sub; bx.inne
 function closeSheet(){$('#sheet').classList.remove('open'); if(typeof CAM!=='undefined'&&CAM.stream){camStop(); setTimeout(syncLive,50)} if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
 const sheetHead=(t,act='close')=>`<div class="row"><h2>${esc(t)}</h2><button class="btn sm" data-act="${act}">إغلاق</button></div>`;
 const stat=(l,v)=>`<div class="li"><span>${l}</span>${v}</div>`;
+const hint=t=>`<div class="card" style="background:#fffbea;gap:6px"><p style="margin:0;font-size:14px;line-height:1.8">💡 ${t}</p></div>`;
 const back=t=>`<div class="row"><h2>${t}</h2><button class="btn sm" data-act="sub" data-s="menu">رجوع</button></div>`;
 
 /* ---------- views ---------- */
@@ -1535,7 +1536,7 @@ more(){
     ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، رمز المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
-    return back('الشيكات')+`<div class="card"><h2>شيك جديد</h2>
+    return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
       <div class="seg"><button data-act="chqDir" data-d="in" aria-pressed="${CHQ.dir==='in'}">وارد من زبون</button><button data-act="chqDir" data-d="out" aria-pressed="${CHQ.dir==='out'}">صادر لمورد</button></div>
       <label for="qParty">${CHQ.dir==='in'?'الزبون':'المورد'}<select id="qParty"><option value="">بدون ربط بحساب</option>${S[CHQ.dir==='in'?'customers':'suppliers'].map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
       <div class="grid2"><label for="qBank">البنك<input id="qBank" placeholder="بنك فلسطين"></label><label for="qNo">رقم الشيك<input id="qNo" inputmode="numeric"></label></div>
@@ -1579,6 +1580,7 @@ more(){
   if(sub==='log') return back('سجل المبيعات')+(S.returns.length?`<div class="card"><h2>آخر المرتجعات</h2><div class="list">${[...S.returns].reverse().slice(0,10).map(x=>`<button class="li" data-act="sale" data-id="${x.saleId}"><span><span class="t">${x.lines.map(l=>esc(l.name)+'×'+l.count).join('، ')}</span><br><span class="muted">فاتورة ${x.saleId} · ${fdate(x.ts)} · ${x.method==='debt'?'من الدين':'نقدي'}</span></span>${money(-x.amount)}</button>`).join('')}</div></div>`:'')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+`<div class="card"><div class="list">${[...S.sales].sort((a,b)=>b.ts-a.ts).slice(0,40).map(s=>`<button class="li" data-act="sale" data-id="${s.id}">
     <span><span class="t">فاتورة <span class="num">${s.id}</span></span><br><span class="muted">${fdate(s.ts)} · ${payLabel(s)}${s.confirmed===false?' · بانتظار التأكيد':''}</span></span>${money(s.total)}</button>`).join('')||'<div class="empty">لا فواتير</div>'}</div></div>`;
   if(sub==='buy') return back('المشتريات')+`<button class="btn block" data-act="pdfGo" data-sel="buys">تحميل المشتريات PDF</button>`+`
+    ${hint('لما توصلك بضاعة من المورد، سجّلها هون عشان تزيد المخزون وتعرف كم كلّفتك. إذا دفعت كاش بينخصم من الصندوق، وإذا دفعت بالدين بينضاف على حساب المورد (لازم تختار المورد). وإذا تغيّر السعر، فعّل «السعر تغيّر؟».')}
     <div class="card"><h2>استلام بضاعة</h2>
       <label for="pSup">المورد<select id="pSup">${S.suppliers.length?'':'<option value="">بدون مورد</option>'}${S.suppliers.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
       <label for="pItem">الصنف<select id="pItem">${S.items.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
@@ -1626,6 +1628,7 @@ more(){
     ${(()=>{const ap={}; S.sales.filter(s=>s.ts>d.from&&payOf(s).app>0).forEach(s=>{const k=s.appMethod||'أخرى',e=ap[k]||(ap[k]={ok:0,pend:0,n:0}); e.n++; if(s.confirmed===false) e.pend=r2(e.pend+payOf(s).app); else e.ok=r2(e.ok+payOf(s).app)});
       const ks=Object.keys(ap); return ks.length?`<div class="card"><h2>مطابقة المحافظ والبنوك</h2><p class="muted" style="margin:0">قارن هالأرقام مع كشف كل محفظة قبل الإقفال.</p><div class="list">${ks.map(k=>`<div class="li"><span><span class="t">${esc(k)}</span><br><span class="muted">${ap[k].n} عملية${ap[k].pend?` · بانتظار ${fx(ap[k].pend)} ₪`:''}</span></span>${money(ap[k].ok+ap[k].pend)}</div>`).join('')}</div></div>`:''})()}
     ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li">${s.proof?`<button class="pthumb sm" data-act="proofView" data-k="${s.id}" aria-label="إشعار فاتورة ${s.id}">${PROOF[s.proof]?`<img src="${PROOF[s.proof]}" alt="">`:(proofGet(s.proof).then(()=>{if(tab==='more')render()}),'')}</button>`:'<span class="pthumb sm none" title="بلا إشعار">—</span>'}<span style="flex:1"><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">${s.payer?`باسم ${esc(s.payer)} · `:''}فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
+    ${hint('هاي الشاشة بتقلك كم المفروض يكون بالدرج الآن. المتوقع = رصيد الافتتاح + المبيعات النقدية + دفعات الديون − المصروفات − المشتريات الكاش. إذا العد اللي بالدرج ما طلع نفس الرقم، في فرق لازم تراجعه قبل ما تقفل.')}
     <div class="card"><h2>إقفال الصندوق</h2>
       <label for="cnt">المبلغ المعدود فعليًا (₪)<input id="cnt" type="number" inputmode="decimal" min="0" placeholder="${fx(d.expected)}"></label>
       <button class="btn primary" data-act="closeDay">إقفال وتسجيل الفرق</button></div>
@@ -2757,7 +2760,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117122950'; let UPD=false;
+const BUILD='20261117124614'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
