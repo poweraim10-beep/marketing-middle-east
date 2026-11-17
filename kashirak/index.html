@@ -1487,13 +1487,13 @@ items(){
   <div class="tiles"><div class="tile hl"><div class="lbl">عدد الأصناف</div><div class="val">${S.items.length}</div></div><div class="tile"><div class="lbl">قليلة أو خالصة</div><div class="val" style="color:var(--${low?'warn':'good'})">${low}</div></div></div>
   <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
-  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
+  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}${S.wh?'<button class="btn sm" data-act="xferAsk">نقل من المخزن</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
   <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||i.name.includes(iq)||i.barcode.includes(iq)).map(i=>{
     const st=i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
     return `<button class="li" data-act="editItem" data-id="${i.id}">
       <span><span class="t">${esc(i.name)}</span><br><span class="muted">${isOwner()?`تكلفة ${fx(i.cost)} · `:''}بيع ${fx(i.price)} ₪${i.cartonSize>1?` · كرتونة ${i.cartonSize}`:''}${i.barcode?'':' · بدون باركود'}<br>مبيع آخر 30 يوم: <span class="num">${sold[i.id]||0}</span>${isOwner()&&sold[i.id]?` · ربح <span class="num">${fx(sold[i.id]*(i.price-i.cost))}</span> ₪`:''}</span></span>
-      <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span><br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`;
+      <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span>${S.wh?`<br><span class="muted" style="font-size:12.5px">مخزن: <span class="num">${r3(i.wqty||0)}</span></span>`:''}<br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`;
 },
 staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
   const cards=S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===t0, img=refImg(st);
@@ -1656,6 +1656,7 @@ more(){
       <p class="muted" style="margin:0">رسوم التطبيق بتنضاف لحالها لما الزبون يدفع كامل الفاتورة بالتطبيق أو المحفظة. خلّيها 0 لو ما بدك فرق.</p>
       <button class="btn primary" data-act="saveSet">حفظ</button></div>`)}
   ${setSec('🔒','كلمة السر','الكلمة اللي بتفتح وضع المالك وبتدخل بيها الحساب',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في إرجاع فواتير ولا حذف. الرمز الافتراضي 0000، غيّره.</p>
+      <label class="chk" for="stWh"><input type="checkbox" id="stWh" ${S.wh?'checked':''}>عندي مخزن منفصل عن المحل (بيفعّل نقل البضاعة من المخزن للمحل، وجرد منفصل للمخزن)</label>
       <label class="chk" for="stCashItems"><input type="checkbox" id="stCashItems" ${S.cashItems?'checked':''}>الكاشير بيقدر يضيف أصناف جديدة ويعدّل أسعارها</label>
       <p class="muted" style="margin:-4px 0 0;font-size:12.5px">الكاشير ما بيقدر يغيّر التكلفة ولا كمية صنف موجود، ولا يحذف. وكل تعديل بينسجّل باسمه بسجل الحركات.</p>
       <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
@@ -2243,6 +2244,7 @@ editItem(d){
       <label for="fPrice">سعر البيع (₪)<input id="fPrice" type="number" inputmode="decimal" value="${it.price}"></label></div>
     ${!isOwner()&&it.id?'':`<div class="grid2"><label for="fQty">الكمية (حبة أو كغ)<input id="fQty" type="number" inputmode="decimal" value="${it.qty}"></label>
       <label for="fMin">نبّهني عند<input id="fMin" type="number" inputmode="decimal" value="${it.min}"></label></div>`}
+    ${S.wh?`<label for="fWQty">كمية المخزن<input id="fWQty" type="number" inputmode="decimal" value="${(it&&it.wqty)||0}"></label>`:''}
     <div class="grid2"><label for="fPw">سعر الجملة (₪)<input id="fPw" type="number" inputmode="decimal" value="${it.priceW||''}" placeholder="اختياري"></label>
       <label for="fPromo">عرض: اشتري كم وخذ كم مجانًا<span class="row" style="gap:6px"><input id="fPb" type="number" inputmode="numeric" min="0" value="${it.promoBuy||''}" placeholder="اشتري" aria-label="اشتري"><input id="fPg" type="number" inputmode="numeric" min="0" value="${it.promoGet||''}" placeholder="مجانًا" aria-label="مجانًا"></span></label></div>
     <div class="grid2"><label for="fCs">حبات الكرتونة<input id="fCs" type="number" inputmode="numeric" value="${it.cartonSize||''}" placeholder="اختياري"></label>
@@ -2264,7 +2266,7 @@ saveItem(){
   if(bar&&S.items.some(i=>i.barcode===bar&&i!==it)){toast('هذا الباركود مسجّل لصنف آخر');return}
   if(/^\d{13}$/.test(bar)&&!eanValid(bar)){toast('رقم الباركود فيه خطأ (خانة التحقق لا تطابق)');return}
   const qv=parseFloat(v('fQty'))||0;
-  const data={name:v('fName'),barcode:bar,cost:n('fCost'),price:n('fPrice'),qty:Math.max(0,w?r3(qv):Math.round(qv)),min:n('fMin'),
+  const data={name:v('fName'),barcode:bar,cost:n('fCost'),price:n('fPrice'),qty:Math.max(0,w?r3(qv):Math.round(qv)),wqty:S.wh?Math.max(0,parseFloat(v('fWQty'))||0):((it&&it.wqty)||0),min:n('fMin'),
     cartonSize:w?0:Math.round(n('fCs')),cartonPrice:w?0:n('fCp'),exp:v('fExp'),byWeight:w,priceW:n('fPw'),promoBuy:Math.round(n('fPb')),promoGet:Math.round(n('fPg'))};
   if((data.promoBuy>0)!==(data.promoGet>0)){toast('العرض بدّه رقمين: اشتري كم، ومجانًا كم');return}
   if(data.cartonSize>1&&!data.cartonPrice) data.cartonPrice=r2(data.price*data.cartonSize);
@@ -2557,12 +2559,16 @@ doReturn(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; s.ret=s.ret||{
   if(method==='debt'&&s.custId){const c=S.customers.find(x=>x.id===s.custId); if(c) c.ledger.push({ts:Date.now(),amt:-amount,note:`إرجاع من فاتورة ${s.id}`,noCash:true})}
   audit(`إرجاع ${lines.map(l=>l.name+'×'+l.count).join('، ')} من فاتورة ${s.id} بقيمة ${fx(amount)} ₪ ${method==='debt'?'من الدين':'نقدًا'}`);
   save(); closeSheet(); render(); toast(`تم الإرجاع: ${fx(amount)} ₪ ${method==='debt'?'انخصمت من الدين':'من الصندوق'}`)},
+xferAsk(){ const L=S.items.filter(i=>(i.wqty||0)>0); if(!L.length){toast('ما في بضاعة بالمخزن');return} openSheet(`${sheetHead('نقل من المخزن للمحل')}<label for="xItem">الصنف<select id="xItem">${L.map(i=>`<option value="${i.id}">${esc(i.name)} · بالمخزن ${r3(i.wqty)}</option>`).join('')}</select></label><label for="xQty">الكمية اللي بدك تنقلها<input id="xQty" type="number" inputmode="decimal" value="1"></label><p class="muted" style="margin:0;font-size:13px">بتنخصم من المخزن وبتزيد على المحل.</p><button class="btn primary block" data-act="xfer">نقل</button>`)},
+xfer(){ const it=itemById(+$('#xItem').value), q=r3(parseFloat($('#xQty').value)); if(!it){toast('اختار صنف');return} if(!(q>0)){toast('اكتب كمية أكبر من صفر');return} if(q>(it.wqty||0)){toast(`المخزن فيه ${r3(it.wqty||0)} بس`);return} it.wqty=r3((it.wqty||0)-q); it.qty=r3(it.qty+q); audit(`نقل من المخزن للمحل: ${it.name} × ${q}`); save(); closeSheet(); render(); toast('تم النقل للمحل')},
 adjAsk(d){const it=itemById(d.id); openSheet(`${sheetHead('جرد / تعديل الكمية')}<div class="tile hl"><div class="lbl">${esc(it.name)} · الكمية بالنظام</div><div class="val">${qtyTxt(it)}</div></div>
+  ${S.wh?`<label for="adjW">كمية المخزن بعد العد<input id="adjW" type="number" inputmode="decimal" value="${it.wqty||0}"></label>`:''}
   <label for="adjQ">الكمية الفعلية بعد العد<input id="adjQ" type="number" inputmode="decimal" step="${it.byWeight?0.05:1}" value="${it.qty}"></label>
   <label for="adjR">السبب<select id="adjR">${['جرد','تالف','منتهي الصلاحية','هدية أو عيّنة','استهلاك شخصي','سرقة أو فقدان','تصحيح خطأ'].map(x=>`<option>${x}</option>`).join('')}</select></label>
   <button class="btn primary block" data-act="doAdj" data-id="${it.id}">حفظ</button>`)},
 doAdj(d){const it=itemById(d.id), nq=r3(parseFloat($('#adjQ').value)), why=$('#adjR').value; if(isNaN(nq)||nq<0){toast('اكتب كمية صحيحة');return}
-  const diff=r3(nq-it.qty); if(!diff){closeSheet();return}
+  if(S.wh&&$('#adjW')){ const nw=r3(parseFloat($('#adjW').value)); if(!isNaN(nw)&&nw>=0&&nw!==r3(it.wqty||0)){ const dw=r3(nw-(it.wqty||0)); S.adjusts.push({ts:Date.now(),itemId:it.id,name:it.name+' (مخزن)',diff:dw,reason:'جرد مخزن',cost:r2(Math.abs(dw)*it.cost)}); audit(`جرد مخزن: ${it.name} من ${r3(it.wqty||0)} إلى ${nw}`); it.wqty=nw } }
+  const diff=r3(nq-it.qty); if(!diff){save();closeSheet();render();return}
   S.adjusts.push({ts:Date.now(),itemId:it.id,name:it.name,diff,reason:why,cost:r2(Math.abs(diff)*it.cost)}); audit(`${why}: ${it.name} ${diff>0?'+':''}${diff} (من ${it.qty} إلى ${nq})`);
   it.qty=nq; save(); closeSheet(); render(); toast(`تم: ${why} ${diff>0?'+':''}${diff}`)},
 itemLog(d){const it=itemById(d.id), ev=[];
@@ -2682,7 +2688,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
+const SELLER_NO=new Set(['xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
@@ -2710,6 +2716,7 @@ document.addEventListener('input',e=>{ const t=e.target; if(['pCost','pPrice','p
 document.addEventListener('change',e=>{
   const t=e.target; if(t.id==='wedgeOn'){ localStorage.setItem('ksr-wedge',t.checked?'1':'0'); toast(t.checked?'✓ القارئة السلكية شغّالة':'القارئة السلكية مطفية') }
   if(t.id==='scIn'||t.id==='scOut'){ localStorage.setItem(t.id==='scIn'?'ksr-scanin':'ksr-scanout',t.checked?'1':'0'); toast(t.checked?'✓ اتفعّل':'اتوقف') }
+  if(t.id==='stWh'&&isOwner()){ S.wh=t.checked; save(); render(); toast(t.checked?'✓ المخزن المنفصل مفعّل':'المخزن المنفصل مطفي') }
   if(t.id==='stCashItems'&&isOwner()){ S.cashItems=t.checked; save(); toast(t.checked?'✓ الكاشير صار يضيف أصناف':'إضافة الأصناف للمالك بس') } if(t.id==='pItem'){ pChgUI.no=0; const c=$('#pChg'); if(c) c.checked=false; pItemUI() } if(t.id==='pChg'){ pChgUI.no=!t.checked; pChgUI(true) }
   if(t.id==='avIn'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; if(!isOwner()) return;
     avatarImg(f).then(d=>{S.avatar=d; save(); render(); toast('✓ انحطّت صورتك')}).catch(()=>toast('ما قدرنا نقرأ الصورة، جرّب صورة ثانية')); return }
@@ -2761,7 +2768,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117144828'; let UPD=false;
+const BUILD='20261117145927'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
