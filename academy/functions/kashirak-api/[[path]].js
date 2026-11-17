@@ -135,6 +135,8 @@ const MAX_DEV = 3, DEV_ACTIVE = 30 * 864e5;
 const sellersOf = (s) => { try { const a = JSON.parse(s.sellers || '[]'); return Array.isArray(a) ? a.filter((x) => x && x !== s.main).slice(0, MAX_DEV - 1) : []; } catch { return []; } };
 const devsOf = (s) => { try { return JSON.parse(s.devices || '{}') || {}; } catch { return {}; } };
 const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: sellersOf(s).includes(k) }));
+// كل الأجهزة المفعّلة للحساب (الأساسي + الباقي) صلاحيتها واحدة: تبيع وتعدّل وتزامن
+const isBoss = (s, dev) => !!dev && (dev === s.main || activeDevs(s).some((x) => x.id === dev));
 const pubShop = (s) => ({ multi: !!s.multi, sellers: s.multi ? sellersOf(s) : [], restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
 async function seen(env, shop, device, label) {
   if (!device) return;
@@ -395,7 +397,7 @@ export async function onRequest({ request, env, params }) {
       let shopRow = await readShop(env, request);
       if (!shopRow) return err('لازم المحل يكون مسجّل أول. افتح التطبيق وهو متصل بالنت', 401, { code: 'noacct' });
       shopRow = await ensureAcct(env, shopRow);
-      if (!device || device !== shopRow.main) return err('التفعيل بيصير بس من الجهاز الأساسي للمحل', 403, { code: 'not_main' });
+      if (!device || !isBoss(shopRow, device)) return err('التفعيل بيصير من أي جهاز مفعّل على الحساب', 403, { code: 'not_main' });
       const row = await env.DB.prepare('SELECT * FROM ksr_codes WHERE code = ?').bind(code).first();
       if (!row) { await noteFail(env, ip); return err('الكود غير صحيح', 404); }
       if (row.status === 'void') return err('هذا الكود ملغي. تواصل مع الدعم', 410);
@@ -477,7 +479,7 @@ export async function onRequest({ request, env, params }) {
     if (a === 'state' && m === 'PUT') {
       const q = await body(request);
       const dev = clean(q.device, 40);
-      if (dev !== shop.main) return err('جهاز ثاني صار هو الأساسي', 409, { code: 'not_main', shop: pubShop(shop) });
+      if (!isBoss(shop, dev)) return err('الجهاز مش مفعّل على الحساب', 409, { code: 'not_main', shop: pubShop(shop) });
       if (Number(q.base) !== shop.version) return err('في نسخة أحدث على الحساب', 409, { code: 'stale', shop: pubShop(shop) });
       const data = String(q.data || '');
       if (!data || data.length > MAX_STATE) return err('حجم البيانات غير مقبول', 413);
@@ -534,7 +536,7 @@ export async function onRequest({ request, env, params }) {
     // ----- مسح كل بيانات المحل (من الجهاز الأساسي): بتنمسح من السحابة كمان، وبتضل نسخة بسجل الإدارة للطوارئ. الاشتراك والحساب ما بيتغيّروا -----
     if (a === 'reset' && m === 'POST') {
       const q = await body(request);
-      if (device !== shop.main) return err('مسح البيانات بيصير من الجهاز الأساسي', 403, { code: 'not_main' });
+      if (!isBoss(shop, device)) return err('مسح البيانات بيصير من جهاز مفعّل على الحساب', 403, { code: 'not_main' });
       if (String(q.confirm || '') !== 'مسح') return err('اكتب كلمة مسح للتأكيد');
       await env.DB.batch([
         ...(shop.version > 0 ? snapStmts(env, shop, 'قبل مسح كل البيانات من التطبيق') : []),
@@ -549,7 +551,7 @@ export async function onRequest({ request, env, params }) {
     if (a === 'devices' && m === 'GET') return json({ devices: activeDevs(shop), max: MAX_DEV, multi: !!shop.multi });
     if (a === 'multi' && m === 'POST') { // الجهاز الأساسي بيشغّل/بيطفي البيع من جوالين
       const q = await body(request);
-      if (device !== shop.main) return err('هذا بيتفعّل من الجهاز الأساسي للمحل', 403, { code: 'not_main' });
+      if (!isBoss(shop, device)) return err('هذا بيتفعّل من جهاز مفعّل على الحساب', 403, { code: 'not_main' });
       const on = q.on ? 1 : 0;
       await env.DB.prepare('UPDATE ksr_shops SET multi = ?, sellers = ? WHERE id = ?').bind(on, on ? (shop.sellers || '[]') : '[]', shop.id).run();
       const sh2 = { ...shop, multi: on, sellers: on ? shop.sellers : '[]' };
@@ -580,7 +582,7 @@ export async function onRequest({ request, env, params }) {
     }
     if (a === 'ops' && m === 'POST') { // عمليات الجوال البائع الثاني (بيع، دفعة، مصروف): بتستنى هون لحد ما الجهاز الأساسي يضيفها للمحل
       const q = await body(request);
-      if (!shop.multi || !sellersOf(shop).includes(device)) return err('هذا الجوال مش مفعّل كبائع', 403, { code: 'not_seller', shop: pubShop(shop) });
+      if (!isBoss(shop, device)) return err('هذا الجوال مش مفعّل على الحساب', 403, { code: 'not_seller', shop: pubShop(shop) });
       const list = Array.isArray(q.ops) ? q.ops.slice(0, 200) : [];
       const stmts = [];
       for (const o of list) {
@@ -634,7 +636,7 @@ export async function onRequest({ request, env, params }) {
       return json({ ids: (r.results || []).map((x) => x.id) });
     }
     if (a === 'blob' && b && m === 'PUT') {
-      if (device !== shop.main && !(shop.multi && sellersOf(shop).includes(device))) return err('جهاز ثاني صار هو الأساسي', 409, { code: 'not_main' });
+      if (!isBoss(shop, device)) return err('الجهاز مش مفعّل على الحساب', 409, { code: 'not_main' });
       const q = await body(request);
       const data = String(q.data || '');
       if (!data.startsWith('data:image/') || data.length > MAX_BLOB) return err('صورة غير مقبولة', 413);
