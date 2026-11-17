@@ -251,7 +251,7 @@ function shopSheet(id,kind){
   const tail=`\nالأسعار: شهر ${P.m1} ₪ · 3 شهور ${P.m3} ₪ · سنة ${P.y1} ₪\nابعتلنا إشعار التحويل وبنبعتلك كود التفعيل فورًا 🌟`;
   const msgRenew=`أهلًا ${s.name&&!s.visit?s.name:''} 👋\n`+({trial:`شكرًا إنك جرّبت «كاشيرك الذكي». فترة التجربة المجانية بتخلص بعد ${st.left} يوم، وعشان تضل تبيع بدون توقف فعّل اشتراكك.`,tover:`خلصت فترة التجربة المجانية لـ«كاشيرك الذكي». بياناتك كلها محفوظة، وبمجرد ما تفعّل الاشتراك بترجع تبيع من نفس المكان.`,visit:`شفناك فتحت «كاشيرك الذكي» 🙌 إذا بدك مساعدة بتجهيز محلك وإضافة الأصناف، إحنا جاهزين.`,over:`اشتراك «كاشيرك الذكي» انتهى. بياناتك محفوظة، جدّد وارجع بيع فورًا.`}[st.k]||`حابين نذكّرك إن اشتراك «كاشيرك الذكي» بينتهي بعد ${st.left} يوم.`)+tail;
   const curWa=String(s.wa||waNum(s.phone)), curPre=curWa.startsWith('972')?'972':'970', otherPre=curPre==='972'?'970':'972';
-  const msgInfo=`أهلًا ${s.owner||''} 👋\nشكرًا لتجربتك «كاشيرك الذكي» 🌟\n━━━━━━━━━━━━━━\n💼 *عروض الاشتراك*\n\n📅 شهر  ←  *40 ₪*\n📅 3 شهور  ←  *100 ₪*\n📅 6 شهور  ←  *180 ₪*\n⭐ سنة  ←  *300 ₪*\n♾️ مدى الحياة  ←  *500 ₪*\n   🔥 _عرض حصري لأول 30 محل، لفترة محدودة_\n━━━━━━━━━━━━━━\n🎁 *هدية للي يشترك سنة أو مدى الحياة:*\nمندوب يجي لمحلك، يركّب التطبيق، ويشرحه لك وللعمال، *مجانًا* ✅\n━━━━━━━━━━━━━━\nإذا حابب تعرف أكثر أو تشترك، رد على هالرسالة وبنكون بخدمتك 🤝\nفريق «كاشيرك الذكي»`;
+  const msgInfo=`أهلًا ${s.owner||''} 👋\nشكرًا لتجربتك «كاشيرك الذكي» 🌟\n━━━━━━━━━━━━━━\n💼 *عروض الاشتراك*\n\n📅 شهر  ←  *40 ₪*\n📅 3 شهور  ←  *100 ₪*\n📅 6 شهور  ←  *180 ₪*\n⭐ سنة  ←  *300 ₪*\n♾️ مدى الحياة  ←  *500 ₪*\n   🔥 *⚡ عرض حصري لأول 30 محل فقط ⚡*\n   _لفترة محدودة_ 🔥\n━━━━━━━━━━━━━━\n🎁 *هدية للي يشترك سنة أو مدى الحياة:*\nمندوب يجي لمحلك، يركّب التطبيق، ويشرحه لك وللعمال، *مجانًا* ✅\n━━━━━━━━━━━━━━\nإذا حابب تعرف أكثر أو تشترك، رد على هالرسالة وبنكون بخدمتك 🤝\nفريق «كاشيرك الذكي»`;
   open(`${head(esc(s.name||'محل'))}
   <div class="row">${pillOf(st)}${s.phone?`<a class="btn sm wa" href="https://wa.me/${(s.wa||waNum(s.phone))}?text=${encodeURIComponent(msgInfo)}" target="_blank" rel="noopener">واتساب</a>`:''}</div>
   <div class="card" style="gap:0">
@@ -392,7 +392,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261117133803'; let UPD=false;
+const BUILD='20261117133825'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);
