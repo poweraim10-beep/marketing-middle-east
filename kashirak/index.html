@@ -1013,9 +1013,15 @@ function receiptCanvas(s,k=1){
   }catch(e){return null}
 }
 function receiptImage(s){const c=receiptCanvas(s); try{return c?c.toDataURL('image/png'):''}catch(e){return ''}}
+/* المصروف اليومي بينحسب على يومه، والأسبوعي بينقسم على 7 أيام، والشهري على 30 يوم، من تاريخ تسجيله */
+const EXPER={day:[1,'يومي'],week:[7,'أسبوعي'],month:[30,'شهري']};
+const expSpan=e=>(EXPER[e.per]||EXPER.day)[0];
+function expShare(e,from,to){ const span=expSpan(e), st=sod(e.ts), end=Math.min(to,sod(Date.now())+DAY); if(span===1) return e.ts>=from&&e.ts<Math.min(to,Infinity)?e.amt:0;
+  let n=0; for(let k=0;k<span;k++){ const d=st+k*DAY; if(d>=from&&d<end) n++ } return r2(e.amt*n/span) }
+const expIn=(from,to=Infinity)=>S.expenses.map(e=>({e,v:expShare(e,from,to)})).filter(x=>x.v>0);
 function report(from,to=Infinity){
-  const sales=S.sales.filter(s=>s.ts>=from&&s.ts<to), exp=S.expenses.filter(e=>e.ts>=from&&e.ts<to);
-  const rev=r2(sales.reduce((a,s)=>a+s.total,0)), cogs=r2(sales.reduce((a,s)=>a+s.cost,0)), ex=r2(exp.reduce((a,e)=>a+e.amt,0));
+  const sales=S.sales.filter(s=>s.ts>=from&&s.ts<to), exp=expIn(from,to);
+  const rev=r2(sales.reduce((a,s)=>a+s.total,0)), cogs=r2(sales.reduce((a,s)=>a+s.cost,0)), ex=r2(exp.reduce((a,x)=>a+x.v,0));
   const by={cash:0,app:0,debt:0}, top={};
   sales.forEach(s=>{const p=payOf(s);for(const k in by)by[k]=r2(by[k]+(p[k]||0));s.lines.forEach(l=>{top[l.name]=r2((top[l.name]||0)+l.price*l.count)})});
   const rets=(S.returns||[]).filter(x=>x.ts>=from&&x.ts<to), ret=r2(rets.reduce((a,x)=>a+x.amount,0)), retCost=r2(rets.reduce((a,x)=>a+x.cost,0));
@@ -1435,10 +1441,16 @@ more(){
       <span class="t">${esc(c.name)}</span><span>${b>0?`${money(b)} <span class="pill warn">له</span>`:'<span class="pill ok">خالص</span>'}</span></button>`}).join('')}</div></div>`;
   if(sub==='exp') return back('المصروفات')+`<button class="btn block" data-act="pdfGo" data-sel="exp">تحميل المصروفات PDF</button>`+`
     <div class="card"><h2>مصروف جديد</h2>
-      <div class="grid2"><label for="exName">البيان<input id="exName" placeholder="مثال: كهرباء"></label>
+      <div class="grid2"><label for="exName">البيان<input id="exName" placeholder="مثال: إيجار، كهرباء، رواتب"></label>
       <label for="exAmt">المبلغ (₪)<input id="exAmt" type="number" inputmode="decimal" min="0"></label></div>
+      <div><div class="muted" style="font-size:13.5px;margin-bottom:6px">هالمصروف عن قديش؟</div>
+      <div class="seg">${Object.entries(EXPER).map(([k,[n,t]])=>`<button data-act="exPer" data-p="${k}" aria-pressed="${EXP_PER===k}">${t}</button>`).join('')}</div></div>
+      <p class="muted" id="exHint" style="margin:0;font-size:13.5px">${expHint()}</p>
       <button class="btn primary" data-act="addExp">حفظ المصروف</button></div>
-    <div class="card"><div class="list">${[...S.expenses].sort((a,b)=>b.ts-a.ts).map(e=>`<div class="li"><span><span class="t">${esc(e.name)}</span><br><span class="muted">${fdate(e.ts)}</span></span>${money(e.amt)}</div>`).join('')||'<div class="empty">لا مصروفات</div>'}</div></div>`;
+    ${(()=>{const t=expIn(sod()).reduce((a,x)=>a+x.v,0), m=expIn(sod(Date.now()-29*DAY)).reduce((a,x)=>a+x.v,0);
+      return `<div class="tiles"><div class="tile"><div class="lbl">مصروف اليوم</div><div class="val">${money(t)}</div></div><div class="tile"><div class="lbl">آخر 30 يوم</div><div class="val">${money(m)}</div></div></div>`})()}
+    <div class="card"><div class="list">${[...S.expenses].sort((a,b)=>b.ts-a.ts).map(e=>{const sp=expSpan(e), end=sod(e.ts)+sp*DAY, on=sp>1&&Date.now()<end;
+      return `<div class="li"><span><span class="t">${esc(e.name)}</span> <span class="pill ${sp>1?'warn':''}" style="font-size:11.5px;padding:1px 8px">${(EXPER[e.per]||EXPER.day)[1]}</span><br><span class="muted">${fdate(e.ts)}${sp>1?` · <span class="num">${fx(e.amt/sp)}</span> ₪ باليوم${on?' · ساري لـ '+new Date(end-DAY).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'}):''}`:''}</span></span><span style="display:flex;align-items:center;gap:8px;white-space:nowrap;flex:none">${money(e.amt)}<button class="btn sm" data-act="delExp" data-id="${e.id}" aria-label="حذف">🗑</button></span></div>`}).join('')||'<div class="empty">لا مصروفات</div>'}</div></div>`;
   if(sub==='cash'){const d=drawer();return back('الصندوق')+`
     <div class="tile hl"><div class="lbl">المتوقع في الصندوق الآن</div><div class="val">${money(d.expected)}</div><div class="lbl">منذ آخر إقفال ${d.from?fdate(d.from):''}</div></div>
     <div class="card"><div class="list">
@@ -1881,10 +1893,13 @@ const PERIODS={today:'اليوم',yesterday:'أمس',week:'آخر 7 أيام',mo
 const PDFSEC={daily:['تفاصيل كل يوم وكل سلة','لكل يوم: عدد السلات، وأصناف كل سلة بسعر الشراء والبيع والربح',1],summary:['الأرباح والخسائر','المبيعات والتكلفة والمصروفات وصافي الربح',1],pay:['طرق الدفع','نقدي وتطبيقات ودين',1],items:['الأصناف المباعة','الكمية والربح لكل صنف',1],
   sales:['سجل الفواتير','كل فاتورة بوقتها وأصنافها',1],exp:['المصروفات','بند بند',1],buys:['المشتريات','البضاعة المستلمة من الموردين',1],
   debts:['ديون الزبائن','مين عليه وكم',0],att:['دوام العمال','بصمات الدخول والخروج والساعات',1],prices:['قائمة الأسعار','الأصناف وأسعارها للزبائن',0],stock:['جرد المخزون','الكمية وقيمة كل صنف',0],sups:['حسابات الموردين','المستحق لكل مورد',0]};
+let EXP_PER='day';
+function expHint(){ const a=parseFloat(($('#exAmt')||{}).value)||0, sp=EXPER[EXP_PER][0];
+  return EXP_PER==='day'?'💡 المصروف اليومي بينخصم كامل من ربح اليوم.':`💡 بينقسم على ${sp} يوم: ${a>0?`<b class="num">${fx(a)}</b> ₪ ← <b class="num">${fx(a/sp)}</b> ₪ باليوم`:'كل يوم بينخصم جزء'} من ربحك، من اليوم لـ ${sp} يوم.` }
 let pdfPer='today', pdfSel=new Set(['summary','pay','items']), pdfFrom='', pdfTo='';
 function buildPdf(per,sel){
   const {from,to,label}=periodRange(per), r=report(from,to), t=tnum, inP=x=>x.ts>=from&&x.ts<to;
-  const sales=S.sales.filter(inP).sort((a,b)=>a.ts-b.ts), exp=S.expenses.filter(inP), buys=S.purchases.filter(inP).sort((a,b)=>a.ts-b.ts);
+  const sales=S.sales.filter(inP).sort((a,b)=>a.ts-b.ts), exp=expIn(from,to).map(x=>({...x.e,amt:x.v,name:x.e.name+((x.e.per&&x.e.per!=='day')?` (${EXPER[x.e.per][1]})`:'')})), buys=S.purchases.filter(inP).sort((a,b)=>a.ts-b.ts);
   const disc=r2(sales.reduce((a,s)=>a+(s.discount||0),0)), B=[];
   if(sel.has('summary')) B.push({h:'الأرباح والخسائر'},{kv:[['عدد الفواتير',String(r.count)],['المبيعات بعد المرتجعات',fx(r.rev)+' ₪'],['المرتجعات',fx(r.ret)+' ₪'],['الخصومات',fx(disc)+' ₪'],['تكلفة البضاعة المباعة',fx(r.cogs)+' ₪'],['هامش الربح',fx(r.gross)+' ₪'],['المصروفات',fx(r.ex)+' ₪'],['صافي الربح',fx(r.net)+' ₪',1]]});
   if(sel.has('pay')) B.push({h:'حسب طريقة الدفع'},{kv:Object.entries(PAY).map(([k,v])=>[v,fx(r.by[k])+' ₪'])});
@@ -2128,7 +2143,9 @@ debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).
 sub(d){if(d.s==='att'){tab='staff'; render(); $('#view').scrollTop=0; return} sub=d.s; render(); $('#view').scrollTop=0},
 period(d){period=d.p; render()},
 addExp(){const n=$('#exName').value.trim(), a=r2(parseFloat($('#exAmt').value)||0);
-  if(!n||a<=0){toast('اكتب البيان والمبلغ');return} S.expenses.push({id:S.nextId++,ts:Date.now(),name:n,amt:a}); save(); render(); toast('تم حفظ المصروف')},
+  if(!n||a<=0){toast('اكتب البيان والمبلغ');return} S.expenses.push({id:S.nextId++,ts:Date.now(),name:n,amt:a,per:EXP_PER}); const sp=EXPER[EXP_PER][0]; save(); render(); toast(sp>1?`تم حفظ المصروف: ${fx(a/sp)} ₪ باليوم لمدة ${sp} يوم`:'تم حفظ المصروف')},
+exPer(d){ EXP_PER=d.p; document.querySelectorAll('[data-act=exPer]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); const h=$('#exHint'); if(h) h.innerHTML=expHint() },
+delExp(d){ const e=S.expenses.find(x=>x.id===+d.id); if(!e) return; if(!confirm(`حذف مصروف «${e.name}» (${fx(e.amt)} ₪)؟`)) return; S.expenses=S.expenses.filter(x=>x.id!==e.id); audit(`حذف مصروف ${e.name} ${fx(e.amt)} ₪`); save(); render(); toast('انحذف المصروف')},
 closeDay(){const d=drawer(), raw=$('#cnt').value, counted=raw===''?d.expected:r2(parseFloat(raw)||0); if(r2(counted-d.expected)!==0) audit(`إقفال صندوق بفرق ${fx(counted-d.expected)} ₪`);
   S.closes.push({ts:Date.now(),expected:d.expected,counted,diff:r2(counted-d.expected)}); save(); render(); toast('تم إقفال الصندوق')},
 saveSet(){S.shop=$('#stShop').value.trim()||S.shop; const r=parseFloat($('#stRate').value); if(r>0) S.rate=r2(r);
@@ -2438,7 +2455,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
-const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -2449,7 +2466,7 @@ document.addEventListener('click',e=>{
   if(S&&!isOwner()&&(OWNER_ONLY.has(a)||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
-document.addEventListener('input',e=>{ const t=e.target; if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
+document.addEventListener('input',e=>{ const t=e.target; if(t.id==='exAmt'){const h=$('#exHint'); if(h) h.innerHTML=expHint()} if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
   if(t.classList&&t.classList.contains('retq')){const m=+t.dataset.max; if(+t.value>m) t.value=m; if(+t.value<0) t.value=0; return}
   if(t.id==='iq'){iq=t.value; const pos=t.selectionStart; render(); const n=$('#iq'); if(n){n.focus(); try{n.setSelectionRange(pos,pos)}catch(_){}} return}
   if(t.id==='q'){q=t.value; renderResults()}
@@ -2510,7 +2527,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117071029'; let UPD=false;
+const BUILD='20261117071623'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
