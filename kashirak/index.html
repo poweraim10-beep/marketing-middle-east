@@ -2287,6 +2287,7 @@ party(d){
     <div class="card"><h2>كشف الحساب</h2><div class="list">${[...c.ledger].sort((a,b)=>b.ts-a.ts).map(l=>`<div class="li"><span><span class="t">${esc(l.note)}</span><br><span class="muted">${fdate(l.ts)}</span></span><span style="color:var(--${l.amt<0?'good':'ink'})">${money(l.amt)}</span></div>`).join('')||'<div class="empty">لا حركات</div>'}</div></div>
     <button class="btn primary block" data-act="stmtPdf" data-kind="${d.kind}" data-id="${c.id}">كشف الحساب PDF على واتساب</button>
     <div class="withbtn"><label for="pPhone">رقم الجوال<input id="pPhone" inputmode="tel" value="${esc(c.phone)}" placeholder="059xxxxxxx"></label><button class="btn" data-act="savePhone" data-kind="${d.kind}" data-id="${c.id}">حفظ</button></div>
+    ${d.kind==='customers'&&isOwner()&&!isSeller2()?`<button class="btn danger block" data-act="delParty" data-kind="customers" data-id="${c.id}">حذف الحساب كامل</button>`:''}
     ${d.kind==='customers'&&b>0?`<label for="remTxt">رسالة تذكير جاهزة<textarea id="remTxt" rows="3" readonly>${esc(msg)}</textarea></label><div class="grid2"><button class="btn" data-act="copy" data-id="remTxt">نسخ الرسالة</button><a class="btn primary" href="https://wa.me/${waNum(c.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">إرسال واتساب</a></div>`:''}`);
 },
 payParty(d){const c=S[d.kind].find(x=>x.id===+d.id), a=r2(parseFloat($('#payAmt').value)||0), b=balance(c);
@@ -2511,6 +2512,9 @@ redeem(d){const c=S.customers.find(x=>x.id===+d.id); const v=r2((c.points||0)*S.
   c.ledger.push({ts:Date.now(),amt:-v,note:`استبدال ${c.points} نقطة`,noCash:true}); audit(`استبدال ${c.points} نقطة لـ ${c.name} بـ ${fx(v)} ₪`); c.points=0; save(); render(); A.party({kind:'customers',id:c.id}); toast(`انضاف ${fx(v)} ₪ لرصيده`)},
 makePlan(d){const c=S.customers.find(x=>x.id===+d.id), b=balance(c), n=Math.max(2,Math.round(+$('#plN').value||0)), ev=Math.max(1,Math.round(+$('#plE').value||30)), st=new Date(($('#plS').value||new Date().toISOString().slice(0,10))+'T00:00').getTime();
   if(!(b>0)){toast('ما عليه دين للتقسيط');return} c.plan={ts:Date.now(),start:st,every:ev,n,total:b,amt:r2(b/n)}; audit(`جدول تقسيط لـ ${c.name}: ${n} دفعات`); save(); A.party({kind:'customers',id:c.id}); toast('تم عمل جدول التقسيط')},
+delParty(d){ const c=S.customers.find(x=>x.id===+d.id); if(!c) return; const b=balance(c);
+  if(!confirm(`حذف حساب «${c.name}» كامل؟${b>0?`\nعليه دين ${fx(b)} ₪ وبينحذف مع الحساب.`:''}\nما في رجعة.`)) return;
+  S.customers=S.customers.filter(x=>x.id!==c.id); audit(`حذف حساب زبون ${c.name}${b>0?' (دين '+fx(b)+' ₪)':''}`); save(); closeSheet(); render(); toast('انحذف الحساب')},
 dropPlan(d){const c=S.customers.find(x=>x.id===+d.id); delete c.plan; save(); A.party({kind:'customers',id:c.id})},
 csv(d){const q=v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}, rows=[];
   if(d.k==='items'){rows.push(['الصنف','الباركود','الكمية','التكلفة','سعر البيع','سعر الجملة','حبات الكرتونة','سعر الكرتونة','الصلاحية']); S.items.forEach(i=>rows.push([i.name,i.barcode,i.qty,i.cost,i.price,i.priceW||'',i.cartonSize||'',i.cartonPrice||'',i.exp]))}
@@ -2669,7 +2673,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
+const SELLER_NO=new Set(['delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
@@ -2748,7 +2752,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117121539'; let UPD=false;
+const BUILD='20261117121737'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
