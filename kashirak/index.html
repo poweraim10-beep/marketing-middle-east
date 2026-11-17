@@ -1655,7 +1655,7 @@ more(){
       <label class="chk" for="stProof"><input type="checkbox" id="stProof" ${S.proofReq?'checked':''}>صورة إشعار التحويل إجبارية للدفع بالتطبيق أو البنك</label>
       <p class="muted" style="margin:0">رسوم التطبيق بتنضاف لحالها لما الزبون يدفع كامل الفاتورة بالتطبيق أو المحفظة. خلّيها 0 لو ما بدك فرق.</p>
       <button class="btn primary" data-act="saveSet">حفظ</button></div>`)}
-  ${setSec('🔒','رمز المالك','الرمز اللي بيفصل وضع المالك عن وضع الكاشير',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في إرجاع فواتير ولا حذف. الرمز الافتراضي 0000، غيّره.</p>
+  ${setSec('🔒','كلمة السر','الكلمة اللي بتفتح وضع المالك وبتدخل بيها الحساب',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في إرجاع فواتير ولا حذف. الرمز الافتراضي 0000، غيّره.</p>
       <label class="chk" for="stCashItems"><input type="checkbox" id="stCashItems" ${S.cashItems?'checked':''}>الكاشير بيقدر يضيف أصناف جديدة ويعدّل أسعارها</label>
       <p class="muted" style="margin:-4px 0 0;font-size:12.5px">الكاشير ما بيقدر يغيّر التكلفة ولا كمية صنف موجود، ولا يحذف. وكل تعديل بينسجّل باسمه بسجل الحركات.</p>
       <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
@@ -1816,7 +1816,7 @@ const TSTEPS=[
  {pre:goT('more','rep'),sel:'#nav [data-s="rep"]',t:'التقارير 📊',x:()=>'مبيعاتك وأرباحك الصافية لليوم والأسبوع والشهر، وأكثر الأصناف مبيعًا، وبتطلعها PDF.'},
  {pre:goT('staff'),sel:'#nav [data-tab="staff"]',t:'العمال 👥',x:()=>'ضيف عمالك، وكل واحد بصلاحياته. والعامل بوضع «الكاشير» بيبيع بس: ما بيشوف الأرباح ولا بيعدّل الأسعار.'},
  {pre:goT('more','menu'),sel:'#nav [data-tab="more"]',t:'المزيد ☰',x:()=>'هون <b>المصروفات</b> (أجار، كهربا، رواتب)، و<b>المشتريات والموردين</b>، و<b>الشيكات</b>، و<b>الإعدادات</b>، والدعم.'},
- {pre:goT('more','set'),sel:'#view .setq',t:'الإعدادات ⚙️',x:()=>'كل إشي مرتب بأقسام: الاشتراك، والسحابة واللابتوب، والمحل والأسعار، ورمز المالك، والإشعارات، والنسخ الاحتياطي، والمساعدة. ومن هون بتعيد هالجولة وقت ما بدك.'},
+ {pre:goT('more','set'),sel:'#view .setq',t:'الإعدادات ⚙️',x:()=>'كل إشي مرتب بأقسام: الاشتراك، والسحابة واللابتوب، والمحل والأسعار، وكلمة السر، والإشعارات، والنسخ الاحتياطي، والمساعدة. ومن هون بتعيد هالجولة وقت ما بدك.'},
  {pre:goT('home'),sel:null,t:'🎉 خلصت الجولة!',x:()=>'هيك صرت جاهز تشتغل. بلّش بإضافة أول 5 أصناف، واعمل أول بيعة. وإذا بدك مندوبنا يجيك يجهّزلك كل إشي، احكينا على الواتساب 🤝'}
 ];
 function tourEndDemo(){ if(TOUR.demo){ const c=cart(); c.lines=[]; TOUR.demo=false; save() } }
@@ -2315,7 +2315,7 @@ addBuy(){
   save(); render(); toast(`أُضيف ${qty} إلى مخزون ${it.name}${chg?' وتحدّثت أسعاره':''}`);
 },
 mode(){ if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; render(); toast('وضع الكاشير: الأرباح والتعديل مخفية')}
-  else openSheet(`${sheetHead('الدخول كمالك')}<label for="pin">الرمز السري<input id="pin" type="password" autocomplete="off"></label><button class="btn primary block" data-act="unlock">دخول</button>`)},
+  else openSheet(`${sheetHead('الدخول كمالك')}<label for="pin">كلمة السر<input id="pin" type="password" autocomplete="off"></label><button class="btn primary block" data-act="unlock">دخول</button>`)},
 unlock(){ if($('#pin').value===S.pin){S.mode='owner'; save(); closeSheet(); render(); toast('وضع المالك')} else toast('الرمز غلط')},
 syncPinPw(pw){ if(S&&pw){ S.pin=String(pw); save() } },
 savePin(){ if(CL&&CL.token){toast('رمز المالك هو نفسه كلمة سر الحساب. غيّرها من كلمة السر');return} const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
@@ -2429,9 +2429,9 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
       <div class="list"><div class="li"><span><b>1.</b> على الجوال الأساسي افتح <b>الإعدادات</b> ← <b>السحابة والأجهزة</b></span></div>
       <div class="li"><span><b>2.</b> اضغط <b>«حدّد كلمة سر للحساب»</b> واكتب كلمة سر (6 أحرف أو أرقام على الأقل)</span></div>
       <div class="li"><span><b>3.</b> ارجع لهذا الجهاز وادخل بنفس الرقم وكلمة السر الجديدة</span></div></div>
-      <p class="muted" style="margin:0">⚠️ كلمة السر غير رمز المالك (الأرقام الأربعة اللي بتفتح وضع المالك).</p>
+      <p class="muted" style="margin:0">كلمة السر هي نفسها اللي بتفتح وضع المالك، فاحفظ وحدة بس.</p>
       <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أدخل على حساب محلي من جوال ثاني.\nرقم الجوال: '+ph)}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`); return }
-    toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. انتبه: كلمة السر غير رمز المالك (الأرقام الأربعة)':e.message)}},
+    toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. تأكد من كلمة السر وحاول مرة ثانية':e.message)}},
 cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
   <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-act="cloudTakeGo">تأكيد</button>`)},
@@ -2761,7 +2761,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117142023'; let UPD=false;
+const BUILD='20261117142112'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
