@@ -129,6 +129,16 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 .tourTip .tb{display:flex;gap:8px;margin-top:4px}.tourTip .tb .btn{flex:1;min-height:44px}
 .tourTip .tb .skip{flex:0 0 auto;background:none;border:0;color:var(--muted);text-decoration:underline;padding:0 6px}
 .tourBar{height:5px;border-radius:9px;background:var(--line);overflow:hidden}.tourBar i{display:block;height:100%;background:linear-gradient(90deg,#D7A845,#F0CF7A)}
+.mprof{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:start;font:inherit;color:var(--ink);cursor:pointer;flex:none}
+.mprof .gav{width:54px;height:54px;border-radius:50%;flex:none;overflow:hidden;border:2px solid var(--gold);background:#0b1f3a;display:grid;place-items:center;color:#F0CF7A;font-weight:700;font-size:22px}
+.mprof .gav img{width:100%;height:100%;object-fit:cover}
+.mprof .mt,.mrow .mt{flex:1;min-width:0}.mprof .mt b{display:block;font-size:17px}.mprof .mt small,.mrow .mt small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4}
+.mlist{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.mrow{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;min-height:62px;background:none;border:0;border-bottom:1px solid var(--line);text-align:start;font:inherit;color:var(--ink);cursor:pointer}
+.mrow:last-child{border-bottom:0}.mrow:active{background:color-mix(in srgb,var(--gold) 10%,transparent)}
+.mrow .mic{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold-deep)}
+.mrow .mic svg{width:21px;height:21px}.mrow .mt b{display:block;font-size:15.5px}
+.mprof .chev,.mrow .chev{font-size:20px;color:var(--muted)}
 .repcard{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#0B1F3A,#18407a);color:#F7F1E1;border:1.5px solid rgba(240,207,122,.55);box-shadow:0 10px 24px rgba(11,31,58,.2);text-align:start}
 .repcard .rh{display:flex;align-items:center;gap:12px}.repcard .ri{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:26px;background:linear-gradient(180deg,#FFE7A6,#D7A845)}
 .repcard b{display:block;font-size:16.5px;color:#FFE7A6}.repcard span.s{display:block;font-size:13.5px;color:#C9D2E0;margin-top:2px;line-height:1.5}
@@ -333,7 +343,7 @@ main{padding-bottom:44px}
   main#view>*{min-width:0}
   main#view:not([data-v=home]):not([data-v=sell]):not([data-v=more-acct])>*{grid-column:1/-1}
   main#view[data-v=items] .list,main#view[data-v=debts] .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
-  main#view>.row,main#view>.greet,main#view>.banner,main#view>.pdfhero,main#view>.acchero,main#view>.nagbar,main#view>.seg,main#view>.rempill,main#view>.btn.block,main#view>.rejbar,main#view>p,main#view>.mgroup,main#view>.grid2,main#view>.tiles,main#view>.wide{grid-column:1/-1}
+  main#view>.row,main#view>.mprof,main#view>.greet,main#view>.banner,main#view>.pdfhero,main#view>.acchero,main#view>.nagbar,main#view>.seg,main#view>.rempill,main#view>.btn.block,main#view>.rejbar,main#view>p,main#view>.mgroup,main#view>.grid2,main#view>.tiles,main#view>.wide{grid-column:1/-1}
   nav#nav{grid-area:nav;display:flex!important;flex-direction:column;gap:4px;padding:18px 12px;border-top:0;border-inline-end:1px solid var(--line);overflow-y:auto}
   nav#nav>span[aria-hidden]{display:none}
   nav#nav button{flex-direction:row;justify-content:flex-start;gap:12px;padding:12px 14px;border-radius:12px;font-size:15px}
@@ -1346,17 +1356,16 @@ debts(){
 },
 more(){
   if(sub==='menu'){
-    const tile=([k,t,d,ic])=>`<button data-act="sub" data-s="${k}"><span class="mic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg></span><b>${t}</b><span class="muted">${d}</span></button>`;
-    const grp=(title,list)=>{const l=list.filter(([k])=>isOwner()||k==='log');return l.length?`<div class="mgroup"><h3>${title}</h3><div class="menu">${l.map(tile).join('')}</div></div>`:''};
-    const r=report(sod());
-    return `${greetCard()}${isOwner()?`<button class="pdfhero" data-act="sub" data-s="pdf"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC.pdf}</svg></span>
-      <span style="flex:1;text-align:start"><b>مركز ملفات PDF</b><br><span>اختار شو بدك تحمّل: الأرباح، المبيعات، الديون، المخزون أو الكل</span></span><span class="chev">‹</span></button>
-      <div class="tiles"><div class="tile"><div class="lbl">مبيعات اليوم</div><div class="val">${money(r.rev)}</div></div><div class="tile"><div class="lbl">صافي ربح اليوم</div><div class="val" style="color:var(--${r.net>=0?'good':'bad'})">${money(r.net)}</div></div></div>`:''}
-    ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list']])}
+    const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
+    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic">${svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
+    const grp=(title,list)=>{const l=list.filter(([k])=>isOwner()||k==='log');return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
+    const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
+    return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
+    ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
+    ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag']])}
-    ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء وغيرها','wallet'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
-    ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users']])}
-    ${grp('الإعدادات والمتابعة',[['set','الإعدادات','المحل والاشتراك والنسخة الاحتياطية','gear'],['audit','سجل العمليات','مين عمل شو وإمتى','list']])}`;
+    ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['audit','سجل العمليات','مين عمل شو وإمتى','list']])}
+    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، رمز المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+`<div class="card"><h2>شيك جديد</h2>
@@ -2485,7 +2494,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117065445'; let UPD=false;
+const BUILD='20261117070607'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
