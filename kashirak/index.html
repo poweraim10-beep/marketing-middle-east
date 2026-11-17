@@ -550,8 +550,8 @@ function status(){
   if(!S||!linked()) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'reg'};
   if(!LIC) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'nolic'};
   const now=Math.max(Date.now(),d.seen||0,LIC.i||0), trialEnd=LIC.tr||0, licEnd=LIC.e>=0?dayTs(LIC.e+1):0;
-  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id||(isSeller2()&&(LIC.s||[]).includes(d.id));
-  return {...base,active:now<end&&(mine||isViewer()),paid,daysLeft:Math.ceil((end-now)/DAY),end,why:!mine&&!isViewer()?'moved':(paid?'paid':'trial')};
+  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id||(LIC.s||[]).includes(d.id);
+  return {...base,active:now<end&&(mine||(linked()&&!!LIC.id)),paid,daysLeft:Math.ceil((end-now)/DAY),end,why:!mine&&!isViewer()?'moved':(paid?'paid':'trial')};
 }
 function planTagUI(){ const t=$('#planTag'); if(!t) return; if(!S||!LICREADY||!linked()||!LIC){t.hidden=true;return}
   const st=status(), sd=d=>new Date(d).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short',year:'numeric'});
@@ -727,7 +727,7 @@ async function joinRun(existing){ const owner=($('#jnOwner')||$('#suOwner')).val
   if(!navigator.onLine){toast('تسجيل المحل بدّه نت أول مرة. شغّل النت وجرّب');return false}
   const shop=existing?S.shop:$('#suShop').value.trim();
   try{ const r=await api('/join',{method:'POST',body:{owner,phone,wa,shop,device:devInfo().id,label:devLabel(),fp:await devFp(),since:existing?Math.min(devInfo().ts,S.trialTs||Infinity):0}});
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner||owner,main:devInfo().id,ver:existing?0:r.shop.version,last:null,nopass:!r.shop.haspass,wa:r.shop.wa||wa}; clSave(); upSet({});
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner||owner,main:devInfo().id,ver:existing?0:r.shop.version,last:null,nopass:!r.shop.haspass,wa:r.shop.wa||wa}; clSave(); upSet({}); setTimeout(autoPass,2500);
     if(existing){ S.owner=owner; if(!S.phone) S.phone=phone; await licApply(r.license); EXPSNAP=null; persist(); closeSheet(); render(); toast('✓ انسجّل المحل · رقم حسابك '+r.shop.acct); cloudPush() }
     return r;
   }catch(e){
@@ -814,7 +814,7 @@ const linked=()=>!!(CL&&CL.token);
 const isMain=()=>linked()&&CL.main===devInfo().id;
 /* البيع من جوالين: جوال «بائع ثاني» بيبيع وبيسجّل عملياته (بيع، دفعة، مصروف) بصندوق على السيرفر، والجهاز الأساسي بيضيفها للمحل */
 // كل الأجهزة المفعّلة على الحساب صلاحيتها واحدة (ما في بائع ولا مشاهد)
-const isSeller2=()=>false;
+const isSeller2=()=>linked()&&CL.main!==devInfo().id;
 const isViewer=()=>false;
 const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','_t','_by'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
@@ -907,7 +907,7 @@ async function opSend(){ if(!isSeller2()||opSend.busy||!navigator.onLine) return
 function mainMerge(ops){ if(!isMain()||!S) return; CL.done=CL.done||[]; let n=0; const had=new Set(S._ops||[]);
   (ops||[]).slice().sort((a,b)=>a.ts-b.ts).forEach(o=>{ if(!had.has(o.id)){applyOp(o); n++} if(!CL.done.includes(o.id)) CL.done.push(o.id) });
   clSave(); if(!(ops||[]).length) return;
-  if(n){ save(); if(!document.querySelector('#sheet.open')) render(); if(ops.some(o=>o.proof)) setTimeout(cloudPullBlobs,4000); toast(n===1?'📱 وصلت عملية من الجوال الثاني':`📱 وصلت ${n} عمليات من الجوال الثاني`) }
+  if(n){ save(); if(!document.querySelector('#sheet.open')) render(); if(ops.some(o=>o.proof)) setTimeout(cloudPullBlobs,4000); toast(n===1?'📱 وصلت عملية من جهاز ثاني':`📱 وصلت ${n} عمليات من جهاز ثاني`) }
   else { CLS.dirty=true; clearTimeout(cloudOnSave.t); cloudOnSave.t=setTimeout(cloudPush,3000) }}
 function cloudOnSave(){ if(!isMain()) return; CLS.dirty=true; clearTimeout(cloudOnSave.t); cloudOnSave.t=setTimeout(cloudPush,4000); setCloudUI()}
 /* في تغييرات على الجهاز الأساسي لسا ما انرفعت؟ محفوظة بالتخزين (مش بالذاكرة بس)، فلو انسكّر التطبيق وهو بدون نت، بيرفعها أول ما يفتح مع نت */
@@ -996,7 +996,7 @@ async function cloudLostMain(sh){
   const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id));
   CL.lost=id; if(sh&&sh.main) CL.main=sh.main; clSave(); CLS.busy=false;
   await cloudPull(true);
-  openSheet(`${sheetHead('هذا الجهاز صار للمتابعة')}<p style="margin:0">جهاز ثاني صار هو الجهاز الأساسي للمحل، فهذا الجهاز صار يعرض البيانات بس.</p>
+  if(!cloudLostMain.v) return; openSheet(`${sheetHead('هذا الجهاز صار للمتابعة')}<p style="margin:0">جهاز ثاني صار هو الجهاز الأساسي للمحل، فهذا الجهاز صار يعرض البيانات بس.</p>
     <p class="muted" style="margin:0">إذا كان في بيع أو تعديل على هذا الجهاز ما انرفع قبل، حفظنا منه نسخة. بتقدر تنزّلها كملف.</p>
     <button class="btn" data-act="cloudUnsynced">تنزيل نسخة هذا الجهاز</button><button class="btn primary" data-act="cloudTake">رجّع هذا الجهاز أساسي</button>`);
 }
@@ -1052,6 +1052,12 @@ function scanCard(){ if(!linked()) return '';
     <label class="chk"><input type="checkbox" id="scOut" ${localStorage.getItem('ksr-scanout')==='1'?'checked':''}>هذا الجوال ماسح: كل باركود بيمسحه بينرسل للابتوب ومش بيضيفه لسلته</label>
     <p class="muted" style="margin:0;font-size:12.5px">بيشتغل بالنت. الجوال والابتوب لازم يكونوا على نفس الحساب.</p></div>`}
 function multiCard(){ if(!linked()) return '';
+  if(!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
+  return `<div class="card" style="gap:10px"><h2>📱💻 أجهزة المحل</h2>
+    <p class="muted" style="margin:0">الحساب بيفتح على <b>3 أجهزة</b> (مثلاً جوالين ولابتوب) بنفس رقم الجوال وكلمة السر. كلهم بيبيعوا، والمبيعات والديون والمخزون بتتجمع بنفس المحل.</p>
+    <div class="list">${(MDEV||[]).map(x=>`<div class="li"><span>${esc(String(x.label||'جهاز').replace(/ \(طلب دخول\)$/,''))}${x.id===devInfo().id?' <span class="muted">(هذا الجهاز)</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><span class="pill ok">مفعّل</span></div>`).join('')||'<div class="li muted">جاري تحميل الأجهزة…</div>'}</div>
+    <p class="muted" style="margin:0;font-size:13px">لإضافة جهاز: افتح عليه <b dir="ltr">marketingmiddleeast.com/kashirak</b> ← «عندي حساب» ← رقم جوال المحل وكلمة السر.</p></div>`}
+function multiCardOld(){ if(!linked()) return '';
   const main=isMain(), s2=isSeller2(), on=!!CL.multi;
   if(main&&!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; CL.multi=r.multi; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
   const role=x=>x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">📱 بائع ثاني</span>':'<span class="pill">متابعة</span>';
@@ -1077,6 +1083,10 @@ setInterval(async()=>{ if(!remoteScanIn()||document.visibilityState!=='visible'|
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
   if(!isMain()||CL.multi) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
+/* الحساب بلا كلمة سر: جوال صاحب المحل بيحطها لحاله = رمز المالك، عشان باقي الأجهزة تدخل فيها */
+async function autoPass(){ if(autoPass.b||!S||!linked()||!isMain()||!CL.nopass||!navigator.onLine) return; const pw=String(S.pin||''); if(pw.length<4) return;
+  autoPass.b=1; try{ const r=await api('/register',{method:'POST',body:{phone:CL.phone,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}}); CL.token=r.token; CL.nopass=false; clSave(); render() }catch(e){} autoPass.b=0 }
+setInterval(autoPass,60000); setTimeout(autoPass,5000);
 window.addEventListener('online',()=>{ licRefresh(); if(isMain()) cloudPush(); else if(linked()) cloudPull() });
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&linked()){ if(cloudPending()) cloudPush(); else cloudPull() } });
 /* scanner beep: short square tone like a supermarket scanner */
@@ -1774,7 +1784,7 @@ function acctView(){ const st={...status(),lifetime:!!(LIC&&LIC.e>=29000)}, own=
     ${li('رقم الحساب',`<span class="num" style="font-weight:700">${esc(st.acct||(CL&&CL.acct)||'—')}</span>`)}</div></div>
   <div class="card"><h2>الاشتراك</h2><div class="list">${li('الحالة',`<span class="pill ${st.active?'ok':'bad'}">${planTxt}</span>`)}${li(st.paid?'ينتهي':'نهاية التجربة',endTxt)}</div>
     ${!st.lifetime?`<button class="btn accent block" data-act="license">${st.paid?'تجديد الاشتراك':'اشترك الآن'}</button>`:''}</div>
-  <div class="card"><h2>هالجهاز والسحابة</h2><div class="list">${li('هذا الجهاز',linked()?(isMain()?'<span class="pill ok">الأساسي (بيبيع)</span>':'<span class="pill warn">للمتابعة</span>'):'غير مربوط')}
+  <div class="card"><h2>هالجهاز والسحابة</h2><div class="list">${li('هذا الجهاز',linked()?'<span class="pill ok">مفعّل · بيبيع</span>':'غير مربوط')}
     ${li('النسخة على السحابة',!linked()?'—':cloudPending()?'⏳ بانتظار الرفع':CL.last?'✓ '+fday(CL.last)+' · <span class="num">'+hm(CL.last)+'</span>':'لسا')}</div>
     <div class="grid2"><button class="btn" data-act="devHelp">💻 اللابتوب</button><button class="btn" data-act="sub" data-s="set">⚙️ الإعدادات</button></div></div>`}
 /* ===== إشعارات الجوال: تذكير خلال اليوم (كل ساعتين بالنهار) ===== */
@@ -2409,10 +2419,7 @@ async cloudNewGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, p
 cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
   <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" placeholder="059xxxxxxx"></label>
   <label for="clPass">كلمة السر<input id="clPass" type="password" autocomplete="current-password"></label>
-  <div class="seg" role="radiogroup" aria-label="شو دور هذا الجهاز؟" style="display:grid;gap:8px">
-    <label class="chk"><input type="radio" name="clRole" value="main">هذا الجهاز للبيع (الجهاز الأساسي)</label>
-    <label class="chk"><input type="radio" name="clRole" value="seller" checked>📱 جوال بائع ثاني (كاشير ثاني بنفس المحل)</label>
-    <label class="chk"><input type="radio" name="clRole" value="view">للمتابعة بس (لابتوب أو جوال صاحب المحل)</label></div>
+  <p class="muted" style="margin:0">الحساب بيفتح على 3 أجهزة بنفس الرقم وكلمة السر، وكلهم بيبيعوا.</p>
   ${S?'<p class="muted" style="margin:0;color:var(--bad)">بيانات هذا الجهاز رح تنستبدل ببيانات الحساب.</p>':''}
   <button class="btn primary block" data-act="cloudLoginGo">دخول</button>`)},
 async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'seller';
@@ -2421,26 +2428,31 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
   try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel(),replace:rp||undefined}});
     OPQ=[]; opqSave(); SRVOPS=[]; BASE=null;
     CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,multi:!!r.shop.multi,sellers:r.shop.sellers||[],ver:-1,last:r.shop.updated,nopass:false}; clSave(); A.syncPinPw(pw); upSet({});
-    if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; CL.sellers=m.shop.sellers||[]; clSave()}
-    if(role==='seller'){ try{const s2=await api('/seller',{method:'POST',body:{on:true}}); CL.multi=s2.shop.multi; CL.sellers=s2.shop.sellers; clSave()}
-      catch(e){ toast(e.code==='multi_off'?'البيع من جوالين مش مفعّل. فعّله من الإعدادات بالجهاز الأساسي، والجوال هذا دخل للمتابعة':e.message) } }
     btn.textContent='جاري استرجاع المحل…';
     const st=await api('/state?have=-1&device='+devInfo().id);
     if(st.data){applyRemote(await gunz(st.data),st.shop.version,st.shop.updated)}
     else if(S&&isMain()){CL.ver=0;clSave();await cloudPush()}
     else {toast('الحساب فاضي. اعمل المحل من الجهاز الأساسي أول'); CL=null; clSave(); btn.disabled=false; btn.textContent='دخول'; return}
-    CLS.state='ok'; closeSheet(); tab='home'; await licRefresh(); render(); toast(isMain()?'✓ رجعت بيانات المحل، وهذا الجهاز صار الأساسي':isSeller2()?'✓ هذا الجوال صار بائع ثاني بالمحل':'✓ هذا الجهاز صار يتابع المحل'); cloudPullBlobs(); cloudPull();
+    CLS.state='ok'; closeSheet(); tab='home'; await licRefresh(); render(); toast('✓ دخلت على المحل · هذا الجهاز بيبيع'); cloudPullBlobs(); cloudPull();
   }catch(e){ btn.disabled=false; btn.textContent='دخول';
     if(e.code==='limit'&&e.data&&e.data.devices){ A.loginReplace.p={ph,pw,role};
-      openSheet(`${sheetHead('الحساب مفتوح على 3 أجهزة')}<p style="margin:0">هذا الحد لكل محل: جوالين للبيع وجهاز للمتابعة. اختار جهاز تطلّعه من الحساب، وهذا الجهاز بيدخل مكانه:</p>
+      openSheet(`${sheetHead('الحساب مفتوح على 3 أجهزة')}<p style="margin:0">هذا الحد لكل محل: 3 أجهزة. اختار جهاز تطلّعه من الحساب، وهذا الجهاز بيدخل مكانه:</p>
         <div class="list">${e.data.devices.map(x=>`<div class="li"><span>${esc(x.label||'جهاز')} ${x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">بائع ثاني</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><button class="btn sm danger" data-act="loginReplace" data-dev="${x.id}">طلّعه</button></div>`).join('')}</div>`); return }
-    if(e.code==='nopass'){ openSheet(`${sheetHead('الحساب لسا ما إله كلمة سر')}<p style="margin:0">عشان تدخل من جوال ثاني أو لابتوب، لازم صاحب المحل يحدّد كلمة سر للحساب من <b>الجوال الأساسي</b>:</p>
-      <div class="list"><div class="li"><span><b>1.</b> على الجوال الأساسي افتح <b>الإعدادات</b> ← <b>السحابة والأجهزة</b></span></div>
-      <div class="li"><span><b>2.</b> اضغط <b>«حدّد كلمة سر للحساب»</b> واكتب كلمة سر (6 أحرف أو أرقام على الأقل)</span></div>
-      <div class="li"><span><b>3.</b> ارجع لهذا الجهاز وادخل بنفس الرقم وكلمة السر الجديدة</span></div></div>
+    if(e.code==='nopass'){ openSheet(`${sheetHead('الحساب لسا ما إله كلمة سر')}<p style="margin:0">افتح التطبيق على <b>جوال صاحب المحل الأول</b> وهو متصل بالنت دقيقة. كلمة سر الحساب بتصير لحالها نفس <b>رمز المالك</b> اللي على الجوال.</p>
+      <div class="list"><div class="li"><span>بعدها ارجع لهذا الجهاز وادخل بنفس رقم الجوال ورمز المالك.</span></div></div>
       <p class="muted" style="margin:0">كلمة السر هي نفسها اللي بتفتح وضع المالك، فاحفظ وحدة بس.</p>
       <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أدخل على حساب محلي من جوال ثاني.\nرقم الجوال: '+ph)}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`); return }
     toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. تأكد من كلمة السر وحاول مرة ثانية':e.message)}},
+async takeHub(){const btn=$('[data-act=takeHub]'); if(btn){btn.disabled=true; btn.textContent='جاري التحويل…'}
+  if(!navigator.onLine){toast('بدها نت. شغّل النت وجرّب'); if(btn){btn.disabled=false;btn.textContent='كمّل'} return}
+  if(OPQ.some(o=>!o.sent)){ await opSend(); if(OPQ.some(o=>!o.sent)){toast('في مبيعات على هذا الجهاز لسا ما انرفعت. جرّب كمان شوي'); if(btn){btn.disabled=false;btn.textContent='كمّل'} return} }
+  try{const m=await api('/main',{method:'POST',body:{device:devInfo().id,label:devLabel()}});
+    const st=await api('/state?have=-1&device='+devInfo().id); CL.main=m.shop.main; CL.sellers=m.shop.sellers||[]; CL.multi=true; OPQ=[]; opqSave(); SRVOPS=[]; BASE=null; clSave(); if(m.license) await licApply(m.license);
+    if(st.data) applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); else CL.ver=st.shop.version;
+    if(st.ops) mainMerge(st.ops);
+    CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); cloudPullBlobs();
+    const nx=A._hubNext; A._hubNext=null; if(nx&&A[nx[0]]) A[nx[0]](nx[1]);
+  }catch(e){toast(e.message); if(btn){btn.disabled=false;btn.textContent='كمّل'}}},
 cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
   <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-act="cloudTakeGo">تأكيد</button>`)},
@@ -2718,7 +2730,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','activate','setupGo']);
+const SELLER_NO=new Set(['delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
@@ -2730,7 +2742,7 @@ document.addEventListener('click',e=>{
   const a=el.dataset.act, d=el.dataset;
   if(S&&LICREADY&&!isViewer()&&!EXP_OK.has(a)&&!status().active){subSheet();return}
   if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
-  if(S&&isSeller2()&&SELLER_NO.has(a)){toast('هذا بيصير من الجهاز الأساسي. هذا الجوال للبيع والأصناف والديون والمصاريف');return}
+  if(S&&isSeller2()&&SELLER_NO.has(a)){A._hubNext=[a,Object.assign({},d)]; openSheet(`${sheetHead('لحظة وحدة')}<p style="margin:0">هاي العملية بتتعمل من جهاز واحد بنفس الوقت عشان ما تتلخبط الحسابات. اضغط «كمّل» وبنحوّلها لهذا الجهاز بثواني، بدون كلمة سر.</p><button class="btn primary block" data-act="takeHub">كمّل</button>`); return}
   if(S&&!isOwner()&&((OWNER_ONLY.has(a)&&!(S.cashItems&&CASH_ITEM.has(a)))||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
@@ -2798,7 +2810,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117161910'; let UPD=false;
+const BUILD='20261117164230'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}

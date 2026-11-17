@@ -132,12 +132,12 @@ async function readShop(env, req) {
 const waOf = (w) => { const d = String(w || '').replace(/\D/g, '').replace(/^00/, ''); return /^97[02]5\d{8}$/.test(d) ? d : ''; };
 // البيع من جوالين: الجهاز الأساسي + جوال بائع ثاني واحد. والحساب كله بينفتح على 3 أجهزة بالكثير (بائعين + جهاز متابعة)
 const MAX_DEV = 3, DEV_ACTIVE = 30 * 864e5;
-const sellersOf = (s) => { try { const a = JSON.parse(s.sellers || '[]'); return Array.isArray(a) ? a.filter((x) => x && x !== s.main).slice(0, MAX_DEV - 1) : []; } catch { return []; } };
+const sellersOf = (s) => activeDevs(s).map((x) => x.id).filter((x) => x && x !== s.main).slice(0, MAX_DEV - 1);
 const devsOf = (s) => { try { return JSON.parse(s.devices || '{}') || {}; } catch { return {}; } };
-const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: sellersOf(s).includes(k) }));
+const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: k !== s.main }));
 // كل الأجهزة المفعّلة للحساب (الأساسي + الباقي) صلاحيتها واحدة: تبيع وتعدّل وتزامن
 const isBoss = (s, dev) => !!dev && (dev === s.main || activeDevs(s).some((x) => x.id === dev));
-const pubShop = (s) => ({ multi: !!s.multi, sellers: s.multi ? sellersOf(s) : [], restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
+const pubShop = (s) => ({ multi: true, sellers: sellersOf(s), restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
 async function seen(env, shop, device, label) {
   if (!device) return;
   let d = {}; try { d = JSON.parse(shop.devices || '{}'); } catch {}
@@ -204,7 +204,7 @@ async function signLicense(env, row) {
 async function signShop(env, shop) {
   shop = await ensureAcct(env, shop);
   const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('shop:' + shop.id).first();
-  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, s: shop.multi ? sellersOf(shop) : [], e: L ? L.exp : -1, tr: shop.trial_end || 0, p: L ? (L.plan || '') : 'trial', i: Date.now() }));
+  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, s: sellersOf(shop), e: L ? L.exp : -1, tr: shop.trial_end || 0, p: L ? (L.plan || '') : 'trial', i: Date.now() }));
   const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await signKey(env), new TextEncoder().encode(payload)));
   return payload + '.' + b64uBytes(sig);
 }
@@ -339,7 +339,7 @@ export async function onRequest({ request, env, params }) {
       const q = await body(request);
       const phone = phoneOf(q.phone), password = String(q.password || ''), device = clean(q.device, 40);
       if (phone.length < 8) return err('اكتب رقم جوال صحيح');
-      if (password.length < 6) return err('كلمة السر لازم تكون 6 أحرف أو أرقام على الأقل');
+      if (password.length < 4) return err('كلمة السر لازم تكون 4 أحرف أو أرقام على الأقل');
       if (!device) return err('رقم الجهاز ناقص');
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
       const exists = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
@@ -506,8 +506,8 @@ export async function onRequest({ request, env, params }) {
 
     if (a === 'main' && m === 'POST') {
       const q = await body(request);
-      if (!same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('كلمة السر غلط', 401); }
       const dev = clean(q.device, 40);
+      if (!(dev && dev === device && isBoss(shop, dev)) && !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('كلمة السر غلط', 401); }
       if (!dev) return err('رقم الجهاز ناقص');
       const sl = sellersOf(shop).filter((x) => x !== dev);
       await env.DB.prepare('UPDATE ksr_shops SET main = ?, sellers = ? WHERE id = ?').bind(dev, JSON.stringify(sl), shop.id).run();
