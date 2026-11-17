@@ -2315,9 +2315,10 @@ addBuy(){
   save(); render(); toast(`أُضيف ${qty} إلى مخزون ${it.name}${chg?' وتحدّثت أسعاره':''}`);
 },
 mode(){ if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; render(); toast('وضع الكاشير: الأرباح والتعديل مخفية')}
-  else openSheet(`${sheetHead('الدخول كمالك')}<label for="pin">الرمز السري<input id="pin" type="password" inputmode="numeric" autocomplete="off"></label><button class="btn primary block" data-act="unlock">دخول</button>`)},
+  else openSheet(`${sheetHead('الدخول كمالك')}<label for="pin">الرمز السري<input id="pin" type="password" autocomplete="off"></label><button class="btn primary block" data-act="unlock">دخول</button>`)},
 unlock(){ if($('#pin').value===S.pin){S.mode='owner'; save(); closeSheet(); render(); toast('وضع المالك')} else toast('الرمز غلط')},
-savePin(){const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
+syncPinPw(pw){ if(S&&pw){ S.pin=String(pw); save() } },
+savePin(){ if(CL&&CL.token){toast('رمز المالك هو نفسه كلمة سر الحساب. غيّرها من كلمة السر');return} const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
 confirmPay(d){const s=S.sales.find(x=>x.id===+d.id); if(s){s.confirmed=true; if($('#sheetBox [data-act=proofShare]')) closeSheet(); audit(`تأكيد تحويل ${s.appMethod} ${fx(payOf(s).app)} ₪ فاتورة ${s.id}`); save(); render(); toast('تم تأكيد التحويل')}},
 savePhone(d){const c=S[d.kind].find(x=>x.id===+d.id); c.phone=$('#pPhone').value.trim(); save(); A.party(d); toast('تم حفظ الرقم')},
 debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]), tot=r2(list.reduce((a,x)=>a+x[1],0));
@@ -2388,7 +2389,7 @@ cloudNew(){openSheet(`${sheetHead(linked()?'كلمة سر حساب المحل':'
 async cloudNewGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, pw2=$('#clPass2').value;
   if(pw!==pw2){toast('كلمتين السر مش متطابقات');return}
   if(linked()&&CL.nopass){ const b=$('[data-act=cloudNewGo]'); b.disabled=true;
-    try{const r=await api('/register',{method:'POST',body:{phone:CL.phone,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}}); CL.token=r.token; CL.nopass=false; clSave(); closeSheet(); render(); toast('✓ انحفظت كلمة السر. هلأ بتقدر تفتح المحل من أي جهاز')}catch(e){toast(e.message); b.disabled=false} return }
+    try{const r=await api('/register',{method:'POST',body:{phone:CL.phone,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}}); CL.token=r.token; CL.nopass=false; clSave(); A.syncPinPw(pw); closeSheet(); render(); toast('✓ انحفظت كلمة السر. هلأ بتقدر تفتح المحل من أي جهاز')}catch(e){toast(e.message); b.disabled=false} return }
   const btn=$('[data-act=cloudNewGo]'); btn.disabled=true; btn.textContent='جاري الإنشاء…';
   try{const r=await api('/register',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}});
     CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:devInfo().id,ver:0,last:null,nopass:false}; clSave(); upSet({}); setTimeout(licRefresh,400);
@@ -2410,7 +2411,7 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
   const rp=A.loginReplace.p&&A.loginReplace.p.ph===ph?A.loginReplace.p.replace:''; A.loginReplace.p=null;
   try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel(),replace:rp||undefined}});
     OPQ=[]; opqSave(); SRVOPS=[]; BASE=null;
-    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,multi:!!r.shop.multi,sellers:r.shop.sellers||[],ver:-1,last:r.shop.updated,nopass:false}; clSave(); upSet({});
+    CL={token:r.token,phone:r.shop.phone,shopId:r.shop.id,acct:r.shop.acct,owner:r.shop.owner,main:r.shop.main,multi:!!r.shop.multi,sellers:r.shop.sellers||[],ver:-1,last:r.shop.updated,nopass:false}; clSave(); A.syncPinPw(pw); upSet({});
     if(role==='main'){const m=await api('/main',{method:'POST',body:{password:pw,device:devInfo().id,label:devLabel()}}); CL.main=m.shop.main; CL.sellers=m.shop.sellers||[]; clSave()}
     if(role==='seller'){ try{const s2=await api('/seller',{method:'POST',body:{on:true}}); CL.multi=s2.shop.multi; CL.sellers=s2.shop.sellers; clSave()}
       catch(e){ toast(e.code==='multi_off'?'البيع من جوالين مش مفعّل. فعّله من الإعدادات بالجهاز الأساسي، والجوال هذا دخل للمتابعة':e.message) } }
@@ -2760,7 +2761,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117133847'; let UPD=false;
+const BUILD='20261117142023'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
