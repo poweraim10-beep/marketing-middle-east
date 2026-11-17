@@ -1028,6 +1028,12 @@ function cloudCard(){
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
+function scanCard(){ if(!linked()) return '';
+  return `<div class="card" style="gap:8px"><h2>📷 الماسح من جوال للابتوب</h2>
+    <p class="muted" style="margin:0">اللابتوب ما إله كاميرا؟ خلّي الجوال يمسح، والباركود بيطلع بسلة اللابتوب.</p>
+    <label class="chk"><input type="checkbox" id="scIn" ${localStorage.getItem('ksr-scanin')==='1'?'checked':''}>هذا الجهاز (اللابتوب الأساسي) يستلم المسح من الجوال</label>
+    <label class="chk"><input type="checkbox" id="scOut" ${localStorage.getItem('ksr-scanout')==='1'?'checked':''}>هذا الجوال ماسح: كل باركود بيمسحه بينرسل للابتوب ومش بيضيفه لسلته</label>
+    <p class="muted" style="margin:0;font-size:12.5px">بيشتغل بالنت. الجوال والابتوب لازم يكونوا على نفس الحساب.</p></div>`}
 function multiCard(){ if(!linked()) return '';
   const main=isMain(), s2=isSeller2(), on=!!CL.multi;
   if(main&&!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; CL.multi=r.multi; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
@@ -1047,6 +1053,10 @@ function multiCard(){ if(!linked()) return '';
     :on?`<button class="btn primary block" data-act="sellerSet" data-dev="${devInfo().id}" data-on="1">خلّي هذا الجوال بائع ثاني</button>`
     :`<p class="muted" style="margin:0">بيتفعّل من الإعدادات على الجهاز الأساسي.</p>`}
   </div>`}
+const SCANQ={last:-1};
+setInterval(async()=>{ if(!remoteScanIn()||document.visibilityState!=='visible'||!navigator.onLine) return;
+  try{ const r=await api('/scan?after='+Math.max(0,SCANQ.last)); if(SCANQ.last<0){ SCANQ.last=r.last; return }
+    if(r.codes&&r.codes.length){ SCANQ.last=r.last; r.codes.forEach(c=>liveHit(c)) } }catch(e){} },1500);
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
   if(!isMain()||CL.multi) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
@@ -1616,7 +1626,7 @@ more(){
       ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
       <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
       <div class="grid2"><button class="btn primary" data-act="license">إدخال كود تفعيل</button><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button></div></div>`})()}`,true)}
-  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، البيع من جوالين، واللابتوب',cloudCard()+multiCard())}
+  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، البيع من جوالين، واللابتوب',cloudCard()+multiCard()+scanCard())}
   ${setSec('🏪','المحل والأسعار','اسم المحل، الدولار والدينار، رسوم التطبيق، والخصم',`<div class="sin">
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <div class="grid2"><label for="stRate">سعر الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
@@ -1923,8 +1933,15 @@ async function openScan(target){
       try{const r=await d.detect(v); if(r.length) onScan(r[0].rawValue)}catch(e){} scan.busy=false},300);
   }catch(e){scanMsg('المسح المباشر غير متاح في هذا العرض. صوّر الباركود بالزر وسأقرؤه من الصورة.')}
 }
+/* الماسح بين الأجهزة: الجوال (ماسح) بيرسل الباركود للسيرفر، واللابتوب (الأساسي) بيستلمه ويضيفه للسلة */
+const scanOut={last:'',t:0};
+const remoteScanOut=()=>linked()&&localStorage.getItem('ksr-scanout')==='1';
+const remoteScanIn=()=>linked()&&isMain()&&localStorage.getItem('ksr-scanin')==='1';
 function onScan(code){
   code=String(code||'').trim(); if(!code) return;
+  if(scan.target!=='field'&&remoteScanOut()){ const now=Date.now(); if(scanOut.last===code&&now-scanOut.t<1500) return; scanOut.last=code; scanOut.t=now;
+    beep(true); toast('📤 أُرسل للابتوب: '+code);
+    api('/scan',{method:'POST',body:{code}}).catch(()=>toast('ما وصل للابتوب، تأكد من النت')); return }
   closeScan();
   if(scan.target==='field'){const f=$('#fBar'); if(f){beep(true); f.value=code; toast('تم التقاط الباركود')} return}
   const it=S.items.find(i=>i.barcode===code);
@@ -2536,7 +2553,12 @@ debtPdf(){ try{localStorage.setItem('ksr-debtpdf',new Date().toDateString())}cat
 stmtPdf(d){const c=S[d.kind].find(x=>x.id===+d.id); if(!c) return; sharePdf(statementPdf(c),fileSafe(`كشف حساب ${c.name}`)+'.pdf',`كشف حساب ${c.name} من ${S.shop}`)},
 liveToggle(){S.liveCam=S.liveCam===false; save(); syncLive(); if(S.liveCam!==false) toast('الكاميرا شغّالة: مرّر الأغراض قدامها')},
 wipeAsk(){openSheet(`${sheetHead('مسح كل البيانات')}<p style="margin:0">اكتب كلمة <b>مسح</b> للتأكيد. هالخطوة ما بترجع.</p><input id="wipeTxt" autocomplete="off"><button class="btn danger block" data-act="wipe">مسح نهائي</button>`)},
-wipe(){if($('#wipeTxt').value.trim()!=='مسح'){toast('اكتب كلمة مسح للتأكيد');return} try{localStorage.removeItem(KEY)}catch(e){} S=null; carts=carts.map(()=>newCart()); closeSheet(); tab='home'; render()},
+async wipe(){ if($('#wipeTxt').value.trim()!=='مسح'){toast('اكتب كلمة مسح للتأكيد');return}
+  if(linked()){ if(!isMain()){toast('مسح البيانات بيصير من الجهاز الأساسي');return}
+    const b=$('[data-act=wipe]'); if(b) b.disabled=true;
+    try{ await api('/reset',{method:'POST',body:{confirm:'مسح'}}) }catch(e){ if(b) b.disabled=false; toast(e.message||'ما قدرنا نمسح من السحابة، جرّب بعد شوي'); return }
+    CL.ver=0; CL.sentT=0; CL.done=[]; CLS.dirty=false; BASE=null; SRVOPS=[]; OPQ=[]; opqSave(); clSave() }
+  try{localStorage.removeItem(KEY)}catch(e){} S=null; carts=carts.map(()=>newCart()); closeSheet(); tab='home'; render(); toast('✓ انمسحت البيانات من الجهاز والسحابة') },
 async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.trim(), phone=$('#suPhone').value.trim(), owner=$('#suOwner').value.trim();
   if(!shop){toast('اكتب اسم المحل');return} if(!/^\d{4,8}$/.test(pin)){toast('الرمز السري لازم يكون 4 لـ8 أرقام');return}
   const btns=document.querySelectorAll('[data-act=setupGo]'); btns.forEach(b=>b.disabled=true); toast('جاري تسجيل المحل…');
@@ -2657,7 +2679,8 @@ document.addEventListener('input',e=>{ const t=e.target; if(['pCost','pPrice','p
     if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
 });
 document.addEventListener('change',e=>{
-  const t=e.target; if(t.id==='stCashItems'&&isOwner()){ S.cashItems=t.checked; save(); toast(t.checked?'✓ الكاشير صار يضيف أصناف':'إضافة الأصناف للمالك بس') } if(t.id==='pItem'){ pChgUI.no=0; const c=$('#pChg'); if(c) c.checked=false; pItemUI() } if(t.id==='pChg'){ pChgUI.no=!t.checked; pChgUI(true) }
+  const t=e.target; if(t.id==='scIn'||t.id==='scOut'){ localStorage.setItem(t.id==='scIn'?'ksr-scanin':'ksr-scanout',t.checked?'1':'0'); toast(t.checked?'✓ اتفعّل':'اتوقف') }
+  if(t.id==='stCashItems'&&isOwner()){ S.cashItems=t.checked; save(); toast(t.checked?'✓ الكاشير صار يضيف أصناف':'إضافة الأصناف للمالك بس') } if(t.id==='pItem'){ pChgUI.no=0; const c=$('#pChg'); if(c) c.checked=false; pItemUI() } if(t.id==='pChg'){ pChgUI.no=!t.checked; pChgUI(true) }
   if(t.id==='avIn'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; if(!isOwner()) return;
     avatarImg(f).then(d=>{S.avatar=d; save(); render(); toast('✓ انحطّت صورتك')}).catch(()=>toast('ما قدرنا نقرأ الصورة، جرّب صورة ثانية')); return }
   if(t.id==='rcvC'){cart().rcvC=t.value; const g=$('#chg'); if(g){const c=cart(),tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount); g.innerHTML=changeTxt(r2(tt.total+appFeeOf(tt.total,c)),c)} return}
@@ -2708,7 +2731,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117103726'; let UPD=false;
+const BUILD='20261117105957'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}

@@ -73,6 +73,8 @@ async function ensure(env) {
     'ALTER TABLE ksr_shops ADD COLUMN wa TEXT',
     'ALTER TABLE ksr_shops ADD COLUMN sellers TEXT',
     'ALTER TABLE ksr_shops ADD COLUMN multi INTEGER',
+    'CREATE TABLE IF NOT EXISTS ksr_scan (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL)',
+    'CREATE INDEX IF NOT EXISTS ksr_scan_shop ON ksr_scan (shop, id)',
     'CREATE TABLE IF NOT EXISTS ksr_ops (shop TEXT NOT NULL, id TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, id))',
     'CREATE TABLE IF NOT EXISTS ksr_sig (shop TEXT NOT NULL, k TEXT NOT NULL, v TEXT, t INTEGER NOT NULL, PRIMARY KEY (shop, k))',
     'CREATE TABLE IF NOT EXISTS ksr_scans (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, t INTEGER NOT NULL)',
@@ -509,6 +511,38 @@ export async function onRequest({ request, env, params }) {
       await seen(env, shop, dev, q.label);
       const sh2 = { ...shop, main: dev, sellers: JSON.stringify(sl) };
       return json({ shop: pubShop(sh2), license: await signShop(env, sh2) });
+    }
+
+    // ----- الجوال ماسح باركود لجهاز ثاني (لابتوب) -----
+    if (a === 'scan' && m === 'POST') {
+      const q = await body(request), code = clean(q.code, 64);
+      if (!code) return err('الباركود فاضي');
+      await env.DB.batch([
+        env.DB.prepare('INSERT INTO ksr_scan (shop, code, dev, t) VALUES (?, ?, ?, ?)').bind(shop.id, code, device, nowMs()),
+        env.DB.prepare('DELETE FROM ksr_scan WHERE shop = ? AND t < ?').bind(shop.id, nowMs() - 600e3),
+      ]);
+      return json({ ok: true });
+    }
+    if (a === 'scan' && m === 'GET') {
+      const raw = url.searchParams.get('after');
+      if (raw === null) { const r = await env.DB.prepare('SELECT MAX(id) AS id FROM ksr_scan WHERE shop = ?').bind(shop.id).first(); return json({ last: (r && r.id) || 0, codes: [] }); }
+      const after = Math.max(0, parseInt(raw, 10) || 0);
+      const r = await env.DB.prepare('SELECT id, code FROM ksr_scan WHERE shop = ? AND id > ? AND t > ? ORDER BY id LIMIT 50').bind(shop.id, after, nowMs() - 120e3).all();
+      const codes = r.results || [];
+      return json({ last: codes.length ? codes[codes.length - 1].id : after, codes: codes.map((x) => x.code) });
+    }
+    // ----- مسح كل بيانات المحل (من الجهاز الأساسي): بتنمسح من السحابة كمان، وبتضل نسخة بسجل الإدارة للطوارئ. الاشتراك والحساب ما بيتغيّروا -----
+    if (a === 'reset' && m === 'POST') {
+      const q = await body(request);
+      if (device !== shop.main) return err('مسح البيانات بيصير من الجهاز الأساسي', 403, { code: 'not_main' });
+      if (String(q.confirm || '') !== 'مسح') return err('اكتب كلمة مسح للتأكيد');
+      await env.DB.batch([
+        ...(shop.version > 0 ? snapStmts(env, shop, 'قبل مسح كل البيانات من التطبيق') : []),
+        env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(shop.id),
+        env.DB.prepare('DELETE FROM ksr_ops WHERE shop = ?').bind(shop.id),
+        env.DB.prepare('UPDATE ksr_shops SET version = 0, size = 0, meta = ?, updated = ? WHERE id = ?').bind('{}', nowMs(), shop.id),
+      ]);
+      return json({ ok: true });
     }
 
     // ----- البيع من جوالين -----
