@@ -108,6 +108,27 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 #intro h2{font-family:var(--display);font-size:30px;margin:6px 0 2px;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
 #intro .itag{color:#D5DDEA;font-size:16px;margin:0 0 14px}
 .chips .btn[aria-pressed="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.sset{flex:none;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow,0 2px 10px rgba(0,0,0,.05));overflow:hidden}
+.sset>summary{list-style:none;display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;min-height:64px}
+.sset>summary::-webkit-details-marker{display:none}
+.sset .si{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--gold) 16%,transparent)}
+.sset .st{flex:1;min-width:0}.sset .st b{display:block;font-size:16px}.sset .st small{display:block;color:var(--muted);font-size:13px;margin-top:2px;line-height:1.4}
+.sset .chev{font-size:22px;color:var(--muted);transition:transform .2s}.sset[open] .chev{transform:rotate(-90deg)}
+.sset .sbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.sset .sbody>.card{box-shadow:none;border:0;padding:0;background:none}
+.sin{display:flex;flex-direction:column;gap:10px}
+.setq{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.setq .btn{font-size:13.5px;padding:10px 6px;min-height:46px}
+.setfoot{opacity:.8}.setfoot h2{font-size:14px}
+.tourOv{position:fixed;inset:0;z-index:9000}
+.tourHole{position:fixed;border-radius:16px;border:3px solid #F0CF7A;box-shadow:0 0 0 9999px rgba(5,12,26,.72),0 0 24px rgba(240,207,122,.6);transition:all .3s ease;pointer-events:none}
+.tourHole.none{width:0!important;height:0!important;border:0;left:50%!important;top:40%!important}
+.tourTip{position:fixed;left:14px;right:14px;max-width:440px;margin:0 auto;background:var(--surface);color:var(--ink);border-radius:20px;padding:16px 16px 14px;box-shadow:0 20px 50px rgba(0,0,0,.45);border:2px solid var(--gold);transition:top .3s ease;display:flex;flex-direction:column;gap:8px}
+.tourTip .tn{font-size:12.5px;color:var(--muted);font-weight:700}
+.tourTip h3{margin:0;font-family:var(--display);font-size:19px;line-height:1.35}
+.tourTip p{margin:0;font-size:15px;line-height:1.65}
+.tourTip .tb{display:flex;gap:8px;margin-top:4px}.tourTip .tb .btn{flex:1;min-height:44px}
+.tourTip .tb .skip{flex:0 0 auto;background:none;border:0;color:var(--muted);text-decoration:underline;padding:0 6px}
+.tourBar{height:5px;border-radius:9px;background:var(--line);overflow:hidden}.tourBar i{display:block;height:100%;background:linear-gradient(90deg,#D7A845,#F0CF7A)}
 .repcard{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,#0B1F3A,#18407a);color:#F7F1E1;border:1.5px solid rgba(240,207,122,.55);box-shadow:0 10px 24px rgba(11,31,58,.2);text-align:start}
 .repcard .rh{display:flex;align-items:center;gap:12px}.repcard .ri{width:48px;height:48px;border-radius:14px;flex:none;display:grid;place-items:center;font-size:26px;background:linear-gradient(180deg,#FFE7A6,#D7A845)}
 .repcard b{display:block;font-size:16.5px;color:#FFE7A6}.repcard span.s{display:block;font-size:13.5px;color:#C9D2E0;margin-top:2px;line-height:1.5}
@@ -1420,8 +1441,16 @@ more(){
     <p class="muted" style="margin:0">${ok.length} صنف له باركود صالح. الطباعة على طابعة الملصقات تتفعّل في النسخة المستضافة.</p>
     ${ok.map(i=>`<div class="label"><b>${esc(i.name)}</b> · ${fx(i.price)} ₪<br>${eanSvg(i.barcode)}</div>`).join('')}`}
   if(sub==='acct') return acctView();
-  if(sub==='set') return back('الإعدادات')+cloudCard()+pushSetCard()+`
-    <div class="card"><h2>بيانات المحل</h2>
+  if(sub==='set') return back('الإعدادات')+`
+  <div class="setq"><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button><button class="btn" data-act="license">💎 الاشتراك</button><button class="btn" data-act="tourStart">🎓 الجولة التعليمية</button></div>
+  ${setSec('💎','الاشتراك','رقم الحساب، حالة الاشتراك، وكود التفعيل',`${(()=>{const st=status();return `<div class="sin"><div class="list">
+      <div class="li"><span>رقم الحساب</span><span class="code">${st.acct||'—'}</span></div>
+      <div class="li"><span>الحالة</span><span class="pill ${st.active?'ok':'bad'}">${st.active?(st.paid?'مفعّل':'تجربة مجانية'):'منتهي'}</span></div>
+      ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
+      <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
+      <div class="grid2"><button class="btn primary" data-act="license">إدخال كود تفعيل</button><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button></div></div>`})()}`,true)}
+  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، كلمة سر الحساب، واللابتوب',cloudCard())}
+  ${setSec('🏪','المحل والأسعار','اسم المحل، الدولار والدينار، رسوم التطبيق، والخصم',`<div class="sin">
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <div class="grid2"><label for="stRate">سعر الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
       <label for="stRateJ">سعر الدينار بالشيكل<input id="stRateJ" type="number" inputmode="decimal" step="0.01" value="${S.rateJ}"></label></div>
@@ -1429,30 +1458,24 @@ more(){
       <label for="stMax">أكبر خصم للكاشير %<input id="stMax" type="number" inputmode="decimal" step="1" min="0" max="100" value="${S.maxDisc}"></label></div>
       <label class="chk" for="stProof"><input type="checkbox" id="stProof" ${S.proofReq?'checked':''}>صورة إشعار التحويل إجبارية للدفع بالتطبيق أو البنك</label>
       <p class="muted" style="margin:0">رسوم التطبيق بتنضاف لحالها لما الزبون يدفع كامل الفاتورة بالتطبيق أو المحفظة. خلّيها 0 لو ما بدك فرق.</p>
-      <button class="btn primary" data-act="saveSet">حفظ</button></div>
-    <div class="card"><h2>صوت المسح</h2><label class="chk" for="stSound"><input type="checkbox" id="stSound" ${S.sound===false?'':'checked'}>صوت «بيب» واهتزاز عند مسح الباركود</label><button class="btn" data-act="testBeep">تجربة الصوت</button></div>
-    <div class="card"><h2>رمز المالك</h2><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في تعديل أصناف ولا إرجاع فواتير. الرمز الافتراضي 0000، غيّره.</p>
+      <button class="btn primary" data-act="saveSet">حفظ</button></div>`)}
+  ${setSec('🔒','رمز المالك','الرمز اللي بيفصل وضع المالك عن وضع الكاشير',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في تعديل أصناف ولا إرجاع فواتير. الرمز الافتراضي 0000، غيّره.</p>
       <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
-      <button class="btn primary" data-act="savePin">حفظ الرمز</button></div>
-    ${(()=>{const st=status();return `<div class="card"><h2>الاشتراك</h2><div class="list">
-      <div class="li"><span>رقم الحساب</span><span class="code">${st.acct||'—'}</span></div>
-      <div class="li"><span>الحالة</span><span class="pill ${st.active?'ok':'bad'}">${st.active?(st.paid?'مفعّل':'تجربة مجانية'):'منتهي'}</span></div>
-      ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
-      <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
-      <button class="btn primary" data-act="license">إدخال كود تفعيل</button></div>`})()}
-    <div class="card"><h2>نسخة احتياطية</h2><p class="muted" style="margin:0">البيانات محفوظة على هذا الجهاز. نزّل نسخة كل أسبوع واحفظها على واتساب أو الدرايف، لأنه لو ضاع الجوال بتضيع البيانات.</p>
+      <button class="btn primary" data-act="savePin">حفظ الرمز</button></div>`)}
+  ${setSec('🔔','الإشعارات والصوت','تذكير خلال اليوم، وصوت مسح الباركود',pushSetCard()+`<div class="sin"><label class="chk" for="stSound"><input type="checkbox" id="stSound" ${S.sound===false?'':'checked'}>صوت «بيب» واهتزاز عند مسح الباركود</label><button class="btn" data-act="testBeep">تجربة الصوت</button></div>`)}
+  ${setSec('💾','النسخ الاحتياطي','تنزيل نسخة من بياناتك أو استرجاعها',`<div class="sin"><p class="muted" style="margin:0">البيانات محفوظة على هذا الجهاز. نزّل نسخة كل أسبوع واحفظها على واتساب أو الدرايف، لأنه لو ضاع الجوال بتضيع البيانات.</p>
       <div class="grid2"><button class="btn primary" data-act="bkFile">تنزيل ملف نسخة</button><label class="btn" for="bkPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center;align-items:center">استرجاع من ملف</label></div>
       <input id="bkPick" type="file" accept=".json,application/json,text/plain" hidden>
       <details><summary class="muted">بدون ملفات: نسخ النص ولصقه</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       <textarea id="bk" rows="4" placeholder="الصق هنا نص نسخة سابقة"></textarea>
-      <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>
-    <div class="card"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>
-    <div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div></div>
+      <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>`)}
+  ${setSec('🎓','المساعدة والدعم','الجولة التعليمية، مميزات التطبيق، والتواصل معنا',`<div class="sin"><button class="btn primary block" data-act="tourStart">🎓 ابدأ الجولة التعليمية</button></div><div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div></div>
       <a class="btn wa block big" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}تواصل معنا الآن واطلب كود التفعيل</a>
       <a class="btn wa block" style="background:#fff;color:#128C4A;border:1.5px solid #25D366" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي استفسار بخصوص «كاشيرك الذكي».\nاسم المحل: '+S.shop+(status().acct?'\nرقم الحساب: '+status().acct:''))}" target="_blank" rel="noopener">${WAIC}للدعم والاستشارة تواصل معنا</a>
       <p class="muted" style="margin:0;text-align:center;font-size:13px">الاشتراك والأكواد: <span class="num">+${SALES_WA}</span> · الدعم: <span class="num">+${SUPPORT_WA}</span></p>
-      <button class="btn" data-act="introShow">✨ مميزات التطبيق</button></div>
-    <div class="card"><h2>مسح كل البيانات</h2><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`;
+      <button class="btn" data-act="introShow">✨ مميزات التطبيق</button></div>`)}
+  ${setSec('⚠️','منطقة الخطر','مسح كل البيانات من هذا الجهاز',`<div class="sin"><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`)}
+  <div class="card setfoot"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>`;
   const from=period==='today'?sod():period==='week'?sod(Date.now()-6*DAY):sod(Date.now()-29*DAY), r=report(from);
   const mx=Math.max(1,...r.top.map(t=>t[1]));
   const ib=itemBreakdown(from);
@@ -1568,6 +1591,60 @@ function pushSetCard(){ const st=pushState();
   return `<div class="card"><div class="row"><h2>🔔 الإشعارات</h2><span class="pill ${st==='on'?'ok':'warn'}">${{on:'شغّالة',off:'مطفية',denied:'ممنوعة من الجوال',na:'غير مدعومة هنا'}[st]}</span></div>
     <p class="muted" style="margin:0">تذكير كل ساعتين بالنهار (من 8 الصبح لـ 8 المسا): افتتاح اليوم، الديون، المخزون، إقفال الصندوق، ووضع اشتراكك.</p>
     ${st==='on'?'<button class="btn block" data-act="pushOffGo">إيقاف الإشعارات</button>':st==='off'?'<button class="btn primary block" data-act="pushOn">تشغيل الإشعارات</button>':st==='denied'?'<p class="muted" style="margin:0">الإشعارات ممنوعة من إعدادات الجوال. افتح إعدادات المتصفح ← الإشعارات ← اسمح لـ marketingmiddleeast.com</p>':pushIOSNeedsInstall()?'<p class="muted" style="margin:0">على الآيفون: ثبّت التطبيق على الشاشة الرئيسية أول (مشاركة ← إضافة إلى الشاشة الرئيسية)، وافتحه من الأيقونة، بعدين شغّل الإشعارات.</p>':''}</div>`}
+function setSec(ic,t,sub,body,open){ return `<details class="sset"${open?' open':''}><summary><span class="si">${ic}</span><span class="st"><b>${t}</b><small>${sub}</small></span><span class="chev" aria-hidden="true">‹</span></summary><div class="sbody">${body}</div></details>` }
+/* ===== الجولة التعليمية: بطاقة ترحيب، وبعدين خطوة خطوة على كل زر ===== */
+const TOUR={i:-1,demo:false};
+const goT=(t,sb)=>()=>{ if($('#sheet').classList.contains('open')) closeSheet(); tab=t; if(sb!==undefined) sub=sb; render() };
+const tourDemoLine=()=>{ const c=cart(); if(!c.lines.length&&S.items.length){ const it=S.items.find(i=>i.qty>0)||S.items[0]; addToCart(it.id); TOUR.demo=true } };
+const TSTEPS=[
+ {pre:goT('home'),sel:'#view .greet',t:'أهلًا فيك 👋',x:()=>`هاي صفحتك الرئيسية${ownerName()?' يا '+esc(ownerName().split(/\s+/)[0]):''}. فوق اسمك وصورتك، واضغط عليهم بيفتحلك «حسابي»: صورتك واسم محلك وأرباح الشهر واشتراكك.`},
+ {pre:goT('home'),sel:'#hdrAv',t:'صورتك وحسابك',x:()=>'من هون كمان بتفتح حسابك، وبتحط صورتك الشخصية واسمك التجاري ورقم الواتساب.'},
+ {pre:goT('home'),sel:'#view .tiles',t:'محلك بنظرة وحدة',x:()=>'مبيعات اليوم، وربحك، والديون اللي على الزبائن، والمتوقع بالصندوق.. كله أول بأول.'},
+ {pre:goT('items'),sel:'#nav [data-tab="items"]',t:'الأصناف 📦',x:()=>'هون بتضيف بضاعتك مرة وحدة، وبعدها بتبيع بثواني.'},
+ {pre:goT('items'),sel:'#view [data-act="editItem"][data-id="0"]',t:'إضافة صنف',x:()=>'اضغط «إضافة صنف» لكل منتج عندك. هلأ بنفرجيك شو بتعبّي.'},
+ {pre:()=>{ tab='items'; render(); A.editItem({id:0}) },sel:'#fName',t:'اسم الصنف',x:()=>'اكتب اسم المنتج زي ما بدك يطلع بالفاتورة، مثلًا «حليب المراعي 1 لتر».'},
+ {sel:'#fBar',t:'الباركود',x:()=>'امسح الباركود بكاميرا الجوال أو اكتبه. وإذا الصنف بدون باركود، اتركه فاضي وبتلاقيه بالاسم.'},
+ {sel:'#fCost',t:'سعر التكلفة والبيع',x:()=>'التكلفة: اللي اشتريت فيه. والبيع: اللي بتبيع فيه. والتطبيق بيحسب ربحك الصافي لحاله من الفرق.'},
+ {sel:'#fQty',t:'الكمية',x:()=>'الكمية اللي عندك هلأ. بتنقص لحالها مع كل بيعة، وبينبهك التطبيق لما تقرّب تخلص.'},
+ {sel:'#fW',t:'البيع بالوزن',x:()=>'إذا بتبيع بالكيلو (توابل، خضار، مكسرات) علّم هون: بتحط سعر الكيلو، وبتبيع بالغرام أو بالمبلغ.'},
+ {pre:goT('sell'),sel:'#nav .fab',t:'زر البيع 🛒',x:()=>'من هون بتبيع. أهم زر بالتطبيق.'},
+ {pre:goT('sell'),sel:'#q',t:'امسح أو ابحث',x:()=>'امسح الباركود بالكاميرا، أو اكتب اسم الصنف، فبينزل بالسلة فورًا. وبتقدر تفتح أكثر من سلة لأكثر من زبون.'},
+ {pre:()=>{ tab='sell'; render(); tourDemoLine(); render() },sel:'#view [data-act="pay"][data-p="cash"]',t:'طريقة الدفع 💵',x:()=>'«نقدي» للكاش. والتطبيق بيحسبلك الباقي للزبون.'},
+ {sel:'#view [data-act="pay"][data-p="app"]',t:'الدفع بالتطبيق أو المحفظة 📱',x:()=>'إذا الزبون حوّلك على بنك فلسطين أو جوال باي أو أي محفظة: اختار «تطبيق»، وصوّر إشعار التحويل، فبينحفظ مع الفاتورة كإثبات. وإذا نفس الصورة انبعتت مرتين، التطبيق بينبهك.'},
+ {sel:'#view [data-act="pay"][data-p="debt"]',t:'البيع على الدين 📒',x:()=>'إذا الزبون أخذ دين: اختار «دين» واكتب اسمه، والمبلغ بينزل تلقائيًا بسجل الديون تبعه، بدون دفتر ولا قلم.'},
+ {sel:'#view [data-act="checkout"]',t:'إتمام البيع',x:()=>'اضغط «إتمام البيع»، فبتطلعلك الفاتورة جاهزة.'},
+ {pre:()=>{ tourEndDemo(); goT('sell')(); const ls=S.sales[S.sales.length-1]; if(ls) saleSheet(ls,'مثال: فاتورة من محلك') },sel:null,t:'الفاتورة 🧾',x:()=>'الفاتورة فيها اسم محلك ورقمها وتاريخها والأصناف والمجموع وطريقة الدفع. بتبعتها للزبون <b>واتساب</b> أو <b>PDF</b>، أو بتطبعها على <b>طابعة بلوتوث</b> صغيرة. ومن زر «🔎 فاتورة سابقة» بتفتح أي فاتورة قديمة: بترجّع منها أصناف أو بتضيف عليها.'},
+ {pre:goT('debts'),sel:'#nav [data-tab="debts"]',t:'سجل الديون 📒',x:()=>'هون كل زبون عليه دين، وشو عليه بالقرش. اضغط على اسم الزبون: بتسجّل دفعة، أو بتقسّط الدين على دفعات بمواعيد، أو بتبعتله <b>كشف حساب PDF</b> على الواتساب بضغطة.'},
+ {pre:goT('more','rep'),sel:'#nav [data-s="rep"]',t:'التقارير 📊',x:()=>'مبيعاتك وأرباحك الصافية لليوم والأسبوع والشهر، وأكثر الأصناف مبيعًا، وبتطلعها PDF.'},
+ {pre:goT('staff'),sel:'#nav [data-tab="staff"]',t:'العمال 👥',x:()=>'ضيف عمالك، وكل واحد بصلاحياته. والعامل بوضع «الكاشير» بيبيع بس: ما بيشوف الأرباح ولا بيعدّل الأسعار.'},
+ {pre:goT('more','menu'),sel:'#nav [data-tab="more"]',t:'المزيد ☰',x:()=>'هون <b>المصروفات</b> (أجار، كهربا، رواتب)، و<b>المشتريات والموردين</b>، و<b>الشيكات</b>، و<b>الإعدادات</b>، والدعم.'},
+ {pre:goT('more','set'),sel:'#view .setq',t:'الإعدادات ⚙️',x:()=>'كل إشي مرتب بأقسام: الاشتراك، والسحابة واللابتوب، والمحل والأسعار، ورمز المالك، والإشعارات، والنسخ الاحتياطي، والمساعدة. ومن هون بتعيد هالجولة وقت ما بدك.'},
+ {pre:goT('home'),sel:null,t:'🎉 خلصت الجولة!',x:()=>'هيك صرت جاهز تشتغل. بلّش بإضافة أول 5 أصناف، واعمل أول بيعة. وإذا بدك مندوبنا يجيك يجهّزلك كل إشي، احكينا على الواتساب 🤝'}
+];
+function tourEndDemo(){ if(TOUR.demo){ const c=cart(); c.lines=[]; TOUR.demo=false; save() } }
+function tourWelcome(){ if(!S||!isOwner()||isViewer()) return;
+  openSheet(`${sheetHead('🎓 خلّينا نعلّمك التطبيق')}<p style="margin:0;font-size:16px;line-height:1.7">أهلًا${ownerName()?' <b>'+esc(ownerName().split(/\s+/)[0])+'</b>':''} 👋 اليوم بدنا نعلّمك كيف تستخدم <b>كاشيرك الذكي</b> خطوة بخطوة: الأصناف، والبيع، والدفع، والفواتير، والديون، والإعدادات.</p>
+    <p class="muted" style="margin:0">بتاخد دقيقتين، وبنمشي معك زر زر.</p>
+    <button class="btn primary block big" data-act="tourStart">▶ بدء الجولة</button><button class="btn block" data-act="tourLater">لاحقًا</button>`) }
+function tourShow(){ const st=TSTEPS[TOUR.i]; if(!st){tourEnd(true);return}
+  try{ st.pre&&st.pre() }catch(e){}
+  setTimeout(()=>{ let el=st.sel?document.querySelector(st.sel):null; if(el&&el.offsetParent===null&&el.id!=='hdrAv') el=null;
+    if(el) el.scrollIntoView({block:'center',behavior:'instant'});
+    setTimeout(()=>tourPlace(el,st),180) },st.pre?260:60) }
+function tourPlace(el,st){ let ov=$('#tourOv'); if(!ov){ ov=document.createElement('div'); ov.id='tourOv'; ov.className='tourOv'; ov.innerHTML='<div class="tourHole"></div><div class="tourTip" role="dialog" aria-live="polite"></div>'; document.body.appendChild(ov) }
+  const h=ov.querySelector('.tourHole'), tip=ov.querySelector('.tourTip'), n=TSTEPS.length, last=TOUR.i===n-1;
+  tip.innerHTML=`<div class="tourBar"><i style="width:${Math.round((TOUR.i+1)/n*100)}%"></i></div><div class="tn">الخطوة ${TOUR.i+1} من ${n}</div><h3>${st.t}</h3><p>${st.x()}</p>
+    <div class="tb">${TOUR.i>0?'<button class="btn" data-act="tourPrev">السابق</button>':''}<button class="btn primary" data-act="${last?'tourDone':'tourNext'}">${last?'يلا نبلّش 🚀':'التالي ←'}</button>${last?'':'<button class="skip" data-act="tourDone">إنهاء</button>'}</div>`;
+  const vh=innerHeight;
+  if(el){ const r=el.getBoundingClientRect(), pad=6; h.classList.remove('none'); Object.assign(h.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});
+    const th=tip.offsetHeight||220, below=r.bottom+14, above=r.top-14-th;
+    tip.style.top=(below+th<vh-8?below:above>8?above:Math.max(8,vh-th-8))+'px' }
+  else { h.classList.add('none'); tip.style.top=Math.max(20,(vh-(tip.offsetHeight||240))/2)+'px' } }
+function tourEnd(done){ const ov=$('#tourOv'); if(ov) ov.remove(); tourEndDemo(); TOUR.i=-1; try{localStorage.setItem('ksr-tour',done?'done':String(Date.now()))}catch(e){} }
+function tourMaybe(){ try{ const v=localStorage.getItem('ksr-tour'); if(v==='done') return; if(v&&Date.now()-(+v)<20*3600e3) return }catch(e){return}
+  if(TOUR.asked||(TOUR.shows||0)>=2||!S||!isOwner()||isViewer()||TOUR.i>=0||$('#intro')||$('#sheet').classList.contains('open')||$('#tourOv')) return;
+  TOUR.shows=(TOUR.shows||0)+1; tourWelcome() }
+addEventListener('resize',()=>{ if(TOUR.i>=0){ const st=TSTEPS[TOUR.i]; tourPlace(st.sel?document.querySelector(st.sel):null,st) } });
 function render(){
   if(!S){renderSetup();return}
   norm(S); if(tab==='staff') facePrewarm();
@@ -2255,6 +2332,11 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
   tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
 license(){subSheet()},
+tourStart(){ TOUR.asked=true; closeSheet(); TOUR.i=0; tourShow() },
+tourNext(){ TOUR.i++; tourShow() },
+tourPrev(){ TOUR.i=Math.max(0,TOUR.i-1); if(TOUR.i>=5&&TOUR.i<=9&&!$('#fName')){ tab='items'; render(); A.editItem({id:0}) } tourShow() },
+tourDone(){ tourEnd(true); closeSheet(); tab='home'; render() },
+tourLater(){ TOUR.asked=true; try{localStorage.setItem('ksr-tour',String(Date.now()))}catch(e){} closeSheet(); toast('بتلاقي الجولة بالإعدادات ← المساعدة وقت ما بدك') },
 async pushOn(){ if(pushIOSNeedsInstall()){ openSheet(`${sheetHead('الإشعارات على الآيفون')}<p style="margin:0">الآيفون بيسمح بالإشعارات بس للتطبيق المثبّت.</p><p class="muted" style="margin:0">اضغط زر المشاركة ⬆️ ← «إضافة إلى الشاشة الرئيسية»، وافتح كاشيرك من الأيقونة الجديدة، بعدين شغّل الإشعارات من الإعدادات.</p>`); return }
   try{ localStorage.removeItem('ksr-push'); const ok=await pushSubscribe(true); render(); toast(ok?'✓ انشغلت الإشعارات':Notification.permission==='denied'?'الإشعارات ممنوعة من الجوال، اسمح فيها من إعدادات المتصفح':'ما انشغلت الإشعارات') }catch(e){ toast('ما قدرنا نشغّل الإشعارات: '+(e.message||'')) } },
 pushLater(){ try{localStorage.setItem('ksr-push','0')}catch(e){} render(); toast('بتقدر تشغّلها من الإعدادات وقت ما بدك') },
@@ -2328,7 +2410,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
+const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const OWNER_ONLY=new Set(['cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
@@ -2400,9 +2482,10 @@ document.addEventListener('keydown',e=>{
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
 load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
+{ let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261116183453'; let UPD=false;
+const BUILD='20261117065445'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
