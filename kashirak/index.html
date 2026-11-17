@@ -2401,12 +2401,12 @@ cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
   <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" placeholder="059xxxxxxx"></label>
   <label for="clPass">كلمة السر<input id="clPass" type="password" autocomplete="current-password"></label>
   <div class="seg" role="radiogroup" aria-label="شو دور هذا الجهاز؟" style="display:grid;gap:8px">
-    <label class="chk"><input type="radio" name="clRole" value="main" checked>هذا الجهاز للبيع (الجهاز الأساسي)</label>
-    <label class="chk"><input type="radio" name="clRole" value="seller">📱 جوال بائع ثاني (كاشير ثاني بنفس المحل)</label>
+    <label class="chk"><input type="radio" name="clRole" value="main">هذا الجهاز للبيع (الجهاز الأساسي)</label>
+    <label class="chk"><input type="radio" name="clRole" value="seller" checked>📱 جوال بائع ثاني (كاشير ثاني بنفس المحل)</label>
     <label class="chk"><input type="radio" name="clRole" value="view">للمتابعة بس (لابتوب أو جوال صاحب المحل)</label></div>
   ${S?'<p class="muted" style="margin:0;color:var(--bad)">بيانات هذا الجهاز رح تنستبدل ببيانات الحساب.</p>':''}
   <button class="btn primary block" data-act="cloudLoginGo">دخول</button>`)},
-async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'main';
+async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'seller';
   const btn=$('[data-act=cloudLoginGo]'); btn.disabled=true; btn.textContent='جاري الدخول…';
   const rp=A.loginReplace.p&&A.loginReplace.p.ph===ph?A.loginReplace.p.replace:''; A.loginReplace.p=null;
   try{const r=await api('/login',{method:'POST',body:{phone:ph,password:pw,device:devInfo().id,label:devLabel(),replace:rp||undefined}});
@@ -2761,7 +2761,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117142112'; let UPD=false;
+const BUILD='20261117144828'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
