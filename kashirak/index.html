@@ -1487,13 +1487,13 @@ items(){
   <div class="tiles"><div class="tile hl"><div class="lbl">عدد الأصناف</div><div class="val">${S.items.length}</div></div><div class="tile"><div class="lbl">قليلة أو خالصة</div><div class="val" style="color:var(--${low?'warn':'good'})">${low}</div></div></div>
   <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
-  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}${S.wh?'<button class="btn sm" data-act="whAsk">📦 إضافة للمخزن</button><button class="btn sm" data-act="xferAsk">نقل من المخزن</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
+  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
   <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||i.name.includes(iq)||i.barcode.includes(iq)).map(i=>{
     const st=i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
     return `<button class="li" data-act="editItem" data-id="${i.id}">
       <span><span class="t">${esc(i.name)}</span><br><span class="muted">${isOwner()?`تكلفة ${fx(i.cost)} · `:''}بيع ${fx(i.price)} ₪${i.cartonSize>1?` · كرتونة ${i.cartonSize}`:''}${i.barcode?'':' · بدون باركود'}<br>مبيع آخر 30 يوم: <span class="num">${sold[i.id]||0}</span>${isOwner()&&sold[i.id]?` · ربح <span class="num">${fx(sold[i.id]*(i.price-i.cost))}</span> ₪`:''}</span></span>
-      <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span>${S.wh?`<br><span class="muted" style="font-size:12.5px">مخزن: <span class="num">${r3(i.wqty||0)}</span></span>`:''}<br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`;
+      <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span><br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`;
 },
 staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
   const cards=S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===t0, img=refImg(st);
@@ -1531,7 +1531,7 @@ more(){
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
     ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
     ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
-    ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag']])}
+    ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['audit','سجل العمليات','مين عمل شو وإمتى','list']])}
     ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، رمز المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
@@ -1636,6 +1636,11 @@ more(){
   if(sub==='lab'){const ok=S.items.filter(i=>eanValid(i.barcode));return back('ملصقات الباركود')+`
     <p class="muted" style="margin:0">${ok.length} صنف له باركود صالح. الطباعة على طابعة الملصقات تتفعّل في النسخة المستضافة.</p>
     ${ok.map(i=>`<div class="label"><b>${esc(i.name)}</b> · ${fx(i.price)} ₪<br>${eanSvg(i.barcode)}</div>`).join('')}`}
+  if(sub==='wh'){const W=S.items.slice().sort((a,b)=>(b.wqty||0)-(a.wqty||0));return back('المخزن')+`
+    <div class="card" style="gap:8px"><p class="muted" style="margin:0;font-size:13.5px">هون بضاعة المخزن لحالها، ما بتأثر على المحل إلا لما تنقلها.</p>
+    <button class="btn primary block" data-act="whAsk">📦 إضافة بضاعة للمخزن</button>
+    <button class="btn block" data-act="xferAsk">⇄ نقل من المخزن للمحل</button></div>
+    <div class="card"><h2>بضاعة المخزن</h2><div class="list">${W.map(i=>`<div class="li"><span class="t">${esc(i.name)}</span><span style="text-align:end"><span class="num" style="font-weight:700">${r3(i.wqty||0)}</span><br><span class="muted" style="font-size:12.5px">المحل: <span class="num">${qtyTxt(i)}</span></span></span></div>`).join('')||'<div class="empty">المخزن فاضي. ابدأ بـ«إضافة بضاعة للمخزن»</div>'}</div></div>`}
   if(sub==='acct') return acctView();
   if(sub==='set') return back('الإعدادات')+`
   <div class="setq"><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button><button class="btn" data-act="license">💎 الاشتراك</button><button class="btn" data-act="tourStart">🎓 الجولة التعليمية</button></div>
@@ -2774,7 +2779,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117150332'; let UPD=false;
+const BUILD='20261117150653'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
