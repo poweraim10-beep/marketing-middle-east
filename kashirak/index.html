@@ -533,7 +533,7 @@ async function licRefresh(){ if(!navigator.onLine) return;
   try{ const q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q);
     if(r&&r.license&&(!LIC||licKey(r.license)!==licKey(S.licTok))) await licApply(r.license); expGate() }catch(e){ if(e.status===401) cloudSignedOut() } }
 const licKey=t=>{try{const o=JSON.parse(new TextDecoder().decode(ub64(String(t).split('.')[0])));return [o.t,o.id,o.d,(o.s||[]).join(','),o.e,o.tr].join(':')}catch(e){return ''}};
-const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'})[p]||(/^d\d+$/.test(p||'')?p.slice(1)+' يوم':'');
+const planName=p=>({m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'دائم'})[p]||(/^d\d+$/.test(p||'')?p.slice(1)+' يوم':'');
 
 const LOGO=(id)=>`<img class="lg3d" src="icons/logo-3d-256.png" alt="" width="256" height="256" decoding="async">`;
 function devInfo(){
@@ -557,7 +557,7 @@ function planTagUI(){ const t=$('#planTag'); if(!t) return; if(!S||!LICREADY||!l
   const st=status(), sd=d=>new Date(d).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short',year:'numeric'});
   let cls='', txt;
   if(!st.active&&!isViewer()){cls='over'; txt=st.paid?'⛔ انتهى الاشتراك · جدّد الآن':'⛔ انتهت التجربة · اشترك الآن'}
-  else if(st.paid&&S.licExp>=LIC_LIFE){cls='life'; txt='⭐ اشتراك مفتوح'}
+  else if(st.paid&&S.licExp>=LIC_LIFE){cls='life'; txt='⭐ اشتراك دائم'}
   else if(st.paid){txt=`⭐ ${planName(S.licPlan)||'مشترك'} · لغاية ${sd(dayTs(LIC.e))}`}
   else {cls='trial'; txt=`🎁 تجربة مجانية · باقي ${Math.max(0,st.daysLeft)} يوم`}
   t.className='plantag '+cls; t.textContent=txt; t.hidden=false}
@@ -2797,7 +2797,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117151340'; let UPD=false;
+const BUILD='20261117154201'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
