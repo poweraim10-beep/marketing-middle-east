@@ -366,7 +366,7 @@ export async function onRequest({ request, env, params }) {
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
       const phone = phoneOf(q.phone);
       const shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
-      if (shop && !shop.hash) { await noteFail(env, ip); return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
+      if (shop && !shop.hash) { return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
       if (!shop || !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('رقم الجوال أو كلمة السر غلط', 401); }
       const ldev = clean(q.device, 40), act = activeDevs(shop);
       if (ldev && !act.some((x) => x.id === ldev) && act.length >= MAX_DEV) {

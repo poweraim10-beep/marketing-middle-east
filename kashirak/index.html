@@ -219,6 +219,7 @@ input,select,textarea{background:var(--surface);border:1px solid var(--line);bor
 input[type=checkbox]{width:22px;min-height:22px;height:22px;padding:0;accent-color:var(--gold-deep)}
 label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
 label.chk{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px}
+label.chk input[type=radio],label.chk input[type=checkbox]{width:22px;height:22px;min-height:0;flex:none;margin:0;padding:0;accent-color:var(--accent,#e8c25a)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
 .seg button{white-space:nowrap;flex:1;border:0;background:none;border-radius:9px;padding:8px 4px;cursor:pointer;font-size:13.5px;color:var(--muted)}
@@ -1289,6 +1290,7 @@ function smart(){
   S.staff.forEach(st=>{const lp=lastPunch(st.id); if(lp&&lp.type==='in'&&sod(lp.ts)<sod()) out.push({p:2,ic:'users',t:`${esc(st.name)} ما بصم خروج`,d:`آخر دخول ${new Date(lp.ts).toLocaleDateString('ar',{weekday:'long'})} ${hm(lp.ts)}`,act:'data-act="go" data-tab="staff"'})});
   { const dl=S.customers.filter(c=>balance(c)>0), dt=r2(dl.reduce((a,c)=>a+balance(c),0)); let seen=''; try{seen=localStorage.getItem('ksr-debtpdf')||''}catch(e){}
     if(isOwner()&&dl.length&&seen!==new Date().toDateString()) out.push({p:1,ic:'pdf',t:'📄 سجل ديون اليوم جاهز',d:`${dl.length} زبون عليهم ${money(dt)} · اضغط وابعته واتساب`,act:'data-act="debtPdf"'}) }
+  if(isMain()&&CL.nopass) out.push({p:1,ic:'gear',t:'🔑 حدّد كلمة سر لحساب المحل',d:'عشان تفتح محلك من جوال ثاني أو لابتوب، أو ترجّعه لو ضاع الجوال',act:'data-act="cloudNew"'});
   if(isMain()&&CLS.dirty&&CL.last&&now-CL.last>12*3600e3) out.push({p:0,ic:'gear',t:'⚠️ بيانات اليوم ما انرفعت للسحابة',d:'شغّل النت شوي عشان تنحفظ نسخة من شغلك',act:'data-act="cloudSheet"'});
   const pend=S.sales.filter(s=>s.confirmed===false).length; if(pend&&isOwner()) out.push({p:1,ic:'wallet',t:`${pend} تحويل بانتظار التأكيد`,d:'تأكد إنها وصلت حسابك',act:'data-act="openSub" data-s="cash"'});
   if(isOwner()&&!linked()&&S.items.length) out.push({p:1,ic:'gear',t:'احمِ بيانات محلك',d:'اعمل حساب للمحل وبتنحفظ نسخة تلقائية على السحابة',act:'data-act="cloudNew"'});
@@ -2329,7 +2331,13 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
     if(e.code==='limit'&&e.data&&e.data.devices){ A.loginReplace.p={ph,pw,role};
       openSheet(`${sheetHead('الحساب مفتوح على 3 أجهزة')}<p style="margin:0">هذا الحد لكل محل: جوالين للبيع وجهاز للمتابعة. اختار جهاز تطلّعه من الحساب، وهذا الجهاز بيدخل مكانه:</p>
         <div class="list">${e.data.devices.map(x=>`<div class="li"><span>${esc(x.label||'جهاز')} ${x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">بائع ثاني</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><button class="btn sm danger" data-act="loginReplace" data-dev="${x.id}">طلّعه</button></div>`).join('')}</div>`); return }
-    toast(e.message)}},
+    if(e.code==='nopass'){ openSheet(`${sheetHead('الحساب لسا ما إله كلمة سر')}<p style="margin:0">عشان تدخل من جوال ثاني أو لابتوب، لازم صاحب المحل يحدّد كلمة سر للحساب من <b>الجوال الأساسي</b>:</p>
+      <div class="list"><div class="li"><span><b>1.</b> على الجوال الأساسي افتح <b>الإعدادات</b> ← <b>السحابة والأجهزة</b></span></div>
+      <div class="li"><span><b>2.</b> اضغط <b>«حدّد كلمة سر للحساب»</b> واكتب كلمة سر (6 أحرف أو أرقام على الأقل)</span></div>
+      <div class="li"><span><b>3.</b> ارجع لهذا الجهاز وادخل بنفس الرقم وكلمة السر الجديدة</span></div></div>
+      <p class="muted" style="margin:0">⚠️ كلمة السر غير رمز المالك (الأرقام الأربعة اللي بتفتح وضع المالك).</p>
+      <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أدخل على حساب محلي من جوال ثاني.\nرقم الجوال: '+ph)}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`); return }
+    toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. انتبه: كلمة السر غير رمز المالك (الأرقام الأربعة)':e.message)}},
 cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
   <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-act="cloudTakeGo">تأكيد</button>`)},
@@ -2643,7 +2651,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117080725'; let UPD=false;
+const BUILD='20261117083556'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
