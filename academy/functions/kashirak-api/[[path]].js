@@ -829,6 +829,16 @@ async function admin(env, request, b) {
     await env.DB.prepare('INSERT INTO ksr_lic (id, exp, plan, updated) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET exp = excluded.exp, updated = excluded.updated').bind(target, exp, 'manual', nowMs()).run();
     return json({ ok: true });
   }
+  if (b === 'books') { // دفتر المالك: تعديل مبالغ الاشتراكات (أو استثناؤها) + مصروفات الشركة
+    if (m === 'GET') { const r = await env.DB.prepare("SELECT v FROM ksr_kv WHERE k = 'admin_books'").first(); let v = { adj: {}, exp: [] }; try { v = Object.assign(v, JSON.parse((r && r.v) || '{}')); } catch {} return json(v); }
+    if (m === 'POST') {
+      const adj = {}; for (const [k, v] of Object.entries((q && q.adj) || {}).slice(0, 5000)) { const kk = clean(k, 40); if (!kk || !v) continue; const o = {}; if (v.p !== undefined && v.p !== null && v.p !== '') o.p = Math.max(0, Math.min(1e7, +v.p || 0)); if (v.on !== undefined) o.on = !!v.on; if (v.n) o.n = clean(v.n, 120); adj[kk] = o; }
+      const exp = (Array.isArray(q && q.exp) ? q.exp : []).slice(0, 5000).map((e) => ({ id: clean(String(e.id || ''), 30) || String(nowMs()), ts: +e.ts || nowMs(), amt: Math.max(0, Math.min(1e7, +e.amt || 0)), note: clean(e.note || '', 120), cat: clean(e.cat || '', 40) })).filter((e) => e.amt > 0);
+      const v = JSON.stringify({ adj, exp });
+      await env.DB.prepare("INSERT INTO ksr_kv (k, v) VALUES ('admin_books', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(v).run();
+      return json({ ok: true, adj, exp });
+    }
+  }
   if (b === 'note' && m === 'POST') {
     const target = q.kind === 'device' ? 'dev:' + clean(q.id, 40) : 'shop:' + clean(q.id, 40);
     await env.DB.prepare('INSERT INTO ksr_lic (id, exp, plan, updated, note) VALUES (?, 0, NULL, ?, ?) ON CONFLICT(id) DO UPDATE SET note = excluded.note').bind(target, nowMs(), clean(q.note, 300)).run();

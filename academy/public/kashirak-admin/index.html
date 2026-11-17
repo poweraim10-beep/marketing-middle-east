@@ -116,6 +116,13 @@ const waNum=p=>{let d=String(p||'').replace(/\D/g,''); if(d.startsWith('00')) d=
 const APPURL='marketingmiddleeast.com/kashirak';
 function toast(m){const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toast.t); toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
 async function copy(txt){try{await navigator.clipboard.writeText(txt); toast('انسخ ✓')}catch(e){const a=document.createElement('textarea');a.value=txt;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();toast('انسخ ✓')}}
+/* دفتر المالك: كل اشتراك محسوب بمبلغه الحقيقي، والكود الجاهز اللي ما انباع ما بينحسب إلا إذا اخترته */
+const BK=()=>D.books||{adj:{},exp:[]};
+function ledger(){const A=BK().adj||{}; return D.codes.filter(c=>c.status!=='void').map(c=>{const o=A[c.code]||{}; const def=c.status==='used'||c.kind!=='code';
+  return {c,key:c.code,p:o.p!==undefined?+o.p:(+c.price||0),on:o.on!==undefined?!!o.on:def,n:o.n||'',ts:c.used_at||c.created}}).sort((a,b)=>b.ts-a.ts)}
+const incOf=(from,to)=>ledger().filter(e=>e.on&&e.ts>=from&&e.ts<(to||9e15)).reduce((a,e)=>a+e.p,0);
+const expOf=(from,to)=>(BK().exp||[]).filter(e=>e.ts>=from&&e.ts<(to||9e15)).reduce((a,e)=>a+(+e.amt||0),0);
+async function saveBooks(b){const r=await call('books',b); D.books={adj:r.adj,exp:r.exp}; render()}
 async function call(path,body){
   const r=await fetch(API+path,{method:body?'POST':'GET',headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined,credentials:'same-origin',cache:'no-store'});
   let j={}; try{j=await r.json()}catch(e){}
@@ -148,12 +155,12 @@ home(){
   const c=k=>sh.filter(x=>x.st.k===k).length;
   const paid=c('paid')+c('life')+c('soon');
   const month=new Date(); month.setDate(1); month.setHours(0,0,0,0);
-  const inc=D.codes.filter(x=>x.status!=='void'&&x.created>=+month).reduce((a,x)=>a+(+x.price||0),0);
+  const inc=incOf(+month), spent=expOf(+month);
   const ready=D.codes.filter(x=>x.status==='new'&&x.kind==='code').length;
   const active7=D.shops.filter(s=>s.lastSeen&&Date.now()-s.lastSeen<7*DAY).length;
   const follow=sh.filter(x=>x.st.k==='soon'||(x.st.k==='over'||x.st.k==='tover')&&x.st.exp&&Date.now()-x.st.exp<30*DAY||x.st.k==='trial'&&x.st.left<=2).sort((a,b)=>(a.st.exp||0)-(b.st.exp||0)).slice(0,12);
   return `<div class="kpis">
-    <button class="kpi hero" data-a="tab" data-t="money"><span class="l">دخل هذا الشهر</span><span class="v"><span class="num">${fmt(inc)}</span> ₪</span><span class="l">${paid} محل مشترك · ${active7} محل اشتغل آخر 7 أيام</span></button>
+    <button class="kpi hero" data-a="tab" data-t="money"><span class="l">صافي هذا الشهر</span><span class="v"><span class="num">${fmt(inc-spent)}</span> ₪</span><span class="l">دخل <span class="num">${fmt(inc)}</span> − مصروفات <span class="num">${fmt(spent)}</span> ₪ · ${paid} محل مشترك · ${active7} محل اشتغل آخر 7 أيام</span></button>
     <button class="kpi ok" data-a="filter" data-f="paid"><span class="l">مشتركين فعّالين</span><span class="v num">${paid}</span></button>
     <button class="kpi" data-a="filter" data-f="trial"><span class="l">بفترة التجربة هلأ</span><span class="v num">${c('trial')}</span></button>
     <button class="kpi warn" data-a="filter" data-f="tover"><span class="l">خلصت تجربتهم وما اشتركوا</span><span class="v num">${c('tover')}</span></button>
@@ -189,16 +196,27 @@ codes(){
   <div class="chips">${F.map(([k,l])=>`<button class="chip" data-a="cfilter" data-f="${k}" aria-pressed="${codeFilter===k}">${l} <span class="num">${k==='all'?D.codes.filter(c=>c.kind==='code').length:D.codes.filter(c=>c.kind==='code'&&c.status===k).length}</span></button>`).join('')}</div>
   <div class="card"><div class="list">${cs.map(codeRow).join('')||'<div class="empty">ما في أكواد هون</div>'}</div></div>`},
 money(){
-  const all=D.codes.filter(c=>c.status!=='void'&&(+c.price||0)>0);
-  const by={}; for(const c of all){const d=new Date(c.created), k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); (by[k]=by[k]||{sum:0,n:0,plans:{}}); by[k].sum+=+c.price; by[k].n++; by[k].plans[c.plan]=(by[k].plans[c.plan]||0)+(+c.price)}
-  const keys=Object.keys(by).sort().reverse().slice(0,12), mx=Math.max(1,...keys.map(k=>by[k].sum));
-  const total=all.reduce((a,c)=>a+(+c.price),0);
-  const unsold=D.codes.filter(c=>c.kind==='code'&&c.status==='new').reduce((a,c)=>a+(+c.price||0),0);
+  const L=ledger(), on=L.filter(e=>e.on), total=on.reduce((a,e)=>a+e.p,0), EX=(BK().exp||[]).slice().sort((a,b)=>b.ts-a.ts), spent=EX.reduce((a,e)=>a+(+e.amt||0),0);
+  const by={}; const mk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
+  for(const e of on){const k=mk(e.ts);(by[k]=by[k]||{inc:0,exp:0,n:0});by[k].inc+=e.p;by[k].n++}
+  for(const e of EX){const k=mk(e.ts);(by[k]=by[k]||{inc:0,exp:0,n:0});by[k].exp+=+e.amt||0}
+  const keys=Object.keys(by).sort().reverse().slice(0,12), mx=Math.max(1,...keys.map(k=>by[k].inc));
+  const who=c=>esc(c.used_label||c.owner||c.note||'—');
   const P=prices();
-  return `<div class="kpis"><div class="kpi hero"><span class="l">كل الدخل المسجّل</span><span class="v"><span class="num">${fmt(total)}</span> ₪</span><span class="l">${all.length} عملية · أكواد جاهزة بقيمة ${fmt(unsold)} ₪ لسا ما انباعت</span></div></div>
-  <div class="card"><h2>الدخل بالشهر</h2>${keys.map(k=>{const [y,m]=k.split('-');const nm=new Date(+y,+m-1,1).toLocaleDateString('ar-u-nu-latn',{month:'long',year:'numeric'});
-    return `<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><b>${nm}</b><span><b class="num">${fmt(by[k].sum)}</b> ₪ · <span class="muted" style="color:var(--muted)">${by[k].n} عملية</span></span></div><div class="bar"><i style="width:${Math.round(by[k].sum/mx*100)}%"></i></div>
-      <div style="font-size:13px;color:var(--muted)">${Object.entries(by[k].plans).map(([p,v])=>`${planLabel(p)}: <span class="num">${fmt(v)}</span> ₪`).join(' · ')}</div></div>`}).join('<hr style="border:0;border-top:1px solid #F0EBDF">')||'<div class="empty">لسا ما في دخل مسجّل. الدخل بيتسجّل من سعر كل كود أو تمديد.</div>'}</div>
+  return `<div class="kpis"><div class="kpi hero"><span class="l">الصافي (الدخل − المصروفات)</span><span class="v"><span class="num">${fmt(total-spent)}</span> ₪</span><span class="l">دخل <span class="num">${fmt(total)}</span> ₪ من ${on.length} اشتراك · مصروفات <span class="num">${fmt(spent)}</span> ₪</span></div></div>
+  <div class="card"><h2>كشف الاشتراكات</h2><p style="font-size:13px;color:var(--muted);margin:0">عدّل المبلغ اللي دفعه كل واحد فعلاً، وشيل الصح عن أي واحد ما بدك تحسبه. الكود الجاهز اللي ما انباع ما بينحسب إلا إذا علّمت عليه.</p>
+    <div class="list">${L.map(e=>`<div class="li" style="gap:8px;align-items:center"><input type="checkbox" class="bkOn" data-k="${esc(e.key)}" ${e.on?'checked':''} aria-label="محسوب" style="width:22px;height:22px">
+      <span class="grow"><span class="t">${who(e.c)}</span><br><span class="s">${planLabel(e.c.plan)} · ${fday(e.ts)}${e.c.acct?' · حساب <span class="num">'+e.c.acct+'</span>':''}${e.c.status==='new'?' · <b>كود جاهز ما انباع</b>':''}</span></span>
+      <input class="bkP num" data-k="${esc(e.key)}" inputmode="decimal" value="${e.p}" style="width:84px" aria-label="المبلغ"> ₪</div>`).join('')||'<div class="empty">لسا ما في اشتراكات</div>'}</div>
+    <button class="btn primary block" data-a="saveLedger">حفظ الكشف</button></div>
+  <div class="card"><h2>مصروفات الشركة</h2><p style="font-size:13px;color:var(--muted);margin:0">كل مصروف بينطرح من الدخل (إعلانات، نت، مندوب…).</p>
+    <div class="grid2"><label>المبلغ<input id="exAmt" class="num" inputmode="decimal" placeholder="مثلاً 50"></label><label>على شو<input id="exNote" placeholder="مثلاً إعلانات فيسبوك"></label></div>
+    <label>التاريخ<input id="exDate" type="date" value="${new Date().toISOString().slice(0,10)}"></label>
+    <button class="btn gold block" data-a="addExp">＋ إضافة مصروف</button>
+    <div class="list">${EX.map(e=>`<div class="li"><span class="grow"><span class="t">${esc(e.note||'مصروف')}</span><br><span class="s">${fday(e.ts)}</span></span><b class="num">${fmt(+e.amt)}</b> ₪ <button class="btn sm danger" data-a="delExp" data-id="${esc(e.id)}">حذف</button></div>`).join('')||'<div class="empty">ما في مصروفات مسجّلة</div>'}</div></div>
+  <div class="card"><h2>بالشهر</h2>${keys.map(k=>{const [y,m]=k.split('-');const nm=new Date(+y,+m-1,1).toLocaleDateString('ar-u-nu-latn',{month:'long',year:'numeric'}), b=by[k];
+    return `<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><b>${nm}</b><span>صافي <b class="num">${fmt(b.inc-b.exp)}</b> ₪</span></div><div class="bar"><i style="width:${Math.round(b.inc/mx*100)}%"></i></div>
+      <div style="font-size:13px;color:var(--muted)">دخل <span class="num">${fmt(b.inc)}</span> ₪ (${b.n}) · مصروفات <span class="num">${fmt(b.exp)}</span> ₪</div></div>`}).join('<hr style="border:0;border-top:1px solid #F0EBDF">')||'<div class="empty">لسا ما في حركة</div>'}</div>
   <div class="card"><h2>أسعار الباقات الافتراضية</h2><p style="font-size:13px;color:var(--muted)">بتنكتب لحالها لما تعمل كود جديد، وبتقدر تغيّرها وقتها.</p>
     <div class="grid2">${PLAN_ORDER.map(p=>`<label>${PLAN_NAME[p]}<input class="pr num" data-p="${p}" inputmode="decimal" value="${P[p]}"></label>`).join('')}</div>
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
@@ -303,7 +321,7 @@ function showLogin(){close(); $('#app').innerHTML=`<div class="login"><div class
   <label style="text-align:start">البريد أو رقم الواتساب<input id="lgE" autocomplete="username" dir="ltr"></label>
   <label style="text-align:start">كلمة المرور<input id="lgP" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-a="login">دخول</button><p id="lgErr" style="color:var(--bad);font-size:14px"></p></div></div>`}
-async function load(){try{D=await call('summary'); render()}catch(e){ if(e.message!=='login') $('#app').innerHTML=`<div class="login"><div class="card"><h2>ما قدرنا نجيب البيانات</h2><p>${esc(e.message)}</p><button class="btn primary" data-a="reload">جرّب مرة ثانية</button></div></div>` }}
+async function load(){try{D=await call('summary'); try{D.books=await call('books')}catch(e){D.books={adj:{},exp:[]}} render()}catch(e){ if(e.message!=='login') $('#app').innerHTML=`<div class="login"><div class="card"><h2>ما قدرنا نجيب البيانات</h2><p>${esc(e.message)}</p><button class="btn primary" data-a="reload">جرّب مرة ثانية</button></div></div>` }}
 
 /* ---------- actions ---------- */
 const A={
@@ -375,6 +393,13 @@ const A={
   async cancelLic(d){ if(!confirm('أكيد بدك توقف اشتراك هذا المحل؟ التطبيق عنده بيصير للقراءة بس.')) return;
     try{await call('setexp',{kind:d.k,id:d.id,exp:0}); await load(); shopSheet(d.id,d.k); toast('انوقف الاشتراك')}catch(e){toast(e.message)}},
   async saveNote(d){try{await call('note',{kind:d.k,id:d.id,note:$('#shNote').value}); await load(); toast('انحفظت')}catch(e){toast(e.message)}},
+  async saveLedger(){const adj=Object.assign({},BK().adj); document.querySelectorAll('.bkP').forEach(i=>{const k=i.dataset.k, c=D.codes.find(x=>x.code===k), on=document.querySelector(`.bkOn[data-k="${k}"]`).checked, p=+i.value||0;
+      const def=c&&(c.status==='used'||c.kind!=='code'); const o={}; if(c&&p!==(+c.price||0)) o.p=p; if(on!==def) o.on=on; if(Object.keys(o).length) adj[k]=o; else delete adj[k]});
+    try{await saveBooks({adj,exp:BK().exp||[]}); toast('✓ انحفظ الكشف')}catch(e){toast(e.message)}},
+  async addExp(){const amt=+$('#exAmt').value||0, note=$('#exNote').value.trim(), d=$('#exDate').value; if(!(amt>0)){toast('اكتب المبلغ');return}
+    const ts=d?new Date(d+'T12:00:00').getTime():Date.now(); const exp=(BK().exp||[]).concat([{id:String(Date.now()),ts,amt,note}]);
+    try{await saveBooks({adj:BK().adj||{},exp}); toast('✓ انضاف المصروف')}catch(e){toast(e.message)}},
+  async delExp(d){if(!confirm('حذف هذا المصروف؟')) return; try{await saveBooks({adj:BK().adj||{},exp:(BK().exp||[]).filter(e=>e.id!==d.id)}); toast('انحذف')}catch(e){toast(e.message)}},
   savePrices(){const o={}; document.querySelectorAll('.pr').forEach(i=>o[i.dataset.p]=+i.value||0); localStorage.setItem('ksr-admin-prices',JSON.stringify(o)); toast('انحفظت الأسعار')},
   async login(){const b=$('[data-a=login]'); b.disabled=true; $('#lgErr').textContent='';
     try{const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({email:$('#lgE').value.trim(),password:$('#lgP').value})});
@@ -392,7 +417,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261117164230'; let UPD=false;
+const BUILD='20261117202225'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);
