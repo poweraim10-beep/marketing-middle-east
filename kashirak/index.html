@@ -1028,8 +1028,24 @@ function cloudCard(){
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
+/* قارئة الباركود السلكية (USB): بتكتب الرقم كأنه لوحة مفاتيح بسرعة وبتضغط Enter. نلتقط الضغطات السريعة، وإذا خلصت بـEnter بنعتبرها باركود */
+const WEDGE={buf:'',last:0,on:()=>localStorage.getItem('ksr-wedge')==='1'};
+document.addEventListener('keydown',e=>{
+  if(!WEDGE.on()||!S||$('#sheet.open')&&!$('#scanSheet.open')&&document.querySelector('#sheet.open input')) return;
+  const now=Date.now(), gap=now-WEDGE.last; WEDGE.last=now;
+  if(e.key==='Enter'){
+    const code=WEDGE.buf; WEDGE.buf='';
+    if(code.length>=6&&/^[\w-]+$/.test(code)){ e.preventDefault(); const f=document.activeElement;
+      if(f&&f.tagName==='INPUT'&&f.value.endsWith(code)) f.value=f.value.slice(0,-code.length);
+      liveHit(code) }
+    return }
+  if(e.key.length!==1||e.ctrlKey||e.metaKey||e.altKey) { WEDGE.buf=''; return }
+  if(gap>60&&WEDGE.buf.length) WEDGE.buf=''; // ضغطة بطيئة = كتابة عادية
+  WEDGE.buf+=e.key;
+});
 function scanCard(){ if(!linked()) return '';
   return `<div class="card" style="gap:8px"><h2>📷 الماسح من جوال للابتوب</h2>
+    <label class="chk"><input type="checkbox" id="wedgeOn" ${localStorage.getItem('ksr-wedge')==='1'?'checked':''}>قارئة باركود سلكية (USB) متصلة بهذا الجهاز</label>
     <p class="muted" style="margin:0">اللابتوب ما إله كاميرا؟ خلّي الجوال يمسح، والباركود بيطلع بسلة اللابتوب.</p>
     <label class="chk"><input type="checkbox" id="scIn" ${localStorage.getItem('ksr-scanin')==='1'?'checked':''}>هذا الجهاز (اللابتوب الأساسي) يستلم المسح من الجوال</label>
     <label class="chk"><input type="checkbox" id="scOut" ${localStorage.getItem('ksr-scanout')==='1'?'checked':''}>هذا الجوال ماسح: كل باركود بيمسحه بينرسل للابتوب ومش بيضيفه لسلته</label>
@@ -2679,7 +2695,8 @@ document.addEventListener('input',e=>{ const t=e.target; if(['pCost','pPrice','p
     if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count)),c.discount).total; r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
 });
 document.addEventListener('change',e=>{
-  const t=e.target; if(t.id==='scIn'||t.id==='scOut'){ localStorage.setItem(t.id==='scIn'?'ksr-scanin':'ksr-scanout',t.checked?'1':'0'); toast(t.checked?'✓ اتفعّل':'اتوقف') }
+  const t=e.target; if(t.id==='wedgeOn'){ localStorage.setItem('ksr-wedge',t.checked?'1':'0'); toast(t.checked?'✓ القارئة السلكية شغّالة':'القارئة السلكية مطفية') }
+  if(t.id==='scIn'||t.id==='scOut'){ localStorage.setItem(t.id==='scIn'?'ksr-scanin':'ksr-scanout',t.checked?'1':'0'); toast(t.checked?'✓ اتفعّل':'اتوقف') }
   if(t.id==='stCashItems'&&isOwner()){ S.cashItems=t.checked; save(); toast(t.checked?'✓ الكاشير صار يضيف أصناف':'إضافة الأصناف للمالك بس') } if(t.id==='pItem'){ pChgUI.no=0; const c=$('#pChg'); if(c) c.checked=false; pItemUI() } if(t.id==='pChg'){ pChgUI.no=!t.checked; pChgUI(true) }
   if(t.id==='avIn'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; if(!isOwner()) return;
     avatarImg(f).then(d=>{S.avatar=d; save(); render(); toast('✓ انحطّت صورتك')}).catch(()=>toast('ما قدرنا نقرأ الصورة، جرّب صورة ثانية')); return }
@@ -2731,7 +2748,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261117105957'; let UPD=false;
+const BUILD='20261117121539'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
