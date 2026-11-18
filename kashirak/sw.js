@@ -1,5 +1,5 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v80';
+const CACHE='kashirak-v81';
 const PAGE='./';                 /* مفتاح واحد ثابت لصفحة التطبيق */
 const FILES=['manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png','icons/feat/barcode.jpg','icons/feat/chart.jpg','icons/feat/ledger.jpg','icons/feat/card.jpg','icons/feat/shield.jpg','icons/feat/receipt.jpg','icons/feat/coins.jpg','icons/feat/gift.jpg','icons/feat/calc.jpg'];
 /* المتصفح ما بيقبل يفتح صفحة محفوظة جاية من تحويل (redirect) وقت ما في نت، فبنحفظها دايمًا كنسخة نظيفة */
@@ -30,7 +30,7 @@ self.addEventListener('fetch',e=>{
       catch(err){ const p=await cached(); if(p) return p; try{return await net}catch(e2){ return new Response('<meta charset=utf-8><body style="font-family:sans-serif;text-align:center;padding:40px" dir=rtl><h2>افتح التطبيق مرة وحدة وإنت متصل بالنت</h2><p>بعدها بيشتغل بدون نت.</p></body>',{headers:{'content-type':'text/html; charset=utf-8'}}) } }
     })()); return }
   if(u.origin===location.origin&&u.searchParams.has('u')) return; /* فحص التحديثات: من الشبكة دايمًا */
-  if(u.origin===location.origin||/fonts\.(googleapis|gstatic)\.com|unpkg\.com/.test(u.host)){ /* الخطوط والملفات: المحفوظ أولًا */
+  if(u.origin===location.origin||/fonts\.(googleapis|gstatic)\.com|unpkg\.com|cdn\.jsdelivr\.net/.test(u.host)){ /* الخطوط والملفات: المحفوظ أولًا */
     e.respondWith(caches.match(r,{ignoreSearch:u.origin===location.origin&&/\.(png|jpg|svg|webmanifest|bin|json)$/.test(u.pathname)}).then(hit=>hit||fetch(r).then(res=>{if(res.ok||res.type==='opaque'){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res})));
   }
 });

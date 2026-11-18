@@ -378,7 +378,7 @@ main{padding-bottom:44px}
   #printArea{display:block;position:absolute;inset:0 auto auto 0;width:58mm}
   #printArea img{width:58mm;display:block}
 }
-.fh{display:block;font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;margin-top:3px}.vtick{position:absolute;bottom:-2px;inset-inline-end:-2px;width:18px;height:18px;border-radius:50%;background:#1D9BF0;color:#fff;font-size:11px;line-height:18px;text-align:center;border:2px solid #fff;font-weight:700}.gav,.avbtn,.bav{position:relative}
+.fh{display:block;font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;margin-top:3px}.vtick{position:absolute;bottom:-3px;right:-5px;width:42%;height:42%;min-width:18px;min-height:18px;max-width:34px;max-height:34px;z-index:2;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));pointer-events:none}.vtick svg{width:100%;height:100%;display:block}.gav,.avbtn,.bav{position:relative;overflow:visible!important}.gav img,.avbtn img{border-radius:50%}
 </style>
 </head>
 <body>
@@ -1765,7 +1765,7 @@ function renderSetup(){
 /* ===== حسابي: صورة صاحب المحل والاسم التجاري وبيانات الحساب ===== */
 const waOf=()=>(S&&S.wa)||(CL&&CL.wa)||'';
 const ownerName=()=>(S&&(S.owner||(CL&&CL.owner)))||'';
-const avHTML=()=>(S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0)))+(S&&status().paid?'<span class="vtick" title="مشترك موثّق">✓</span>':'');
+const avHTML=()=>(S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0)))+(S&&status().paid?'<span class="vtick" title="مشترك موثّق"><svg viewBox="0 0 40 40"><defs><linearGradient id="vtg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5CC8FF"/><stop offset=".55" stop-color="#1D9BF0"/><stop offset="1" stop-color="#0A6CC2"/></linearGradient><radialGradient id="vth" cx=".35" cy=".25" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><path fill="url(#vtg)" stroke="#fff" stroke-width="2.2" d="M20 2.5l4.2 3.1 5.2-.4 1.9 4.9 4.6 2.4-.9 5.1 2.6 4.5-3.6 3.8-.2 5.2-5 1.6-2.9 4.3-5-1.3-4.9 1.5-3-4.3-5.1-1.4-.4-5.2-3.7-3.7 2.5-4.6-1-5.1 4.6-2.5 1.8-4.9 5.2.3z"/><ellipse cx="16" cy="12" rx="10" ry="6.5" fill="url(#vth)"/><path d="M13 20.5l4.6 4.6 9.4-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':'');
 function greetTxt(){ const h=new Date().getHours(); return h<12?'صباح الخير':h<17?'نهارك سعيد':'مساء الخير' }
 function greetCard(){ const n=ownerName(), first=n.split(/\s+/)[0]||'';
   return `<button class="greet" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span style="flex:1;min-width:0">
@@ -1902,13 +1902,52 @@ function render(){
 
 /* ---------- barcode scanning ---------- */
 const scan={stream:null,timer:null,target:'sell',busy:false};
+/* المسح: BarcodeDetector إذا الجهاز بيدعمه (أندرويد/كروم)، وإلا ZXing (آيفون/سفاري وغيره) */
+const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const INAPP=/FBAN|FBAV|FB_IAB|Instagram|WhatsApp|Line\/|Snapchat|TikTok|musical_ly|; wv\)/i.test(navigator.userAgent);
+const BFMT=['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf'];
 async function detector(){
   if(!('BarcodeDetector' in window)) return null;
-  try{return new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','itf']})}catch(e){try{return new BarcodeDetector()}catch(e2){return null}}
+  try{ if(BarcodeDetector.getSupportedFormats){ const f=await BarcodeDetector.getSupportedFormats(); if(!f.includes('ean_13')) return null }
+    return new BarcodeDetector({formats:BFMT}) }catch(e){try{return new BarcodeDetector()}catch(e2){return null}}
 }
-function loadZX(){return new Promise(res=>{ if(window.ZXing) return res(true);
-  const s=document.createElement('script'); s.src='https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js';
-  s.onload=()=>res(!!window.ZXing); s.onerror=()=>res(false); document.head.appendChild(s)})}
+const ZXSRC=['https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js','https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js'];
+function loadZX(){ if(window.ZXing) return Promise.resolve(true); if(loadZX.p) return loadZX.p;
+  loadZX.p=(async()=>{ for(const u of ZXSRC){ const ok=await new Promise(res=>{const s=document.createElement('script'); s.src=u; s.onload=()=>res(!!window.ZXing); s.onerror=()=>{s.remove();res(false)}; document.head.appendChild(s)}); if(ok) return true }
+    loadZX.p=null; return false })(); return loadZX.p }
+function zxReader(){ const H=new Map(), F=ZXing.BarcodeFormat; H.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_128,F.CODE_39,F.ITF]); H.set(ZXing.DecodeHintType.TRY_HARDER,true);
+  const r=new ZXing.MultiFormatReader(); r.setHints(H); return r }
+/* بيقرأ إطار من الفيديو: نص الصورة (مكان الباركود) أول، وبعدين الإطار كامل */
+async function readFrame(eng,v){
+  if(eng.det){ const r=await eng.det.detect(v); return r.length?r[0].rawValue:null }
+  const c=eng.cv=eng.cv||document.createElement('canvas'), g=eng.g=eng.g||c.getContext('2d',{willReadFrequently:true}), vw=v.videoWidth, vh=v.videoHeight;
+  const tryBox=(sx,sy,sw,sh,w)=>{ const h=Math.round(sh*w/sw); c.width=w; c.height=h; g.drawImage(v,sx,sy,sw,sh,0,0,w,h);
+    try{ return eng.zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)))).getText() }catch(e){ return null } finally{ try{eng.zx.reset()}catch(e){} } };
+  eng.n=(eng.n||0)+1;
+  return eng.n%3? tryBox(vw*.1,vh*.3,vw*.8,vh*.4,Math.min(900,vw*.8)) : tryBox(0,0,vw,vh,Math.min(800,vw)) }
+async function scanEngine(){ const det=await detector(); if(det) return {det}; if(await loadZX()&&ZXing.MultiFormatReader) return {zx:zxReader()}; return null }
+/* فتح الكاميرا الخلفية: طلب مرن، ولو فشل بنجرّب أبسط */
+async function openCam(){
+  if(!window.isSecureContext) throw Object.assign(new Error('insecure'),{name:'Insecure'});
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw Object.assign(new Error('nocam'),{name:'NoCam'});
+  const tries=[{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},{facingMode:'environment'},true]; let last;
+  for(const v of tries){ try{ return await navigator.mediaDevices.getUserMedia({video:v,audio:false}) }catch(e){ last=e; if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError')) break } }
+  throw last }
+/* تركيز تلقائي وزوم بسيط (آيفونات الـ Pro ما بتركّز على القريب) */
+async function camTune(st){ try{ const t=st.getVideoTracks()[0], c=t.getCapabilities?t.getCapabilities():{}, adv=[];
+  if(c.focusMode&&c.focusMode.includes('continuous')) adv.push({focusMode:'continuous'});
+  if(c.zoom&&c.zoom.max>=1.5) adv.push({zoom:Math.min(c.zoom.max,Math.max(c.zoom.min||1,IOS?2:1.5))});
+  if(adv.length) await t.applyConstraints({advanced:adv}) }catch(e){} }
+async function vidStart(v,st){ v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.muted=true; v.autoplay=true; v.srcObject=st; try{ await v.play() }catch(e){} }
+function camErrTxt(e){ const n=e&&e.name;
+  if(INAPP) return 'الكاميرا ما بتشتغل من داخل واتساب أو فيسبوك أو إنستغرام. افتح الرابط بـ '+(IOS?'Safari':'Chrome')+': اضغط ⋯ أو زر المشاركة ← «فتح في المتصفح».';
+  if(n==='Insecure') return 'الكاميرا بدها الرابط الآمن https://marketingmiddleeast.com/kashirak';
+  if(n==='NotAllowedError'||n==='SecurityError') return IOS?'إذن الكاميرا مرفوض. بـ Safari: اضغط «aA» جنب الرابط ← إعدادات الموقع ← الكاميرا ← سماح. أو: الإعدادات ← Safari ← الكاميرا ← سماح. وبعدها اضغط «جرّب مرة ثانية».':'إذن الكاميرا مرفوض. اضغط 🔒 جنب الرابط ← الأذونات ← الكاميرا ← سماح، وبعدها «جرّب مرة ثانية».';
+  if(n==='NotReadableError') return 'الكاميرا مشغولة بتطبيق ثاني. سكّره وجرّب مرة ثانية.';
+  if(n==='NoCam'||n==='NotFoundError') return 'ما لقينا كاميرا على هالجهاز. امسح بقارئ الباركود أو اكتب الرقم.';
+  if(n==='NoDec') return 'ما قدرنا نحمّل قارئ الباركود. تأكد من النت مرة وحدة وجرّب، وبعدها بيشتغل بدون نت.';
+  return 'الكاميرا مش متاحة هون. صوّر الباركود بالزر أو اكتب الرقم.' }
+if(!('BarcodeDetector' in window)) setTimeout(()=>loadZX(),4000);
 async function decodeImage(img){
   const d=await detector();
   if(d){try{const r=await d.detect(img); if(r.length) return r[0].rawValue}catch(e){}}
@@ -1925,23 +1964,20 @@ function syncLive(){
   const box=$('#live'); if(!box) return;
   const show=!!S&&tab==='sell'&&REM.role!=='host', on=show&&S.liveCam!==false&&!document.hidden&&!$('#scanSheet').classList.contains('open');
   box.hidden=!show; box.classList.toggle('off',!!S&&S.liveCam===false);
-  $('#liveToggle').textContent=S&&S.liveCam===false?'تشغيل الكاميرا':'إيقاف الكاميرا';
+  const tg=$('#liveToggle'); if(LIVE.err&&S&&S.liveCam!==false){ tg.textContent='📷 جرّب مرة ثانية'; tg.dataset.act='liveRetry' } else { tg.textContent=S&&S.liveCam===false?'تشغيل الكاميرا':'إيقاف الكاميرا'; tg.dataset.act='liveToggle' }
   if(S&&S.liveCam===false) liveMsg('الكاميرا موقفة. المسح بقارئ الباركود أو بالكتابة');
-  if(on) startLive(); else stopLive();
+  if(on&&!LIVE.err) startLive(); else if(!on) stopLive();
 }
 async function startLive(){
   if(LIVE.stream||LIVE.starting) return; LIVE.starting=true; liveMsg('جارٍ تشغيل الكاميرا…');
   try{
-    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) throw new Error('nocam');
-    LIVE.det=LIVE.det||await detector();
-    if(!LIVE.det&&!LIVE.zx){ if(await loadZX()&&ZXing.MultiFormatReader) LIVE.zx=new ZXing.MultiFormatReader(); else throw new Error('nodec')}
-    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    if(INAPP) throw {name:'InApp'};
+    LIVE.eng=LIVE.eng||await scanEngine(); if(!LIVE.eng) throw {name:'NoDec'};
+    const st=await openCam();
     if(tab!=='sell'||S.liveCam===false||document.hidden){st.getTracks().forEach(t=>t.stop());LIVE.starting=false;return}
-    LIVE.stream=st; const v=$('#liveVid'); v.srcObject=st; try{await v.play()}catch(e){}
-    liveMsg('مرّر الباركود قدام الكاميرا'); clearInterval(LIVE.timer); LIVE.timer=setInterval(liveTick,160);
-  }catch(e){
-    liveMsg(e&&e.name==='NotAllowedError'?'اسمح للتطبيق باستخدام الكاميرا من إعدادات المتصفح':'الكاميرا المباشرة غير متاحة هنا. امسح بقارئ الباركود أو اكتب الرقم');
-  }
+    LIVE.stream=st; const v=$('#liveVid'); await vidStart(v,st); camTune(st); LIVE.fails=0;
+    liveMsg(IOS?'مرّر الباركود قدام الكاميرا · إذا ما قرأ بعّد الجوال شوي (15–20 سم)':'مرّر الباركود قدام الكاميرا'); clearInterval(LIVE.timer); LIVE.timer=setInterval(liveTick,LIVE.eng.det?160:220);
+  }catch(e){ LIVE.err=1; liveMsg(camErrTxt(e)); const tg=$('#liveToggle'); if(tg){tg.textContent='📷 جرّب مرة ثانية'; tg.dataset.act='liveRetry'} }
   LIVE.starting=false;
 }
 function stopLive(){clearInterval(LIVE.timer);LIVE.timer=null;if(LIVE.stream){LIVE.stream.getTracks().forEach(t=>t.stop());LIVE.stream=null}const v=$('#liveVid');if(v)v.srcObject=null}
@@ -1949,11 +1985,7 @@ async function liveTick(){
   if(LIVE.busy||!LIVE.stream) return;
   if($('#sheet').classList.contains('open')) return;
   const v=$('#liveVid'); if(!v||v.readyState<2||!v.videoWidth) return; LIVE.busy=true;
-  try{ let code=null;
-    if(LIVE.det){const r=await LIVE.det.detect(v); if(r.length) code=r[0].rawValue}
-    else if(LIVE.zx){const c=LIVE.cv=LIVE.cv||document.createElement('canvas'), w=720, hh=Math.round(v.videoHeight*w/v.videoWidth); c.width=w; c.height=hh;
-      c.getContext('2d').drawImage(v,0,0,w,hh);
-      try{code=LIVE.zx.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(c)))).getText()}catch(e){}}
+  try{ const code=await readFrame(LIVE.eng,v);
     const now=Date.now();
     if(code){const fresh=code!==LIVE.last||now-LIVE.lastSeen>1200; LIVE.last=code; LIVE.lastSeen=now; if(fresh) liveHit(code)}
   }catch(e){}
@@ -1966,25 +1998,29 @@ function liveHit(code){
   scan.target='sell'; onScan(code);
 }
 document.addEventListener('visibilitychange',()=>syncLive());
+window.addEventListener('pagehide',()=>{stopLive();stopScan()});
 function scanMsg(t){const m=$('#scanMsg'); if(m) m.textContent=t}
 async function openScan(target){
   scan.target=target; stopLive();
   $('#scanBox').innerHTML=`${sheetHead('مسح الباركود','scanClose')}
-    <video id="scanVid" playsinline muted hidden></video>
+    <video id="scanVid" playsinline webkit-playsinline muted autoplay hidden></video>
+    <button class="btn block" id="scanRetry" data-act="scanRetry" hidden>📷 جرّب مرة ثانية</button>
     <p class="muted" id="scanMsg" style="margin:0">جارٍ تشغيل الكاميرا…</p>
     <label class="btn primary block" for="scanFile">تصوير الباركود أو اختيار صورة</label>
     <input id="scanFile" type="file" accept="image/*" capture="environment" hidden>
     <div class="withbtn"><label for="scanTxt">أو اكتب الرقم<input id="scanTxt" inputmode="numeric" placeholder="مثال: 5285000391647"></label><button class="btn" data-act="scanTyped">تأكيد</button></div>`;
-  $('#scanSheet').classList.add('open');
-  const d=await detector();
+  $('#scanSheet').classList.add('open'); scanCam();
+}
+async function scanCam(){ stopScan(); const rb=$('#scanRetry'); if(rb) rb.hidden=true; scanMsg('جارٍ تشغيل الكاميرا…');
   try{
-    if(!d||!navigator.mediaDevices) throw 0;
-    scan.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    const v=$('#scanVid'); v.hidden=false; v.srcObject=scan.stream; await v.play();
-    scanMsg('وجّه الكاميرا على الباركود');
-    scan.timer=setInterval(async()=>{ if(scan.busy||!scan.stream) return; scan.busy=true;
-      try{const r=await d.detect(v); if(r.length) onScan(r[0].rawValue)}catch(e){} scan.busy=false},300);
-  }catch(e){scanMsg('المسح المباشر غير متاح في هذا العرض. صوّر الباركود بالزر وسأقرؤه من الصورة.')}
+    if(INAPP) throw {name:'InApp'};
+    const eng=await scanEngine(); if(!eng) throw {name:'NoDec'};
+    scan.stream=await openCam(); if(!$('#scanSheet').classList.contains('open')){stopScan();return}
+    const v=$('#scanVid'); v.hidden=false; await vidStart(v,scan.stream); camTune(scan.stream);
+    scanMsg(IOS?'وجّه الكاميرا على الباركود · إذا ما قرأ بعّد الجوال شوي':'وجّه الكاميرا على الباركود');
+    scan.timer=setInterval(async()=>{ if(scan.busy||!scan.stream) return; const v=$('#scanVid'); if(!v||v.readyState<2||!v.videoWidth) return; scan.busy=true;
+      try{const c=await readFrame(eng,v); if(c) onScan(c)}catch(e){} scan.busy=false}, eng.det?250:220);
+  }catch(e){ scanMsg(camErrTxt(e)+' وبتقدر تصوّر الباركود بالزر تحت.'); const rb=$('#scanRetry'); if(rb) rb.hidden=false }
 }
 /* الماسح بين الأجهزة: الجوال (ماسح) بيرسل الباركود للسيرفر، واللابتوب (الأساسي) بيستلمه ويضيفه للسلة */
 const scanOut={last:'',t:0};
@@ -2227,6 +2263,8 @@ go(d){tab=d.tab; if(tab==='more') sub='menu'; try{history.replaceState(null,'','
 openSub(d){tab='more'; sub=d.s; render(); $('#view').scrollTop=0},
 close(){closeSheet()},
 scan(d){openScan(d.target)},
+scanRetry(){scanCam()},
+liveRetry(){LIVE.err=0; stopLive(); syncLive()},
 scanClose(){closeScan()},
 scanTyped(){onScan($('#scanTxt').value)},
 cart(d){ci=+d.k; render()},
@@ -2863,7 +2901,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261118042639'; let UPD=false;
+const BUILD='20261118094638'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
