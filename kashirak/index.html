@@ -818,7 +818,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; return o}
+  o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
@@ -1502,7 +1502,8 @@ function alerts(){
   S.items.forEach(i=>{
     if(i.qty<=0) out.push({i,cls:'bad',txt:'خلص من المخزون'});
     else if(i.qty<=i.min) out.push({i,cls:'warn',txt:`باقي ${qtyTxt(i)} فقط`});
-    if(i.exp){const t=new Date(i.exp).getTime(), days=Math.ceil((t-sod())/DAY);
+    if(S.pharm){ const xq=pExpQ(i), b=(i.batches||[]).find(b=>b.q>0&&b.exp&&!pIsExp(b)); if(xq>0) out.push({i,cls:'bad',txt:`⛔ ${xq} منتهي الصلاحية`}); if(b&&b.exp<=pLimit()) out.push({i,cls:'warn',txt:`⏳ ${b.q} بتنتهي ${b.exp}`}); }
+    else if(i.exp){const t=new Date(i.exp).getTime(), days=Math.ceil((t-sod())/DAY);
       if(days<0) out.push({i,cls:'bad',txt:'منتهي الصلاحية'});
       else if(t<=soon) out.push({i,cls:'warn',txt:`ينتهي خلال ${days} يوم`});}
   });
@@ -1523,7 +1524,7 @@ function drawer(){
 /* شراء نفس الصنف بسعر تكلفة جديد: بنعرض الأسعار الحالية، وبنفتح خيار تحديث سعر البيع والجملة */
 function pInfoTxt(it){ if(!it) return ''; const u=it.byWeight?'للكيلو':'للحبة';
   return `الحالي ${u}: تكلفة <b class="num">${fx(it.cost)}</b> ₪ · بيع <b class="num">${fx(it.price)}</b> ₪${it.priceW?` · جملة <b class="num">${fx(it.priceW)}</b> ₪`:''} · بالمخزون <b class="num">${it.byWeight?wtTxt(it.qty):it.qty}</b>`}
-function pFindUI(q){ q=String(q||'').trim(); const sel=$('#pItem'); if(!sel||!q) return; const o=[...sel.options].find(o=>{const it=itemById(o.value); return it&&(it.barcode===q||it.name.includes(q))});
+function pFindUI(q){ q=String(q||'').trim(); const sel=$('#pItem'); if(!sel||!q) return; const o=[...sel.options].find(o=>{const it=itemById(o.value); return it&&(it.barcode===q||iHas(it,q))});
   if(o){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true})); const i=$('#pInfo'); if(i&&!i.innerHTML) pItemUI() } }
 function pFactor(){ const u=($('#pUnit')||{}).value||'piece'; if(u==='kg') return 1; if(u==='sack') return Math.max(0.001,parseFloat(($('#pSack')||{}).value)||0)||1; const cs=Math.max(1,parseFloat(($('#pCs')||{}).value)||1), bg=Math.max(1,parseFloat(($('#pBig')||{}).value)||1); return u==='piece'?1:u==='carton'?cs:cs*bg }
 function pUnitUI(){ const u=($('#pUnit')||{}).value||'piece', b=$('#pUnitBox'); if(!b) return; b.hidden=!['carton','big'].includes(u); const sb=$('#pSackBox'); if(sb) sb.hidden=u!=='sack'; const it=itemById($('#pItem').value);
@@ -1644,7 +1645,7 @@ sell(){
       <p class="muted" style="margin:0">المبلغ بينضاف مباشرة على حسابه بدفتر الديون.</p></div>`:''}
     ${tt.promo?`<div class="row" style="color:var(--good)"><span>عرض: ${esc(tt.promoTxt.join('، '))}</span><span>${money(-tt.promo)}</span></div>`:''}
     ${fee?`<div class="row muted"><span>رسوم الدفع بالتطبيق ${S.appFee}%</span>${money(fee)}</div>`:''}
-    ${xt(c)?`<div class="row"><span>➕ إضافة${c.extraNote?': '+esc(c.extraNote):''} <button class="lnk" data-act="extraAsk">تعديل</button></span>${money(xt(c))}</div>`:(c.lines.length?'<button class="btn block" data-act="extraAsk" style="font-size:14.5px">➕ إضافات مالية (توصيل، تغليف، أي مبلغ زيادة)</button>':'')}
+    ${xt(c)?`<div class="row"><span>➕ إضافة${c.extraNote?': '+esc(c.extraNote):''} <button class="lnk" data-act="extraAsk">تعديل</button></span>${money(xt(c))}</div>`:(c.lines.length&&!S.pharm?'<button class="btn block" data-act="extraAsk" style="font-size:14.5px">➕ إضافات مالية (توصيل، تغليف، أي مبلغ زيادة)</button>':'')}
     <div class="row"><span class="muted">الإجمالي${tt.disc?` بعد خصم ${fx(tt.disc)} ₪`:''}</span><span class="total">${money(gt)}</span></div>
     <div class="row muted"><span>بالدولار <span class="num">$ ${fx(gt/(S.rate||1))}</span></span><span>بالدينار <span class="num">${fx(gt/(S.rateJ||1))} JD</span></span></div>
     ${c.pay==='cash'?`<div class="withbtn"><label for="rcv">استلمت من الزبون<input id="rcv" class="cf" data-f="rcv" type="number" inputmode="decimal" min="0" value="${esc(c.rcv||'')}" placeholder="المبلغ"></label>
@@ -1663,7 +1664,7 @@ items(){
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
   <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
-  <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||i.name.includes(iq)||i.barcode.includes(iq)).map(i=>{
+  <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||iHas(i,iq)||i.barcode.includes(iq)).map(i=>{
     const st=i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
     return `<button class="li" data-act="editItem" data-id="${i.id}">
       <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span><br><span class="muted">${isOwner()?`تكلفة ${fx(i.cost)} · `:''}بيع ${fx(i.price)} ₪${i.cartonSize>1?` · كرتونة ${i.cartonSize}`:''}${i.barcode?'':' · بدون باركود'}<br>مبيع آخر 30 يوم: <span class="num">${sold[i.id]||0}</span>${isOwner()&&mOk()&&sold[i.id]?` · ربح <span class="num">${fx(sold[i.id]*(i.price-i.cost))}</span> ₪`:''}</span></span></span>
@@ -1697,6 +1698,7 @@ debts(){
     <span class="t">${esc(c.name)}</span><span>${b>0?`${money(b)} <span class="pill warn">عليه</span>`:b<0?`${money(-b)} <span class="pill ok">له رصيد</span>`:'<span class="pill ok">خالص</span>'}</span></button>`}).join('')}</div></div>`;
 },
 more(){
+  if(sub==='biz') return pBizView(); if(sub==='pexp'&&S.pharm) return pExpView();
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
     const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic">${svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
@@ -1705,9 +1707,9 @@ more(){
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
     ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
     ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
-    ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
+    ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
-    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
+    ${grp('الحساب والمساعدة',[['biz','مجال العمل',S.pharm?'💊 صيدلية مفعّلة':'محل عادي أو صيدلية','gear'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -1753,7 +1755,7 @@ more(){
   }
   if(sub==='log') return back('سجل المبيعات')+(S.returns.length?`<div class="card"><h2>آخر المرتجعات</h2><div class="list">${[...S.returns].reverse().slice(0,10).map(x=>`<button class="li" data-act="sale" data-id="${x.saleId}"><span><span class="t">${x.lines.map(l=>esc(l.name)+'×'+l.count).join('، ')}</span><br><span class="muted">فاتورة ${x.saleId} · ${fdate(x.ts)} · ${x.method==='debt'?'من الدين':'نقدي'}</span></span>${money(-x.amount)}</button>`).join('')}</div></div>`:'')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+`<div class="card"><div class="list">${[...S.sales].sort((a,b)=>b.ts-a.ts).slice(0,40).map(s=>`<button class="li" data-act="sale" data-id="${s.id}">
     <span><span class="t">فاتورة <span class="num">${s.id}</span></span><br><span class="muted">${fdate(s.ts)} · ${payLabel(s)}${s.confirmed===false?' · بانتظار التأكيد':''}</span></span>${money(s.total)}</button>`).join('')||'<div class="empty">لا فواتير</div>'}</div></div>`;
-  if(sub==='buy') return back('المشتريات')+`<button class="btn block" data-act="pdfGo" data-sel="buys">تحميل المشتريات PDF</button>`+`
+  if(sub==='buy') return back(S.pharm?'المشتريات من المستودعات':'المشتريات')+(S.pharm?'<button class="btn block" data-act="pRetSup">↩️ مرتجع للمستودع</button>':'')+`<button class="btn block" data-act="pdfGo" data-sel="buys">تحميل المشتريات PDF</button>`+`
     ${hint('لما توصلك بضاعة من المورد، سجّلها هون عشان تزيد المخزون وتعرف كم كلّفتك. إذا دفعت كاش بينخصم من الصندوق، وإذا دفعت بالدين بينضاف على حساب المورد (لازم تختار المورد). وإذا تغيّر السعر، فعّل «السعر تغيّر؟».')}
     <div class="card"><h2>استلام بضاعة</h2>
       <p class="fh" style="margin:0">💡 فاتورة فيها أكثر من صنف؟ سجّل الصنف الأول واضغط حفظ، المورد والصورة بيضلّوا، وكمّل الصنف الثاني من نفس الفاتورة.</p>
@@ -1761,12 +1763,12 @@ more(){
       <label for="pFind">بحث عن الصنف<input id="pFind" placeholder="اكتب اسم الصنف أو امسح الباركود" autocomplete="off"><small class="fh">اكتب أول حرفين وبيختارلك الصنف لحاله.</small></label>
       ${(()=>{const sp=S.suppliers.find(x=>x.id===+BUYSUP)||S.suppliers[0], my=(sp&&sp.items||[]).filter(x=>itemById(x.itemId)), ids=new Set(my.map(x=>x.itemId));
         return `<label for="pItem">الصنف<select id="pItem">${my.length?`<optgroup label="⭐ أصناف ${esc(sp.name)}">${my.map(x=>`<option value="${x.itemId}" data-pc="${x.price||''}">${esc(itemById(x.itemId).name)}${x.price?' · '+fx(x.price)+' ₪':''}</option>`).join('')}</optgroup><optgroup label="كل الأصناف">`:''}${S.items.filter(x=>!ids.has(x.id)).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}${my.length?'</optgroup>':''}</select></label>`})()}
-      <label for="pUnit">بتشتري بالـ<select id="pUnit"><option value="piece">حبة</option><option value="carton">كرتونة</option><option value="big">كرتونة كبيرة (فيها كراتين)</option><option value="kg">بالوزن (كيلو)</option><option value="sack">شوال أو كيس بالوزن (مثلاً 20 أو 50 كيلو)</option></select><small class="fh">مثال: كرتونة كبيرة فيها 10 كراتين، وكل كرتونة 24 حبة</small></label>
+      <label for="pUnit">بتشتري بالـ<select id="pUnit"><option value="piece">حبة</option><option value="carton">كرتونة</option><option value="big">كرتونة كبيرة (فيها كراتين)</option>${S.pharm?'':'<option value="kg">بالوزن (كيلو)</option><option value="sack">شوال أو كيس بالوزن (مثلاً 20 أو 50 كيلو)</option>'}</select><small class="fh">مثال: كرتونة كبيرة فيها 10 كراتين، وكل كرتونة 24 حبة</small></label>
       <label for="pSack" id="pSackBox" hidden>كم كيلو بالشوال؟<input id="pSack" type="number" inputmode="decimal" min="0" placeholder="مثلاً 25"><small class="fh">اكتب وزن الشوال الواحد، وبعدين تحت كم شوال استلمت.</small></label>
       <div class="grid2" id="pUnitBox" hidden><label for="pCs">حبات الكرتونة<input id="pCs" type="number" inputmode="numeric" min="1"></label><label for="pBig">كراتين بالكبيرة<input id="pBig" type="number" inputmode="numeric" min="1" value="10"></label></div>
       <div class="grid2"><label for="pQty">العدد<input id="pQty" type="number" inputmode="decimal" min="0"><small class="fh">كم حبة أو كرتونة استلمت</small></label>
         <label for="pCost">سعر الوحدة (₪)<input id="pCost" type="number" inputmode="decimal" min="0"><small class="fh">سعر الحبة أو الكرتونة حسب اختيارك</small></label></div>
-      <div id="pUnitInfo" class="muted" style="font-size:13.5px"></div>
+      ${pBuyFields()}<div id="pUnitInfo" class="muted" style="font-size:13.5px"></div>
       <div id="pInfo" class="pinfo">${pInfoTxt(S.items[0])}</div>
       <label class="chk pchg" for="pChg"><input type="checkbox" id="pChg">💲 السعر تغيّر؟ حدّث التكلفة وسعر البيع والجملة</label>
       <div id="pChgBox" class="pchgbox" hidden>
@@ -1889,9 +1891,9 @@ function renderResults(){
   const el=$('#results'); if(!el) return;
   const s=q.trim();
   if(!s){el.innerHTML='';return}
-  const found=S.items.filter(i=>i.name.includes(s)||i.barcode.includes(s)).slice(0,6);
-  el.innerHTML=`<div class="list">${found.map(i=>`<button class="li" data-act="add" data-id="${i.id}">
-    <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span><br><span class="muted">المتوفر ${qtyTxt(i)}</span></span></span><span>${money(i.price)} <span class="pill ok">أضف</span></span></button>`).join('')||'<div class="empty">لا يوجد صنف بهذا الاسم أو الباركود</div>'}</div>`;
+  const found=S.items.filter(i=>iHas(i,s)||i.barcode.includes(s)).slice(0,6);
+  el.innerHTML=`<div class="list">${found.map(i=>`<button class="li" data-act="${S.pharm&&pSellable(i)<=0&&pAlts(i).length?'pAlts':'add'}" data-id="${i.id}">
+    <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span>${pSub(i)}${S.pharm&&pSellable(i)<=0&&pAlts(i).length?' <span class="pill warn">خلص · شوف البدائل</span>':''}<br><span class="muted">المتوفر ${qtyTxt(i)}</span></span></span><span>${money(i.price)} <span class="pill ok">أضف</span></span></button>`).join('')||'<div class="empty">لا يوجد صنف بهذا الاسم أو الباركود</div>'}</div>`;
 }
 let INSTALL=null, BUYSUP='', EDV=null; const PHOTO={data:'',id:''}; const CHQ={dir:'in'};
 const standalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
@@ -2044,7 +2046,7 @@ function showSugs(inp){ const box=$('#sug_'+inp.id); if(!box) return; const L=cu
   const exact=L.length===1&&arNorm(L[0].name)===arNorm(inp.value);
   box.innerHTML=!L.length||exact?'':L.map(c=>{const b=balance(c);return `<button type="button" class="sug" data-act="pickCust" data-id="${c.id}" data-in="${inp.id}"><span class="sn">👤 ${esc(c.name)}${c.phone?` <small class="num" dir="ltr">${esc(c.phone)}</small>`:''}</span>${b>0?`<span class="sb">عليه <b class="num">${fx(b)}</b> ₪</span>`:b<0?`<span class="sb ok">رصيد <b class="num">${fx(-b)}</b> ₪</span>`:''}</button>`}).join('') }
 function edInvUI(q){ const s=S.sales.find(x=>x.id===EDV.id), sub=r2(EDV.lines.reduce((a,l)=>a+l.price*l.count,0)), old=r2(s.lines.reduce((a,l)=>a+l.price*l.count,0));
-  const Q=(q===undefined?(($('#edQ')||{}).value||''):q).trim(), R=Q?S.items.filter(i=>i.name.includes(Q)||i.barcode===Q).slice(0,6):[];
+  const Q=(q===undefined?(($('#edQ')||{}).value||''):q).trim(), R=Q?S.items.filter(i=>iHas(i,Q)||i.barcode===Q).slice(0,6):[];
   openSheet(`${sheetHead('تعديل الفاتورة '+s.id)}<p class="fh" style="margin:0">زيد أو نقّص أو احذف أو ضيف أصناف، والتعديل بينحفظ على نفس الفاتورة. سلّة البيع ما بتتأثر.</p>
     <div class="list">${EDV.lines.map((l,k)=>`<div class="li" style="gap:6px"><span class="grow"><span class="t">${esc(l.name)}</span><br><span class="muted">${fx(l.price)} ₪ · ${esc(l.unit||'')}</span></span>
       <button class="btn sm" data-act="edInvQ" data-k="${k}" data-v="-1">−</button><b class="num">${fx(l.count)}</b><button class="btn sm" data-act="edInvQ" data-k="${k}" data-v="1">+</button><button class="btn sm danger" data-act="edInvRm" data-k="${k}">✕</button></div>`).join('')}</div>
@@ -2492,6 +2494,7 @@ checkout(){
   const c=cart(); if(!c.lines.length){toast('أضف صنفًا للسلة أولًا');return}
   if(!needActive()) return;
   const lines=c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count,l.p)), tt=cartTotals(lines,c.discount), fee=appFeeOf(tt.total,c), extra=xt(c); tt.total=r2(tt.total+fee+extra); const pays=splitPays(tt.total,c);
+  if(!pCheckCart(lines)) return;
   if(!isOwner()&&tt.disc>r2(tt.sub*S.maxDisc/100)){toast(`أكبر خصم مسموح للكاشير ${S.maxDisc}% (${fx(tt.sub*S.maxDisc/100)} ₪)`);return}
   const dName=String(c.custName||'').trim().replace(/\s+/g,' ');
   if(pays.debt>0&&!dName){toast(`اكتب اسم الشخص لتسجيل الدين (${fx(pays.debt)} ₪)`);const f=$('#dName');if(f)f.focus();return}
@@ -2524,7 +2527,7 @@ editItem(d){
     <label for="fName">اسم الصنف<input id="fName" value="${esc(it.name)}"><small class="fh">الاسم اللي بيطلع بالبحث وعلى الفاتورة. اكتبه واضح، مثلاً: حليب نيدو 900غ</small></label>
     <label for="fBar">الباركود<input id="fBar" inputmode="numeric" value="${esc(it.barcode)}"><small class="fh">الرقم اللي تحت الخطوط على العلبة. امسحه بالكاميرا، أو إذا الصنف ما إله باركود اضغط «توليد باركود داخلي»</small></label>
     <div class="grid2"><button class="btn" data-act="scan" data-target="field">مسح بالكاميرا</button><button class="btn" data-act="genCode">توليد باركود داخلي</button></div>
-    <label for="fUnitSel">وحدة البيع<select id="fUnitSel"><option value="piece" ${!it.byWeight&&it.unitName!=='كرتونة'?'selected':''}>بالقطعة (حبة)</option><option value="kg" ${it.byWeight?'selected':''}>بالكيلو (بالوزن)</option><option value="box" ${it.unitName==='كرتونة'?'selected':''}>بالكرتونة</option></select><small class="fh">كيف بتبيع الصنف: بالحبة، أو بالكيلو للبهارات والخضرة (والبيع بالغرام أو بالمبلغ)، أو كرتونة كاملة.</small></label>
+    <label for="fUnitSel">وحدة البيع<select id="fUnitSel"><option value="piece" ${!it.byWeight&&it.unitName!=='كرتونة'?'selected':''}>بالقطعة (حبة)</option>${S.pharm?'':'<option value="kg" '+(it.byWeight?'selected':'')+'>بالكيلو (بالوزن)</option>'}<option value="box" ${it.unitName==='كرتونة'?'selected':''}>بالكرتونة</option></select><small class="fh">كيف بتبيع الصنف: بالحبة، أو بالكيلو للبهارات والخضرة (والبيع بالغرام أو بالمبلغ)، أو كرتونة كاملة.</small></label>
     <div style="display:flex;gap:10px;align-items:center"><span id="fImgPrev">${it.img?`<img src="${it.img}" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover">`:''}</span><label class="btn" for="fImg" style="flex:1">📷 ${it.img?'تغيير صورة الصنف':'إضافة صورة للصنف (اختياري)'}</label>${it.img?'<button class="btn sm" data-act="imgDel">حذف الصورة</button>':''}<input id="fImg" type="file" accept="image/*" hidden></div>
     <label class="chk" for="fW" hidden><input type="checkbox" id="fW" ${it.byWeight?'checked':''}>يُباع بالوزن: التكلفة والسعر للكيلو، والبيع بالغرام<small class="fh">علّم عليها للأشياء اللي بتنوزن (خضرة، لحمة، بزر). الأسعار بتكتبها للكيلو</small></label>
     <div id="wPrev" class="muted" style="font-size:13.5px;margin-top:-4px">${wPrevTxt(it.byWeight,it.cost,it.price)}</div>
@@ -2535,14 +2538,14 @@ editItem(d){
     ${!isOwner()&&it.id?'':`<div class="grid2"><label for="fQty">${wh?'كمية المحل':'الكمية (حبة أو كغ)'}<input id="fQty" type="number" inputmode="decimal" value="${it.qty}"><small class="fh">قديش عندك منه هلأ بالمحل. بتنقص لحالها مع كل بيعة</small></label>
       <label for="fMin">نبّهني عند<input id="fMin" type="number" inputmode="decimal" value="${it.min}"><small class="fh">لما الكمية توصل لهالرقم بيطلعلك تنبيه إنه قرّب يخلص</small></label></div>`}
     ${S.wh&&!wh?whq:''}
-    <div class="card" style="box-shadow:none;gap:8px"><b>أسعار ثانية لنفس الصنف (اختياري)</b><small class="fh">لما الصنف بينباع بأكثر من طريقة. مثال البيض: الطبق الكامل بالكرتونة فوق، و«نص طبق» 15 حبة بـ16، و«4 حبات» بـ5. وقت البيع بتختار الطريقة بضغطة.</small>
-      ${[0,1,2].map(j=>{const pk=(it.packs||[])[j]||{};return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px"><input id="fPk${j}n" placeholder="الاسم: نص طبق" value="${esc(pk.n||'')}" aria-label="اسم الطريقة"><input id="fPk${j}q" type="number" inputmode="decimal" placeholder="كم حبة" value="${pk.q||''}" aria-label="كم حبة"><input id="fPk${j}p" type="number" inputmode="decimal" placeholder="السعر" value="${pk.p||''}" aria-label="السعر"></div>`}).join('')}
+    <div class="card" style="box-shadow:none;gap:8px"><b>${S.pharm?'💊 البيع بالعلبة والشريط والحبة':'أسعار ثانية لنفس الصنف (اختياري)'}</b>${S.pharm?'<small class="fh">المخزون بينحسب بالحبة. اكتب كل وحدة وكم حبة فيها وسعرها. مثال: «شريط» 10 حبات بـ8، «علبة» 30 حبة بـ22. وقت البيع بتختار علبة أو شريط أو حبة.</small>':''}<small class="fh" ${S.pharm?'hidden':''}>لما الصنف بينباع بأكثر من طريقة. مثال البيض: الطبق الكامل بالكرتونة فوق، و«نص طبق» 15 حبة بـ16، و«4 حبات» بـ5. وقت البيع بتختار الطريقة بضغطة.</small>
+      ${[0,1,2].map(j=>{const pk=(it.packs||[])[j]||{};return `<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px"><input id="fPk${j}n" placeholder="${S.pharm?['علبة','شريط','زجاجة'][j]:'الاسم: نص طبق'}" value="${esc(pk.n||'')}" aria-label="اسم الطريقة"><input id="fPk${j}q" type="number" inputmode="decimal" placeholder="كم حبة" value="${pk.q||''}" aria-label="كم حبة"><input id="fPk${j}p" type="number" inputmode="decimal" placeholder="السعر" value="${pk.p||''}" aria-label="السعر"></div>`}).join('')}
       <small class="fh">الربح دايماً بينحسب على سعر التكلفة للحبة، مهما كان سعر البيع.</small></div>
     <div class="grid2"><label for="fPw">سعر الجملة (₪)<input id="fPw" type="number" inputmode="decimal" value="${it.priceW||''}" placeholder="اختياري"><small class="fh">سعر خاص لتجار المفرّق أو الزبون الكبير. بتختاره وقت البيع</small></label>
       <label for="fPromo">عرض: اشتري كم وخذ كم مجانًا<span class="row" style="gap:6px"><input id="fPb" type="number" inputmode="numeric" min="0" value="${it.promoBuy||''}" placeholder="اشتري" aria-label="اشتري"><input id="fPg" type="number" inputmode="numeric" min="0" value="${it.promoGet||''}" placeholder="مجانًا" aria-label="مجانًا"></span></label></div>
     <div class="grid2"><label for="fCs">حبات الكرتونة<input id="fCs" type="number" inputmode="numeric" value="${it.cartonSize||''}" placeholder="اختياري"><small class="fh">كم حبة بالكرتونة، عشان تبيع كرتونة كاملة بضغطة</small></label>
       <label for="fCp">سعر الكرتونة (₪)<input id="fCp" type="number" inputmode="decimal" value="${it.cartonPrice||''}" placeholder="اختياري"><small class="fh">سعر الكرتونة كاملة، غالباً أرخص من الحبة بالمفرق</small></label></div>
-    <label for="fExp">تاريخ انتهاء الصلاحية<input id="fExp" type="date" value="${esc(it.exp)}"><small class="fh">اختياري. التطبيق بينبهك قبل ما ينتهي عشان تبيعه أو ترجعه</small></label>
+    ${pItemFields(it)}<label for="fExp" ${S.pharm&&it.id?'hidden':''}>${S.pharm?'تاريخ انتهاء الكمية الحالية':'تاريخ انتهاء الصلاحية'}<input id="fExp" type="date" value="${esc(it.exp)}"><small class="fh">اختياري. التطبيق بينبهك قبل ما ينتهي عشان تبيعه أو ترجعه</small></label>
     ${eanValid(it.barcode)?`<div class="label"><b>${esc(it.name)}</b> · ${fx(it.price)} ₪<br>${eanSvg(it.barcode)}</div>`:''}
     ${it.id?'<p class="fh" style="margin:0">«مقاس أو لون ثاني»: لنفس الصنف بأحجام أو ألوان مختلفة، كل واحد بباركود وسعر. «جرد»: تصحيح الكمية لما تعدّ البضاعة بإيدك. «سجل الحركة»: كل بيع وشراء صار على هالصنف.</p>':''}
     ${it.id?`<button class="btn block" data-act="variant" data-id="${it.id}">إضافة مقاس أو لون ثاني من هالصنف</button>`:''}
@@ -2563,6 +2566,7 @@ saveItem(){
   const data={name:v('fName'),barcode:bar,cost:n('fCost'),price:n('fPrice'),qty:Math.max(0,w?r3(qv):Math.round(qv)),wqty:S.wh?Math.max(0,parseFloat(v('fWQty'))||0):((it&&it.wqty)||0),min:n('fMin'),
     cartonSize:w?0:Math.round(n('fCs')),cartonPrice:w?0:n('fCp'),exp:v('fExp'),byWeight:w,priceW:n('fPw'),promoBuy:Math.round(n('fPb')),promoGet:Math.round(n('fPg')),unitName:usel==='box'?'كرتونة':'',
     packs:w?[]:[0,1,2].map(j=>({n:v('fPk'+j+'n').trim(),q:+v('fPk'+j+'q')||0,p:r2(+v('fPk'+j+'p')||0)})).filter(x=>x.n&&x.q>0&&x.p>0),img:ITEMIMG===''?'':(ITEMIMG||(it&&it.img)||'')};
+  pItemData(data,!it);
   if((data.promoBuy>0)!==(data.promoGet>0)){toast('العرض بدّه رقمين: اشتري كم، ومجانًا كم');return}
   if(data.cartonSize>1&&!data.cartonPrice) data.cartonPrice=r2(data.price*data.cartonSize);
   if(it&&!isOwner()){ data.cost=it.cost; data.qty=it.qty; data.min=it.min }
@@ -2608,14 +2612,15 @@ addBuy(){
   if(!sup&&paid==='credit'){toast('للشراء على الحساب، أضف المورد أول من قسم الموردين');return}
   if(!needActive()) return;
   if(!it||qty<=0||cost<=0){toast('اكتب الكمية وتكلفة الوحدة');return}
+  if(!pBuyCheck(it)) return;
   const chg=$('#pChg')&&$('#pChg').checked, cm=(document.querySelector('[name=pCm]:checked')||{}).value, np=r2(parseFloat(($('#pPrice')||{}).value)||0), nw=r2(parseFloat(($('#pPw')||{}).value)||0), oc=it.cost, op=it.price, ow=it.priceW||0;
-  const total=r2(qty*cost), ts=Date.now(); receive(it,qty,cost);
+  const total=r2(qty*cost), ts=Date.now(); const pb=pBuyBatch(it,qty); receive(it,qty,cost);
   if(chg){ if(cm==='new') it.cost=cost; if(np>0) it.price=np; if(nw>0) it.priceW=nw; else if(($('#pPw')||{}).value==='') delete it.priceW;
     const ch=[]; if(r2(it.cost)!==r2(oc)) ch.push(`التكلفة ${fx(oc)} ← ${fx(it.cost)}`); if(it.price!==op) ch.push(`البيع ${fx(op)} ← ${fx(it.price)}`); if((it.priceW||0)!==ow) ch.push(`الجملة ${fx(ow)} ← ${fx(it.priceW||0)}`);
     if(ch.length) audit(`تغيير سعر ${it.name}: ${ch.join('، ')}`) }
   if(PHOTO.data&&!PHOTO.id){PHOTO.id='img'+Date.now(); const pid=PHOTO.id, dat=PHOTO.data; idb('readwrite',st=>st.put(dat,pid))}
   if(unit!=='piece'&&+$('#pCs').value>0) it.cartonSize=+$('#pCs').value;
-  S.purchases.push({id:S.nextId++,ts,supId:sup?sup.id:null,itemId:it.id,name:it.name,qty,cost,total,paid,wallet:wal||undefined,unitTxt:unit==='piece'?'':unit==='kg'?`${uq} كيلو`:unit==='sack'?`${uq} شوال × ${fx(f)} كيلو`:`${uq} ${unit==='carton'?'كرتونة':'كرتونة كبيرة'}`,photo:PHOTO.id||''});
+  S.purchases.push({id:S.nextId++,ts,supId:sup?sup.id:null,itemId:it.id,name:it.name,qty,cost,total,paid,wallet:wal||undefined,unitTxt:unit==='piece'?'':unit==='kg'?`${uq} كيلو`:unit==='sack'?`${uq} شوال × ${fx(f)} كيلو`:`${uq} ${unit==='carton'?'كرتونة':'كرتونة كبيرة'}`,photo:PHOTO.id||'',...(pb?{exp:pb.exp,lot:pb.lot}:{})});
   if(sup){ sup.items=sup.items||[]; const si=sup.items.find(x=>x.itemId===it.id); if(si) si.price=r2(uc); else sup.items.push({itemId:it.id,price:r2(uc)}) }
   BUYSUP=sup?sup.id:'';
   if(paid==='credit'&&sup) sup.ledger.push({ts,amt:total,note:`فاتورة شراء: ${it.name}`});
@@ -2920,7 +2925,7 @@ whAsk(){ openSheet(`${sheetHead('إضافة بضاعة للمخزن')}
   <label for="wItem">الصنف<select id="wItem">${S.items.map(i=>`<option value="${i.id}">${esc(i.name)} · بالمخزن ${r3(i.wqty||0)}</option>`).join('')}</select></label>
   <label for="wQty">الكمية اللي بتنضاف للمخزن<input id="wQty" type="number" inputmode="decimal" value="1"></label>
   <button class="btn block" data-act="whSave">حفظ الكمية</button>`)},
-whFind(){const q=($('#wBar').value||'').trim(); if(!q) return; const it=S.items.find(i=>i.barcode===q)||S.items.find(i=>i.name.includes(q));
+whFind(){const q=($('#wBar').value||'').trim(); if(!q) return; const it=S.items.find(i=>i.barcode===q)||S.items.find(i=>iHas(i,q));
   if(!it){ if(/^\d{6,}$/.test(q)){ A.editItem({id:0,wh:1,bar:q}); return } toast('ما لقيت الصنف'); return }
   $('#wItem').value=it.id; toast('✓ '+it.name)},
 whSave(){ const sel=$('#wItem').value, q=r3(parseFloat($('#wQty').value)); if(!(q>0)){toast('اكتب كمية أكبر من صفر');return}
@@ -3065,6 +3070,142 @@ function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتا�
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
 const OWNER_ONLY=new Set(['edInv','edInvSave','editSaleAsk','editSale','delSaleAsk','delSale','multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+/* ===================== نظام الصيدلية =====================
+   بيتفعّل من المزيد ← مجال العمل. المحلات اللي ما فعّلت ما بيتغيّر عندها إشي.
+   المخزون بينحسب بأصغر وحدة (الحبة). كل كمية إلها تشغيلة: {q, exp, lot}.
+   مجموع التشغيلات دايمًا = كمية الصنف: أي نقص (بيع) بينسحب من الأقرب انتهاءً (غير المنتهي)، وأي زيادة بدون تشغيلة بتنحط كتشغيلة بدون تاريخ. */
+const PFORMS=['حبوب','كبسولات','شراب','نقط','تحاميل','إبر','مرهم','كريم','بخاخ','فوار','أخرى'];
+const pToday=()=>{const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const pLimit=()=>{const d=new Date(); d.setMonth(d.getMonth()+(+S.expWarnM||3)); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const pIsExp=b=>!!b.exp&&b.exp<pToday();
+function pSync(it){
+  if(!it||it.byWeight) return; let B=it.batches=(it.batches||[]).filter(b=>b&&b.q>0);
+  const qty=Math.max(0,+it.qty||0);
+  if(!B.length&&qty>0){ B.push({q:qty,exp:it.exp||'',lot:''}); }
+  let diff=r3(qty-B.reduce((a,b)=>a+b.q,0));
+  if(diff<0){ /* بيع أو نقص: من الأقرب انتهاءً (الصالح أول، وبعدين بدون تاريخ، والمنتهي آخر إشي) */
+    const rank=b=>pIsExp(b)?'3':b.exp?'1'+b.exp:'2';
+    [...B].sort((a,b)=>rank(a)<rank(b)?-1:1).forEach(b=>{ if(diff>=0) return; const t=Math.min(b.q,-diff); b.q=r3(b.q-t); diff=r3(diff+t) });
+  } else if(diff>0){ const u=B.find(b=>!b.exp&&!b.lot); if(u) u.q=r3(u.q+diff); else B.push({q:diff,exp:'',lot:''}) }
+  it.batches=B.filter(b=>b.q>0).sort((a,b)=>(a.exp||'9')<(b.exp||'9')?-1:1);
+  const ok=it.batches.find(b=>b.exp&&!pIsExp(b))||it.batches.find(b=>b.exp); it.exp=ok?ok.exp:'';
+}
+const pSellable=it=>!S.pharm||!it.batches?it.qty:r3(it.batches.filter(b=>!pIsExp(b)).reduce((a,b)=>a+b.q,0));
+const pExpQ=it=>S.pharm&&it.batches?r3(it.batches.filter(pIsExp).reduce((a,b)=>a+b.q,0)):0;
+const iHas=(i,q)=>{ if(i.name.includes(q)) return true; if(!S.pharm||!q) return false; const l=q.toLowerCase(); return !!(i.sci&&i.sci.toLowerCase().includes(l))||!!(i.trade&&i.trade.includes(q)) };
+const pAlts=it=>it&&it.sci?S.items.filter(x=>x.id!==it.id&&x.sci&&x.sci.trim().toLowerCase()===it.sci.trim().toLowerCase()&&String(x.conc||'').replace(/\s/g,'').toLowerCase()===String(it.conc||'').replace(/\s/g,'').toLowerCase()):[];
+const pSub=i=>S.pharm&&(i.sci||i.conc||i.form)?`<br><span class="muted" style="font-size:12.5px" dir="auto">${esc([i.sci,i.conc,i.form].filter(Boolean).join(' · '))}${i.shelf?' · 📍 '+esc(i.shelf):''}${i.fridge?' · ❄️':''}</span>`:'';
+function pApplyWords(){ const t=TABS.find(x=>x[0]==='items'); if(t) t[1]=S&&S.pharm?'الأدوية':'الأصناف' }
+/* ---------- البيع: منع المنتهي ---------- */
+function pCheckCart(lines){ if(!S.pharm) return true; const need={};
+  lines.forEach(l=>{ need[l.itemId]=r3((need[l.itemId]||0)+l.baseQty) });
+  const bad=Object.keys(need).map(id=>itemById(id)).filter(it=>it&&need[it.id]>pSellable(it)+1e-9&&pExpQ(it)>0);
+  if(!bad.length) return true;
+  beep(false); try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(_){}
+  openSheet(`${sheetHead('⛔ ممنوع بيع دواء منتهي')}
+    <div class="tile" style="background:#FDECEC;border-color:#E9A3A3;color:#8A1C1C"><b>الكمية الصالحة ما بتكفي، والباقي منتهي الصلاحية</b></div>
+    <div class="list">${bad.map(it=>`<div class="li"><span><b>${esc(it.name)}</b><br><span class="muted">مطلوب ${need[it.id]} · الصالح ${pSellable(it)} · المنتهي ${pExpQ(it)}</span></span></div>`).join('')}</div>
+    <p class="muted" style="margin:0">قلّل الكمية بالسلة، واسحب المنتهي من الرف وسجّله «إتلاف» من تقرير الصلاحية.</p>
+    <button class="btn primary block" data-act="close">تمام</button><button class="btn block" data-act="openSub" data-s="pexp">تقرير الصلاحية</button>`);
+  return false }
+function pWarnAdd(it){ if(!S.pharm||!it) return; const used=cart().lines.filter(l=>l.itemId===it.id).reduce((a,l)=>a+lineOf(it,l.unit,l.count,l.p).baseQty,0);
+  if(used>pSellable(it)&&pExpQ(it)>0){ beep(false); toast(`⛔ ${it.name}: الكمية الصالحة ${pSellable(it)} بس، والباقي منتهي`); return }
+  const b=(it.batches||[]).find(b=>b.q>0&&!pIsExp(b)); if(b&&b.exp&&b.exp<=pLimit()) toast(`⚠ ${it.name} بينتهي ${b.exp}`);
+  if(it.shelf||it.fridge) setTimeout(()=>toast(`${it.shelf?'📍 مكانه: '+it.shelf:''}${it.fridge?' ❄️ من الثلاجة':''}`),1300) }
+/* ---------- حقول الدواء بشاشة الصنف ---------- */
+function pItemFields(it){ if(!S.pharm) return ''; const k=it.kind||'med';
+  return `<div class="card" style="box-shadow:none;gap:8px;border:1.5px solid var(--gold)"><b>💊 بيانات الصيدلية</b>
+    <label for="fKind">النوع<select id="fKind"><option value="med" ${k==='med'?'selected':''}>دواء</option><option value="sup" ${k==='sup'?'selected':''}>مستلزمات (حليب أطفال، حفاضات، تجميل، فيتامينات)</option></select><small class="fh">الدواء إله اسم علمي وتركيز وشكل. المستلزمات بتنباع بالقطعة أو الكرتونة.</small></label>
+    <label for="fSci">الاسم العلمي (المادة الفعالة)<input id="fSci" dir="auto" value="${esc(it.sci||'')}" placeholder="مثلاً Paracetamol"><small class="fh">بتقدر تبحث فيه وقت البيع، ومنه بنطلعلك «البدائل».</small></label>
+    <div class="grid2"><label for="fConc">التركيز<input id="fConc" dir="ltr" value="${esc(it.conc||'')}" placeholder="500mg"></label>
+      <label for="fForm">الشكل الدوائي<select id="fForm"><option value="">—</option>${PFORMS.map(f=>`<option ${it.form===f?'selected':''}>${f}</option>`).join('')}</select></label></div>
+    <div class="grid2"><label for="fShelf">مكانه بالرف<input id="fShelf" value="${esc(it.shelf||'')}" placeholder="مثلاً رف 3 - ب"><small class="fh">بيطلعلك وقت البيع عشان تلاقيه بسرعة</small></label>
+      <label class="chk" for="fFridge" style="align-self:center"><input type="checkbox" id="fFridge" ${it.fridge?'checked':''}>❄️ يُحفظ بالثلاجة</label></div>
+    ${it.id&&pAlts(it).length?`<button class="btn" data-act="pAlts" data-id="${it.id}">🔁 البدائل (${pAlts(it).length})</button>`:''}
+    ${it.id&&(it.batches||[]).length?`<b style="margin-top:4px">التشغيلات بالمخزون</b><div class="list">${it.batches.map(b=>`<div class="li"><span>${b.lot?'تشغيلة <span class="num" dir="ltr">'+esc(b.lot)+'</span>':'بدون رقم تشغيلة'}<br><span class="muted">${b.exp?'ينتهي '+b.exp:'بدون تاريخ انتهاء'}</span></span><span class="num" style="color:var(--${pIsExp(b)?'bad':b.exp&&b.exp<=pLimit()?'warn':'ink'})">${b.q}${pIsExp(b)?' منتهي':''}</span></div>`).join('')}</div><small class="fh">البيع بيسحب لحاله من الأقرب انتهاءً. الكمية الجديدة بتنضاف من «المشتريات» مع تاريخها وتشغيلتها.</small>`:''}
+    ${it.id?'':`<label for="fLot">رقم التشغيلة (Batch) للكمية الحالية<input id="fLot" dir="ltr" placeholder="اختياري"></label>`}
+  </div>` }
+function pItemData(data,isNew){ if(!S.pharm) return; const v=id=>(($('#'+id)||{}).value||'').trim();
+  Object.assign(data,{kind:v('fKind')||'med',sci:v('fSci'),conc:v('fConc'),form:v('fForm'),shelf:v('fShelf'),fridge:!!($('#fFridge')||{}).checked,byWeight:false}); if(data.unitName==='كرتونة'&&data.kind==='med') data.unitName='';
+  if(isNew) data.batches=data.qty>0?[{q:data.qty,exp:data.exp||'',lot:(($('#fLot')||{}).value||'').trim()}]:[] }
+/* ---------- المشتريات: تاريخ الانتهاء والتشغيلة ---------- */
+const pBuyFields=()=>S.pharm?`<div class="grid2"><label for="pExp">تاريخ الانتهاء<input id="pExp" type="date"><small class="fh">إلزامي للدواء. منه بيطلع التنبيه</small></label><label for="pLot">رقم التشغيلة (Batch)<input id="pLot" dir="ltr" placeholder="مثلاً A2391"></label></div>`:'';
+function pBuyCheck(it){ if(!S.pharm) return true; const e=($('#pExp')||{}).value||'';
+  if(!e&&(it.kind||'med')==='med'){ toast('اكتب تاريخ انتهاء الدواء'); const f=$('#pExp'); if(f) f.focus(); return false }
+  if(e&&e<pToday()){ beep(false); toast('⛔ التاريخ منتهي. ما بنستلم دواء منتهي'); return false } return true }
+function pBuyBatch(it,qty){ if(!S.pharm) return null; pSync(it); const b={q:qty,exp:($('#pExp')||{}).value||'',lot:(($('#pLot')||{}).value||'').trim()};
+  const same=it.batches.find(x=>x.exp===b.exp&&x.lot===b.lot); if(same) same.q=r3(same.q+qty); else it.batches.push(b); return b }
+/* ---------- إتلاف المنتهي ومرتجع المستودع ---------- */
+function pTake(it,bi,q){ const b=it.batches[bi]; if(!b||q<=0||q>b.q) return false; b.q=r3(b.q-q); it.qty=r3(Math.max(0,it.qty-q)); return true }
+function pExpView(){
+  const lim=pLimit(), ex=[], soon=[];
+  S.items.forEach(it=>(it.batches||[]).forEach((b,bi)=>{ if(b.q<=0||!b.exp) return; if(pIsExp(b)) ex.push([it,b,bi]); else if(b.exp<=lim) soon.push([it,b,bi]) }));
+  soon.sort((a,b)=>a[1].exp<b[1].exp?-1:1); const lossV=r2((S.pLoss||[]).reduce((a,x)=>a+x.q*x.cost,0));
+  const row=([it,b,bi],x)=>`<div class="li"><span><b>${esc(it.name)}</b>${b.lot?' · <span class="num" dir="ltr">'+esc(b.lot)+'</span>':''}<br><span class="muted">${x?'انتهى':'ينتهي'} ${b.exp} · الكمية <span class="num">${b.q}</span> · ${fx(b.q*it.cost)} ₪</span></span><span class="row" style="gap:6px">${x?`<button class="btn sm danger" data-act="pDispose" data-id="${it.id}" data-b="${bi}">إتلاف</button>`:''}<button class="btn sm" data-act="pRetSup" data-id="${it.id}" data-b="${bi}">مرتجع</button></span></div>`;
+  return back('⏳ تقرير الصلاحية')+hint(`هون بتشوف الأدوية المنتهية، واللي بتنتهي خلال <b>${S.expWarnM||3} أشهر</b>. المنتهي ممنوع ينباع. اسحبه من الرف واضغط «إتلاف» (بينحسب خسارة)، أو «مرتجع» إذا المستودع بيرجّعه.`)+`
+   <div class="card"><h2>⛔ منتهي (${ex.length})</h2><div class="list">${ex.map(r=>row(r,1)).join('')||'<div class="empty">ما في إشي منتهي 👌</div>'}</div></div>
+   <div class="card"><h2>⚠ بينتهي قريب (${soon.length})</h2><div class="list">${soon.map(r=>row(r,0)).join('')||'<div class="empty">ما في إشي قرّب ينتهي</div>'}</div></div>
+   <div class="card"><h2>خسارة المنتهي</h2><div class="row"><span>مجموع اللي انتلف</span>${money(lossV)}</div>
+    <div class="list">${[...(S.pLoss||[])].reverse().slice(0,30).map(x=>`<div class="li"><span>${esc(x.name)} × ${x.q}<br><span class="muted">${fday(x.ts)} · انتهى ${x.exp}</span></span><span class="num">${fx(x.q*x.cost)} ₪</span></div>`).join('')}</div></div>
+   <div class="card"><h2>مدة التنبيه</h2><div class="row"><span>نبّهني قبل الانتهاء بـ</span><span class="row" style="gap:6px"><input id="pWarnM" type="number" min="1" max="24" value="${S.expWarnM||3}" style="width:80px" aria-label="أشهر"> شهر <button class="btn sm primary" data-act="pWarnSave">حفظ</button></span></div></div>` }
+function pBizView(){ const on=!!S.pharm;
+  return back('مجال العمل')+hint('اختار نوع شغلك. إذا اخترت <b>صيدلية</b> بيتحوّل التطبيق كله لنظام صيدلية: تاريخ انتهاء وتشغيلة لكل كمية، البيع بالعلبة والشريط والحبة، الاسم العلمي والبدائل، ومنع بيع المنتهي. الميزان والبيع بالكيلو بيختفوا.')+`
+   <div class="card" style="gap:10px">${on?`<div class="rempill"><span>💊 نظام الصيدلية مفعّل</span></div>
+     <p class="muted" style="margin:0">بدك ترجع لنظام المحل العادي؟ اكتب <b>إلغاء</b> واضغط. بياناتك (التشغيلات والأدوية) بتضل محفوظة.</p>
+     <input id="pAct" autocomplete="off" placeholder="اكتب: إلغاء"><button class="btn block" data-act="pActGo">رجوع لنظام المحل العادي</button>`
+   :`<label class="chk"><input type="radio" name="pBiz" value="shop" checked>🏪 محل / سوبر ماركت (الوضع الحالي)</label>
+     <label class="chk"><input type="radio" name="pBiz" value="pharm">💊 صيدلية</label>
+     <label for="pAct">للتأكيد اكتب كلمة <b>تفعيل</b><input id="pAct" autocomplete="off" placeholder="تفعيل"></label>
+     <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
+Object.assign(A,{
+  pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
+    if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
+    if((document.querySelector('[name=pBiz]:checked')||{}).value!=='pharm'){toast('اختار «صيدلية» أول');return}
+    if(v!=='تفعيل'){toast('اكتب كلمة «تفعيل» للتأكيد');return}
+    S.pharm=true; if(!S.expWarnM) S.expWarnM=3; S.items.forEach(i=>{ if(i.byWeight){ i.byWeight=false } if(!i.kind) i.kind='med'; pSync(i) });
+    S.bizType=S.bizType||'صيدلية'; audit('تفعيل نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render();
+    openSheet(`${sheetHead('💊 تفعّل نظام الصيدلية')}<div class="list">
+      <div class="li"><span><b>الأدوية:</b> افتح كل دواء وعبّي الاسم العلمي والتركيز والشكل.</span></div>
+      <div class="li"><span><b>العلبة والشريط والحبة:</b> المخزون بالحبة. بشاشة الدواء تحت «أسعار ثانية» اكتب مثلاً: شريط = 10 حبات، علبة = 30 حبة، مع سعر كل وحدة.</span></div>
+      <div class="li"><span><b>الاستلام:</b> كل بضاعة جديدة سجّلها من المشتريات مع تاريخ الانتهاء ورقم التشغيلة.</span></div>
+      <div class="li"><span><b>الصلاحية:</b> من المزيد ← تقرير الصلاحية بتشوف المنتهي واللي قرّب.</span></div></div>
+      <button class="btn primary block" data-act="close">يلا نبدأ</button>`) },
+  pWarnSave(){ const m=Math.round(+($('#pWarnM')||{}).value||0); if(m<1||m>24){toast('اكتب عدد أشهر من 1 لـ24');return} S.expWarnM=m; save(); render(); toast('✓ انحفظت مدة التنبيه') },
+  pAlts(d){ const it=itemById(d.id), L=pAlts(it);
+    openSheet(`${sheetHead('🔁 بدائل '+esc(it.name))}<p class="muted" style="margin:0" dir="auto">نفس المادة الفعالة (${esc(it.sci||'—')}) ونفس التركيز (${esc(it.conc||'—')}).</p>
+     <div class="list">${L.map(x=>`<button class="li" data-act="pAltAdd" data-id="${x.id}"><span><b>${esc(x.name)}</b>${pSub(x)}<br><span class="muted">المتوفر ${pSellable(x)}</span></span><span>${money(x.price)} <span class="pill ok">للسلة</span></span></button>`).join('')||'<div class="empty">ما في بدائل مسجّلة</div>'}</div>`) },
+  pAltAdd(d){ closeSheet(); tab='sell'; addToCart(+d.id) },
+  pDispose(d){ const it=itemById(d.id), b=it&&it.batches[+d.b]; if(!b) return;
+    openSheet(`${sheetHead('إتلاف دواء منتهي')}<p style="margin:0"><b>${esc(it.name)}</b> · انتهى ${b.exp}${b.lot?' · تشغيلة '+esc(b.lot):''}</p>
+     <label for="pDq">الكمية اللي بدك تتلفها<input id="pDq" type="number" inputmode="numeric" value="${b.q}" max="${b.q}"></label><p class="muted" style="margin:0">بتنشال من المخزون وبتنحسب بتقرير «خسارة المنتهي».</p>
+     <button class="btn danger block" data-act="pDisposeGo" data-id="${it.id}" data-b="${d.b}">تأكيد الإتلاف</button>`) },
+  pDisposeGo(d){ const it=itemById(d.id), b=it&&it.batches[+d.b], q=r3(+($('#pDq')||{}).value||0); if(!b) return;
+    const e={ts:Date.now(),itemId:it.id,name:it.name,q,cost:it.cost,exp:b.exp,lot:b.lot};
+    if(!pTake(it,+d.b,q)){toast('الكمية مش صحيحة');return}
+    (S.pLoss=S.pLoss||[]).push(e); audit(`إتلاف ${q} من ${it.name} منتهي ${b.exp}`); save(); closeSheet(); render(); toast('✓ انتلف وانشال من المخزون') },
+  pRetSup(d){ if(!S.suppliers.length){toast('أضف المستودع أول من قسم الموردين');return}
+    const it=d&&d.id?itemById(d.id):null, items=S.items.filter(x=>(x.batches||[]).some(b=>b.q>0));
+    const opts=x=>(x.batches||[]).map((b,bi)=>b.q>0?`<option value="${bi}" ${it&&x.id===it.id&&+d.b===bi?'selected':''}>${b.lot?'تشغيلة '+esc(b.lot)+' · ':''}${b.exp||'بدون تاريخ'} · ${b.q}</option>`:'').join('');
+    openSheet(`${sheetHead('↩️ مرتجع للمستودع')}<p class="muted" style="margin:0">لما ترجّع بضاعة للمستودع (منتهي، قرّب ينتهي، أو غلط). بتنقص من المخزون، وبينخصم ثمنها من حساب المستودع.</p>
+     <label for="prS">المستودع<select id="prS">${S.suppliers.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
+     <label for="prI">الصنف<select id="prI">${(it?[it]:items).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>
+     <label for="prB">التشغيلة<select id="prB">${opts(it||items[0]||{})}</select></label>
+     <div class="grid2"><label for="prQ">الكمية (بالحبة)<input id="prQ" type="number" inputmode="numeric" min="1"></label><label for="prC">سعر الحبة (₪)<input id="prC" type="number" inputmode="decimal" value="${(it||items[0]||{}).cost||''}"></label></div>
+     <button class="btn primary block" data-act="pRetGo">تسجيل المرتجع</button>`);
+    const si=$('#prI'); if(si) si.onchange=()=>{ const x=itemById(si.value); $('#prB').innerHTML=opts(x); $('#prC').value=x.cost } },
+  pRetGo(){ const sup=S.suppliers.find(x=>x.id===+$('#prS').value), it=itemById($('#prI').value), bi=+$('#prB').value, q=r3(+$('#prQ').value||0), c=r2(+$('#prC').value||0), b=it&&it.batches&&it.batches[bi];
+    if(!sup||!b||q<=0){toast('اختار التشغيلة واكتب الكمية');return} if(q>b.q){toast(`الموجود من هالتشغيلة ${b.q} بس`);return}
+    const exp=b.exp, lot=b.lot; pTake(it,bi,q); const tot=r2(q*c);
+    sup.ledger.push({ts:Date.now(),amt:-tot,note:`مرتجع للمستودع: ${it.name} × ${q}${lot?' تشغيلة '+lot:''}`,noCash:true});
+    (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
+    audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
+});
+['pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)});
+VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
+/* البيع: تنبيه الصلاحية ومكان الرف لما ينضاف الدواء */
+{ const _add=addToCart; addToCart=function(id){ _add(id); try{pWarnAdd(itemById(id))}catch(_){} };
+  const _hit=liveHit; liveHit=function(code){ const r=_hit(code); try{ const it=S&&S.items.find(i=>i.barcode===String(code).trim()); if(it) pWarnAdd(it) }catch(_){} return r }; }
+
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -3136,7 +3277,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){closeScan();closeSheet()}
   if(e.key==='Enter'&&e.target.id==='scanTxt') onScan(e.target.value);
   if(e.key==='Enter'&&e.target.id==='pin') A.unlock();
-  if(e.key==='Enter'&&e.target.id==='q'){const s=q.trim(); if(!s) return; const byBar=S.items.find(i=>i.barcode===s), hit=byBar||S.items.filter(i=>i.name.includes(s))[0];
+  if(e.key==='Enter'&&e.target.id==='q'){const s=q.trim(); if(!s) return; const byBar=S.items.find(i=>i.barcode===s), hit=byBar||S.items.filter(i=>iHas(i,s))[0];
     if(byBar) beep(true); else if(/^\d{8,14}$/.test(s)){beep(false); onScan(s); return} if(hit) addToCart(hit.id)}
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
