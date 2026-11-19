@@ -864,7 +864,7 @@ function opSale(op){
   const orig=op.addTo?S.sales.find(x=>x.id===op.addTo):null;
   if(orig){ sale.addTo=orig.id; orig.adds=[...(orig.adds||[]),sale.id]; opAudit(op,`إضافة أصناف بقيمة ${fx(sale.total)} ₪ على فاتورة ${orig.id}`) }
   S.sales.push(sale);
-  if(sale.custId){debtor.ledger.push({ts:sale.ts,amt:pays.debt,note:orig?`إضافة على فاتورة رقم ${orig.id}`:`فاتورة رقم ${sale.id}`})}
+  if(sale.custId){debtor.ledger.push({ts:sale.ts,amt:pays.debt,sid:orig?orig.id:sale.id,note:orig?`إضافة على فاتورة رقم ${orig.id}`:`فاتورة رقم ${sale.id}`})}
   if(op.disc>0) opAudit(op,`خصم ${fx(op.disc)} ₪ على فاتورة ${sale.id}`);
   if(S.loyal.on&&dName){let cu=debtor||S.customers.find(x=>x.name.trim()===dName); if(!cu){cu={id:S.nextId++,name:dName,phone:op.dPhone||'',ledger:[]};S.customers.push(cu)}
     const pts=Math.floor(sale.total/(S.loyal.per||10)); if(pts>0){cu.points=(cu.points||0)+pts; sale.points=pts; sale.ptsCust=cu.id}}
@@ -1394,11 +1394,13 @@ function drawer(){
 /* شراء نفس الصنف بسعر تكلفة جديد: بنعرض الأسعار الحالية، وبنفتح خيار تحديث سعر البيع والجملة */
 function pInfoTxt(it){ if(!it) return ''; const u=it.byWeight?'للكيلو':'للحبة';
   return `الحالي ${u}: تكلفة <b class="num">${fx(it.cost)}</b> ₪ · بيع <b class="num">${fx(it.price)}</b> ₪${it.priceW?` · جملة <b class="num">${fx(it.priceW)}</b> ₪`:''} · بالمخزون <b class="num">${it.byWeight?wtTxt(it.qty):it.qty}</b>`}
-function pFactor(){ const u=($('#pUnit')||{}).value||'piece', cs=Math.max(1,parseFloat(($('#pCs')||{}).value)||1), bg=Math.max(1,parseFloat(($('#pBig')||{}).value)||1); return u==='piece'?1:u==='carton'?cs:cs*bg }
-function pUnitUI(){ const u=($('#pUnit')||{}).value||'piece', b=$('#pUnitBox'); if(!b) return; b.hidden=u==='piece'; const it=itemById($('#pItem').value);
+function pFindUI(q){ q=String(q||'').trim(); const sel=$('#pItem'); if(!sel||!q) return; const o=[...sel.options].find(o=>{const it=itemById(o.value); return it&&(it.barcode===q||it.name.includes(q))});
+  if(o){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true})); const i=$('#pInfo'); if(i&&!i.innerHTML) pItemUI() } }
+function pFactor(){ const u=($('#pUnit')||{}).value||'piece'; if(u==='kg') return 1; if(u==='sack') return Math.max(0.001,parseFloat(($('#pSack')||{}).value)||0)||1; const cs=Math.max(1,parseFloat(($('#pCs')||{}).value)||1), bg=Math.max(1,parseFloat(($('#pBig')||{}).value)||1); return u==='piece'?1:u==='carton'?cs:cs*bg }
+function pUnitUI(){ const u=($('#pUnit')||{}).value||'piece', b=$('#pUnitBox'); if(!b) return; b.hidden=!['carton','big'].includes(u); const sb=$('#pSackBox'); if(sb) sb.hidden=u!=='sack'; const it=itemById($('#pItem').value);
   if(u!=='piece'&&it&&!$('#pCs').value&&it.cartonSize) $('#pCs').value=it.cartonSize; $('#pBig').closest('label').hidden=u!=='big';
   const f=pFactor(), q=parseFloat($('#pQty').value)||0, c=parseFloat($('#pCost').value)||0, inf=$('#pUnitInfo');
-  if(inf) inf.innerHTML=u==='piece'?'':`= <b class="num">${fx(q*f)}</b> حبة بالمخزون${c>0?` · تكلفة الحبة <b class="num">${fx(c/f)}</b> ₪ · الإجمالي <b class="num">${fx(q*c)}</b> ₪`:''}`;
+  if(inf) inf.innerHTML=u==='piece'?'':`= <b class="num">${fx(q*f)}</b> ${['kg','sack'].includes(u)?'كيلو':'حبة'} بالمخزون${c>0?` · تكلفة ${['kg','sack'].includes(u)?'الكيلو':'الحبة'} <b class="num">${fx(c/f)}</b> ₪ · الإجمالي <b class="num">${fx(q*c)}</b> ₪`:''}`;
   const w=$('#pWBox'); if(w) w.hidden=($('#pPaid')||{}).value!=='wallet' }
 function pItemUI(){ const it=itemById($('#pItem').value); const i=$('#pInfo'); if(i) i.innerHTML=pInfoTxt(it); const op=$('#pItem').selectedOptions[0]; if(op&&op.dataset.pc&&$('#pCost')&&!$('#pCost').value) $('#pCost').value=op.dataset.pc; pUnitUI();
   if(it){ const p=$('#pPrice'), w=$('#pPw'); if(p) p.value=it.price; if(w) w.value=it.priceW||'' } pChgUI(true) }
@@ -1626,9 +1628,11 @@ more(){
     <div class="card"><h2>استلام بضاعة</h2>
       <p class="fh" style="margin:0">💡 فاتورة فيها أكثر من صنف؟ سجّل الصنف الأول واضغط حفظ، المورد والصورة بيضلّوا، وكمّل الصنف الثاني من نفس الفاتورة.</p>
       <label for="pSup">المورد<select id="pSup">${S.suppliers.length?'':'<option value="">بدون مورد</option>'}${S.suppliers.map(x=>`<option value="${x.id}" ${+BUYSUP===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><small class="fh">اختار المورد، وأصنافه المسجّلة بتطلع أول القائمة بسعرها</small></label>
+      <label for="pFind">بحث عن الصنف<input id="pFind" placeholder="اكتب اسم الصنف أو امسح الباركود" autocomplete="off"><small class="fh">اكتب أول حرفين وبيختارلك الصنف لحاله.</small></label>
       ${(()=>{const sp=S.suppliers.find(x=>x.id===+BUYSUP)||S.suppliers[0], my=(sp&&sp.items||[]).filter(x=>itemById(x.itemId)), ids=new Set(my.map(x=>x.itemId));
         return `<label for="pItem">الصنف<select id="pItem">${my.length?`<optgroup label="⭐ أصناف ${esc(sp.name)}">${my.map(x=>`<option value="${x.itemId}" data-pc="${x.price||''}">${esc(itemById(x.itemId).name)}${x.price?' · '+fx(x.price)+' ₪':''}</option>`).join('')}</optgroup><optgroup label="كل الأصناف">`:''}${S.items.filter(x=>!ids.has(x.id)).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}${my.length?'</optgroup>':''}</select></label>`})()}
-      <label for="pUnit">بتشتري بالـ<select id="pUnit"><option value="piece">حبة</option><option value="carton">كرتونة</option><option value="big">كرتونة كبيرة (فيها كراتين)</option></select><small class="fh">مثال: كرتونة كبيرة فيها 10 كراتين، وكل كرتونة 24 حبة</small></label>
+      <label for="pUnit">بتشتري بالـ<select id="pUnit"><option value="piece">حبة</option><option value="carton">كرتونة</option><option value="big">كرتونة كبيرة (فيها كراتين)</option><option value="kg">بالوزن (كيلو)</option><option value="sack">شوال أو كيس بالوزن (مثلاً 20 أو 50 كيلو)</option></select><small class="fh">مثال: كرتونة كبيرة فيها 10 كراتين، وكل كرتونة 24 حبة</small></label>
+      <label for="pSack" id="pSackBox" hidden>كم كيلو بالشوال؟<input id="pSack" type="number" inputmode="decimal" min="0" placeholder="مثلاً 25"><small class="fh">اكتب وزن الشوال الواحد، وبعدين تحت كم شوال استلمت.</small></label>
       <div class="grid2" id="pUnitBox" hidden><label for="pCs">حبات الكرتونة<input id="pCs" type="number" inputmode="numeric" min="1"></label><label for="pBig">كراتين بالكبيرة<input id="pBig" type="number" inputmode="numeric" min="1" value="10"></label></div>
       <div class="grid2"><label for="pQty">العدد<input id="pQty" type="number" inputmode="decimal" min="0"><small class="fh">كم حبة أو كرتونة استلمت</small></label>
         <label for="pCost">سعر الوحدة (₪)<input id="pCost" type="number" inputmode="decimal" min="0"><small class="fh">سعر الحبة أو الكرتونة حسب اختيارك</small></label></div>
@@ -1758,7 +1762,7 @@ function renderResults(){
   el.innerHTML=`<div class="list">${found.map(i=>`<button class="li" data-act="add" data-id="${i.id}">
     <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span><br><span class="muted">المتوفر ${qtyTxt(i)}</span></span></span><span>${money(i.price)} <span class="pill ok">أضف</span></span></button>`).join('')||'<div class="empty">لا يوجد صنف بهذا الاسم أو الباركود</div>'}</div>`;
 }
-let INSTALL=null, BUYSUP=''; const PHOTO={data:'',id:''}; const CHQ={dir:'in'};
+let INSTALL=null, BUYSUP='', EDV=null; const PHOTO={data:'',id:''}; const CHQ={dir:'in'};
 const standalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault(); INSTALL=e; if(typeof render==='function') render()});
 window.addEventListener('appinstalled',()=>{INSTALL=null; toast('تم تثبيت كاشيرك على جهازك'); render()});
@@ -1908,6 +1912,16 @@ function custSugs(q){ q=arNorm(q); if(!q) return [];
 function showSugs(inp){ const box=$('#sug_'+inp.id); if(!box) return; const L=custSugs(inp.value);
   const exact=L.length===1&&arNorm(L[0].name)===arNorm(inp.value);
   box.innerHTML=!L.length||exact?'':L.map(c=>{const b=balance(c);return `<button type="button" class="sug" data-act="pickCust" data-id="${c.id}" data-in="${inp.id}"><span class="sn">👤 ${esc(c.name)}${c.phone?` <small class="num" dir="ltr">${esc(c.phone)}</small>`:''}</span>${b>0?`<span class="sb">عليه <b class="num">${fx(b)}</b> ₪</span>`:b<0?`<span class="sb ok">رصيد <b class="num">${fx(-b)}</b> ₪</span>`:''}</button>`}).join('') }
+function edInvUI(q){ const s=S.sales.find(x=>x.id===EDV.id), sub=r2(EDV.lines.reduce((a,l)=>a+l.price*l.count,0)), old=r2(s.lines.reduce((a,l)=>a+l.price*l.count,0));
+  const Q=(q===undefined?(($('#edQ')||{}).value||''):q).trim(), R=Q?S.items.filter(i=>i.name.includes(Q)||i.barcode===Q).slice(0,6):[];
+  openSheet(`${sheetHead('تعديل الفاتورة '+s.id)}<p class="fh" style="margin:0">زيد أو نقّص أو احذف أو ضيف أصناف، والتعديل بينحفظ على نفس الفاتورة. سلّة البيع ما بتتأثر.</p>
+    <div class="list">${EDV.lines.map((l,k)=>`<div class="li" style="gap:6px"><span class="grow"><span class="t">${esc(l.name)}</span><br><span class="muted">${fx(l.price)} ₪ · ${esc(l.unit||'')}</span></span>
+      <button class="btn sm" data-act="edInvQ" data-k="${k}" data-v="-1">−</button><b class="num">${fx(l.count)}</b><button class="btn sm" data-act="edInvQ" data-k="${k}" data-v="1">+</button><button class="btn sm danger" data-act="edInvRm" data-k="${k}">✕</button></div>`).join('')}</div>
+    <label for="edQ">➕ ضيف صنف للفاتورة<input id="edQ" value="${esc(Q)}" placeholder="اكتب اسم الصنف أو الباركود" autocomplete="off"></label>
+    ${R.length?`<div class="list">${R.map(i=>`<button class="li" data-act="edInvAdd" data-id="${i.id}"><span>${esc(i.name)}</span><span class="num">${fx(i.price)} ₪</span></button>`).join('')}</div>`:''}
+    <div class="row"><span>المجموع قبل</span><span class="num">${fx(old)} ₪</span></div><div class="row"><b>المجموع بعد</b><b class="num">${fx(sub)} ₪</b></div>
+    <button class="btn primary block" data-act="edInvSave">حفظ التعديل على الفاتورة</button>`);
+  if(q!==undefined){const f=$('#edQ'); if(f){f.focus(); f.setSelectionRange(f.value.length,f.value.length)}} }
 function mGateView(){ return `<div class="card" style="gap:10px;text-align:center;padding:22px 16px"><div style="font-size:42px">🔒</div><h2 style="margin:0">واجهة المال</h2>
   <p class="muted" style="margin:0">الأرباح وقيمة المخزون مخفية عن العمال. اكتب كود الانتقال.</p>
   <input id="mCode" type="password" inputmode="numeric" autocomplete="off" placeholder="كود الانتقال" style="text-align:center;font-size:20px;letter-spacing:6px">
@@ -2214,10 +2228,20 @@ function buildPdf(per,sel){
 }
 function downloadPdf(bytes,name){try{const f=new File([bytes],name,{type:'application/pdf'}),a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);toast('تم تنزيل الملف')}catch(e){toast('التنزيل غير متاح هنا')}}
 function invoicePdf(s){const c=receiptCanvas(s,3); if(!c) return null; const wpt=226.77; return makePdf([{cv:c,wpt,hpt:wpt*c.height/c.width}])}
+/* الفاتورة المرتبطة بسطر بالكشف (رقم محفوظ، أو من نص البيان للحركات القديمة) */
+function ledSale(l){ const id=l.sid||(/فاتورة(?: رقم)? (\d+)/.exec(l.note||'')||[])[1]; return id?S.sales.find(x=>x.id===+id):null }
+function saleItemRows(s){ const R=s.lines.map((l,k)=>{const rt=(s.ret||{})[k]||0;return ['','   • '+l.name+' × '+r3(l.count)+' '+(l.unit||'')+' · '+fx(l.price)+' ₪'+(rt?' (مرجّع '+fx(rt)+')':''),fx(l.price*l.count),'']});
+  if(s.discount) R.push(['','   • خصم','-'+fx(s.discount),'']); if(s.extra>0) R.push(['','   • إضافة'+(s.extraNote?': '+s.extraNote:''),fx(s.extra),'']); return R }
 function statementPdf(c){
-  let run=0; const rows=[...c.ledger].sort((a,b)=>a.ts-b.ts).map(l=>{run=r2(run+l.amt);return [tnum(l.ts),l.note,fx(l.amt),fx(run)]});
+  let run=0; const sup=S.suppliers.includes(c), rows=[], seen=new Set();
+  [...c.ledger].sort((a,b)=>a.ts-b.ts).forEach(l=>{run=r2(run+l.amt); rows.push([tnum(l.ts),l.note,fx(l.amt),fx(run)]);
+    const sl=!sup&&ledSale(l); if(sl&&!seen.has(sl.id)){ seen.add(sl.id); rows.push(...saleItemRows(sl)) }
+    if(sup){ const p=S.purchases.find(p=>p.supId===c.id&&Math.abs(p.ts-l.ts)<2000&&p.paid==='credit'); if(p) rows.push(['','   • '+p.name+' × '+fx(p.qty)+(p.unitTxt?' ('+p.unitTxt+')':'')+' · '+fx(p.cost)+' ₪',fx(p.total),'']) } });
+  const its={}, seen2=new Set(); if(!sup) c.ledger.forEach(l=>{const sl=ledSale(l); if(sl&&l.amt>0&&!seen2.has(sl.id)&&seen2.add(sl.id)) sl.lines.forEach((x,k)=>{const n=x.name+' ('+(x.unit||'')+')'; its[n]=its[n]||{q:0,v:0}; const q=r3(x.count-((sl.ret||{})[k]||0)); its[n].q=r3(its[n].q+q); its[n].v=r2(its[n].v+q*x.price)})});
+  const sumRows=Object.entries(its).sort((a,b)=>b[1].v-a[1].v).map(([n,o])=>[n,fx(o.q),fx(o.v)]);
   return makePdf(docPages(`كشف حساب: ${c.name}`,`${S.shop} · الرصيد المستحق ${fx(balance(c))} ₪`,[{kv:[['الرصيد المستحق',fx(balance(c))+' ₪',1],['عدد الحركات',String(c.ledger.length)]]},
-    {h:'الحركات'},{table:{cols:[['التاريخ',2.2,'n'],['البيان',4],['المبلغ ₪',1.6,'n'],['الرصيد ₪',1.6,'n']],rows}}]));
+    {h:'الحركات بالتفصيل (كل فاتورة وأصنافها)'},{table:{cols:[['التاريخ',2.2,'n'],['البيان',5],['المبلغ ₪',1.6,'n'],['الرصيد ₪',1.6,'n']],rows}},
+    ...(sumRows.length?[{h:'ملخص الأصناف اللي أخدها'},{table:{cols:[['الصنف',5],['الكمية',1.6,'n'],['القيمة ₪',1.8,'n']],rows:sumRows}}]:[])]));
 }
 /* سجل الديون PDF: بيتجهّز من بيانات اللحظة كل ما ينطلب، فهو دايمًا محدّث */
 function debtsPdf(){ const dn=t=>{const d=new Date(t),z=n=>String(n).padStart(2,'0');return `${z(d.getDate())}/${z(d.getMonth()+1)}/${d.getFullYear()}`}, now=Date.now(), lt=c=>c.ledger.length?Math.max(...c.ledger.map(x=>x.ts)):0;
@@ -2284,7 +2308,7 @@ function saleSheet(sale,title){
       return `<div class="card" style="gap:6px"><h2>إضافات على هالفاتورة</h2><div class="list">${ad.map(x=>`<div class="li" data-act="sale" data-id="${x.id}"><span>➕ ${x.lines.map(l=>esc(l.name)+' × '+l.count).join('، ')}<br><span class="muted">${fdate(x.ts)}</span></span><span class="num">${money(x.total)}</span></div>`).join('')}</div>
         <div class="row"><b>المجموع الكلي بعد الإضافات والمرتجع</b><span class="total">${money(tot)}</span></div></div>`})():''}
     <div class="grid2"><button class="btn" data-act="addToSale" data-id="${sale.addTo||sale.id}">➕ إضافة أصناف</button>${isOwner()?`<button class="btn danger" data-act="retAsk" data-id="${sale.id}">↩️ إرجاع أصناف</button>`:'<span></span>'}</div>
-    ${isOwner()?`<button class="btn block" data-act="editSaleAsk" data-id="${sale.id}">✏️ تعديل الفاتورة</button><button class="btn danger block" data-act="delSaleAsk" data-id="${sale.id}">🗑 حذف الفاتورة</button>`:''}`);
+    ${isOwner()?`<button class="btn block" data-act="edInv" data-id="${sale.id}">✏️ تعديل الفاتورة (إضافة أو تغيير أصناف)</button><button class="btn danger block" data-act="delSaleAsk" data-id="${sale.id}">🗑 حذف الفاتورة</button>`:''}`);
 }
 const WORD={customers:{one:'زبون',note:'دفعة نقدية',bal:'الرصيد المستحق عليه'},suppliers:{one:'مورد',note:'دفعة للمورد',bal:'المستحق له علينا'}};
 
@@ -2458,7 +2482,7 @@ addBuy(){
     if(ch.length) audit(`تغيير سعر ${it.name}: ${ch.join('، ')}`) }
   if(PHOTO.data&&!PHOTO.id){PHOTO.id='img'+Date.now(); const pid=PHOTO.id, dat=PHOTO.data; idb('readwrite',st=>st.put(dat,pid))}
   if(unit!=='piece'&&+$('#pCs').value>0) it.cartonSize=+$('#pCs').value;
-  S.purchases.push({id:S.nextId++,ts,supId:sup?sup.id:null,itemId:it.id,name:it.name,qty,cost,total,paid,wallet:wal||undefined,unitTxt:unit==='piece'?'':`${uq} ${unit==='carton'?'كرتونة':'كرتونة كبيرة'}`,photo:PHOTO.id||''});
+  S.purchases.push({id:S.nextId++,ts,supId:sup?sup.id:null,itemId:it.id,name:it.name,qty,cost,total,paid,wallet:wal||undefined,unitTxt:unit==='piece'?'':unit==='kg'?`${uq} كيلو`:unit==='sack'?`${uq} شوال × ${fx(f)} كيلو`:`${uq} ${unit==='carton'?'كرتونة':'كرتونة كبيرة'}`,photo:PHOTO.id||''});
   if(sup){ sup.items=sup.items||[]; const si=sup.items.find(x=>x.itemId===it.id); if(si) si.price=r2(uc); else sup.items.push({itemId:it.id,price:r2(uc)}) }
   BUYSUP=sup?sup.id:'';
   if(paid==='credit'&&sup) sup.ledger.push({ts,amt:total,note:`فاتورة شراء: ${it.name}`});
@@ -2707,6 +2731,26 @@ editSale(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; const ret=s.re
   if(cu){c.custId=cu.id; c.custName=cu.name; c.custPhone=cu.phone||''} tab='sell'; closeSheet(); render(); toast('عدّل الأصناف واضغط بيع')},
 supItemAdd(d){const c=S.suppliers.find(x=>x.id===+d.id), id=+$('#siItem').value, p=r2(parseFloat($('#siPrice').value)||0); if(!c||!id) return; c.items=c.items||[]; const x=c.items.find(y=>y.itemId===id); if(x) x.price=p; else c.items.push({itemId:id,price:p}); save(); A.party({kind:'suppliers',id:c.id}); toast('✓ انضاف للمورد')},
 supItemDel(d){const c=S.suppliers.find(x=>x.id===+d.id); if(!c) return; c.items=(c.items||[]).filter(x=>x.itemId!==+d.i); save(); A.party({kind:'suppliers',id:c.id})},
+edInv(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return;
+  if((s.adds||[]).length||Object.values(s.ret||{}).some(v=>v>0)){toast('هالفاتورة فيها إرجاع أو إضافات. عدّلها بالحذف وإعادة البيع');return}
+  if(s.op&&opPending(s.op)){toast('استنى لحد ما توصل هالفاتورة للجهاز الأساسي');return}
+  EDV={id:s.id,lines:s.lines.map(l=>({itemId:l.itemId,name:l.name,unit:l.unit,count:l.count,price:l.price,cost:l.cost,per:l.count?l.baseQty/l.count:1}))}; edInvUI()},
+edInvQ(d){const l=EDV.lines[+d.k]; const it=itemById(l.itemId), st=it&&it.byWeight?0.05:1; l.count=r3(Math.max(0,l.count+(+d.v)*st)); edInvUI()},
+edInvRm(d){EDV.lines.splice(+d.k,1); edInvUI()},
+edInvAdd(d){const it=itemById(d.id); if(!it) return; const l=EDV.lines.find(x=>x.itemId===it.id&&x.unit===(it.byWeight?'كغ':(it.unitName||'حبة')));
+  if(l) l.count=r3(l.count+(it.byWeight?0.1:1)); else { const ln=lineOf(it,'piece',it.byWeight?0.1:1); EDV.lines.push({itemId:it.id,name:it.name,unit:ln.unit,count:ln.count,price:ln.price,cost:it.cost,per:1}) } edInvUI()},
+edInvSave(){const s=S.sales.find(x=>x.id===EDV.id); if(!s) return; const L=EDV.lines.filter(l=>l.count>0); if(!L.length){toast('الفاتورة فاضية. إذا بدك تلغيها استعمل «حذف الفاتورة»');return}
+  const need={}; L.forEach(l=>need[l.itemId]=r3((need[l.itemId]||0)+l.count*l.per)); const had={}; s.lines.forEach(l=>had[l.itemId]=r3((had[l.itemId]||0)+l.baseQty));
+  for(const id in need){const it=itemById(id); if(it&&need[id]-(had[id]||0)>it.qty+1e-9){toast(`المتوفر من ${it.name} ما بيكفي`);return}}
+  for(const id of new Set([...Object.keys(need),...Object.keys(had)])){const it=itemById(id); if(it) it.qty=r3(it.qty+(had[id]||0)-(need[id]||0))}
+  const oldSub=r2(s.lines.reduce((a,l)=>a+l.price*l.count,0)), lines=L.map(l=>({itemId:l.itemId,name:l.name,unit:l.unit,count:l.count,baseQty:r3(l.count*l.per),price:l.price,cost:l.cost}));
+  const newSub=r2(lines.reduce((a,l)=>a+l.price*l.count,0)), diff=r2(newSub-oldSub), p=Object.assign({cash:0,app:0,debt:0},payOf(s));
+  if(diff>0){ if(p.debt>0||s.custId) p.debt=r2(p.debt+diff); else p.cash=r2(p.cash+diff) }
+  else if(diff<0){ let r=-diff; for(const k of ['debt','cash','app']){const t=Math.min(r,p[k]); p[k]=r2(p[k]-t); r=r2(r-t)} }
+  const dDebt=r2(p.debt-payOf(s).debt);
+  s.lines=lines; s.total=r2(s.total+diff); s.cost=r2(lines.reduce((a,l)=>a+l.cost*l.baseQty,0)); s.pays=p; s.edited=Date.now();
+  if(s.custId&&dDebt){const c=S.customers.find(x=>x.id===s.custId); if(c) c.ledger.push({ts:Date.now(),amt:dDebt,sid:s.id,note:`تعديل فاتورة رقم ${s.id}`,noCash:true})}
+  audit(`تعديل فاتورة ${s.id}: ${fx(oldSub)} ← ${fx(newSub)} ₪`); EDV=null; save(); render(); saleSheet(s,'الفاتورة بعد التعديل'); toast(diff?`✓ انعدّلت الفاتورة (${diff>0?'+':''}${fx(diff)} ₪)`:'✓ انعدّلت الفاتورة')},
 delSaleAsk(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return;
   if((s.adds||[]).length){toast('في إضافات على هالفاتورة. احذف الإضافات أولاً');return}
   openSheet(`${sheetHead('حذف الفاتورة '+s.id)}<p class="muted" style="margin:0">الفاتورة بتنحذف كاملة: البضاعة الباقية بترجع للمخزن، والدين والصندوق والتقارير بتتعدّل. ما في رجوع عنها.</p>
@@ -2822,7 +2866,7 @@ acctSave(){ const shop=$('#acShop').value.trim(), own=$('#acOwn').value.trim(), 
 avDel(){ delete S.avatar; save(); render(); toast('انشالت الصورة')},
 findSale(){ openSheet(`${sheetHead('🔎 فاتورة سابقة')}<p class="muted" style="margin:0">ابحث برقم الفاتورة أو اسم الزبون أو جواله، وافتحها عشان ترجّع أصناف منها أو تضيف عليها.</p>
   <label for="fsQ">بحث<input id="fsQ" inputmode="search" autocomplete="off" placeholder="مثلاً 1045 أو أبو محمد"></label><div class="list" id="fsList">${fsRows('')}</div>`); setTimeout(()=>{const f=$('#fsQ'); if(f) f.focus()},60)},
-addToSale(d){ const tg=S.sales.find(x=>x.id===+d.id); if(tg&&tg.op&&opPending(tg.op)){toast('استنى لحد ما توصل هالفاتورة للجهاز الأساسي، وبعدها ضيف عليها');return} const o=S.sales.find(x=>x.id===+d.id); if(!o) return; let k=carts.findIndex(x=>!x.lines.length); if(k<0){toast('كل السلال فيها أصناف. خلّص أو علّق وحدة منهم أول');return}
+addToSale(d){ const tg=S.sales.find(x=>x.id===+d.id); if(tg&&tg.op&&opPending(tg.op)){toast('استنى لحد ما توصل هالفاتورة للجهاز الأساسي، وبعدها ضيف عليها');return} const o=S.sales.find(x=>x.id===+d.id); if(!o) return; if(true){A.edInv({id:o.id});return} let k=carts.findIndex(x=>!x.lines.length); if(k<0){toast('كل السلال فيها أصناف. خلّص أو علّق وحدة منهم أول');return}
   const cu=o.custId?S.customers.find(x=>x.id===o.custId):null; carts[k]=Object.assign(newCart(),{addTo:o.id},cu?{custName:cu.name,custPhone:cu.phone||'',pay:payOf(o).debt>0?'debt':'cash'}:{});
   ci=k; tab='sell'; closeSheet(); render(); toast(`➕ ضيف الأصناف، وبتنحسب على فاتورة ${o.id}`)},
 addCancel(){ const c=cart(); delete c.addTo; render(); toast('رجعت السلة فاتورة جديدة عادية')},
@@ -2878,11 +2922,11 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','setupGo']);
+const SELLER_NO=new Set(['edInv','edInvQ','edInvRm','edInvAdd','edInvSave','imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
-const OWNER_ONLY=new Set(['editSaleAsk','editSale','delSaleAsk','delSale','multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['edInv','edInvSave','editSaleAsk','editSale','delSaleAsk','delSale','multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
   if(e.target.id==='scanSheet'){closeScan();return}
@@ -2894,7 +2938,7 @@ document.addEventListener('click',e=>{
   if(S&&!isOwner()&&((OWNER_ONLY.has(a)&&!(S.cashItems&&CASH_ITEM.has(a)))||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
   A[a](d);
 });
-document.addEventListener('input',e=>{ const t=e.target; if(['pQty','pCost','pCs','pBig'].includes(t.id)) pUnitUI(); if(['pCost','pPrice','pPw'].includes(t.id)) pChgUI(); if(t.id==='exAmt'){const h=$('#exHint'); if(h) h.innerHTML=expHint()} if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
+document.addEventListener('input',e=>{ const t=e.target; if(['pQty','pCost','pCs','pBig','pSack'].includes(t.id)) pUnitUI(); if(t.id==='pFind') pFindUI(t.value); if(t.id==='edQ'&&EDV) edInvUI(t.value); if(['pCost','pPrice','pPw'].includes(t.id)) pChgUI(); if(t.id==='exAmt'){const h=$('#exHint'); if(h) h.innerHTML=expHint()} if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
   if(t.classList&&t.classList.contains('retq')){const m=+t.dataset.max; if(+t.value>m) t.value=m; if(+t.value<0) t.value=0; return}
   if(t.id==='iq'){iq=t.value; const pos=t.selectionStart; render(); const n=$('#iq'); if(n){n.focus(); try{n.setSelectionRange(pos,pos)}catch(_){}} return}
   if(t.id==='q'){q=t.value; renderResults()}
@@ -2963,7 +3007,7 @@ load(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }ca
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
-const BUILD='20261119081603'; let UPD=false;
+const BUILD='20261119121557'; let UPD=false;
 const idleNow=()=>!document.querySelector('#sheet.open')&&!document.querySelector('#scanSheet.open')&&carts.every(c=>!c.lines.length)&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName));
 async function checkUpdate(){ if(!navigator.onLine||location.protocol!=='https:') return;
   try{ const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true }catch(e){}
