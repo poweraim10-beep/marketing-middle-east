@@ -488,6 +488,11 @@ export async function onRequest({ request, env, params }) {
       if (shop.version > have && shop.version > 0) out.data = await readState(env, shop.id);
       const ops = (await env.DB.prepare('SELECT data FROM ksr_ops WHERE shop = ? ORDER BY t LIMIT 800').bind(shop.id).all()).results || [];
       if (ops.length) out.ops = ops.map((x) => { try { return JSON.parse(x.data); } catch { return null; } }).filter(Boolean);
+      // اللابتوب طالب جوال يصير ماسح باركود: الجوالات بتشوف الطلب مع التحديث العادي
+      try {
+        const sg = await env.DB.prepare("SELECT v, t FROM ksr_sig WHERE shop = ? AND k = 'offer'").bind(shop.id).first();
+        if (sg && sg.v && nowMs() - sg.t < 15 * 60e3) { const o = JSON.parse(sg.v); if (o && o.n) out.scanReq = { n: String(o.n).slice(0, 20), dev: String(o.dev || '').slice(0, 40), label: String(o.label || '').slice(0, 40), t: sg.t }; }
+      } catch { /* الجدول لسا ما انعمل أو الطلب مش JSON */ }
       return json(out);
     }
 
@@ -641,8 +646,10 @@ export async function onRequest({ request, env, params }) {
       return json({ ok: true });
     }
     if (a === 'scans' && m === 'GET') {
+      // المسح من الجوال بينحفظ بجدول ksr_scan (من POST /scan فوق)
       const after = parseInt(url.searchParams.get('after') || '0', 10) || 0;
-      const r = await env.DB.prepare('SELECT id, code FROM ksr_scans WHERE shop = ? AND id > ? AND t > ? ORDER BY id LIMIT 20').bind(shop.id, after, nowMs() - 2 * 60e3).all();
+      if (!after) { const r0 = await env.DB.prepare('SELECT MAX(id) AS id FROM ksr_scan WHERE shop = ?').bind(shop.id).first(); return json({ list: r0 && r0.id ? [{ id: r0.id, code: '' }] : [] }); }
+      const r = await env.DB.prepare('SELECT id, code FROM ksr_scan WHERE shop = ? AND id > ? AND t > ? ORDER BY id LIMIT 20').bind(shop.id, after, nowMs() - 2 * 60e3).all();
       return json({ list: r.results || [] });
     }
 

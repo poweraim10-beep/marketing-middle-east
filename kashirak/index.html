@@ -85,6 +85,21 @@ header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-ov
 #remOv .ri{display:flex;justify-content:space-between;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(230,200,120,.25)}
 .rempill{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-radius:16px;background:#E3F4EA;color:#17713F;font-weight:700;border:1px solid #9BD7B1}
 .rembtn{border:1.5px dashed #C8A24A!important;background:#FFF9EA!important;color:#6b4d0e!important;font-weight:700}
+/* قارئ الباركود: الربط والحالة */
+.scol{display:flex;flex-direction:column;gap:14px;min-width:0}
+.wchip{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:8px 12px;border-radius:14px;font-size:14px;font-weight:600}
+.wchip.on{background:#E3F4EA;color:#17713F;border:1px solid #9BD7B1}
+button.wchip{border:1.5px dashed #C8A24A;background:#FFF9EA;color:#6b4d0e;justify-content:center;min-height:44px}
+.wpair{display:flex;gap:14px;align-items:flex-start}.wpair>svg{flex:none;color:var(--gold);margin-top:6px}.wpair .list{flex:1}
+.wst{display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center}.wst.ok{background:#E3F4EA;color:#17713F;border-color:#9BD7B1}
+.wwarn{color:var(--bad);font-size:13px;font-weight:600}
+#wfocus{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:8000;background:#B3261E;color:#fff;font-weight:700;padding:10px 18px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer;max-width:92%;text-align:center}
+.scanopts{gap:10px;padding:10px}.sopts{display:grid;grid-template-columns:1fr 1fr auto;gap:10px}.sopt.cam{min-width:150px}
+.sopt{display:flex;align-items:center;gap:10px;text-align:start;padding:8px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;min-height:60px}
+.sopt:hover{border-color:var(--gold)}
+.sopt b{display:block;font-size:15.5px}.sopt small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px;line-height:1.45}
+.sopt .soi{flex:none;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;font-size:24px;background:color-mix(in srgb,var(--gold) 16%,transparent)}
+.sopt.on{border-color:#4CAF7A;background:#F1FAF4}.sopt.on small{color:#17713F}
 .wacc{display:flex;gap:8px;direction:ltr}.wacc select{flex:none;width:96px}.wacc input{flex:1}
 .plantag{margin-top:3px;display:inline-flex;align-items:center;gap:5px;max-width:100%;border:1px solid rgba(230,200,120,.55);background:rgba(230,200,120,.14);color:#F3DC9A;font:inherit;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .plantag.life{background:linear-gradient(180deg,#FFE7A6,#D7A845);color:#2a1c04;border-color:transparent}
@@ -351,6 +366,14 @@ main{padding-bottom:44px}
   #cloudBar{grid-area:bar} #live{grid-area:live;margin:16px 28px 0;height:230px;max-width:760px;width:calc(100% - 56px);justify-self:center}
   main#view{grid-area:view;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;align-items:start;gap:18px;padding:22px max(28px,calc((100% - 1180px)/2)) 40px}
   main#view>*{min-width:0}
+  /* الصفوف على قد محتواها: بدونها الأقسام المطوية (الإعدادات) كانت تنضغط فوق بعض */
+  main#view{grid-auto-rows:max-content}
+  /* شاشة البيع: البحث والسلة يمين، والدفع وإتمام البيع يسار وثابت قدامك */
+  main#view[data-v=sell]{grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr)}
+  main#view[data-v=sell]>.scol{grid-column:1}
+  main#view[data-v=sell]>.spay{grid-column:2;position:sticky;top:0;max-height:calc(100vh - 120px);overflow-y:auto}
+  main#view[data-v=sell]>.card:not(.spay){grid-column:1/-1}
+  .app>header .modebtn{min-width:96px}
   main#view:not([data-v=home]):not([data-v=sell]):not([data-v=more-acct])>*{grid-column:1/-1}
   main#view[data-v=items] .list,main#view[data-v=debts] .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
   main#view>.row,main#view>.mprof,main#view>.greet,main#view>.banner,main#view>.pdfhero,main#view>.acchero,main#view>.nagbar,main#view>.seg,main#view>.rempill,main#view>.btn.block,main#view>.rejbar,main#view>p,main#view>.mgroup,main#view>.grid2,main#view>.tiles,main#view>.wide{grid-column:1/-1}
@@ -612,17 +635,19 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
 const REM={role:null,pc:null,dc:null,st:'',after:0,relayT:null,pollT:null,last:'',lastT:0,sent:[],n:''};
 const ICE={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
 const waitIce=pc=>new Promise(r=>{ if(pc.iceGatheringState==='complete') return r(); const t=setTimeout(r,2500); pc.addEventListener('icegatheringstatechange',()=>{ if(pc.iceGatheringState==='complete'){clearTimeout(t);r()} }) });
-function remClose(){ setTimeout(()=>{try{syncLive()}catch(e){}},50); clearInterval(REM.relayT); clearInterval(REM.pollT); try{REM.dc&&REM.dc.close()}catch(e){} try{REM.pc&&REM.pc.close()}catch(e){} if(REM.stream){REM.stream.getTracks().forEach(t=>t.stop()); REM.stream=null} clearInterval(REM.scanT); REM.role=null; REM.pc=REM.dc=null; REM.st=''; const o=$('#remOv'); if(o) o.remove(); render() }
-function remSetSt(t){ REM.st=t; const e=$('#remSt'); if(e) e.innerHTML=t; const b=$('#remPill'); if(b) b.innerHTML=remPill() }
+function remClose(){ setTimeout(()=>{try{syncLive()}catch(e){}},50); if(REM.role==='host') api('/sig',{method:'POST',body:{k:'offer',v:''}}).catch(()=>{}); clearInterval(REM.relayT); clearInterval(REM.pollT); try{REM.dc&&REM.dc.close()}catch(e){} try{REM.pc&&REM.pc.close()}catch(e){} if(REM.stream){REM.stream.getTracks().forEach(t=>t.stop()); REM.stream=null} clearInterval(REM.scanT); REM.role=null; REM.pc=REM.dc=null; REM.st=''; const o=$('#remOv'); if(o) o.remove(); render() }
+function remSetSt(t){ REM.st=t; const e=$('#remSt'); if(e) e.innerHTML=t; const b=$('#remPill'); if(b) b.innerHTML=remPill(); const so=$('#view .scanopts'); if(so&&S) so.outerHTML=scanOpts() }
 const remPill=()=>REM.role==='host'?`<span>📱 ${REM.dc&&REM.dc.readyState==='open'?'الجوال متصل كماسح ✓':REM.st||'بانتظار الجوال…'}</span><button class="btn sm" data-act="remStop">إيقاف</button>`:'';
 /* ---- اللابتوب ---- */
-async function remHost(){ if(REM.role) remClose(); REM.role='host'; REM.n=Math.random().toString(36).slice(2,10); REM.after=0; REM.after0=false;
+async function remHost(){ if(!linked()){ openSheet(`${sheetHead('📱 الجوال كماسح')}<p style="margin:0">عشان الجوال يمسح للابتوب، لازم الجهازين يكونوا داخلين على <b>نفس حساب المحل</b> (بنفس رقم الجوال وكلمة السر).</p><button class="btn primary block" data-act="cloudSheet">حساب المحل</button>`); return }
+  if(!navigator.onLine){ toast('الجوال كماسح بدو نت على الجهازين'); return }
+  if(REM.role) remClose(); REM.role='host'; REM.n=Math.random().toString(36).slice(2,10); REM.after=0; REM.after0=false;
   openSheet(`${sheetHead('📱 استعمل الجوال كماسح باركود')}
    <p style="margin:0">بدل ما تكتب أو تبحث عن الصنف على اللابتوب، صوّر الباركود بكاميرا الجوال، والصنف بينضاف هون لحاله.</p>
    <div class="list">
-    <div class="li"><span><b>1.</b> على الجوال افتح التطبيق وادخل بنفس الحساب كـ«جهاز متابعة»</span></div>
-    <div class="li"><span><b>2.</b> على الجوال اضغط <b>«📷 ماسح للابتوب»</b> (فوق، بشريط المتابعة)</span></div>
-    <div class="li"><span><b>3.</b> وجّه الكاميرا على الباركود، وبيوصل للسلة هون فورًا ✓</span></div></div>
+    <div class="li"><span><b>1.</b> بعتنا <b>رسالة لكل جوالات المحل</b> اللي التطبيق مفتوح عليها (بتوصل خلال ثواني).</span></div>
+    <div class="li"><span><b>2.</b> على الجوال اضغط <b>«✓ خلّي هذا الجوال ماسح»</b>. ما وصلت الرسالة؟ افتح على الجوال: المزيد ← الإعدادات ← قارئ الباركود والمسح ← «خلّي هذا الجوال ماسح».</span></div>
+    <div class="li"><span><b>3.</b> وجّه كاميرا الجوال على الباركود، وبيوصل لسلة اللابتوب فورًا ✓</span></div></div>
    <div class="tile" style="text-align:center"><b id="remSt">جاري تجهيز الاتصال…</b></div>
    <p class="muted" style="margin:0;font-size:13px">ملاحظات: الأسرع يكون الجوال واللابتوب على نفس الواي فاي. لازم النت شغّال على الجهازين، وخلّي شاشة الجوال مفتوحة وقت المسح. الاتصال بيضل شغّال طول ما هالصفحة مفتوحة على اللابتوب.</p>
    <button class="btn block" data-act="remStop">إلغاء</button>`);
@@ -632,11 +657,11 @@ async function remHost(){ if(REM.role) remClose(); REM.role='host'; REM.n=Math.r
     dc.onmessage=e=>{ try{const m=JSON.parse(e.data); if(m.code) remGot(m.code)}catch(_){} };
     await pc.setLocalDescription(await pc.createOffer()); await waitIce(pc);
     await api('/sig',{method:'POST',body:{k:'answer',v:''}});
-    await api('/sig',{method:'POST',body:{k:'offer',v:JSON.stringify({n:REM.n,sdp:pc.localDescription})}});
-    remSetSt('جاهز ✓ هلأ اضغط «ماسح للابتوب» على الجوال');
+    await api('/sig',{method:'POST',body:{k:'offer',v:JSON.stringify({n:REM.n,dev:devInfo().id,label:devLabel(),sdp:pc.localDescription})}});
+    remSetSt('✓ انبعتت الرسالة للجوالات. وافق عليها من الجوال');
     let tries=0; REM.pollT=setInterval(async()=>{ if(REM.role!=='host'||++tries>150){clearInterval(REM.pollT);return}
       try{ const r=await api('/sig?k=answer'); if(r.v){ const a=JSON.parse(r.v); if(a.n===REM.n&&!pc.currentRemoteDescription){ clearInterval(REM.pollT); await pc.setRemoteDescription(a.sdp); remSetSt('جاري الاتصال بالجوال…') } } }catch(e){} },1500);
-  }catch(e){ remSetSt('الاتصال المباشر مش مدعوم هون، بنستعمل السيرفر') }
+  }catch(e){ remSetSt('الاتصال المباشر مش مدعوم هون، بنستعمل السيرفر'); try{ await api('/sig',{method:'POST',body:{k:'offer',v:JSON.stringify({n:REM.n,dev:devInfo().id,label:devLabel(),relay:1})}}) }catch(_){ remSetSt('⚠ ما قدرنا نوصل للسيرفر. تأكد من النت وجرّب مرة ثانية') } }
   /* وسيط احتياطي عبر السيرفر: بيشتغل بس إذا الاتصال المباشر مش مفتوح */
   REM.relayT=setInterval(async()=>{ if(REM.role!=='host'||(REM.dc&&REM.dc.readyState==='open')||document.hidden) return;
     try{ const r=await api('/scans?after='+REM.after); for(const x of r.list){ REM.after=Math.max(REM.after,x.id); if(REM.after0) remGot(x.code) } REM.after0=true }catch(e){} },1500);
@@ -644,6 +669,13 @@ async function remHost(){ if(REM.role) remClose(); REM.role='host'; REM.n=Math.r
 function remGot(code){ code=String(code).trim(); if(!code) return; if(code===REM.last&&Date.now()-REM.lastT<900) return; REM.last=code; REM.lastT=Date.now();
   if(tab!=='sell'){tab='sell'} const op=document.querySelector('#sheet.open'); if(op&&$('#remSt')) closeSheet(); scan.target='sell'; onScan(code);
   const it=S.items.find(i=>i.barcode===code); liveFlash(it?`📱 ${it.name}`:'📱 باركود غير مسجّل',!!it) }
+/* ---- الجوال: وصلته رسالة من اللابتوب إنه يصير ماسح ---- */
+function remOffer(o){ if(!o||!o.n||o.dev===devInfo().id||REM.role||isDesk()) return;
+  let seen=''; try{seen=sessionStorage.getItem('ksr-remseen')||''}catch(_){} if(seen===o.n) return; try{sessionStorage.setItem('ksr-remseen',o.n)}catch(_){}
+  if(document.querySelector('#sheet.open input:focus')) return;
+  beep(true); try{navigator.vibrate&&navigator.vibrate([80,60,80])}catch(_){}
+  openSheet(`${sheetHead('💻 طلب من '+esc(o.label||'اللابتوب'))}<p style="margin:0">${esc(o.label||'اللابتوب')} طالب يستعمل <b>هذا الجوال كماسح باركود</b>. كل باركود بتصوّره بالجوال بينضاف لسلة اللابتوب.</p>
+   <button class="btn primary block" data-act="remScan">✓ خلّي هذا الجوال ماسح</button><button class="btn block" data-act="close">لا، مش هلأ</button>`) }
 /* ---- الجوال ---- */
 async function remScan(){ if(REM.role) remClose(); REM.role='scanner'; REM.sent=[];
   const ov=document.createElement('div'); ov.id='remOv';
@@ -657,7 +689,8 @@ async function remScan(){ if(REM.role) remClose(); REM.role='scanner'; REM.sent=
   try{ LIVE.det=LIVE.det||await detector(); if(!LIVE.det&&!LIVE.zx){ if(await loadZX()&&ZXing.MultiFormatReader) LIVE.zx=new ZXing.MultiFormatReader() } }catch(e){}
   REM.scanT=setInterval(remTick,170);
   try{ const r=await api('/sig?k=offer'); if(!r.v){ remSetSt('افتح على اللابتوب: البيع ← «📱 الجوال كماسح» وبعدين ارجع هون'); REM.relayOnly=true; return }
-    const o=JSON.parse(r.v), pc=REM.pc=new RTCPeerConnection(ICE);
+    const o=JSON.parse(r.v); if(!o.sdp){ REM.relayOnly=true; remSetSt('✓ جاهز، المسح بيوصل للابتوب عبر السيرفر'); return }
+    const pc=REM.pc=new RTCPeerConnection(ICE);
     pc.ondatachannel=e=>{ REM.dc=e.channel; REM.dc.onopen=()=>{ remSetSt('✓ متصل باللابتوب. امسح'); beep(true) }; REM.dc.onclose=()=>remSetSt('انقطع الاتصال المباشر، المسح بيكمّل عبر السيرفر') };
     await pc.setRemoteDescription(o.sdp); await pc.setLocalDescription(await pc.createAnswer()); await waitIce(pc);
     await api('/sig',{method:'POST',body:{k:'answer',v:JSON.stringify({n:o.n,sdp:pc.localDescription})}});
@@ -817,6 +850,8 @@ const isMain=()=>linked()&&CL.main===devInfo().id;
 // كل الأجهزة المفعّلة على الحساب صلاحيتها واحدة (ما في بائع ولا مشاهد)
 const isSeller2=()=>linked()&&CL.main!==devInfo().id;
 const isViewer=()=>false;
+/* كود المالك موحّد لكل المحلات: بيفتح وضع المالك من وضع الكاشير. كلمة سر الحساب بس للدخول على الحساب */
+const OWNER_CODE='2030';
 const LOCALF=['mode','liveCam','sound','licTok','licExp','licPlan','_t','_by'];
 const stripLocal=o=>{const c={};for(const k in o) if(!LOCALF.includes(k)) c[k]=o[k];return JSON.stringify(c)};
 function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإعدادات الخاصة بالجهاز (وضع المالك/الكاشير، الصوت) */
@@ -973,7 +1008,7 @@ async function cloudPull(full){
   CLS.busy=true;
   try{
     const r=await api('/state?have='+(full||(!isMain()&&BASE==null)?-1:(CL.ver||0))+'&device='+devInfo().id), sh=r.shop, was=isMain(), wasS2=isSeller2();
-    CL.multi=!!sh.multi; CL.sellers=sh.sellers||[];
+    CL.multi=!!sh.multi; CL.sellers=sh.sellers||[]; if(r.scanReq) setTimeout(()=>{try{remOffer(r.scanReq)}catch(_){}},0);
     CL.name=sh.name; CL.mainLast=sh.updated; if(sh.id&&!CL.shopId){CL.shopId=sh.id; clSave()}
     if(was&&sh.main!==devInfo().id){CLS.busy=false; await cloudLostMain(sh); return}
     CL.main=sh.main; clSave();
@@ -1031,28 +1066,121 @@ function cloudCard(){
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
     ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
-/* قارئة الباركود السلكية (USB): بتكتب الرقم كأنه لوحة مفاتيح بسرعة وبتضغط Enter. نلتقط الضغطات السريعة، وإذا خلصت بـEnter بنعتبرها باركود */
-const WEDGE={buf:'',last:0,on:()=>localStorage.getItem('ksr-wedge')==='1'};
+/* ===== ماكينة قارئ الباركود (USB أو لاسلكية) =====
+   الماكينة بتشتغل زي الكيبورد: بتكتب أرقام الباركود بسرعة كبيرة وبتضغط Enter.
+   الربط بينحفظ على هذا الجهاز بشكل دائم لحد ما صاحب المحل يفصله.
+   من أول ما الماكينة تقرأ، من أي شاشة كانت: بتفتح شاشة البيع وبينضاف الصنف للسلة. */
+const WEDGE={buf:'',last:0,first:0,t:null,pair:null,pt:null,on:()=>localStorage.getItem('ksr-wedge')==='1'};
+const isDesk=()=>matchMedia('(pointer:fine)').matches&&innerWidth>=900;
+const AR_DIG=s=>String(s).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+/* الزر الفعلي اللي انضغط (مش الحرف): هيك الأرقام بتطلع صح حتى لو لغة الكيبورد عربي */
+function wKey(e){ const c=e.code||'';
+  if(/^Digit\d$/.test(c)) return c.slice(5); if(/^Numpad\d$/.test(c)) return c.slice(6);
+  if(/^Key[A-Z]$/.test(c)) return e.shiftKey?c.slice(3):c.slice(3).toLowerCase();
+  if(c==='Minus'||c==='NumpadSubtract') return '-'; if(c==='Period'||c==='NumpadDecimal') return '.'; if(c==='Slash'||c==='NumpadDivide') return '/';
+  const k=e.key; if(k&&k.length===1) return AR_DIG(k); return null }
 document.addEventListener('keydown',e=>{
-  if(!WEDGE.on()||!S||$('#sheet.open')&&!$('#scanSheet.open')&&document.querySelector('#sheet.open input')) return;
+  if(!S||!(WEDGE.on()||WEDGE.pair)||e.isComposing) return;
+  if(e.ctrlKey||e.metaKey||e.altKey){ WEDGE.buf=''; return }
   const now=Date.now(), gap=now-WEDGE.last; WEDGE.last=now;
-  if(e.key==='Enter'){
-    const code=WEDGE.buf; WEDGE.buf='';
-    if(code.length>=6&&/^[\w-]+$/.test(code)){ e.preventDefault(); const f=document.activeElement;
-      if(f&&f.tagName==='INPUT'&&f.value.endsWith(code)) f.value=f.value.slice(0,-code.length);
-      liveHit(code) }
+  if(e.key==='Enter'||e.key==='Tab'){
+    if(WEDGE.buf.length>=4&&gap<150){ e.preventDefault(); e.stopImmediatePropagation(); wEnd() } else WEDGE.buf='';
     return }
-  if(e.key.length!==1||e.ctrlKey||e.metaKey||e.altKey) { WEDGE.buf=''; return }
-  if(gap>60&&WEDGE.buf.length) WEDGE.buf=''; // ضغطة بطيئة = كتابة عادية
-  WEDGE.buf+=e.key;
-});
-function scanCard(){ if(!linked()) return '';
-  return `<div class="card" style="gap:8px"><h2>📷 الماسح من جوال للابتوب</h2>
-    <label class="chk"><input type="checkbox" id="wedgeOn" ${localStorage.getItem('ksr-wedge')==='1'?'checked':''}>قارئة باركود سلكية (USB) متصلة بهذا الجهاز</label>
-    <p class="muted" style="margin:0">اللابتوب ما إله كاميرا؟ خلّي الجوال يمسح، والباركود بيطلع بسلة اللابتوب.</p>
+  const ch=wKey(e); if(ch==null){ if(!/^(Shift|CapsLock)$/.test(e.key)) WEDGE.buf=''; return }
+  if(gap>60&&WEDGE.buf.length) WEDGE.buf=''; /* ضغطة بطيئة = كتابة بإيد البني آدم */
+  if(!WEDGE.buf) WEDGE.first=now;
+  WEDGE.buf+=ch;
+  /* ماكينات بدون Enter بالآخر: إذا وقفت الكتابة السريعة وفي 8 أرقام وأكثر، بنعتبرها باركود */
+  clearTimeout(WEDGE.t); WEDGE.t=setTimeout(()=>{ const b=WEDGE.buf; if(b.length>=8&&Date.now()-WEDGE.first<b.length*45) wEnd() },160);
+},true);
+function wEnd(){
+  const code=WEDGE.buf.trim(); WEDGE.buf=''; clearTimeout(WEDGE.t); if(code.length<4) return;
+  const f=document.activeElement, fid=f&&f.id||'', typing=f&&(f.tagName==='INPUT'||f.tagName==='TEXTAREA');
+  const keepIn=['fBar','wBar','scanTxt'].includes(fid);
+  /* الأرقام انكتبت بالخانة اللي كان عليها المؤشر: بنشيلها منها */
+  if(typing&&!keepIn&&typeof f.value==='string'&&f.value.endsWith(code)){ f.value=f.value.slice(0,-code.length); try{f.dispatchEvent(new Event('input',{bubbles:true}))}catch(_){} }
+  try{ localStorage.setItem('ksr-wedge-t',String(Date.now())) }catch(_){}
+  if(WEDGE.pair){ wPaired(code); return }
+  if(!/^[\x21-\x7E]+$/.test(code)){ wGarbled(code); return }
+  if(fid==='fBar'||(!keepIn&&$('#sheet.open #fBar'))){ const b=$('#fBar'); b.value=code; beep(true); toast('✓ تم التقاط الباركود'); return }
+  if(fid==='wBar'||(!keepIn&&$('#sheet.open #wBar'))){ const b=$('#wBar'); b.value=code; beep(true); A.whFind(); return }
+  if(fid==='scanTxt'||$('#scanSheet.open')){ const t=$('#scanTxt'); if(t) t.value=''; onScan(code); return }
+  /* من أي شاشة: نفتح قائمة البيع ونحط الصنف */
+  if($('#sheet.open')) closeSheet();
+  if(typing) f.blur();
+  if(tab!=='sell'){ tab='sell'; try{history.replaceState(null,'','#sell')}catch(_){} render(); const v=$('#view'); if(v) v.scrollTop=0 }
+  scan.target='sell'; liveHit(code);
+}
+function wGarbled(code){ beep(false);
+  openSheet(`${sheetHead('⚠ الماكينة قرأت بس الرموز غلط')}<p style="margin:0">وصلنا من الماكينة: <span class="num" dir="ltr">${esc(code.slice(0,40))}</span></p>
+   <div class="list"><div class="li"><span><b>السبب غالبًا لغة الكيبورد.</b> غيّرها لـ <b>English</b> (اضغط Alt + Shift مع بعض) وامسح مرة ثانية.</span></div>
+   <div class="li"><span>إذا ضلّت تطلع رموز غريبة: الماكينة بدها ضبط على لغة «US» من كتيّب الماكينة.</span></div></div>
+   <button class="btn block" data-act="close">تمام</button>`) }
+function wedgeLink(){ if(!S) return;
+  WEDGE.pair={t0:Date.now()}; WEDGE.buf='';
+  openSheet(`${sheetHead('🔌 ربط ماكينة قارئ الباركود','wedgeCancel')}
+   <div class="wpair"><svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 10h22l6 16-8 4-4-8h-8l-4 30H12z"/><path d="M44 18h10M46 24h10M44 30h8" opacity=".7"/></svg>
+    <div class="list">
+     <div class="li"><span><b>1.</b> شبّك الماكينة بمدخل <b>USB</b> ${isDesk()?'باللابتوب':'(بالجوال بتحتاج وصلة OTG)'} واستنى ضوها يشتغل.</span></div>
+     <div class="li"><span><b>2.</b> امسح <b>أي باركود</b> هلأ، أي علبة بالمحل.</span></div></div></div>
+   <div class="tile wst" id="wpSt"><b>⏳ بنستنى أول مسح من الماكينة…</b><span class="muted">باقي <span class="num" id="wpN">30</span> ثانية</span></div>
+   <button class="btn block" data-act="wedgeCancel">إلغاء</button>`);
+  try{ document.activeElement&&document.activeElement.blur(); window.focus() }catch(_){}
+  clearInterval(WEDGE.pt);
+  WEDGE.pt=setInterval(()=>{ if(!WEDGE.pair){clearInterval(WEDGE.pt);return}
+    if(!$('#sheet.open #wpSt')){ WEDGE.pair=null; clearInterval(WEDGE.pt); return } /* سكّر الشاشة */
+    const left=30-Math.floor((Date.now()-WEDGE.pair.t0)/1000), n=$('#wpN'); if(n) n.textContent=Math.max(0,left);
+    if(!document.hasFocus()&&!WEDGE.pair.warned){ WEDGE.pair.warned=1; const st=$('#wpSt'); if(st) st.insertAdjacentHTML('beforeend','<span class="wwarn">⚠ اضغط على صفحة التطبيق مرة، عشان المسح يوصل هون مش لبرنامج ثاني</span>') }
+    if(left<=0) wedgeFail() },1000);
+}
+function wPaired(code){ clearInterval(WEDGE.pt); WEDGE.pair=null;
+  localStorage.setItem('ksr-wedge','1'); localStorage.setItem('ksr-wedge-at',String(Date.now()));
+  if(isDesk()&&S.liveCam==null){ S.liveCam=false; save() }
+  code=AR_DIG(code); const it=/^[\x21-\x7E]+$/.test(code)&&S.items.find(i=>i.barcode===code);
+  beep(true); try{navigator.vibrate&&navigator.vibrate(60)}catch(_){}
+  openSheet(`${sheetHead('✓ الماكينة انربطت')}
+   <div class="tile wst ok"><b>✓ قارئ الباركود شغّال ومربوط</b><span>قرأ: <span class="num" dir="ltr">${esc(code.slice(0,40))}</span>${it?` · ${esc(it.name)}`:' · صنف مش مسجّل لسا'}</span></div>
+   <p style="margin:0">الربط <b>دائم</b> على هذا الجهاز. من هلأ أي مسح، من أي شاشة كنت فيها، بيفتح البيع وبيحط الصنف بالسلة لحاله.</p>
+   ${/^[\x21-\x7E]+$/.test(code)?'':'<p class="muted" style="margin:0;color:var(--bad)">⚠ الرموز طالعة غلط: غيّر لغة الكيبورد لـ English (Alt + Shift).</p>'}
+   <button class="btn primary block" data-act="wedgeDone">ابدأ البيع</button>`);
+  render() }
+function wedgeFail(){ clearInterval(WEDGE.pt); WEDGE.pair=null; beep(false);
+  openSheet(`${sheetHead('⚠ ما وصلنا ولا مسح من الماكينة')}
+   <div class="list">
+    <div class="li"><span><b>الضو والصوت:</b> لما تمسح لازم تسمع «بيب» من الماكينة. إذا ما في ضو أبدًا، الوصلة مش واصلة: شبّكها منيح أو جرّب مدخل USB ثاني.</span></div>
+    <div class="li"><span><b>صفحة التطبيق قدامك:</b> اضغط على صفحة التطبيق مرة قبل المسح. إذا في برنامج ثاني مفتوح، المسح بيروح عليه.</span></div>
+    <div class="li"><span><b>ماكينة لاسلكية:</b> شبّك القطعة الصغيرة (الدونجل) بالـ USB وتأكد إن الماكينة مشحونة.</span></div>
+    <div class="li"><span><b>تجربة سريعة:</b> افتح «المفكرة» (Notepad) وامسح. إذا ما طلعت أرقام هناك كمان، المشكلة بالماكينة أو الوصلة مش بالتطبيق.</span></div></div>
+   <button class="btn primary block" data-act="wedgeLink">جرّب مرة ثانية</button>
+   <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، ماكينة قارئ الباركود مش عم تقرأ بتطبيق كاشيرك الذكي')}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`) }
+function wedgeOff(){ localStorage.setItem('ksr-wedge','0'); closeSheet(); render(); toast('انفصلت ماكينة قارئ الباركود عن هذا الجهاز') }
+/* لو التطبيق مش هو الشباك الشغّال، المسح ما بيوصل: بنبيّن تنبيه واضح */
+function wFocusUI(){ let b=$('#wfocus'); const need=!!S&&WEDGE.on()&&!document.hidden&&!document.hasFocus()&&tab==='sell';
+  if(!need){ if(b) b.remove(); return }
+  if(!b){ b=document.createElement('div'); b.id='wfocus'; b.innerHTML='⚠ اضغط هون عشان مسح الماكينة يوصل للتطبيق'; b.onclick=()=>{ try{window.focus()}catch(_){} b.remove() }; document.body.appendChild(b) } }
+window.addEventListener('blur',()=>setTimeout(wFocusUI,300)); window.addEventListener('focus',()=>{const b=$('#wfocus'); if(b) b.remove()});
+/* حالة المسح على هذا الجهاز: بتظهر بشاشة البيع */
+function scanStatus(){ const w=WEDGE.on(), lt=+localStorage.getItem('ksr-wedge-t')||0;
+  return w?`<div class="wchip on"><span>🔌 قارئ الباركود مربوط ✓${lt?` · آخر مسح <span class="num">${hm(lt)}</span>`:''}</span><span class="row" style="gap:6px"><button class="btn sm" data-act="wedgeLink">اختبار</button><button class="btn sm" data-act="wedgeOffAsk">فصل</button></span></div>`
+   :`<button class="btn block wchip" data-act="wedgeLink">🔌 ربط ماكينة قارئ الباركود</button>` }
+/* اللابتوب: خيارين للمسح */
+function scanOpts(){ if(!isDesk()) return '';
+  const w=WEDGE.on(), host=REM.role==='host', camOn=S.liveCam!==false, lt=+localStorage.getItem('ksr-wedge-t')||0;
+  if(w&&!host) return `<div class="wchip on scanopts wide"><span>🔌 ماكينة قارئ الباركود مربوطة ✓ · امسح من أي شاشة والصنف بينزل هون${lt?` · آخر مسح <span class="num">${hm(lt)}</span>`:''}</span><span class="row" style="gap:6px"><button class="btn sm" data-act="wedgeLink">اختبار</button><button class="btn sm" data-act="remHost">📱 الجوال كماسح</button><button class="btn sm" data-act="liveToggle">${camOn?'إيقاف الكاميرا':'📷 الكاميرا'}</button><button class="btn sm" data-act="wedgeOffAsk">فصل</button></span></div>`;
+  return `<div class="card scanopts wide"><div class="sopts">
+    <button class="sopt${w?' on':''}" data-act="wedgeLink"><span class="soi">🔌</span><span><b>ماكينة قارئ الباركود</b><small>${w?'مربوطة ✓ · اضغط للاختبار':'شبّكها بالـ USB واضغط هون للربط'}</small></span></button>
+    <button class="sopt${host?' on':''}" data-act="${host?'remStop':'remHost'}"><span class="soi">📱</span><span><b>الجوال كماسح</b><small>${host?(REM.dc&&REM.dc.readyState==='open'?'الجوال متصل ✓ · اضغط للإيقاف':esc(REM.st||'بانتظار الجوال…')+' · اضغط للإيقاف'):'بتوصل رسالة لجوالات المحل، واللي بيوافق بيصير ماسح'}</small></span></button>
+    <button class="sopt cam${camOn?' on':''}" data-act="liveToggle"><span class="soi">📷</span><span><b>${camOn?'إيقاف الكاميرا':'كاميرا اللابتوب'}</b></span></button>
+   </div></div>` }
+function scanCard(){
+  return `<div class="card" style="gap:8px"><h2>🔌 ماكينة قارئ الباركود</h2>
+    <p class="muted" style="margin:0">ماكينة المسح اللي بتتشبّك بالـ USB. اربطها مرة وحدة، وبتضل مربوطة على هذا الجهاز.</p>
+    ${scanStatus()}</div>`+(linked()?`<div class="card" style="gap:8px"><h2>📱 الجوال كماسح للابتوب</h2>
+    <p class="muted" style="margin:0">اللابتوب ما إله ماكينة؟ من اللابتوب: البيع ← «الجوال كماسح»، وبتوصل رسالة للجوال. أو من هون:</p>
+    ${isDesk()?'':'<button class="btn accent block" data-act="remScan">📷 خلّي هذا الجوال ماسح للابتوب هلأ</button>'}
     <label class="chk"><input type="checkbox" id="scIn" ${localStorage.getItem('ksr-scanin')==='1'?'checked':''}>هذا الجهاز (اللابتوب الأساسي) يستلم المسح من الجوال</label>
     <label class="chk"><input type="checkbox" id="scOut" ${localStorage.getItem('ksr-scanout')==='1'?'checked':''}>هذا الجوال ماسح: كل باركود بيمسحه بينرسل للابتوب ومش بيضيفه لسلته</label>
-    <p class="muted" style="margin:0;font-size:12.5px">بيشتغل بالنت. الجوال والابتوب لازم يكونوا على نفس الحساب.</p></div>`}
+    <p class="muted" style="margin:0;font-size:12.5px">بيشتغل بالنت. الجوال والابتوب لازم يكونوا على نفس الحساب.</p></div>`:'')}
 function multiCard(){ if(!linked()) return '';
   if(!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
   return `<div class="card" style="gap:10px"><h2>📱💻 أجهزة المحل</h2>
@@ -1083,7 +1211,8 @@ setInterval(async()=>{ if(!remoteScanIn()||document.visibilityState!=='visible'|
   try{ const r=await api('/scan?after='+Math.max(0,SCANQ.last)); if(SCANQ.last<0){ SCANQ.last=r.last; return }
     if(r.codes&&r.codes.length){ SCANQ.last=r.last; r.codes.forEach(c=>liveHit(c)) } }catch(e){} },1500);
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
-  if(!isMain()||CL.multi) cloudPull(); else if(CLS.tick%8===0) cloudPull(); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
+  if(!isMain()||CL.multi) cloudPull(); else if(CLS.tick%8===0) cloudPull();
+  else if(!isDesk()&&!REM.role&&navigator.onLine) api('/sig?k=offer').then(r=>{ if(r&&r.v){ try{const o=JSON.parse(r.v); remOffer({n:o.n,dev:o.dev,label:o.label})}catch(_){} } }).catch(()=>{}); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
 setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
 /* الحساب بلا كلمة سر: جوال صاحب المحل بيحطها لحاله = رمز المالك، عشان باقي الأجهزة تدخل فيها */
 async function autoPass(){ if(autoPass.b||!S||!linked()||!isMain()||!CL.nopass||!navigator.onLine) return; const pw=String(S.pin||''); if(pw.length<4) return;
@@ -1465,10 +1594,10 @@ sell(){
   const c=cart(), tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count,l.p)),c.discount), fee=appFeeOf(tt.total,c), gt=r2(tt.total+fee+xt(c));
   return `
   ${c.addTo?`<div class="rempill" style="background:#FFF6DD;color:#6b4d0e;border-color:#E6C878"><span>➕ إضافة أصناف على فاتورة رقم <span class="num">${c.addTo}</span></span><button class="btn sm" data-act="addCancel">إلغاء</button></div>`:''}
-  ${REM.role==='host'?`<div class="rempill" id="remPill">${remPill()}</div>`:(isMain()&&matchMedia('(pointer:fine)').matches&&innerWidth>=760?'<button class="btn block rembtn" data-act="remHost">📱 استعمل الجوال كماسح باركود للابتوب</button>':'')}
+  ${isDesk()?scanOpts():(REM.role==='host'?`<div class="rempill" id="remPill">${remPill()}</div>`:'')}
   ${c.addTo?'':`<button class="btn block" data-act="findSale" style="min-height:42px">🔎 فاتورة سابقة: مرتجع أو إضافة أصناف</button>`}
   <div class="seg">${carts.map((x,k)=>`<button data-act="cart" data-k="${k}" aria-pressed="${k===ci}">سلة ${k+1}${x.lines.length?` (${x.lines.length})`:''}</button>`).join('')}</div>
-  <div class="card">
+  <div class="scol"><div class="card">
     <label for="q">إضافة صنف بالاسم
       <input id="q" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف أو رقمه" value="${esc(q)}"><small class="fh">💡 الصنف اللي ما إله باركود: اكتب أول حرفين من اسمه وبيطلعلك لحاله، اضغط عليه</small></label>
     <div id="results"></div>
@@ -1491,8 +1620,8 @@ sell(){
           <button class="btn sm danger" data-act="rm" data-k="${k}">حذف</button>
         </div>
       </div>`}).join('')||'<div class="empty">السلة فاضية. امسح باركود أو ابحث عن صنف.</div>'}
-  </div>
-  <div class="card">
+  </div></div>
+  <div class="card spay">
     <label for="disc">خصم (₪)<input id="disc" type="number" inputmode="decimal" min="0" step="0.5" value="${c.discount||''}" placeholder="0"></label>
     <div class="seg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${v}</button>`).join('')}</div>
     ${c.pay==='split'?`<div class="grid2"><label for="spC">نقدي (₪)<input id="spC" class="cf" data-f="splitCash" type="number" inputmode="decimal" min="0" value="${esc(c.splitCash)}"></label><label for="spA">تطبيق أو محفظة (₪)<input id="spA" class="cf" data-f="splitApp" type="number" inputmode="decimal" min="0" value="${esc(c.splitApp)}"></label></div><p class="muted" id="spRest" style="margin:0">الباقي ${fx(splitPays(gt,c).debt)} ₪ يُسجّل دين على الزبون.</p>`:''}
@@ -1522,6 +1651,7 @@ sell(){
       <select id="rcvC" class="cf" data-f="rcvC" style="width:110px" aria-label="عملة المبلغ المستلم">${[['ils','شيكل'],['usd','دولار'],['jod','دينار']].map(([k,v])=>`<option value="${k}" ${c.rcvC===k?'selected':''}>${v}</option>`).join('')}</select></div>
       <div class="row" id="chg">${changeTxt(gt,c)}</div>`:''}
     <button class="btn accent block" data-act="checkout">إتمام البيع</button>
+    ${scanStatus()}
   </div>`;
 },
 items(){
@@ -1577,7 +1707,7 @@ more(){
     ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
-    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، رمز المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
+    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -1704,7 +1834,8 @@ more(){
       ${st.paid&&S.licPlan?`<div class="li"><span>الباقة</span><span>${planName(S.licPlan)||'—'}</span></div>`:''}
       <div class="li"><span>${st.active?'ينتهي في':'انتهى في'}</span><span>${S.licExp>=LIC_LIFE?'مفتوح، ما بينتهي':fday(st.end)}</span></div></div>
       <div class="grid2"><button class="btn primary" data-act="license">إدخال كود تفعيل</button><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button></div></div>`})()}`,true)}
-  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، البيع من جوالين، واللابتوب',cloudCard()+multiCard()+scanCard())}
+  ${setSec('☁️','السحابة والأجهزة','الحفظ على السحابة، والبيع من أكثر من جهاز',cloudCard()+multiCard())}
+  ${setSec('🔌','قارئ الباركود والمسح','ربط ماكينة قارئ الباركود، والجوال كماسح للابتوب',scanCard())}
   ${setSec('🏪','المحل والأسعار','اسم المحل، الدولار والدينار، رسوم التطبيق، والخصم',`<div class="sin">
       <label for="stShop">اسم المحل<input id="stShop" value="${esc(S.shop)}"></label>
       <div class="grid2"><label for="stRate">سعر الدولار بالشيكل<input id="stRate" type="number" inputmode="decimal" step="0.01" value="${S.rate}"></label>
@@ -1714,12 +1845,12 @@ more(){
       <label class="chk" for="stProof"><input type="checkbox" id="stProof" ${S.proofReq?'checked':''}>صورة إشعار التحويل إجبارية للدفع بالتطبيق أو البنك</label>
       <p class="muted" style="margin:0">رسوم التطبيق بتنضاف لحالها لما الزبون يدفع كامل الفاتورة بالتطبيق أو المحفظة. خلّيها 0 لو ما بدك فرق.</p>
       <button class="btn primary" data-act="saveSet">حفظ</button></div>`)}
-  ${setSec('🔒','كلمة السر','الكلمة اللي بتفتح وضع المالك وبتدخل بيها الحساب',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في إرجاع فواتير ولا حذف. الرمز الافتراضي 0000، غيّره.</p>
+  ${setSec('🔒','وضع المالك والكاشير','كود المالك، وصلاحيات الكاشير',`<div class="sin"><p class="muted" style="margin:0">في وضع الكاشير ما بتظهر الأرباح والتكلفة، وما في إرجاع فواتير ولا حذف. للتحويل من الكاشير للمالك اضغط زر «الكاشير» فوق واكتب <b>كود المالك</b>.</p><p class="muted" style="margin:0;font-size:12.5px">كلمة سر الحساب بتنكتب بس وقت الدخول على الحساب من جهاز جديد.</p>
       <label class="chk" for="stWh"><input type="checkbox" id="stWh" ${S.wh?'checked':''}>عندي مخزن منفصل عن المحل (بيفعّل نقل البضاعة من المخزن للمحل، وجرد منفصل للمخزن)</label>
       <label class="chk" for="stCashItems"><input type="checkbox" id="stCashItems" ${S.cashItems?'checked':''}>الكاشير بيقدر يضيف أصناف جديدة ويعدّل أسعارها</label>
       <p class="muted" style="margin:-4px 0 0;font-size:12.5px">الكاشير ما بيقدر يغيّر التكلفة ولا كمية صنف موجود، ولا يحذف. وكل تعديل بينسجّل باسمه بسجل الحركات.</p>
-      <label for="stPin">رمز جديد (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
-      <button class="btn primary" data-act="savePin">حفظ الرمز</button></div>`)}
+      ${CL&&CL.token?'':`<label for="stPin">كلمة سر الحساب (4 لـ8 أرقام)<input id="stPin" type="password" inputmode="numeric" autocomplete="off"></label>
+      <button class="btn primary" data-act="savePin">حفظ كلمة السر</button>`}</div>`)}
   ${setSec('🔔','الإشعارات والصوت','تذكير خلال اليوم، وصوت مسح الباركود',pushSetCard()+`<div class="sin"><label class="chk" for="stSound"><input type="checkbox" id="stSound" ${S.sound===false?'':'checked'}>صوت «بيب» واهتزاز عند مسح الباركود</label><button class="btn" data-act="testBeep">تجربة الصوت</button></div>`)}
   ${setSec('💾','النسخ الاحتياطي','تنزيل نسخة من بياناتك أو استرجاعها',`<div class="sin"><p class="muted" style="margin:0">البيانات محفوظة على هذا الجهاز. نزّل نسخة كل أسبوع واحفظها على واتساب أو الدرايف، لأنه لو ضاع الجوال بتضيع البيانات.</p>
       <div class="grid2"><button class="btn primary" data-act="bkFile">تنزيل ملف نسخة</button><label class="btn" for="bkPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center;align-items:center">استرجاع من ملف</label></div>
@@ -2005,8 +2136,10 @@ const LIVE={stream:null,timer:null,busy:false,starting:false,last:'',lastSeen:0,
 const liveMsg=t=>{const m=$('#liveMsg'); if(m) m.textContent=t};
 function syncLive(){
   const box=$('#live'); if(!box) return;
+  /* اللابتوب: كاميرته الأمامية ما بتنفع للباركود، فبتبدأ مطفية (بتنشغل من «طريقة مسح الباركود») */
+  if(S&&S.liveCam==null&&isDesk()) S.liveCam=false;
   const show=!!S&&tab==='sell'&&REM.role!=='host', on=show&&S.liveCam!==false&&!document.hidden&&!$('#scanSheet').classList.contains('open');
-  box.hidden=!show; box.classList.toggle('off',!!S&&S.liveCam===false);
+  box.hidden=!show||(isDesk()&&S.liveCam===false); box.classList.toggle('off',!!S&&S.liveCam===false);
   const tg=$('#liveToggle'); if(LIVE.err&&S&&S.liveCam!==false){ tg.textContent='📷 جرّب مرة ثانية'; tg.dataset.act='liveRetry' } else { tg.textContent=S&&S.liveCam===false?'تشغيل الكاميرا':'إيقاف الكاميرا'; tg.dataset.act='liveToggle' }
   if(S&&S.liveCam===false) liveMsg('الكاميرا موقفة. المسح بقارئ الباركود أو بالكتابة');
   if(on&&!LIVE.err) startLive(); else if(!on) stopLive();
@@ -2489,10 +2622,11 @@ addBuy(){
   save(); render(); toast(`✓ أُضيف ${qty} حبة لـ ${it.name}${chg?' وتحدّثت أسعاره':''} · كمّل الصنف الثاني من نفس الفاتورة`);
 },
 mode(){ if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; render(); toast('وضع الكاشير: الأرباح والتعديل مخفية')}
-  else openSheet(`${sheetHead('الدخول كمالك')}<label for="pin">كلمة السر<input id="pin" type="password" autocomplete="off"></label><button class="btn primary block" data-act="unlock">دخول</button>`)},
-unlock(){ if($('#pin').value===S.pin){S.mode='owner'; save(); closeSheet(); render(); toast('وضع المالك')} else toast('الرمز غلط')},
+  else { openSheet(`${sheetHead('التحويل لوضع المالك')}<p style="margin:0">اكتب <b>الكود الخاص بالمالك</b> عشان تفتح الأرباح والمخزون والتعديل.</p><label for="pin">كود المالك<input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="اكتب كود المالك"></label><button class="btn primary block" data-act="unlock">دخول كمالك</button>`); setTimeout(()=>{const i=$('#pin'); if(i) i.focus()},150) }},
+unlock(){ const v=String($('#pin').value||'').trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  if(v===OWNER_CODE){S.mode='owner'; save(); closeSheet(); render(); toast('✓ وضع المالك')} else { beep(false); toast('كود المالك غلط'); const i=$('#pin'); if(i){i.value=''; i.focus()} } },
 syncPinPw(pw){ if(S&&pw){ S.pin=String(pw); save() } },
-savePin(){ if(CL&&CL.token){toast('رمز المالك هو نفسه كلمة سر الحساب. غيّرها من كلمة السر');return} const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
+savePin(){ if(CL&&CL.token){toast('كلمة سر الحساب بتتغيّر من «حسابي»');return} const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
 confirmPay(d){const s=S.sales.find(x=>x.id===+d.id); if(s){s.confirmed=true; if($('#sheetBox [data-act=proofShare]')) closeSheet(); audit(`تأكيد تحويل ${s.appMethod} ${fx(payOf(s).app)} ₪ فاتورة ${s.id}`); save(); render(); toast('تم تأكيد التحويل')}},
 savePhone(d){const c=S[d.kind].find(x=>x.id===+d.id); c.phone=$('#pPhone').value.trim(); save(); A.party(d); toast('تم حفظ الرقم')},
 debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]), tot=r2(list.reduce((a,x)=>a+x[1],0));
@@ -2593,9 +2727,8 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
     if(e.code==='limit'&&e.data&&e.data.devices){ A.loginReplace.p={ph,pw,role};
       openSheet(`${sheetHead('الحساب مفتوح على 3 أجهزة')}<p style="margin:0">هذا الحد لكل محل: 3 أجهزة. اختار جهاز تطلّعه من الحساب، وهذا الجهاز بيدخل مكانه:</p>
         <div class="list">${e.data.devices.map(x=>`<div class="li"><span>${esc(x.label||'جهاز')} ${x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">بائع ثاني</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><button class="btn sm danger" data-act="loginReplace" data-dev="${x.id}">طلّعه</button></div>`).join('')}</div>`); return }
-    if(e.code==='nopass'){ openSheet(`${sheetHead('الحساب لسا ما إله كلمة سر')}<p style="margin:0">افتح التطبيق على <b>جوال صاحب المحل الأول</b> وهو متصل بالنت دقيقة. كلمة سر الحساب بتصير لحالها نفس <b>رمز المالك</b> اللي على الجوال.</p>
-      <div class="list"><div class="li"><span>بعدها ارجع لهذا الجهاز وادخل بنفس رقم الجوال ورمز المالك.</span></div></div>
-      <p class="muted" style="margin:0">كلمة السر هي نفسها اللي بتفتح وضع المالك، فاحفظ وحدة بس.</p>
+    if(e.code==='nopass'){ openSheet(`${sheetHead('الحساب لسا ما إله كلمة سر')}<p style="margin:0">افتح التطبيق على <b>جوال صاحب المحل الأول</b> وهو متصل بالنت دقيقة. كلمة سر الحساب بتتجهّز لحالها من الجوال.</p>
+      <div class="list"><div class="li"><span>بعدها ارجع لهذا الجهاز وادخل بنفس رقم الجوال وكلمة سر الحساب.</span></div></div>
       <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أدخل على حساب محلي من جوال ثاني.\nرقم الجوال: '+ph)}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`); return }
     toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. تأكد من كلمة السر وحاول مرة ثانية':e.message)}},
 async takeHub(){const btn=$('[data-act=takeHub]'); if(btn){btn.disabled=true; btn.textContent='جاري التحويل…'}
@@ -2820,7 +2953,7 @@ pdfMake(d){ if(!pdfSel.size){toast('اختار قسم واحد على الأقل
 invPdf(d){const s=S.sales.find(x=>x.id===+d.id); if(!s) return; sharePdf(invoicePdf(s),fileSafe(`فاتورة ${s.id} ${S.shop}`)+'.pdf',`فاتورة رقم ${s.id} من ${S.shop}`)},
 debtPdf(){ try{localStorage.setItem('ksr-debtpdf',new Date().toDateString())}catch(e){} const tot=r2(S.customers.reduce((a,c)=>a+Math.max(0,balance(c)),0)); sharePdf(debtsPdf(),fileSafe(`سجل الديون ${S.shop} ${new Date().toISOString().slice(0,10)}`)+'.pdf',`سجل الديون · ${S.shop} · مجموع الديون ${fx(tot)} ₪`); setTimeout(render,300)},
 stmtPdf(d){const c=S[d.kind].find(x=>x.id===+d.id); if(!c) return; sharePdf(statementPdf(c),fileSafe(`كشف حساب ${c.name}`)+'.pdf',`كشف حساب ${c.name} من ${S.shop}`)},
-liveToggle(){S.liveCam=S.liveCam===false; save(); syncLive(); if(S.liveCam!==false) toast('الكاميرا شغّالة: مرّر الأغراض قدامها')},
+liveToggle(){S.liveCam=S.liveCam===false; save(); syncLive(); if(isDesk()) render(); if(S.liveCam!==false) toast('الكاميرا شغّالة: مرّر الأغراض قدامها')},
 wipeAsk(){openSheet(`${sheetHead('مسح كل البيانات')}<p style="margin:0">اكتب كلمة <b>مسح</b> للتأكيد. هالخطوة ما بترجع.</p><input id="wipeTxt" autocomplete="off"><button class="btn danger block" data-act="wipe">مسح نهائي</button>`)},
 async wipe(){ if($('#wipeTxt').value.trim()!=='مسح'){toast('اكتب كلمة مسح للتأكيد');return}
   if(linked()){ if(!isMain()){toast('مسح البيانات بيصير من الجهاز الأساسي');return}
@@ -2872,6 +3005,11 @@ addToSale(d){ const tg=S.sales.find(x=>x.id===+d.id); if(tg&&tg.op&&opPending(tg
 addCancel(){ const c=cart(); delete c.addTo; render(); toast('رجعت السلة فاتورة جديدة عادية')},
 remHost(){remHost()},
 remScan(){closeSheet(); remScan()},
+wedgeLink(){wedgeLink()},
+wedgeCancel(){clearInterval(WEDGE.pt); WEDGE.pair=null; closeSheet()},
+wedgeDone(){closeSheet(); tab='sell'; try{history.replaceState(null,'','#sell')}catch(_){} render()},
+wedgeOffAsk(){openSheet(`${sheetHead('فصل ماكينة قارئ الباركود؟')}<p style="margin:0">بعد الفصل، المسح بالماكينة ما بيضيف أصناف على هذا الجهاز لحد ما تربطها من جديد.</p><div class="grid2"><button class="btn danger" data-act="wedgeOff">فصل</button><button class="btn" data-act="close">رجوع</button></div>`)},
+wedgeOff(){wedgeOff()},
 remStop(){closeSheet(); remClose(); toast('انتهى ربط الماسح')},
 devHelp(){ const pw=!(CL&&CL.nopass);
   openSheet(`${sheetHead('البيع من اللابتوب أو جهاز ثاني')}
@@ -2920,9 +3058,9 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
+const VIEW_OK=new Set(['go','wedgeLink','wedgeCancel','wedgeDone','wedgeOffAsk','wedgeOff','remHost','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['edInv','edInvQ','edInvRm','edInvAdd','edInvSave','imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','remHost','setupGo']);
+const SELLER_NO=new Set(['edInv','edInvQ','edInvRm','edInvAdd','edInvSave','imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
@@ -2948,7 +3086,7 @@ document.addEventListener('input',e=>{ const t=e.target; if(['pQty','pCost','pCs
     if(r){const tot=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count,l.p)),c.discount).total+xt(c); r.textContent=`الباقي ${fx(splitPays(tot,c).debt)} ₪ يُسجّل دين على الزبون.`; const da=$('#debtAmt'); if(da) da.innerHTML=money(splitPays(tot,c).debt)}}
 });
 document.addEventListener('change',e=>{
-  const t=e.target; if(t.id==='wedgeOn'){ localStorage.setItem('ksr-wedge',t.checked?'1':'0'); toast(t.checked?'✓ القارئة السلكية شغّالة':'القارئة السلكية مطفية') }
+  const t=e.target;
   if(t.id==='scIn'||t.id==='scOut'){ localStorage.setItem(t.id==='scIn'?'ksr-scanin':'ksr-scanout',t.checked?'1':'0'); toast(t.checked?'✓ اتفعّل':'اتوقف') }
   if(t.id==='fUnitSel'){ const w=$('#fW'); if(w){ w.checked=t.value==='kg'; w.dispatchEvent(new Event('change',{bubbles:true})) } return }
   if(t.id==='fImg'&&t.files&&t.files[0]){ thumbImg(t.files[0],180).then(d=>{ITEMIMG=d; const p=$('#fImgPrev'); if(p) p.innerHTML=`<img src="${d}" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover">`; toast('✓ الصورة جاهزة، اضغط حفظ')}).catch(()=>toast('ما قدرت أقرأ الصورة')); return }
