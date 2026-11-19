@@ -103,7 +103,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>(Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
 const DAY=864e5;
-let D=null, tab='home', shopFilter='all', shopQ='', codeFilter='new', codeQ='';
+let AD_IMG='', D=null, tab='home', shopFilter='all', shopQ='', codeFilter='new', codeQ='';
 const PLAN_ORDER=['m1','m2','m3','m6','y1','life'];
 const PLAN_NAME={m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'};
 const DEF_PRICE={m1:39,m2:75,m3:99,m6:189,y1:349,life:999};
@@ -172,6 +172,7 @@ home(){
   </div>
   <div class="grid2"><button class="btn gold" data-a="newCode">＋ كود تفعيل جديد</button><button class="btn primary" data-a="tab" data-t="shops">المشتركين</button></div>
   <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار لكل المحلات</button>
+  <button class="btn block" data-a="adSheet">📣 الإعلان داخل التطبيق</button>
   <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
     <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
   <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
@@ -330,6 +331,20 @@ const A={
   cfilter(d){codeFilter=d.f; render()},
   reload(){$('#app').innerHTML='<div class="spin"></div>'; load()},
   close, newCode(){newCodeSheet()},
+  async adSheet(){ open(`${head('📣 الإعلان داخل التطبيق')}<div class="spin"></div>`); let a={}; try{a=await call('ad')}catch(e){}
+    AD_IMG=a.img||'';
+    open(`${head('📣 الإعلان داخل التطبيق')}<p style="font-size:14px;margin:0">بيظهر بالشاشة الرئيسية عند كل المحلات. أنت بس اللي بتتحكم فيه، والمحل بيقدر يخفيه عنده بـ ✕ لحد ما تنشر إعلان جديد.</p>
+      <label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="adOn" ${a.on?'checked':''}> الإعلان شغّال</label>
+      <label>العنوان<input id="adT" value="${esc(a.title||'')}" placeholder="مثلاً: عرض الاشتراك الدائم 🔥"></label>
+      <label>النص<textarea id="adX" rows="3" placeholder="اختياري">${esc(a.text||'')}</textarea></label>
+      <div style="display:flex;gap:10px;align-items:center"><span id="adPrev">${a.img?`<img src="${a.img}" style="width:90px;border-radius:10px">`:''}</span><label class="btn" style="flex:1">🖼 صورة الإعلان (اختياري)<input type="file" id="adImg" accept="image/*" hidden></label>${a.img?'<button class="btn sm" data-a="adImgDel">حذف</button>':''}</div>
+      <div class="grid2"><label>نص الزر<input id="adB" value="${esc(a.btn||'')}" placeholder="اطلب الآن"></label><label>الرابط<input id="adL" value="${esc(a.link||'')}" placeholder="https://wa.me/970..."></label></div>
+      <button class="btn primary block" data-a="adSave">نشر الإعلان</button>`);
+    $('#adImg').addEventListener('change',async e=>{const f=e.target.files[0]; if(!f) return; const u=URL.createObjectURL(f), im=new Image(); im.src=u; await im.decode(); const k=Math.min(1,1000/im.naturalWidth), c=document.createElement('canvas'); c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); AD_IMG=c.toDataURL('image/jpeg',.78); URL.revokeObjectURL(u); $('#adPrev').innerHTML=`<img src="${AD_IMG}" style="width:90px;border-radius:10px">`})},
+  adImgDel(){AD_IMG=''; $('#adPrev').innerHTML=''},
+  async adSave(){ const b={on:$('#adOn').checked,title:$('#adT').value.trim(),text:$('#adX').value.trim(),btn:$('#adB').value.trim(),link:$('#adL').value.trim(),img:AD_IMG};
+    if(b.on&&!b.title&&!b.text&&!b.img){toast('اكتب عنوان أو حط صورة');return}
+    try{await call('ad',b); toast(b.on?'✓ انتشر الإعلان (بيوصل للمحلات خلال دقائق)':'✓ انوقف الإعلان'); close()}catch(e){toast(e.message)}},
   async pushSheet(){ open(`${head('🔔 إشعار لكل المحلات')}<div class="spin"></div>`); let st={subs:0,shops:0}; try{st=await call('pushstats')}catch(e){}
     open(`${head('🔔 إشعار لكل المحلات')}<p style="font-size:14px">بيوصل فورًا على جوالات المحلات اللي مشغّلين الإشعارات: <b class="num">${st.shops}</b> محل (<span class="num">${st.subs}</span> جهاز).</p>
     <p style="font-size:13px;color:var(--muted)">وغير هيك، التطبيق بيبعت تذكير تلقائي كل ساعتين بالنهار (8 الصبح لـ 8 المسا) حسب وضع كل محل.</p>
@@ -417,7 +432,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261118094638'; let UPD=false;
+const BUILD='20261119081603'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);

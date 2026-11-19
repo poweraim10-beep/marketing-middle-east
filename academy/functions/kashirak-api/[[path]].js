@@ -300,6 +300,7 @@ export async function onRequest({ request, env, params }) {
 
   try {
     if (a === 'ping') return json({ ok: true, t: nowMs() });
+    if (a === 'ad') { const r = await env.DB.prepare("SELECT v FROM ksr_kv WHERE k = 'app_ad'").first(); let v = {}; try { v = JSON.parse((r && r.v) || '{}'); } catch {} return json(v.on ? v : { on: false }); }
 
     // ----- first start on a device: every shop gets ONE account (by phone), bound to this device -----
     if (a === 'join' && m === 'POST') {
@@ -394,6 +395,19 @@ export async function onRequest({ request, env, params }) {
       const q = await body(request);
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
       const code = normCode(q.code), device = clean(q.device, 40);
+      // كود المالك السري: اشتراك دائم لأي حساب (محفوظ كبصمة فقط، الكود نفسه مش موجود بالسيرفر ولا بالتطبيق)
+      const rawC = String(q.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (rawC && hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rawC))) === 'eb7d9a8451fcfdadc680830cb3ae6fbce3afd6b2c19c70d4d123c4281853fb1e') {
+        let sr = await readShop(env, request);
+        if (!sr) return err('لازم المحل يكون مسجّل أول. افتح التطبيق وهو متصل بالنت', 401, { code: 'noacct' });
+        sr = await ensureAcct(env, sr);
+        if (!device || !isBoss(sr, device)) return err('التفعيل بيصير من أي جهاز مفعّل على الحساب', 403, { code: 'not_main' });
+        const tg = 'shop:' + sr.id, lbl = sr.owner ? sr.owner + ' · ' + (sr.name || '') : (sr.name || sr.phone);
+        await extendLic(env, tg, 0, 'life', lbl);
+        try { await env.DB.prepare("INSERT INTO ksr_codes (code, plan, days, price, status, acct, owner, kind, note, created, used_for, used_at, used_label) VALUES (?, 'life', 0, 0, 'used', ?, ?, 'master', 'كود المالك', ?, ?, ?, ?)").bind('OWN-' + sr.acct + '-' + nowMs().toString(36).toUpperCase(), sr.acct, sr.owner || '', nowMs(), tg, nowMs(), lbl).run(); } catch {}
+        const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(tg).first();
+        return json({ license: await signShop(env, sr), exp: L ? L.exp : -1, plan: L ? L.plan : '' });
+      }
       if (!code) { await noteFail(env, ip); return err('الكود لازم يكون بالشكل KSR-XXXX-XXXX'); }
       let shopRow = await readShop(env, request);
       if (!shopRow) return err('لازم المحل يكون مسجّل أول. افتح التطبيق وهو متصل بالنت', 401, { code: 'noacct' });
@@ -828,6 +842,13 @@ async function admin(env, request, b) {
     const exp = Math.max(0, Math.min(LIFETIME, parseInt(q.exp, 10)));
     await env.DB.prepare('INSERT INTO ksr_lic (id, exp, plan, updated) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET exp = excluded.exp, updated = excluded.updated').bind(target, exp, 'manual', nowMs()).run();
     return json({ ok: true });
+  }
+  if (b === 'ad') { // الإعلان اللي بيظهر داخل التطبيق لكل المحلات
+    if (m === 'GET') { const r = await env.DB.prepare("SELECT v FROM ksr_kv WHERE k = 'app_ad'").first(); let v = {}; try { v = JSON.parse((r && r.v) || '{}'); } catch {} return json(v); }
+    if (m === 'POST') { const img = String((q && q.img) || ''); if (img && !/^data:image\/(jpeg|png|webp);base64,/.test(img)) return err('الصورة مش صالحة'); if (img.length > 700000) return err('الصورة كبيرة');
+      const v = { on: !!(q && q.on), title: clean((q && q.title) || '', 80), text: clean((q && q.text) || '', 300), btn: clean((q && q.btn) || '', 30), link: clean((q && q.link) || '', 300), img, v: nowMs() };
+      if (v.link && !/^(https:\/\/|tel:|https:\/\/wa\.me\/)/.test(v.link)) return err('الرابط لازم يبدأ بـ https://');
+      await env.DB.prepare("INSERT INTO ksr_kv (k, v) VALUES ('app_ad', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(JSON.stringify(v)).run(); return json(v); }
   }
   if (b === 'books') { // دفتر المالك: تعديل مبالغ الاشتراكات (أو استثناؤها) + مصروفات الشركة
     if (m === 'GET') { const r = await env.DB.prepare("SELECT v FROM ksr_kv WHERE k = 'admin_books'").first(); let v = { adj: {}, exp: [] }; try { v = Object.assign(v, JSON.parse((r && r.v) || '{}')); } catch {} return json(v); }
