@@ -394,6 +394,15 @@ main{padding-bottom:44px}
 }
 @media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
+.wals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wal{position:relative;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 12px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;text-align:start;white-space:nowrap;overflow:hidden;transition:border-color .15s,box-shadow .15s,background .15s}
+.wal .wlogo{width:40px;height:40px;border-radius:11px;flex:none;box-shadow:0 2px 6px rgba(11,31,58,.18)}
+.wlogo.wgen{display:grid;place-items:center;background:linear-gradient(160deg,#EEF1F6,#D9DFE9);color:#3C4A60}.wlogo.wgen svg{width:22px;height:22px}
+.wal .wck{position:absolute;top:-7px;inset-inline-start:-7px;width:22px;height:22px;border-radius:50%;background:var(--wc);color:#fff;font-style:normal;font-size:13px;display:none;place-items:center;border:2px solid var(--surface)}
+.wal[aria-pressed="true"]{border-color:var(--wc);background:color-mix(in srgb,var(--wc) 9%,var(--surface));box-shadow:0 0 0 3px color-mix(in srgb,var(--wc) 22%,transparent)}
+.wal[aria-pressed="true"] .wck{display:grid}
+.wpill{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);color:var(--ink);padding:3px 10px 3px 4px}.wpill .wlogo{width:22px;height:22px;border-radius:6px}.wpill .wlogo svg{width:14px;height:14px}
+
 .i3{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(11,31,58,.28))}
 .mrow .mic.m3,.mic.m3{background:none;padding:0;width:46px;height:46px}
 nav button .ic{width:30px;height:30px;display:block}nav button .ic .i3{filter:drop-shadow(0 2px 4px rgba(11,31,58,.25)) saturate(.55);opacity:.72;transition:.2s}
@@ -482,7 +491,9 @@ const fdate=t=>new Date(t).toLocaleString('ar-u-nu-latn',{day:'numeric',month:'s
 const KEY='kashirak-v1', DEVKEY='kashirak-dev';
 const PAY={cash:'نقدي',app:'تطبيق أو محفظة',debt:'دين'};
 const APPM=['بنك فلسطين','PalPay','جوال باي','بنك آخر'];
-const APPC={'بنك فلسطين':'#0E7C4A','PalPay':'#1E88E5','جوال باي':'#E53935','بنك آخر':'#8D6E63'};
+const APPC={'بنك فلسطين':'#9E1B4F','PalPay':'#7B2FF7','جوال باي':'#6FAE2E','بنك آخر':'#5E6A7E'};
+const APPL={'بنك فلسطين':'bop','PalPay':'palpay','جوال باي':'jawwal'};
+const appLogo=m=>APPL[m]?`<img class="wlogo" src="icons/pay/${APPL[m]}.webp" alt="" decoding="async">`:`<span class="wlogo wgen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18L12 4 3 10zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span>`;
 const PROOF={};
 const refDup=c=>{const r=String(c.ref||'').trim(); return r.length>=3?S.sales.find(x=>x.ref===r&&x.appMethod===c.appMethod):null};
 /* بصمة صورة للإشعار (dHash 32×32) لكشف إعادة استعمال نفس الصورة */
@@ -1702,7 +1713,7 @@ sell(){
     ${c.pay==='split'?`<div class="grid2"><label for="spC">نقدي (₪)<input id="spC" class="cf" data-f="splitCash" type="number" inputmode="decimal" min="0" value="${esc(c.splitCash)}"></label><label for="spA">تطبيق أو محفظة (₪)<input id="spA" class="cf" data-f="splitApp" type="number" inputmode="decimal" min="0" value="${esc(c.splitApp)}"></label></div><p class="muted" id="spRest" style="margin:0">الباقي ${fx(splitPays(gt,c).debt)} ₪ يُسجّل دين على الزبون.</p>`:''}
     ${c.pay==='app'||c.pay==='split'?(()=>{const need=splitPays(gt,c).app, dupR=refDup(c), img=c.proof?PROOF[c.proof]:'';
       return `<div class="tcard"><div class="row"><b>التحويل</b><span class="pill ok">المطلوب <span class="num">${fx(need)}</span> ₪</span></div>
-      <div class="chips" role="group" aria-label="جهة التحويل">${APPM.map(m=>`<button class="chip" data-act="apM" data-m="${esc(m)}" aria-pressed="${c.appMethod===m}"><span class="dot" style="background:${APPC[m]||'var(--gold)'}"></span>${esc(m)}</button>`).join('')}</div>
+      <div class="wals" role="group" aria-label="جهة التحويل">${APPM.map(m=>`<button class="wal" data-act="apM" data-m="${esc(m)}" aria-pressed="${c.appMethod===m}" style="--wc:${APPC[m]||'var(--gold)'}">${appLogo(m)}<span>${esc(m)}</span><i class="wck">✓</i></button>`).join('')}</div>
       ${img?`<div class="proof"><button class="pthumb" data-act="proofView" data-k="cart" aria-label="عرض إشعار التحويل"><img src="${img}" alt=""></button><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span class="pill ok" style="align-self:flex-start">✓ إشعار التحويل مرفق</span>${c.proofDup?`<span class="pdup">⚠ هذا الإشعار بيشبه إشعار فاتورة ${c.proofDup}. تأكد إنه تحويل جديد.</span>`:'<span class="muted" style="font-size:13px">تأكد إن المبلغ والاسم بالإشعار صح، وإن التحويل لحسابك.</span>'}<div class="row" style="justify-content:flex-start;gap:8px"><label class="btn sm" for="prGal">تغيير</label><button class="btn sm danger" data-act="proofDrop">حذف</button></div></div></div>`
         :`<div class="pbtns"><label class="pbtn" for="prCam"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>صوّر الإشعار</label><label class="pbtn" for="prGal"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>من الصور أو واتساب</label></div>
         <p class="muted" style="margin:0;font-size:13px">${S.proofReq?'صورة إشعار التحويل مطلوبة قبل إتمام البيع.':'صوّر شاشة التحويل من جوال الزبون، أو اختار الصورة اللي بعتها على واتساب.'}</p>`}
@@ -1863,7 +1874,7 @@ more(){
         <div id="pMargin" class="muted" style="font-size:13.5px"></div>
       </div>
       <label for="pPaid">الدفع<select id="pPaid"><option value="cash">💵 نقدًا من الصندوق</option><option value="credit">📒 على الحساب (دين للمورد)</option><option value="wallet">📱 دفعتها من محفظة أو بنك</option></select></label>
-      <div id="pWBox" hidden><label for="pWal">من وين دفعت؟<select id="pWal">${APPM.map(m=>`<option value="${m}">${m}</option>`).join('')}</select></label><div class="row" style="gap:6px;flex-wrap:wrap">${APPM.map(m=>`<span class="pill" style="background:${APPC[m]};color:#fff">${m}</span>`).join('')}</div></div>
+      <div id="pWBox" hidden><label for="pWal">من وين دفعت؟<select id="pWal">${APPM.map(m=>`<option value="${m}">${m}</option>`).join('')}</select></label><div class="row" style="gap:6px;flex-wrap:wrap">${APPM.map(m=>`<span class="pill wpill">${appLogo(m)}${m}</span>`).join('')}</div></div>
       <label class="btn" for="pPhoto" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center;align-items:center;gap:6px">${PHOTO.data?'✓ صورة الفاتورة جاهزة · تغيير':'تصوير فاتورة المورد (مرجع)'}</label>
       <input id="pPhoto" type="file" accept="image/*" capture="environment" hidden>
       ${PHOTO.data?`<img src="${PHOTO.data}" alt="صورة فاتورة المورد" style="max-width:100%;border-radius:12px;border:1px solid var(--line)"><p class="muted" style="margin:0">الصورة بتنربط بكل صنف بتسجّله من هالفاتورة لحد ما تضغط «فاتورة جديدة».</p><button class="btn sm" data-act="photoClear">فاتورة جديدة</button>`:''}
