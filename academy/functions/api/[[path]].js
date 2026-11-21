@@ -149,7 +149,17 @@ async function bindDevice(env, req, userId) {
   const ex = await env.DB.prepare('SELECT 1 FROM devices WHERE user_id = ? AND dev = ?').bind(userId, dh).first();
   if (ex) { await env.DB.prepare('UPDATE devices SET last_at = ? WHERE user_id = ? AND dev = ?').bind(now(), userId, dh).run(); return { ok: true, dev }; }
   const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM devices WHERE user_id = ?').bind(userId).first();
-  if ((c ? c.n : 0) >= MAX_DEVICES) return { ok: false, dev };
+  if ((c ? c.n : 0) >= MAX_DEVICES) {
+    // the same phone often comes back with a new device id (cleared browser data, installed app, new browser
+    // profile). If an existing device of the very same kind hasn't been used for 3+ days, take its place
+    // instead of locking the student out; two phones used at the same time still can't share one account.
+    const lbl = deviceLabel(req);
+    const stale = await env.DB.prepare('SELECT dev FROM devices WHERE user_id = ? AND label = ? AND last_at < ? ORDER BY last_at LIMIT 1')
+      .bind(userId, lbl, now() - 3 * 86400).first();
+    if (!stale) return { ok: false, dev };
+    await env.DB.prepare('UPDATE devices SET dev = ?, created_at = ?, last_at = ? WHERE user_id = ? AND dev = ?').bind(dh, now(), now(), userId, stale.dev).run();
+    return { ok: true, dev };
+  }
   await env.DB.prepare('INSERT INTO devices (user_id, dev, label, created_at, last_at) VALUES (?, ?, ?, ?, ?)').bind(userId, dh, deviceLabel(req), now(), now()).run();
   return { ok: true, dev };
 }
