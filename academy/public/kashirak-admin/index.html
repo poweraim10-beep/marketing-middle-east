@@ -210,6 +210,7 @@ ctl(){ const c=D.cfg||{}, f=c.feat||{}, off=c.curOff||[], L=c.land||{};
    <label>رسالة بتظهر لكل المحلات بالرئيسية (فاضي = بدون)<textarea id="cfNotice" rows="2">${esc(c.notice||'')}</textarea></label>
    <label>عنوان صفحة التثبيت<input id="cfLt" value="${esc(L.title||'')}" placeholder="كاشيرك الذكي"></label>
    <label>وصف صفحة التثبيت<textarea id="cfLd" rows="3" placeholder="برنامج كاشير ومحاسبة عربي…">${esc(L.desc||'')}</textarea></label></div>
+  <div class="card" style="gap:8px;border:2px solid var(--gold,#C8A24A)"><h2>🎨 تخصيص التطبيق</h2><p style="margin:0;font-size:13.5px;color:var(--muted)">غيّر أي نص بالتطبيق، الألوان، الأيقونات، طرق التحويل وشعاراتها، أخفي أي قسم، وضيف بطاقات وروابط على الرئيسية، وأسعار الباقات. بيشتغل بدون نت وبينرفع لحاله.</p><button class="btn gold block" data-a="custSheet">افتح تخصيص التطبيق</button></div>
   <button class="btn gold block" data-a="cfgSave">حفظ الإعدادات</button>
   <p style="font-size:12.5px;color:var(--muted)">التعديلات بتوصل لكل المحلات أول ما يتصلوا بالنت (خلال دقيقة ونص تقريبًا)، وما بتلمس بيانات أي محل. إذا ما في نت هلأ، بتنحفظ هون وبتنرفع لحالها لما يرجع النت.</p>
   <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار للمحلات</button>
@@ -353,7 +354,42 @@ function showLogin(){close(); $('#app').innerHTML=`<div class="login"><div class
   <label style="text-align:start">البريد أو رقم الواتساب<input id="lgE" autocomplete="username" dir="ltr"></label>
   <label style="text-align:start">كلمة المرور<input id="lgP" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-a="login">دخول</button><p id="lgErr" style="color:var(--bad);font-size:14px"></p></div></div>`}
-async function load(){try{D=await call('summary'); try{D.cfg=await call('cfg')}catch(e){D.cfg={}} qFlush(); try{D.books=await call('books')}catch(e){D.books={adj:{},exp:[]}} render()}catch(e){ if(e.message!=='login') $('#app').innerHTML=`<div class="login"><div class="card"><h2>ما قدرنا نجيب البيانات</h2><p>${esc(e.message)}</p><button class="btn primary" data-a="reload">جرّب مرة ثانية</button></div></div>` }}
+function snapSave(){ try{ if(D) localStorage.setItem('kadm-snap',JSON.stringify({t:Date.now(),D})) }catch(e){} }
+function snapLoad(){ try{ const s=JSON.parse(localStorage.getItem('kadm-snap')||'null'); if(s&&s.D){ D=s.D; D._off=s.t; return true } }catch(e){} return false }
+window.addEventListener('online',()=>{ qFlush(); if(D&&D._off) load() });
+async function load(){try{D=await call('summary'); try{D.cfg=await call('cfg')}catch(e){D.cfg={}} qFlush(); try{D.books=await call('books')}catch(e){D.books={adj:{},exp:[]}} if(D.cfg&&D.cfg.prices) cuApplyPrices(D.cfg.prices); snapSave(); render()}catch(e){ if(e.message!=='login'&&snapLoad()){ render(); toast('📴 بدون نت: هاي آخر نسخة محفوظة. التعديلات بتنرفع لحالها لما يرجع النت'); return } if(e.message!=='login') $('#app').innerHTML=`<div class="login"><div class="card"><h2>ما قدرنا نجيب البيانات</h2><p>${esc(e.message)}</p><button class="btn primary" data-a="reload">جرّب مرة ثانية</button></div></div>` }}
+
+/* ---------- تخصيص التطبيق ---------- */
+const APP_URL='https://marketingmiddleeast.com/kashirak/';
+const CU_MENU=[['cash','الصندوق'],['log','سجل المبيعات'],['buy','المشتريات'],['sup','الموردين'],['exp','المصروفات'],['rep','التقارير'],['pdf','مركز ملفات PDF'],['biz','مجال العمل'],['inv','تعديل الفاتورة'],['lab','ملصقات الباركود'],['pexp','تقرير الصلاحية'],['wh','المخزن'],['chq','الشيكات'],['loy','نقاط الولاء'],['att','بصمة العمال'],['audit','سجل العمليات'],['acct','حسابي'],['set','الإعدادات'],['tour','الجولة التعليمية']];
+const CU_NAV=[['staff','العمال (الشريط السفلي)'],['debts','الديون (الشريط السفلي)'],['rep','التقارير (الشريط السفلي)']];
+const CU_IC=[...CU_MENU.filter(([k])=>!['tour'].includes(k)).map(([k,t])=>[k,t]),['n-home','زر الرئيسية'],['n-items','زر الأصناف'],['n-rep','زر التقارير'],['n-sell','زر البيع'],['n-staff','زر العمال'],['n-debts','زر الديون'],['n-more','زر المزيد'],['p-cash','دفع نقدي'],['p-app','دفع تطبيق'],['p-debt','دفع دين'],['p-split','دفع مقسّم'],['h-sales','بطاقة المبيعات'],['h-profit','بطاقة الربح'],['h-debts','بطاقة الديون'],['h-alert','بحاجة لانتباهك']];
+const CU_TXT=['الرئيسية','الأصناف','التقارير','بيع','العمال','الديون','المزيد',...CU_MENU.map(x=>x[1]),'مبيعات اليوم','ربح اليوم بعد المصروفات','ديون على الزبائن','المتوقع في الصندوق','بحاجة لانتباهك','نقدي','تطبيق أو محفظة','دين','مقسّم','إتمام البيع','السلة','التحويل','شغلك اليومي','التقارير والملفات','تجهيز المحل','إضافات','الحساب والمساعدة'];
+const CU_PAY0=[{n:'بنك فلسطين',c:'#9E1B4F'},{n:'PalPay',c:'#7B2FF7'},{n:'جوال باي',c:'#6FAE2E'},{n:'بنك آخر',c:'#5E6A7E'}];
+let CU=null, CX=null, CXV=null;
+const shrinkTo=(file,px=128)=>new Promise(ok=>{ const r=new FileReader(); r.onload=()=>{ const im=new Image(); im.onload=()=>{ const k=Math.min(1,px/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); let d=c.toDataURL('image/webp',.86); if(!d.startsWith('data:image/webp')) d=c.toDataURL('image/png'); ok(d) }; im.onerror=()=>ok(''); im.src=r.result }; r.onerror=()=>ok(''); r.readAsDataURL(file) });
+function cuCollect(){ if(!CU) return; const v=(id)=>{const e=$('#'+id); return e?e.value:''};
+  CU.col={}; ['gold','navy','bg'].forEach(k=>{ const e=$('#cuC_'+k); if(e&&e.dataset.on==='1') CU.col[k]=e.value });
+  CU.tx=[...document.querySelectorAll('[data-txr]')].map(r=>[r.querySelector('.ta').value.trim(),r.querySelector('.tb').value.trim()]).filter(x=>x[0]);
+  CU.hide=[...document.querySelectorAll('[data-hd]')].filter(b=>!b.checked).map(b=>b.dataset.hd);
+  CU.pay=[...document.querySelectorAll('[data-pyr]')].map(r=>({n:r.querySelector('.pn').value.trim(),c:r.querySelector('.pc').value})).filter(x=>x.n);
+  CU.cards=[...document.querySelectorAll('[data-cdr]')].map(r=>({ic:r.querySelector('.ci').value.trim(),t:r.querySelector('.ct').value.trim(),d:r.querySelector('.cd').value.trim(),u:r.querySelector('.cl').value.trim().replace(/^\+/,'')})).filter(x=>x.t);
+  CU.prices={}; document.querySelectorAll('[data-pr]').forEach(e=>{ if(e.value!=='') CU.prices[e.dataset.pr]=+e.value }) }
+function cuImg(g,k){ if(CX[g]&&k in CX[g]) return CX[g][k]||''; return (CXV[g]||{})[k]||'' }
+function cuRender(){ const c=CU, sec=(t,d,b)=>`<details class="card" style="display:block;margin:8px 0;padding:12px 14px"><summary style="font-weight:700;cursor:pointer;font-size:15.5px">${t}</summary><p style="margin:6px 0;font-size:13px;color:var(--muted)">${d}</p>${b}</details>`;
+  const P=prices();
+  $('#sbox').innerHTML=`${head('🎨 تخصيص التطبيق')}<p style="margin:0;font-size:13px;color:var(--muted)">كل اللي بتغيّره هون بيوصل لكل المحلات لحاله أول ما يتصلوا بالنت. ما بيلمس بيانات أي محل (أصناف، ديون، فواتير).</p>
+  ${sec('🎨 الألوان','فعّل اللون واختاره. اللي مش مفعّل بيضل على الأصلي.',[['gold','الذهبي (الأزرار والتمييز)','#C8A24A'],['navy','الكحلي (الشريط العلوي)','#0B1F3A'],['bg','لون الخلفية','#F4F2EC']].map(([k,t,d])=>`<label class="ck" style="justify-content:space-between"><span><input type="checkbox" onchange="const e=document.getElementById('cuC_${k}');e.dataset.on=this.checked?'1':'0'" ${c.col&&c.col[k]?'checked':''}> ${t}</span><input type="color" id="cuC_${k}" data-on="${c.col&&c.col[k]?1:0}" value="${(c.col&&c.col[k])||d}" style="width:60px;height:40px;padding:2px"></label>`).join(''))}
+  ${sec('✏️ النصوص','اكتب النص زي ما هو ظاهر بالتطبيق بالضبط، وجنبه النص الجديد. بيتغيّر وين ما ظهر (أزرار، عناوين، قوائم).',`<datalist id="cuTl">${CU_TXT.map(t=>`<option value="${esc(t)}">`).join('')}</datalist><div id="cuTx">${(c.tx.length?c.tx:[['','']]).map(([a,b])=>`<div data-txr class="grid2" style="margin-bottom:6px"><input class="ta" list="cuTl" placeholder="النص الحالي" value="${esc(a)}"><input class="tb" placeholder="النص الجديد" value="${esc(b)}"></div>`).join('')}</div><button class="btn sm" data-a="cuAdd" data-w="tx">+ نص ثاني</button>`)}
+  ${sec('👁️ إظهار وإخفاء الأقسام','شيل الصح عن أي قسم بدك تخفيه من التطبيق عند كل المحلات. الإخفاء ما بيمسح بياناته.',`<div class="grid2">${[...CU_MENU,...CU_NAV].map(([k,t])=>`<label class="ck"><input type="checkbox" data-hd="${k}" ${c.hide.includes(k)?'':'checked'}> ${esc(t)}</label>`).join('')}</div>`)}
+  ${sec('🏦 طرق التحويل وشعاراتها','الاسم واللون والشعار لكل جهة تحويل. بتقدر تضيف بنك أو محفظة جديدة.',`<div id="cuPy">${c.pay.map((x,i)=>{ const PL={'بنك فلسطين':'bop','PalPay':'palpay','جوال باي':'jawwal'}, im=cuImg('pay',x.n)||(PL[x.n]?APP_URL+'icons/pay/'+PL[x.n]+'.webp':''); return `<div data-pyr style="display:flex;gap:6px;align-items:center;margin-bottom:8px">${im?`<img src="${im}" style="width:40px;height:40px;border-radius:10px">`:`<span style="width:40px;height:40px;border-radius:10px;background:${x.c};flex:none"></span>`}<input class="pn" value="${esc(x.n)}" placeholder="اسم الجهة" style="flex:1"><input class="pc" type="color" value="${x.c}" style="width:46px;height:40px;padding:2px"><label class="btn sm" style="margin:0">شعار<input type="file" accept="image/*" hidden data-up="pay" data-i="${i}"></label><button class="btn sm" data-a="cuDel" data-w="pay" data-i="${i}">✕</button></div>` }).join('')}</div><button class="btn sm" data-a="cuAdd" data-w="pay">+ جهة تحويل</button> <button class="btn sm" data-a="cuReset" data-w="pay">رجّع الأصلي</button>`)}
+  ${sec('🖼️ الأيقونات','اضغط على أي أيقونة وارفع صورة بدالها (مربعة أحسن). «أصلي» بيرجّعها.',`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${CU_IC.map(([k,t])=>{ const im=cuImg('ic',k)||APP_URL+'icons/3d/'+k+'.webp'; return `<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;text-align:center;cursor:pointer"><img src="${im}" style="width:52px;height:52px;border-radius:12px;object-fit:contain;background:#0b1f3a10" onerror="this.style.opacity=.2">${esc(t)}<input type="file" accept="image/*" hidden data-up="ic" data-k="${k}">${cuImg('ic',k)?`<button class="btn sm" data-a="cuIcDel" data-k="${k}" style="min-height:26px;padding:0 6px">أصلي</button>`:''}</label>` }).join('')}</div>`)}
+  ${sec('🧾 بطاقات وروابط على الرئيسية','بطاقة بتظهر فوق بالرئيسية عند كل المحلات: عرض، خبر، رابط. الرابط: https://… أو رقم واتساب.',`<div id="cuCd">${(c.cards.length?c.cards:[]).map(x=>`<div data-cdr class="card" style="gap:6px;margin-bottom:8px;padding:8px"><div style="display:flex;gap:6px"><input class="ci" value="${esc(x.ic||'')}" placeholder="🎁" style="width:56px;text-align:center"><input class="ct" value="${esc(x.t)}" placeholder="العنوان" style="flex:1"></div><input class="cd" value="${esc(x.d||'')}" placeholder="الوصف"><input class="cl" value="${esc(x.u||'')}" placeholder="رابط https://… أو رقم واتساب 970…" dir="ltr"><button class="btn sm" data-a="cuDelRow">حذف البطاقة</button></div>`).join('')}</div><button class="btn sm" data-a="cuAdd" data-w="card">+ بطاقة</button>`)}
+  ${sec('💰 أسعار الباقات','بالشيكل. بتظهر لما تعمل كود اشتراك، وبتتزامن بين أجهزتك.',`<div class="grid2">${[['m1','شهر'],['m2','شهرين'],['m3','3 شهور'],['m6','6 شهور'],['y1','سنة'],['life','مفتوح']].map(([k,t])=>`<label>${t}<input type="number" min="0" data-pr="${k}" value="${(c.prices&&c.prices[k]!=null)?c.prices[k]:P[k]}"></label>`).join('')}</div>`)}
+  <button class="btn gold block" data-a="cuSave" style="position:sticky;bottom:0">💾 حفظ ونشر للتطبيق</button>`;
+  document.querySelectorAll('[data-up]').forEach(inp=>inp.onchange=async()=>{ const f=inp.files&&inp.files[0]; if(!f) return; const d=await shrinkTo(f,128); if(!d){toast('الصورة ما انقرأت');return} if(d.length>38000){toast('الصورة كبيرة، جرّب وحدة أبسط');return}
+    cuCollect(); if(inp.dataset.up==='pay'){ const x=CU.pay[+inp.dataset.i]; if(!x){toast('اكتب اسم الجهة أول');return} CX.pay[x.n]=d } else CX.ic[inp.dataset.k]=d; cuRender(); toast('✓ انضافت. اضغط حفظ') }) }
+function cuApplyPrices(p){ if(!p) return; try{ const cur=JSON.parse(localStorage.getItem('ksr-admin-prices')||'{}'); localStorage.setItem('ksr-admin-prices',JSON.stringify(Object.assign(cur,p))) }catch(e){} }
 
 /* ---------- actions ---------- */
 const A={
@@ -374,6 +410,20 @@ const A={
     qPush('shopcfg',v); close(); toast('✓ انحفظت ميزات المحل') },
   async stopShop(d){ const on=d.on==='1'; if(!confirm(on?'إيقاف المحل بيمنع الدخول والإضافة بس، وكل بياناته بتضل محفوظة. نكمّل؟':'تفعيل المحل من جديد؟ بيرجع يشتغل بكل بياناته.')) return;
     try{ await call('stop',{id:d.id,on}); close(); await load(); toast(on?'⛔ انوقف المحل، بياناته محفوظة':'✅ رجع المحل يشتغل') }catch(e){toast(e.message)} },
+  async custSheet(){ const c=D.cfg||{}; CU={col:{...(c.col||{})},tx:Object.entries(c.tx||{}),hide:[...(c.hide||[])],pay:(c.pay&&c.pay.length?c.pay:CU_PAY0).map(x=>({...x})),cards:(c.cards||[]).map(x=>({...x})),prices:{...(c.prices||{})}}; CX={pay:{},ic:{}};
+    try{ CXV=JSON.parse(localStorage.getItem('kadm-cfgx')||'{}') }catch(e){ CXV={} } open(`${head('🎨 تخصيص التطبيق')}<div class="spin"></div>`); cuRender();
+    if(navigator.onLine) call('cfgx').then(x=>{ CXV=x||{}; try{localStorage.setItem('kadm-cfgx',JSON.stringify(CXV))}catch(e){} cuCollect(); cuRender() }).catch(()=>{}) },
+  cuAdd(d){ cuCollect(); if(d.w==='tx') CU.tx.push(['','']); if(d.w==='pay') CU.pay.push({n:'',c:'#5E6A7E'}); if(d.w==='card') CU.cards.push({ic:'⭐',t:' ',d:'',u:''}); cuRender(); if(d.w==='card'){ const r=[...document.querySelectorAll('[data-cdr] .ct')].pop(); if(r){r.value='';r.focus()} } },
+  cuDel(d){ cuCollect(); const x=CU.pay.splice(+d.i,1)[0]; if(x&&(CXV.pay||{})[x.n]) CX.pay[x.n]=''; cuRender() },
+  cuDelRow(d,el){ el.closest('[data-cdr]').remove() },
+  cuReset(){ cuCollect(); CU.pay=CU_PAY0.map(x=>({...x})); Object.keys(CXV.pay||{}).forEach(k=>CX.pay[k]=''); cuRender() },
+  cuIcDel(d){ cuCollect(); CX.ic[d.k]=''; cuRender() },
+  cuSave(){ cuCollect(); const tx={}; CU.tx.forEach(([a,b])=>{ if(a) tx[a]=b });
+    const v={tx,col:CU.col,hide:CU.hide,pay:CU.pay,cards:CU.cards,prices:CU.prices};
+    D.cfg=Object.assign({},D.cfg,v); qPush('cfg',v); cuApplyPrices(CU.prices);
+    if(Object.keys(CX.pay).length||Object.keys(CX.ic).length){ const q=QQ.find(x=>x.path==='cfgx'); const body=q?q.body:{pay:{},ic:{}}; Object.assign(body.pay,CX.pay); Object.assign(body.ic,CX.ic);
+      for(const g of ['pay','ic']) for(const [k,d2] of Object.entries(CX[g])){ CXV[g]=CXV[g]||{}; if(d2) CXV[g][k]=d2; else delete CXV[g][k] } try{localStorage.setItem('kadm-cfgx',JSON.stringify(CXV))}catch(e){} CX={pay:{},ic:{}}; qPush('cfgx',body) }
+    snapSave(); toast(navigator.onLine?'✓ انحفظ وانتشر للتطبيق':'✓ انحفظ هون، وبينرفع لحاله لما يرجع النت') },
   async tplSheet(){ open(`${head('🗂️ قوالب الأصناف')}<div class="spin"></div>`); let t={}; try{t=await call('tpl')}catch(e){toast(e.message);return}
     const dt=x=>x?new Date(x).toLocaleString('ar-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}):'—';
     $('#sbox').innerHTML=`${head('🗂️ قوالب الأصناف')}<p class="muted" style="margin:0 0 8px">القوالب محفوظة لحالها على السيرفر، منفصلة عن بيانات أي محل. ما بتنزل عند حدا إلا لما هو يضغط «تفعيل» من «مجال العمل». وتعديل القالب ما بيأثر على أصناف نزلت قبل عند المحلات.</p>
@@ -489,7 +539,7 @@ const A={
     }catch(e){ if($('#lgErr')){$('#lgErr').textContent=e.message; b.disabled=false} }},
   async logout(){await fetch('/api/logout',{method:'POST',credentials:'same-origin'}).catch(()=>{}); D=null; showLogin()}
 };
-document.addEventListener('click',e=>{const t=e.target.closest('[data-a]'); if(!t) return; if(t.id==='sheet'&&e.target!==t) return; const a=A[t.dataset.a]; if(a){e.preventDefault&&t.tagName!=='A'&&e.preventDefault(); a(t.dataset)}});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-a]'); if(!t) return; if(t.id==='sheet'&&e.target!==t) return; const a=A[t.dataset.a]; if(a){e.preventDefault&&t.tagName!=='A'&&e.preventDefault(); a(t.dataset,t)}});
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet') close()});
 document.addEventListener('input',e=>{ if(e.target.id==='ncAcct'){e.target.value=e.target.value.replace(/\D/g,'').slice(0,6); clearTimeout(lkT); lkT=setTimeout(lookupAcct,e.target.value.length===6?50:400)}
   if(e.target.id==='shopQ'){shopQ=e.target.value; const sh=D.shops.map(s=>({s,st:stateOf(s)})).filter(x=>{const q=shopQ.trim(); return inFilter(x.st)&&(!q||(x.s.name+' '+x.s.phone+' '+x.s.id+' '+(x.s.acct||'')+' '+(x.s.owner||'')).includes(q))}); $('#shopList').innerHTML=sh.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">ما في نتائج</div>'}
@@ -498,7 +548,7 @@ document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&(e.target.id==='lgP
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&D) load() });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).catch(()=>{});
 /* تحديث تلقائي للوحة */
-const BUILD='20261119121557'; let UPD=false;
+const BUILD='20261121114207'; let UPD=false;
 async function checkUpdate(){ try{const t=await (await fetch('index.html?u='+Date.now(),{cache:'no-store',credentials:'same-origin'})).text(); const m=t.match(/const\x20BUILD='([^']+)'/); if(m&&m[1]!==BUILD&&!/__BUILD/.test(m[1])) UPD=true}catch(e){} applyUpdate()}
 function applyUpdate(){ if(UPD&&!$('#sheet').classList.contains('show')&&!(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))) location.reload() }
 setInterval(checkUpdate,3*60e3); setTimeout(checkUpdate,5000); setInterval(applyUpdate,15e3);

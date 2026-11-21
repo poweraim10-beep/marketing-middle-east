@@ -394,9 +394,11 @@ main{padding-bottom:44px}
 }
 @media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
+.ccard{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:var(--surface);border:1.5px solid color-mix(in srgb,var(--gold) 45%,transparent);box-shadow:var(--shadow);color:var(--ink);text-decoration:none}.ccard b{display:block;font-size:15.5px}.ccard small{display:block;color:var(--muted);font-size:13px;line-height:1.5}.ccard .ccic{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:24px;background:color-mix(in srgb,var(--gold) 16%,transparent)}.ccard .chev{font-size:22px;color:var(--muted)}
+
 .wals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.wal{position:relative;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 12px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;text-align:start;white-space:nowrap;overflow:hidden;transition:border-color .15s,box-shadow .15s,background .15s}
-.wal .wlogo{width:40px;height:40px;border-radius:11px;flex:none;box-shadow:0 2px 6px rgba(11,31,58,.18)}
+.wal{position:relative;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 12px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;text-align:start;white-space:nowrap;transition:border-color .15s,box-shadow .15s,background .15s}
+.wal>span{overflow:hidden;text-overflow:ellipsis;min-width:0}.wal .wlogo{width:40px;height:40px;border-radius:11px;flex:none;box-shadow:0 2px 6px rgba(11,31,58,.18)}
 .wlogo.wgen{display:grid;place-items:center;background:linear-gradient(160deg,#EEF1F6,#D9DFE9);color:#3C4A60}.wlogo.wgen svg{width:22px;height:22px}
 .wal .wck{position:absolute;top:-7px;inset-inline-start:-7px;width:22px;height:22px;border-radius:50%;background:var(--wc);color:#fff;font-style:normal;font-size:13px;display:none;place-items:center;border:2px solid var(--surface)}
 .wal[aria-pressed="true"]{border-color:var(--wc);background:color-mix(in srgb,var(--wc) 9%,var(--surface));box-shadow:0 0 0 3px color-mix(in srgb,var(--wc) 22%,transparent)}
@@ -490,10 +492,10 @@ const sod=(t=Date.now())=>new Date(t).setHours(0,0,0,0);
 const fdate=t=>new Date(t).toLocaleString('ar-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const KEY='kashirak-v1', DEVKEY='kashirak-dev';
 const PAY={cash:'نقدي',app:'تطبيق أو محفظة',debt:'دين'};
-const APPM=['بنك فلسطين','PalPay','جوال باي','بنك آخر'];
-const APPC={'بنك فلسطين':'#9E1B4F','PalPay':'#7B2FF7','جوال باي':'#6FAE2E','بنك آخر':'#5E6A7E'};
+const APPM0=['بنك فلسطين','PalPay','جوال باي','بنك آخر']; let APPM=[...APPM0];
+const APPC0={'بنك فلسطين':'#9E1B4F','PalPay':'#7B2FF7','جوال باي':'#6FAE2E','بنك آخر':'#5E6A7E'}; let APPC={...APPC0};
 const APPL={'بنك فلسطين':'bop','PalPay':'palpay','جوال باي':'jawwal'};
-const appLogo=m=>APPL[m]?`<img class="wlogo" src="icons/pay/${APPL[m]}.webp" alt="" decoding="async">`:`<span class="wlogo wgen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18L12 4 3 10zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span>`;
+const appLogo=m=>(RX.pay&&RX.pay[m])?`<img class="wlogo" src="${RX.pay[m]}" alt="">`:APPL[m]?`<img class="wlogo" src="icons/pay/${APPL[m]}.webp" alt="" decoding="async">`:`<span class="wlogo wgen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18L12 4 3 10zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span>`;
 const PROOF={};
 const refDup=c=>{const r=String(c.ref||'').trim(); return r.length>=3?S.sales.find(x=>x.ref===r&&x.appMethod===c.appMethod):null};
 /* بصمة صورة للإشعار (dHash 32×32) لكشف إعادة استعمال نفس الصورة */
@@ -527,7 +529,7 @@ const ICON={
  rep:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  staff:'<circle cx="10" cy="8" r="4"/><path d="M3 21c1.2-4 4-6 7-6 1.6 0 3 .5 4.2 1.4M15.5 18.5l2 2 4-4"/>'
 };
-const I3=(k,c='')=>`<img class="i3 ${c}" src="icons/3d/${k}.webp" alt="" decoding="async">`;
+const I3=(k,c='')=>`<img class="i3 ${c}" src="${(RX.ic&&RX.ic[k])||'icons/3d/'+k+'.webp'}" alt="" decoding="async">`;
 const HAS3=new Set(['cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
@@ -564,8 +566,23 @@ const LIC_PUB={"kty":"EC","crv":"P-256","x":"0y7W4Bjkgscq8TmSGYim3wcj-UBAaO1iA_O
 let RCFG={}; try{ RCFG=JSON.parse(localStorage.getItem('ksr-rcfg')||'{}')||{} }catch(e){ RCFG={} }
 const LIC_EPOCH=Date.UTC(2026,0,1), TRIAL_DAYS=5, SALES_WA='970594627887'; let SUPPORT_WA=/^\d{9,15}$/.test(RCFG.wa||'')?RCFG.wa:'970567686774';
 const FEAT_MAP={rep:'rep',log:'rep',pdf:'rep',cash:'cash',exp:'exp',chq:'chq',loy:'loy',buy:'buy',sup:'sup',lab:'lab',att:'staff',audit:'staff',debts:'debts',staff:'staff',inv:'inv'};
-const featOn=k=>{ const f=FEAT_MAP[k]||k; return !(RCFG.feat&&RCFG.feat[f]===0) };
-function rcfgApply(c){ if(!c||typeof c!=='object') return; const was=JSON.stringify(RCFG); RCFG=c; try{ localStorage.setItem('ksr-rcfg',JSON.stringify(c)) }catch(e){} if(/^\d{9,15}$/.test(c.wa||'')) SUPPORT_WA=c.wa; if(was!==JSON.stringify(c)&&typeof render==='function'&&S) render() }
+const featOn=k=>{ const f=FEAT_MAP[k]||k; return !(RCFG.feat&&RCFG.feat[f]===0)&&!(Array.isArray(RCFG.hide)&&RCFG.hide.includes(k)) };
+function rcfgApply(c){ if(!c||typeof c!=='object') return; const was=JSON.stringify(RCFG); RCFG=c; try{ localStorage.setItem('ksr-rcfg',JSON.stringify(c)) }catch(e){} if(/^\d{9,15}$/.test(c.wa||'')) SUPPORT_WA=c.wa; rcfgLook(); if((c.xv||0)!==(RX.v||0)) rxFetch(); if(was!==JSON.stringify(c)&&typeof render==='function'&&S) render() }
+/* التخصيص من لوحة الكاشير: الصور (شعارات الدفع والأيقونات) والألوان والنصوص */
+let RX={}; try{ RX=JSON.parse(localStorage.getItem('ksr-rcfgx')||'{}')||{} }catch(e){ RX={} }
+async function rxFetch(){ if(rxFetch.b||!navigator.onLine) return; rxFetch.b=1; try{ const r=await fetch(API+'/cfgx',{cache:'no-store'}); const j=await r.json(); if(j&&typeof j==='object'&&!j.error){ RX=j; try{ localStorage.setItem('ksr-rcfgx',JSON.stringify(j)) }catch(e){} if(typeof render==='function'&&S) render() } }catch(e){} rxFetch.b=0 }
+function rcfgLook(){ const c=RCFG.col||{}, st=document.documentElement.style;
+  if(c.gold){ st.setProperty('--gold',c.gold); st.setProperty('--gold-deep',c.gold) } else { st.removeProperty('--gold'); st.removeProperty('--gold-deep') }
+  if(c.navy){ st.setProperty('--hdr2',c.navy); st.setProperty('--hdr1',c.navy); st.setProperty('--brand',c.navy) } else { ['--hdr1','--hdr2','--brand'].forEach(v=>st.removeProperty(v)) }
+  if(c.bg) st.setProperty('--bg',c.bg); else st.removeProperty('--bg');
+  if(Array.isArray(RCFG.pay)&&RCFG.pay.length){ APPM=RCFG.pay.map(x=>x.n); APPC={}; RCFG.pay.forEach(x=>APPC[x.n]=x.c) } else { APPM=[...APPM0]; APPC={...APPC0} }
+  txRun() }
+/* تغيير أي نص بالتطبيق: النص الأصلي بالضبط ← النص الجديد */
+function txRun(root){ const tx=RCFG.tx; if(!tx||typeof tx!=='object'||!Object.keys(tx).length||!document.body) return; const w=document.createTreeWalker(root||document.body,NodeFilter.SHOW_TEXT); let n;
+  while((n=w.nextNode())){ const v=n.nodeValue, t=v.trim(); if(t&&Object.prototype.hasOwnProperty.call(tx,t)&&tx[t]!==t) n.nodeValue=v.replace(t,tx[t]) }
+  (root||document.body).querySelectorAll('input[placeholder],textarea[placeholder]').forEach(e=>{ const t=e.placeholder.trim(); if(tx[t]) e.placeholder=tx[t] }) }
+let TXO=null; function txWatch(){ if(TXO||!window.MutationObserver||!document.body) return; let tm=0; TXO=new MutationObserver(()=>{ if(tm) return; tm=requestAnimationFrame(()=>{ tm=0; txRun() }) }); TXO.observe(document.body,{childList:true,subtree:true}) }
+document.addEventListener('DOMContentLoaded',()=>{ rcfgLook(); txWatch() });
 function sha256(bytes){
   const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
   const H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
@@ -1662,7 +1679,7 @@ home(){
   const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
-  return `${RCFG.notice?`<div class="banner" style="background:#FFF7E0;border:1px solid #E9C46A"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${greetCard()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
+  return `${RCFG.notice?`<div class="banner" style="background:#FFF7E0;border:1px solid #E9C46A"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${(Array.isArray(RCFG.cards)?RCFG.cards:[]).map(x=>{ const u=/^\d{9,15}$/.test(x.u||'')?'https://wa.me/'+x.u:(/^https:\/\//.test(x.u||'')?x.u:''); const inner=`<span class="ccic">${esc(x.ic||'⭐')}</span><span style="flex:1;min-width:0"><b>${esc(x.t)}</b>${x.d?`<small>${esc(x.d)}</small>`:''}</span>${u?'<span class="chev">‹</span>':''}`; return u?`<a class="ccard" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`:`<div class="ccard">${inner}</div>` }).join('')}${greetCard()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big m3">${I3('att')}</span><span hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl">${I3('h-sales','t3')}<div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
@@ -1794,7 +1811,7 @@ more(){
   if(sub==='biz') return pBizView(); if(sub==='pexp'&&S.pharm) return pExpView();
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
-    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)?' m3':''}">${HAS3.has(k)?I3(k):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
+    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)||(RX.ic&&RX.ic[k])?' m3':''}">${HAS3.has(k)||(RX.ic&&RX.ic[k])?I3(k):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
     const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||k==='log')&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
     const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>

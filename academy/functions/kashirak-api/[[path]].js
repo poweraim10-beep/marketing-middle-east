@@ -537,6 +537,7 @@ export async function onRequest({ request, env, params }) {
     // ----- everything below needs a shop token -----
     const shop = await readShop(env, request);
     if (a === 'admin') return admin(env, request, b);
+    if (a === 'cfgx' && m === 'GET') { const x = await kvJson(env, 'cfgx'); return json({ v: x.v || 0, pay: x.pay || {}, ic: x.ic || {} }); }
     if (a === 'pimgs' && m === 'POST') { // صور منتجات بالباركود (قراءة فقط)
       if (!(await readShop(env, request))) return err('سجّل الدخول أول', 401);
       const q = await body(request); const bs = [...new Set((Array.isArray(q.b) ? q.b : []).map((x) => clean(x, 40).replace(/\s/g, '')).filter(Boolean))].slice(0, 40);
@@ -840,12 +841,30 @@ async function admin(env, request, b) {
     return json({ ok: true, copied: items.length, shop: before.sh.name || '', before: { ...before.counts, version: before.sh.version }, after: after ? { ...after.counts, version: after.sh.version } : null, unchanged: !!same,
       note: same ? 'حساب المحل ما تغيّر فيه ولا إشي (نفس البصمة ونفس النسخة ونفس الأعداد)' : 'المحل عمل تعديل أثناء النسخ (بيع مثلًا) من جهازه. النسخ نفسه ما كتب على المحل' });
   }
-  if (b === 'cfg') { // الإعدادات العامة لتطبيق الكاشير
+  if (b === 'cfgx') { // صور التخصيص (شعارات الدفع والأيقونات). منفصلة عشان ما تنبعت مع كل فحص اشتراك
+    if (m === 'GET') return json(await kvJson(env, 'cfgx'));
+    const ok = (d) => typeof d === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(d) && d.length < 40000;
+    const x = await kvJson(env, 'cfgx'); for (const g of ['pay', 'ic']) { x[g] = x[g] || {}; const inp = (q[g] && typeof q[g] === 'object') ? q[g] : {};
+      for (const [k, d] of Object.entries(inp)) { const kk = clean(k, 40); if (!kk) continue; if (d === null || d === '') delete x[g][kk]; else if (ok(d)) x[g][kk] = d; } }
+    const xv = nowMs(); x.v = xv; const txt = JSON.stringify(x); if (txt.length > 900000) return err('الصور كثيرة أو كبيرة');
+    await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('cfgx', txt).run();
+    const c = { ...(await kvJson(env, 'cfg')), xv, t: nowMs() }; await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('cfg', JSON.stringify(c)).run();
+    return json({ ok: true, xv });
+  }
+  if (b === 'cfg') { // الإعدادات العامة لتطبيق الكاشير. الحفظ بيدمج: الحقل اللي ما انبعت بيضل زي ما هو
     if (m === 'GET') return json(await kvJson(env, 'cfg'));
-    const feat = {}; for (const [k, v] of Object.entries(q.feat || {})) if (/^[a-z]{2,10}$/.test(k)) feat[k] = v ? 1 : 0;
-    const v = { t: nowMs(), feat, curOff: (Array.isArray(q.curOff) ? q.curOff : []).filter((x) => ['USD', 'JOD'].includes(x)), wa: (String(q.wa || '').replace(/\D/g, '').slice(0, 15)), notice: clean(q.notice, 300),
-      land: { title: clean(q.land && q.land.title, 60), desc: clean(q.land && q.land.desc, 300) } };
-    await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('cfg', JSON.stringify(v)).run();
+    const v = { ...(await kvJson(env, 'cfg')), t: nowMs() };
+    if (q.feat) { const feat = {}; for (const [k, x] of Object.entries(q.feat || {})) if (/^[a-z]{2,10}$/.test(k)) feat[k] = x ? 1 : 0; v.feat = feat; }
+    if ('curOff' in q) v.curOff = (Array.isArray(q.curOff) ? q.curOff : []).filter((x) => ['USD', 'JOD'].includes(x));
+    if ('wa' in q) v.wa = String(q.wa || '').replace(/\D/g, '').slice(0, 15);
+    if ('notice' in q) v.notice = clean(q.notice, 300);
+    if (q.land) v.land = { title: clean(q.land.title, 60), desc: clean(q.land.desc, 300) };
+    if (q.tx && typeof q.tx === 'object') { const tx = {}; for (const [k, x] of Object.entries(q.tx).slice(0, 300)) { const a = clean(k, 120), b2 = clean(x, 160); if (a) tx[a] = b2; } v.tx = tx; }
+    if (q.col && typeof q.col === 'object') { const col = {}; for (const k of ['gold', 'navy', 'bg']) if (/^#[0-9a-fA-F]{6}$/.test(q.col[k] || '')) col[k] = q.col[k]; v.col = col; }
+    if (Array.isArray(q.pay)) v.pay = q.pay.slice(0, 10).map((x) => ({ n: clean(x && x.n, 30), c: /^#[0-9a-fA-F]{6}$/.test((x && x.c) || '') ? x.c : '#5E6A7E' })).filter((x) => x.n);
+    if (Array.isArray(q.cards)) v.cards = q.cards.slice(0, 8).map((x) => ({ t: clean(x && x.t, 60), d: clean(x && x.d, 200), u: /^(https:\/\/|\d{9,15}$)/.test(String((x && x.u) || '')) ? clean(x.u, 300) : '', ic: clean(x && x.ic, 4) })).filter((x) => x.t);
+    if (q.prices && typeof q.prices === 'object') { const pr = {}; for (const k of Object.keys(PLANS)) if (+q.prices[k] >= 0) pr[k] = Math.round(+q.prices[k]); v.prices = pr; }
+    if (Array.isArray(q.hide)) v.hide = q.hide.filter((x) => /^[a-z0-9-]{2,12}$/.test(x)).slice(0, 60);
     return json(v);
   }
   if (b === 'shopcfg') { // ميزات محل معيّن (بتخفي بس، ما بتحذف إشي)
