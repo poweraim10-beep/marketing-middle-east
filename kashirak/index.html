@@ -3320,7 +3320,8 @@ async setupGo(d){const shop=$('#suShop').value.trim(), pin=$('#suPin').value.tri
       if(st.data){ applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); S.pin=S.pin||pin; await licApply(r.license); persist(); cloudPullBlobs(); tab='home'; render(); toast('✓ رجعت كل بيانات محلك · رقم حسابك '+r.shop.acct); return } }
     catch(e){ CL=null; clSave(); toast('ما قدرنا نسترجع بيانات محلك. جرّب مرة ثانية وإنت متصل بالنت'); return } }
   S=d.demo?Object.assign(seed(),{shop,pin,phone,owner}):Object.assign(emptyState(shop,pin,phone),{owner}); persist(); await licApply(r.license); save();
-  tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct)},
+  tab=d.demo?'home':'items'; render(); toast((d.demo?'جاهز! هاي بيانات أمثلة للتجربة':'أهلًا! ابدأ بإضافة أصناف محلك')+' · رقم حسابك '+r.shop.acct);
+  try{ localStorage.setItem('ksr-biz-force','1') }catch(_){} clearInterval(bizOnboard.t); bizOnboard.t=setInterval(bizOnboard,800); setTimeout(bizOnboard,600) },
 license(){subSheet()},
 pickCust(d){ const cu=S.customers.find(x=>x.id===+d.id||String(x.id)===String(d.id)); if(!cu) return; const c=cart(); c.custName=cu.name; if(cu.phone) c.custPhone=cu.phone;
   const inp=$('#'+d.in); if(inp) inp.value=cu.name; const ph=$('#dPhone'); if(ph&&cu.phone) ph.value=cu.phone; const box=$('#sug_'+d.in); if(box) box.innerHTML='';
@@ -3522,9 +3523,10 @@ async function tplSync(){ if(tplSync.b||!S||!navigator.onLine||!linked()||isSell
       S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||v[k]}); if(add){ audit(`تحديث أصناف ${TPLN[k]}: انضاف ${add} صنف جديد من القالب`); toast(`🆕 انضاف ${add} صنف جديد لأصناف ${TPLN[k]}`) } save() }
     render(); setTimeout(vegFix,800) }catch(_){} tplSync.b=0 }
 /* أول مرة: «شو مجال شغلك؟» بيطلع لصاحب المحل الجديد (ما عنده أصناف ولا فعّل مجال) عشان ينزّل أصنافه بضغطة */
-function bizOnboard(){ try{ if(!S||!linked()||!isOwner()||isSeller2()||$('#sheet.open')||$('#intro')||$('#land')) return; if(localStorage.getItem('ksr-biz-ob')) return clearInterval(bizOnboard.t);
-  if(S.items.length>3||Object.keys(S.tplDone||{}).length){ localStorage.setItem('ksr-biz-ob','1'); return clearInterval(bizOnboard.t) }
-  localStorage.setItem('ksr-biz-ob','1'); clearInterval(bizOnboard.t);
+function bizOnboard(){ try{ if(!S||!linked()||!isOwner()||isSeller2()||$('#sheet.open')||$('#intro')||$('#land')||(typeof TOUR!=='undefined'&&TOUR.i>=0)) return; const force=localStorage.getItem('ksr-biz-force');
+  if(!force){ if(localStorage.getItem('ksr-biz-ob')) return clearInterval(bizOnboard.t);
+    if(S.items.length>3||Object.keys(S.tplDone||{}).length){ localStorage.setItem('ksr-biz-ob','1'); return clearInterval(bizOnboard.t) } }
+  localStorage.setItem('ksr-biz-ob','1'); localStorage.removeItem('ksr-biz-force'); clearInterval(bizOnboard.t);
   const ks=Object.keys(TPLN).filter(k=>k!=='pharm');
   openSheet(`${sheetHead('👋 أهلًا فيك! شو مجال شغلك؟')}<p style="margin:0">اختار مجال محلك، وبننزّلك أصنافه جاهزة بالأسماء والصور، وإنت بس بتحط الكمية والسعر. بتقدر تختار أكثر من مجال بعدين من «المزيد ← مجال العمل».</p>
     <div class="bizgrid">${ks.map(k=>`<button class="bizc" data-act="tplAsk" data-k="${k}"><span class="bzi">${TPLI[k]||'📦'}</span><span>${TPLN[k]}</span></button>`).join('')}<button class="bizc" data-act="bizPharm"><span class="bzi">💊</span><span>صيدلية</span></button></div>
