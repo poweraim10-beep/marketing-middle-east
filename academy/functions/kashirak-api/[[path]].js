@@ -219,6 +219,11 @@ async function offImg(bc) { // صورة المنتج من Open Food Facts (قا�
   }
   return '';
 }
+async function tplStamp(env, k, items) { // الصنف الجديد بالقالب بياخد وقت إضافته (a)، عشان المحلات المفعّلة تنزّله لحالها
+  let prev = []; try { const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first(); prev = r ? (JSON.parse(r.v).items || []) : (TPL_DEFAULT[k] || []); } catch {}
+  const old = new Map(prev.map((x) => [x.b || ('n:' + x.n), x.a || 0])), now = nowMs(), first = !prev.length;
+  return items.map((x) => { const key = x.b || ('n:' + x.n); if (old.has(key)) { const a = old.get(key); const y = { ...x }; delete y.a; return a ? { ...y, a } : y; } return first ? x : { ...x, a: now }; });
+}
 function tplClean(list) {
   const out = [], seen = new Set();
   for (const x of Array.isArray(list) ? list : []) {
@@ -226,7 +231,8 @@ function tplClean(list) {
     if (!n) continue; const key = bc || ('n:' + n); if (seen.has(key)) continue; seen.add(key);
     const iu = typeof (x && x.iu) === 'string' && /^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu) ? x.iu : '';
     const f = typeof (x && x.f) === 'string' && /^[a-z]+\/[a-z0-9-]+\.jpg$/.test(x.f) ? x.f : '';
-    out.push({ n, b: bc, p: pr, ...(u ? { u } : {}), ...(img ? { img } : {}), ...(iu ? { iu } : {}), ...(f ? { f } : {}) });
+    const at = +(x && x.a) > 0 ? +x.a : 0;
+    out.push({ n, b: bc, p: pr, ...(u ? { u } : {}), ...(img ? { img } : {}), ...(iu ? { iu } : {}), ...(f ? { f } : {}), ...(at ? { a: at } : {}) });
   }
   return out;
 }
@@ -537,6 +543,7 @@ export async function onRequest({ request, env, params }) {
     // ----- everything below needs a shop token -----
     const shop = await readShop(env, request);
     if (a === 'admin') return admin(env, request, b);
+    if (a === 'tplv' && m === 'GET') { const out = {}; const r = await env.DB.prepare("SELECT k, json_extract(v,'$.t') AS t FROM ksr_kv WHERE k LIKE 'tpl:%'").all(); for (const x of r.results || []) out[x.k.slice(4)] = +x.t || 0; return json(out); }
     if (a === 'cfgx' && m === 'GET') { const x = await kvJson(env, 'cfgx'); return json({ v: x.v || 0, pay: x.pay || {}, ic: x.ic || {} }); }
     if (a === 'pimgs' && m === 'POST') { // صور منتجات بالباركود (قراءة فقط)
       if (!(await readShop(env, request))) return err('سجّل الدخول أول', 401);
@@ -803,7 +810,7 @@ async function admin(env, request, b) {
   }
   if (b === 'tpl' && m === 'POST') { // بيحفظ القالب العام بس. ما بيلمس أي محل، وما بيأثر على أصناف نزلت قبل عند المحلات
     const k = clean(q.k, 20); if (!TPL_KEYS[k]) return err('مجال غير معروف');
-    const items = tplClean(q.items); const v = JSON.stringify({ t: nowMs(), src: clean(q.src || 'لوحة الكاشير', 80), items });
+    const items = await tplStamp(env, k, tplClean(q.items)); const v = JSON.stringify({ t: nowMs(), src: clean(q.src || 'لوحة الكاشير', 80), items });
     if (v.length > 1800000) return err('القالب كبير كثير (' + items.length + ' صنف). قسّمه أو خفّف الصور');
     await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
     return json({ ok: true, n: items.length });
@@ -832,7 +839,7 @@ async function admin(env, request, b) {
       return { sh, st, h, counts: { items: L('items'), customers: L('customers'), suppliers: L('suppliers'), sales: L('sales'), purchases: L('purchases'), debt } };
     };
     const before = await snap(); if (!before) return err('ما في محل بهذا الرقم', 404);
-    const items = tplClean((before.st.items || []).map((i) => ({ n: i.name, b: i.barcode, p: i.price })));
+    const items = await tplStamp(env, k, tplClean((before.st.items || []).map((i) => ({ n: i.name, b: i.barcode, p: i.price }))));
     const v = JSON.stringify({ t: nowMs(), src: (before.sh.name || '') + ' · ' + ph, items });
     if (v.length > 1800000) return err('الأصناف كثيرة كثير (' + items.length + ')');
     await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
