@@ -1374,7 +1374,7 @@ function report(from,to=Infinity){
 }
 let DQF='';
 let EDITSCAN=0;
-const itemCards=()=>{ try{ const v=localStorage.getItem('ksr-cards'); if(v!=null) return v==='1' }catch(_){} return !!(S.tplDone&&S.tplDone.veg) };
+const itemCards=()=>{ try{ const v=localStorage.getItem('ksr-cards'); if(v!=null) return v==='1' }catch(_){} return !!(S.tplDone&&PICS.some(k=>S.tplDone[k])) };
 function dqRun(){ const q=(($('#dq')||{}).value||'').trim().toLowerCase(); let n=0; document.querySelectorAll('#dqList [data-n]').forEach(b=>{ const ok=(!q||b.dataset.n.includes(q))&&(!DQF||b.dataset.t.includes(DQF)); b.hidden=!ok; if(ok) n++ }); const e=$('#dqNone'); if(e) e.hidden=n>0 }
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='dq') dqRun() });
 function fxTotals(list){ const t=['USD','JOD'].map(k=>[k,r2(list.reduce((a,c)=>a+balCur(c,k),0))]).filter(x=>x[1]!==0); return t.length?`<div class="muted" style="text-align:center">وكمان بالعملات الثانية: ${t.map(([k,v])=>moneyC(v,k)).join(' · ')}</div>`:'' }
@@ -1766,7 +1766,7 @@ more(){
     const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||k==='log')&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
     const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
-    ${grp('مجال العمل',[['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، فواكه وخضروات','gear']])}
+    ${grp('مجال العمل',[['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear']])}
     ${grp('المبيعات والأرباح',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
     ${grp('الفلوس',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('البضاعة والموردين',[['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
@@ -3233,15 +3233,17 @@ async function imgData(u){ try{ const r=await fetch(u+(u.includes('?')?'&':'?')+
 /* الصور بتيجي جوّا القالب نفسه، فما بتعتمد على ملفات الموقع */
 const badImg=i=>!i.img||!/^data:image\//.test(i.img);
 /* أصناف الخضار اللي نزلت بدون صورة: بنجيب صورتها بس (ما بنلمس أي إشي ثاني بالصنف) */
-async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>i.tpl==='veg'&&badImg(i)); if(!L.length) return; vegFix.b=1;
-  try{ const map={}, imap={}; const r=await api('/tpl?k=veg'); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img });
-    let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; if(u) cur.iu=u; n++ } }
+async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>PICS.includes(i.tpl)&&badImg(i)); if(!L.length) return; vegFix.b=1;
+  try{ const map={}, imap={}; for(const c of [...new Set(L.map(i=>i.tpl))]){ const r=await api('/tpl?k='+c); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; else if(x.f) map[k]=TPLIMG(x.f); if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img }) }
+    let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&(/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)||u.startsWith(TPLIMG('')))) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; n++ } }
     if(n){ save(); render() } }catch(_){} vegFix.b=0 }
 setTimeout(vegFix,4000); window.addEventListener('online',()=>setTimeout(vegFix,2000));
-const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات'};
+const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات',meat:'لحوم ومجمدات وأسماك',deli:'لحوم باردة وألبان وأجبان',bake:'مخبوزات وحلويات',dry:'حبوب وبهارات ومخللات'};
+const TPLI={market:'🛒',pharm:'💊',veg:'🥕',meat:'🥩',deli:'🧀',bake:'🍞',dry:'🌾'}, PICS=['veg','meat','deli','bake','dry'];
+const TPLIMG=f=>API.replace(/\/kashirak-api$/,'')+'/kashirak-tpl/'+f;
 const tplCard=()=>`<div class="card" style="gap:10px"><h2>📦 أصناف جاهزة حسب مجال العمل</h2><p class="muted" style="margin:0">اختار مجالك واضغط «تفعيل»، وبتنزل أصناف هالمجال على حسابك بالأسماء والباركود والأسعار، والكمية صفر. ما بينحذف ولا بيتغيّر أي صنف موجود عندك، والصنف الموجود ما بيتكرر. بتقدر تفعّل أكثر من مجال.</p>
-  ${S.items.some(i=>i.tpl==='veg'&&badImg(i))?'<button class="btn primary block" data-act="vegFixGo">🖼️ تنزيل صور الفواكه والخضار</button>':''}
-  <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${k==='market'?'🛒':k==='pharm'?'💊':'🥕'} ${n}${(S.tplDone||{})[k]?' ✓':''}</button>`).join('')}</div></div>`;
+  ${S.items.some(i=>PICS.includes(i.tpl)&&badImg(i))?'<button class="btn primary block" data-act="vegFixGo">🖼️ تنزيل صور الأصناف الجاهزة</button>':''}
+  <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${TPLI[k]||'📦'} ${n}${(S.tplDone||{})[k]?' ✓':''}</button>`).join('')}</div></div>`;
 function pBizView(){ const on=!!S.pharm;
   return back('مجال العمل')+tplCard()+hint('اختار نوع شغلك. إذا اخترت <b>صيدلية</b> بيتحوّل التطبيق كله لنظام صيدلية: تاريخ انتهاء وتشغيلة لكل كمية، البيع بالعلبة والشريط والحبة، الاسم العلمي والبدائل، ومنع بيع المنتهي. الميزان والبيع بالكيلو بيختفوا.')+`
    <div class="card" style="gap:10px">${on?`<div class="rempill"><span>💊 نظام الصيدلية مفعّل</span></div>
@@ -3252,7 +3254,7 @@ function pBizView(){ const on=!!S.pharm;
      <label for="pAct">للتأكيد اكتب كلمة <b>تفعيل</b><input id="pAct" autocomplete="off" placeholder="تفعيل"></label>
      <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
 Object.assign(A,{
-  async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); const before=S.items.filter(i=>i.tpl==='veg'&&badImg(i)).length; await vegFix(); const after=S.items.filter(i=>i.tpl==='veg'&&badImg(i)).length; render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
+  async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); const before=S.items.filter(i=>PICS.includes(i.tpl)&&badImg(i)).length; await vegFix(); const after=S.items.filter(i=>PICS.includes(i.tpl)&&badImg(i)).length; render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
   tplAsk(d){ const n=TPLN[d.k]; if(!n) return; openSheet(`${sheetHead('أصناف '+n)}<p style="margin:0">سيتم تنزيل جميع أصناف <b>${n}</b> إلى حسابك.</p><p class="muted" style="margin:0">بتنضاف بكمية صفر. الأصناف الموجودة عندك بنفس الباركود أو الاسم بتضل زي ما هي وما بتتكرر، وما بيتغيّر ولا إشي من ديونك أو زبائنك أو فواتيرك.</p><button class="btn primary block" data-act="tplGo" data-k="${d.k}">تفعيل</button>`) },
   async tplGo(d){ const k=d.k, n=TPLN[k], btn=$('[data-act=tplGo]'); if(!n) return; if(!linked()){toast('سجّل محلك أول عشان تنزل الأصناف');return} if(!navigator.onLine){toast('تنزيل الأصناف بدّه نت مرة وحدة');return}
     if(btn){btn.disabled=true; btn.textContent='جاري التنزيل…'}
@@ -3264,10 +3266,10 @@ Object.assign(A,{
     list.forEach(x=>{ const nm=String(x.n||'').trim(), bc=String(x.b||'').trim(); if(!nm) return; if((bc&&bars.has(bc))||names.has(nm)){skip++;return}
       const kg=!S.pharm&&/كيلو|كغ|kg/i.test(x.u||''); const it={id:S.nextId++,name:nm,barcode:bc,cost:0,price:r2(+x.p||0),qty:0,min:5,cartonSize:0,cartonPrice:0,exp:'',byWeight:kg,...(x.u&&!kg?{unitName:String(x.u).slice(0,20)}:{}),...(k==='pharm'&&S.pharm?{kind:'med'}:{}),tpl:k};
       S.items.push(it); if(bc) bars.add(bc); names.add(nm); add++;
-      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
-    for(const [it,u] of IMGQ.splice(0)){ it.iu=u; const d=await imgData(u); if(d) it.img=d }
-    if(k==='veg'){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
-    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(k==='veg') setTimeout(vegFix,600);
+      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.f==='string'&&/^[a-z]+\/[a-z0-9-]+\.jpg$/.test(x.f)) IMGQ.push([it,TPLIMG(x.f)]); else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
+    for(const [it,u] of IMGQ.splice(0)){ const d=await imgData(u); if(d) it.img=d }
+    if(PICS.includes(k)){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
+    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)) setTimeout(vegFix,600);
     openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
     if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
