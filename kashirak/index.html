@@ -532,7 +532,7 @@ const ICON={
  staff:'<circle cx="10" cy="8" r="4"/><path d="M3 21c1.2-4 4-6 7-6 1.6 0 3 .5 4.2 1.4M15.5 18.5l2 2 4-4"/>'
 };
 const I3=(k,c='')=>`<img class="i3 ${c}" src="${(RX.ic&&RX.ic[k])||'icons/3d/'+k+'.webp'}" alt="" decoding="async">`;
-const HAS3=new Set(['payroll','cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
+const HAS3=new Set(['assets','payroll','cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
  users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',tag:'<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
@@ -896,7 +896,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.pay=o.pay||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
+  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
@@ -1425,7 +1425,7 @@ function report(from,to=Infinity){
           top:Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,5)};
 }
 /* ===== المحاسبة: قيود مزدوجة مستخرجة تلقائيًا من عمليات المحل (قراءة فقط، ما بتكتب ولا بتغيّر أي بيانات) ===== */
-const ACC=[['1','الأصول',''],['11','الأصول المتداولة','1'],['1101','الصندوق (النقدية)','11'],['1102','البنوك والمحافظ الإلكترونية','11'],['1103','ذمم الزبائن (الديون)','11'],['1104','شيكات برسم التحصيل','11'],['1105','المخزون','11'],['1106','سُلف العمال','11'],
+const ACC=[['1','الأصول',''],['11','الأصول المتداولة','1'],['1101','الصندوق (النقدية)','11'],['1102','البنوك والمحافظ الإلكترونية','11'],['1103','ذمم الزبائن (الديون)','11'],['1104','شيكات برسم التحصيل','11'],['1105','المخزون','11'],['1106','سُلف العمال','11'],['12','الأصول الثابتة','1'],['1201','الأصول الثابتة (بسعر الشراء)','12'],['1202','مجمع الإهلاك','12'],
  ['2','الخصوم',''],['21','الخصوم المتداولة','2'],['2101','ذمم الموردين','21'],['2102','شيكات صادرة مستحقة الدفع','21'],
  ['3','حقوق الملكية',''],['3101','رأس المال والأرصدة الافتتاحية','3'],['3102','فروقات تسوية الأرصدة','3'],['3103','جاري المالك (مسحوبات وفروقات الصندوق)','3'],['3199','الأرباح المحتجزة (صافي الربح)','3'],
  ['4','الإيرادات',''],['4101','المبيعات','4'],['4102','مردودات المبيعات','4'],['4103','زيادة الصندوق','4'],
@@ -1449,6 +1449,9 @@ function accJournal(){ if(ACCJ&&ACCJ.v===S._t&&ACCJ.n===S.sales.length) return A
   for(const x of S.pay||[]){ const a=r2(+x.amt||0), who=(S.staff.find(t=>t.id===x.staffId)||{}).name||'عامل', src=x.src==='app'?bank(''):'1101';
     if(x.kind==='adv') E(x.ts,`سلفة · ${who}`,'adv',[['1106',a,0],[src,0,a]]);
     if(x.kind==='sal'){ const u=r2(+x.advUsed||0); E(x.ts,`راتب · ${who}`,'sal',[['52:رواتب العمال',r2(a+u),0],[src,0,a],['1106',0,u]]) } }
+  for(const a of S.assets||[]){ const c=r2(+a.cost||0), cr=a.src==='cash'?'1101':a.src==='app'?bank(''):'3101'; E(a.src==='cash'?(a.at||a.ts):a.ts,'شراء أصل: '+(a.name||''),'asset',[['1201',c,0],[cr,0,c]]);
+    const n=Math.max(1,Math.round((+a.life||5)*12)), mm=astMonthly(a), m=Math.min(n,astMonths(a,Infinity)), base=Math.max(0,c-(+a.salv||0)), sd=new Date(a.ts); let done=0;
+    for(let k=1;k<=m;k++){ const v=k===n?r2(base-done):mm; done=r2(done+v); if(v>0) E(new Date(sd.getFullYear(),sd.getMonth()+k,1).getTime()-1,'إهلاك شهري: '+(a.name||''),'dep',[['52:إهلاك الأصول الثابتة',v,0],['1202',0,v]]) } }
   for(const x of S.draws||[]){ const a=r2(+x.amt||0); E(x.ts,(x.kind==='out'?'سحب المالك من الصندوق':'إيداع المالك بالصندوق')+(x.note?': '+x.note:''),'draw',x.kind==='out'?[['3103',a,0],['1101',0,a]]:[['1101',a,0],['3103',0,a]]) }
   const skipC=l=>l.sid!=null||/^(إرجاع من فاتورة|إرجاع فاتورة|حذف فاتورة|تعديل فاتورة)/.test(l.note||'');
   for(const c of S.customers) for(const l of c.ledger||[]){ if(l.cur||skipC(l)) continue; const a=r2(Math.abs(+l.amt||0)), n=l.note||'', who=c.name||'';
@@ -1474,12 +1477,12 @@ function accPL(from,to){ const b=accBal(from,to), sales=accSum(b,'4101'), ret=r2
   const other=[['زيادة الصندوق',accNet(b,'4103')],['عجز الصندوق',-accNet(b,'5301')],['فروقات الجرد والتالف',-accNet(b,'5302')],['نقاط الولاء والخصومات',-accNet(b,'5303')]].filter(x=>x[1]);
   const exT=r2(ex.reduce((a,x)=>a+x[1],0)), oT=r2(other.reduce((a,x)=>a+x[1],0)); return {sales,ret,net_s,cogs,gross,ex,exT,other,oT,net:r2(gross-exT+oT)} }
 function accBS(to){ const b=accBal(-Infinity,to), sub=pre=>Object.keys(b).filter(c=>c===pre||c.startsWith(pre+':')).map(c=>[accName(c),accNet(b,c)]).filter(x=>Math.abs(x[1])>0.004);
-  const assets=[['الصندوق (النقدية)',accNet(b,'1101')],...sub('1102').map(([n,v])=>['🏦 '+n,v]),['ذمم الزبائن (الديون)',accNet(b,'1103')],['شيكات برسم التحصيل',accNet(b,'1104')],['المخزون',accNet(b,'1105')],['سُلف العمال',accNet(b,'1106')]].filter(x=>Math.abs(x[1])>0.004);
+  const assets=[['الصندوق (النقدية)',accNet(b,'1101')],...sub('1102').map(([n,v])=>['🏦 '+n,v]),['ذمم الزبائن (الديون)',accNet(b,'1103')],['شيكات برسم التحصيل',accNet(b,'1104')],['المخزون',accNet(b,'1105')],['سُلف العمال',accNet(b,'1106')],['الأصول الثابتة',accNet(b,'1201')],['ناقص: مجمع الإهلاك',accNet(b,'1202')]].filter(x=>Math.abs(x[1])>0.004);
   const liab=[['ذمم الموردين',accNet(b,'2101')],['شيكات صادرة مستحقة',accNet(b,'2102')]].filter(x=>Math.abs(x[1])>0.004);
   const pl=accPL(-Infinity,to).net, eq=[['رأس المال والأرصدة الافتتاحية',accNet(b,'3101')],['فروقات تسوية الأرصدة',accNet(b,'3102')],['جاري المالك (مسحوبات وفروقات الصندوق)',accNet(b,'3103')],['الأرباح المحتجزة (صافي الربح)',pl]].filter(x=>Math.abs(x[1])>0.004);
   const T=l=>r2(l.reduce((a,x)=>a+x[1],0)); return {assets,liab,eq,A:T(assets),L:T(liab),Q:T(eq)} }
 function accCF(from,to){ const isC=c=>c==='1101'||c.startsWith('1102'), G={}, add=(k,v)=>G[k]=r2((G[k]||0)+v); let open=0;
-  const LBL={sale:'مقبوضات المبيعات',col:'تحصيل ديون الزبائن',ret:'مردودات للزبائن',buy:'مشتريات نقدية',pay:'دفعات للموردين',exp:'المصروفات',close:'فروقات إقفال الصندوق',draw:'مسحوبات وإيداعات المالك',adv:'سُلف العمال',sal:'رواتب العمال',chq:'شيكات منصرفة',debt:'حركات ديون أخرى',sdebt:'حركات موردين أخرى',plug:'تسويات'};
+  const LBL={sale:'مقبوضات المبيعات',col:'تحصيل ديون الزبائن',ret:'مردودات للزبائن',buy:'مشتريات نقدية',pay:'دفعات للموردين',exp:'المصروفات',close:'فروقات إقفال الصندوق',draw:'مسحوبات وإيداعات المالك',adv:'سُلف العمال',sal:'رواتب العمال',asset:'شراء أصول ثابتة',chq:'شيكات منصرفة',debt:'حركات ديون أخرى',sdebt:'حركات موردين أخرى',plug:'تسويات'};
   for(const j of accJournal()){ const v=r2(j.lines.reduce((a,[c,dr,cr])=>isC(c)?a+(dr||0)-(cr||0):a,0)); if(!v) continue; if(j.ts<from) open=r2(open+v); else if(j.ts<to) add(j.kind,v) }
   const rows=Object.entries(G).map(([k,v])=>[LBL[k]||k,v]).sort((a,b)=>b[1]-a[1]), net=r2(rows.reduce((a,x)=>a+x[1],0)); return {open,rows,net,close:r2(open+net)} }
 function accTB(to){ const b=accBal(-Infinity,to), pl=null; return Object.keys(b).sort().map(c=>{ const x=b[c], n=r2(x.dr-x.cr); return {c,name:(c.includes(':')?accName(accParent(c))+' / ':'')+accName(c),dr:x.dr,cr:x.cr,bd:n>0?n:0,bc:n<0?-n:0} }) }
@@ -1566,6 +1569,19 @@ function payrollView(){ if(!isOwner()) return back('الرواتب والسُل�
     ${rows||'<div class="empty">ضيف العمال من «بصمة العمال» أول</div>'}
     ${hint('السلفة والراتب اللي بتصرفه كاش بينزلوا من الصندوق لحالهم، وبيدخلوا المحاسبة كمصروف «رواتب العمال». إذا كنت تسجّل الرواتب كمصروف عادي، خلّيك على طريقة وحدة عشان ما تنحسب مرتين.')}` }
 const PAYK={adv:'سلفة',sal:'صرف راتب',bonus:'مكافأة',ded:'خصم'};
+/* الأصول الثابتة: سجل جديد S.assets (بالإضافة فقط). الإهلاك الشهري بالقسط الثابت بينحسب حسابيًا، ما بينحفظ */
+const astMonths=(a,to)=>{ const s=new Date(a.ts), e=new Date(Math.min(to,Date.now())); return Math.max(0,(e.getFullYear()-s.getFullYear())*12+e.getMonth()-s.getMonth()) };
+const astMonthly=a=>{ const n=Math.max(1,Math.round((+a.life||5)*12)); return r2(Math.max(0,(+a.cost||0)-(+a.salv||0))/n) };
+function astDep(a,to=Infinity){ const n=Math.max(1,Math.round((+a.life||5)*12)), m=Math.min(n,astMonths(a,to)); return r2(Math.min(Math.max(0,(+a.cost||0)-(+a.salv||0)),astMonthly(a)*m)) }
+function assetsView(){ if(!isOwner()) return back('الأصول الثابتة')+'<div class="empty">للمالك بس</div>'; const L=S.assets||[], tc=r2(L.reduce((a,x)=>a+(+x.cost||0),0)), td=r2(L.reduce((a,x)=>a+astDep(x),0));
+  return back('الأصول الثابتة')+`<p class="muted" style="margin:0">الأشياء اللي بتضل عندك سنين وما بتنباع: ثلاجة، مولّد، رفوف، ميزان، كاميرات. كل شهر بينحسب جزء من سعرها كمصروف (إهلاك)، عشان يطلع ربحك الحقيقي.</p>
+    <div class="tiles"><div class="tile hl"><div class="lbl">قيمة الأصول الآن</div><div class="val">${money(r2(tc-td))}</div><div class="lbl">من أصل ${fx(tc)} ₪</div></div><div class="tile"><div class="lbl">الإهلاك الشهري</div><div class="val">${money(r2(L.filter(x=>astDep(x)<(+x.cost||0)-(+x.salv||0)).reduce((a,x)=>a+astMonthly(x),0)))}</div></div></div>
+    <div class="card"><h2>الأصول</h2><div class="list">${L.map(x=>{ const d=astDep(x); return `<div class="li"><span><span class="t">${esc(x.name)}</span><br><span class="muted">${new Date(x.ts).toLocaleDateString('ar-u-nu-latn')} · ${fx(x.cost)} ₪ · عمره ${x.life} سنة · إهلاك ${fx(astMonthly(x))} ₪ بالشهر</span></span><span style="text-align:end;white-space:nowrap;flex:none">${money(r2(x.cost-d))}<br><small class="muted">انهلك ${fx(d)}</small></span></div>` }).join('')||'<div class="empty">ما في أصول لسا</div>'}</div></div>
+    <div class="card"><h2>إضافة أصل</h2><label for="asN">الاسم<input id="asN" placeholder="مثلًا: ثلاجة عرض"></label>
+      <div class="grid2"><label for="asC">السعر ₪<input id="asC" type="number" inputmode="decimal" min="0"></label><label for="asL">عمره المتوقع (سنين)<input id="asL" type="number" inputmode="decimal" min="1" value="5"></label></div>
+      <div class="grid2"><label for="asD">تاريخ الشراء<input id="asD" type="date" value="${new Date().toISOString().slice(0,10)}"></label><label for="asS">قيمته بآخر عمره ₪ (اختياري)<input id="asS" type="number" inputmode="decimal" min="0" value="0"></label></div>
+      <label for="asP">دفعت حقه<select id="asP"><option value="old">كان عندي من قبل (ما بيأثر على الصندوق)</option><option value="cash">كاش من الصندوق الآن</option><option value="app">تحويل / بنك</option></select></label>
+      <button class="btn primary" data-act="astAdd">إضافة</button></div>` }
 let DQF='';
 let EDITSCAN=0, ICAT='';
 const CATL={food:'مواد غذائية ومعلبات',drink:'مشروبات وعصائر',hot:'شاي وقهوة',dairy:'ألبان وأجبان وبيض',sweet:'شوكولاتة وبسكويت وسكاكر',snack:'شيبس وتسالي',spice:'بهارات ومكسرات بالوزن',clean:'منظفات',care:'عناية شخصية',baby:'أطفال',home:'أدوات منزلية وبلاستيك',veg:'فواكه وخضروات',meat:'لحوم ومجمدات وأسماك',deli:'لحوم باردة وألبان',bake:'مخبوزات وحلويات',dry:'حبوب وبهارات ومخللات',nuts:'مكسرات وبزر',other:'أصناف ثانية'};
@@ -1789,7 +1805,7 @@ function drawer(){
   const buys=sum(S.purchases.filter(p=>since(p)&&p.paid==='cash'),p=>p.total);
   const supOut=sum(S.suppliers.flatMap(c=>c.ledger).filter(l=>since(l)&&l.amt<0&&!l.noCash&&!l.cur),l=>-l.amt);
   const refunds=sum((S.returns||[]).filter(x=>since(x)&&x.method==='cash'),x=>x.amount);
-  const wages=sum((S.pay||[]).filter(x=>since(x)&&(x.kind==='adv'||x.kind==='sal')&&x.src!=='app'),x=>x.amt), dOut=sum((S.draws||[]).filter(x=>since(x)&&x.kind==='out'),x=>x.amt), dIn=sum((S.draws||[]).filter(x=>since(x)&&x.kind==='in'),x=>x.amt);
+  const wages=r2(sum((S.pay||[]).filter(x=>since(x)&&(x.kind==='adv'||x.kind==='sal')&&x.src!=='app'),x=>x.amt)+sum((S.assets||[]).filter(x=>(x.at||x.ts)>from&&x.src==='cash'),x=>x.cost)), dOut=sum((S.draws||[]).filter(x=>since(x)&&x.kind==='out'),x=>x.amt), dIn=sum((S.draws||[]).filter(x=>since(x)&&x.kind==='in'),x=>x.amt);
   return {from,open,cashSales,debtIn,exp,buys,supOut,refunds,dOut,dIn,wages,expected:r2(open+cashSales+debtIn-exp-buys-supOut-refunds-dOut+dIn-wages)};
 }
 /* شراء نفس الصنف بسعر تكلفة جديد: بنعرض الأسعار الحالية، وبنفتح خيار تحديث سعر البيع والجملة */
@@ -1979,6 +1995,7 @@ more(){
   if(sub==='inv'){ setTimeout(invPrev,0); return invView() }
   if(sub==='acc') return accView();
   if(sub==='payroll') return payrollView();
+  if(sub==='assets') return assetsView();
   if(sub==='biz') return pBizView(); if(sub==='pexp'&&S.pharm) return pExpView();
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
@@ -1988,7 +2005,7 @@ more(){
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
     ${grp('شغلك اليومي',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet']])}
     ${grp('التقارير والملفات',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['acc','المحاسبة','الميزانية، ميزان المراجعة، دفتر الأستاذ، التدفقات النقدية','chart'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
-    ${grp('تجهيز المحل',[['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
+    ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('إضافات',[['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
     ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
@@ -2094,7 +2111,7 @@ more(){
     <div class="tile hl"><div class="lbl">المتوقع في الصندوق الآن</div><div class="val">${money(d.expected)}</div><div class="lbl">منذ آخر إقفال ${d.from?fdate(d.from):''}</div></div>
     <div class="card"><div class="list">
       ${stat('رصيد الافتتاح',money(d.open))}${stat('مبيعات نقدية',money(d.cashSales))}${stat('دفعات ديون من الزبائن',money(d.debtIn))}
-      ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}${d.wages?stat('رواتب وسُلف العمال',money(-d.wages)):''}${d.dOut?stat('مسحوبات المالك',money(-d.dOut)):''}${d.dIn?stat('إيداعات المالك',money(d.dIn)):''}</div></div>
+      ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}${d.wages?stat('رواتب وسُلف وأصول',money(-d.wages)):''}${d.dOut?stat('مسحوبات المالك',money(-d.dOut)):''}${d.dIn?stat('إيداعات المالك',money(d.dIn)):''}</div></div>
     <div class="card"><h2>مسحوبات وإيداعات المالك</h2><p class="muted" style="margin:0">إذا أخدت مصاري من الدرج لإلك، أو حطيت مصاري من جيبك، سجّلها هون. هيك الصندوق والمحاسبة بيطلعوا مظبوطين، وما بتنحسب عليك عجز.</p>
       <div class="withbtn"><label for="drAmt">المبلغ (₪)<input id="drAmt" type="number" inputmode="decimal" min="0"></label></div><input id="drNote" placeholder="ملاحظة (اختياري)">
       <div class="grid2"><button class="btn" data-act="drawGo" data-k="out">⬆️ سحبت من الصندوق</button><button class="btn" data-act="drawGo" data-k="in">⬇️ حطيت بالصندوق</button></div>
@@ -3490,6 +3507,9 @@ function pBizView(){ const on=!!S.pharm;
      <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
 Object.assign(A,{
   payM(d){ PAYM=+d.k; render() },
+  astAdd(){ const n=($('#asN').value||'').trim(), c=r2(parseFloat($('#asC').value)||0), l=Math.max(0.5,parseFloat($('#asL').value)||5), sv=r2(Math.max(0,parseFloat($('#asS').value)||0)), dt=$('#asD').value, src=$('#asP').value;
+    if(!n||!(c>0)){toast('اكتب الاسم والسعر');return} if(sv>=c){toast('قيمته بآخر عمره لازم تكون أقل من سعره');return}
+    const ts=dt?new Date(dt+'T12:00').getTime():Date.now(); S.assets=S.assets||[]; S.assets.push({id:S.nextId++,ts:Math.min(ts,Date.now()),at:Date.now(),name:n.slice(0,60),cost:c,life:l,salv:sv,src}); audit(`إضافة أصل ثابت ${n} ${fx(c)} ₪`); save(); render(); toast('✓ انضاف الأصل') },
   payWage(d){ const st=S.staff.find(x=>x.id===+d.id); if(!st) return; openSheet(`${sheetHead('راتب '+esc(st.name))}<p class="muted" style="margin:0">اكتب الراتب الشهري الثابت. إذا تركته فاضي أو صفر، الراتب بينحسب من ساعات البصمة × أجرة الساعة.</p>
     <label for="pwM">الراتب الشهري ₪<input id="pwM" type="number" inputmode="decimal" min="0" value="${st.mWage||''}"></label><label for="pwH">أجرة الساعة ₪<input id="pwH" type="number" inputmode="decimal" min="0" value="${st.wage||''}"></label><button class="btn primary block" data-act="payWageGo" data-id="${st.id}">حفظ</button>`) },
   payWageGo(d){ const st=S.staff.find(x=>x.id===+d.id); if(!st) return; st.mWage=r2(Math.max(0,parseFloat($('#pwM').value)||0)); st.wage=r2(Math.max(0,parseFloat($('#pwH').value)||0)); audit(`راتب ${st.name}: ${st.mWage?'شهري '+fx(st.mWage):'بالساعة '+fx(st.wage)} ₪`); save(); closeSheet(); render(); toast('✓ انحفظ') },
@@ -3594,7 +3614,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['payGo','payWageGo','drawGo','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['astAdd','payGo','payWageGo','drawGo','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
