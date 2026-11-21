@@ -394,6 +394,17 @@ main{padding-bottom:44px}
 }
 @media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
+.i3{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(11,31,58,.28))}
+.mrow .mic.m3,.mic.m3{background:none;padding:0;width:46px;height:46px}
+nav button .ic{width:30px;height:30px;display:block}nav button .ic .i3{filter:drop-shadow(0 2px 4px rgba(11,31,58,.25)) saturate(.55);opacity:.72;transition:.2s}
+nav button[aria-current="page"] .ic .i3{filter:drop-shadow(0 3px 7px rgba(155,120,40,.45));opacity:1;transform:scale(1.12)}
+.fab .fab3{width:34px;height:34px;flex:none;filter:none;border-radius:9px}
+.i3.sm3{display:inline-block;width:22px;height:22px;vertical-align:middle;margin-inline-end:5px;filter:none}
+.seg button .i3.sm3{width:20px;height:20px}
+.soi.s3{background:none!important;width:44px!important;height:44px!important}
+.tile{position:relative}.i3.t3{position:absolute;inset-inline-end:10px;top:10px;width:34px;height:34px}
+.pdfhero .mic.m3{width:52px;height:52px}
+
 .catchips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:none;min-height:44px;flex:none;align-items:center}.catchips button{flex:none;min-height:36px;height:auto;display:inline-flex;align-items:center;gap:4px;line-height:1.2;border:1px solid var(--line,#e4dfd3);background:var(--card,#fff);color:inherit;border-radius:99px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}.catchips button.on{background:#0B1F3A;color:#F7F1E1;border-color:#0B1F3A}.catchips .num{opacity:.7;font-size:12px}
 .icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
 .icard{background:var(--card,#fff);border:1px solid var(--line,#e4dfd3);border-radius:16px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font:inherit;color:inherit;text-align:center}
@@ -505,6 +516,8 @@ const ICON={
  rep:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  staff:'<circle cx="10" cy="8" r="4"/><path d="M3 21c1.2-4 4-6 7-6 1.6 0 3 .5 4.2 1.4M15.5 18.5l2 2 4-4"/>'
 };
+const I3=(k,c='')=>`<img class="i3 ${c}" src="icons/3d/${k}.webp" alt="" decoding="async">`;
+const HAS3=new Set(['cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
  users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 4.5a3 3 0 0 1 0 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',tag:'<path d="M20 12l-8 8-9-9V3h8z"/><circle cx="7.5" cy="7.5" r="1.3"/>',
@@ -1207,9 +1220,9 @@ function scanOpts(){ if(!isDesk()) return '';
   const w=WEDGE.on(), host=REM.role==='host', camOn=S.liveCam!==false, lt=+localStorage.getItem('ksr-wedge-t')||0;
   if(w&&!host) return `<div class="wchip on scanopts wide"><span>🔌 ماكينة قارئ الباركود مربوطة ✓ · امسح من أي شاشة والصنف بينزل هون${lt?` · آخر مسح <span class="num">${hm(lt)}</span>`:''}</span><span class="row" style="gap:6px"><button class="btn sm" data-act="wedgeLink">اختبار</button><button class="btn sm" data-act="remHost">📱 الجوال كماسح</button><button class="btn sm" data-act="liveToggle">${camOn?'إيقاف الكاميرا':'📷 الكاميرا'}</button><button class="btn sm" data-act="wedgeOffAsk">فصل</button></span></div>`;
   return `<div class="card scanopts wide"><div class="sopts">
-    <button class="sopt${w?' on':''}" data-act="wedgeLink"><span class="soi">🔌</span><span><b>ماكينة قارئ الباركود</b><small>${w?'مربوطة ✓ · اضغط للاختبار':'شبّكها بالـ USB واضغط هون للربط'}</small></span></button>
-    <button class="sopt${host?' on':''}" data-act="${host?'remStop':'remHost'}"><span class="soi">📱</span><span><b>الجوال كماسح</b><small>${host?(REM.dc&&REM.dc.readyState==='open'?'الجوال متصل ✓ · اضغط للإيقاف':esc(REM.st||'بانتظار الجوال…')+' · اضغط للإيقاف'):'بتوصل رسالة لجوالات المحل، واللي بيوافق بيصير ماسح'}</small></span></button>
-    <button class="sopt cam${camOn?' on':''}" data-act="liveToggle"><span class="soi">📷</span><span><b>${camOn?'إيقاف الكاميرا':'كاميرا اللابتوب'}</b></span></button>
+    <button class="sopt${w?' on':''}" data-act="wedgeLink"><span class="soi s3">${I3('s-wedge')}</span><span><b>ماكينة قارئ الباركود</b><small>${w?'مربوطة ✓ · اضغط للاختبار':'شبّكها بالـ USB واضغط هون للربط'}</small></span></button>
+    <button class="sopt${host?' on':''}" data-act="${host?'remStop':'remHost'}"><span class="soi s3">${I3('s-phone')}</span><span><b>الجوال كماسح</b><small>${host?(REM.dc&&REM.dc.readyState==='open'?'الجوال متصل ✓ · اضغط للإيقاف':esc(REM.st||'بانتظار الجوال…')+' · اضغط للإيقاف'):'بتوصل رسالة لجوالات المحل، واللي بيوافق بيصير ماسح'}</small></span></button>
+    <button class="sopt cam${camOn?' on':''}" data-act="liveToggle"><span class="soi s3">${I3('s-cam')}</span><span><b>${camOn?'إيقاف الكاميرا':'كاميرا اللابتوب'}</b></span></button>
    </div></div>` }
 function scanCard(){
   return `<div class="card" style="gap:8px"><h2>🔌 ماكينة قارئ الباركود</h2>
@@ -1639,15 +1652,15 @@ home(){
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
   return `${RCFG.notice?`<div class="banner" style="background:#FFF7E0;border:1px solid #E9C46A"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${greetCard()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
-  ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
+  ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big m3">${I3('att')}</span><span hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
-    <div class="tile hl"><div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
-    ${isOwner()?(mOk()?`<div class="tile"><div class="lbl">ربح اليوم بعد المصروفات</div><div class="val">${money(t.net)}</div></div>`:mLock('ربح اليوم')):`<div class="tile"><div class="lbl">وضع الكاشير</div><div class="val" style="font-size:16px">الأرباح مخفية</div></div>`}
-    <button class="tile" data-act="go" data-tab="debts"><div class="lbl">ديون على الزبائن</div><div class="val">${money(debts)}</div></button>
-    ${isOwner()?`<button class="tile" data-act="openSub" data-s="cash"><div class="lbl">المتوقع في الصندوق</div><div class="val">${money(drawer().expected)}</div>${S.sales.some(s=>s.confirmed===false)?'<div class="lbl" style="color:var(--warn)">تحويلات بانتظار التأكيد</div>':''}</button>`:''}
+    <div class="tile hl">${I3('h-sales','t3')}<div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
+    ${isOwner()?(mOk()?`<div class="tile">${I3('h-profit','t3')}<div class="lbl">ربح اليوم بعد المصروفات</div><div class="val">${money(t.net)}</div></div>`:mLock('ربح اليوم')):`<div class="tile"><div class="lbl">وضع الكاشير</div><div class="val" style="font-size:16px">الأرباح مخفية</div></div>`}
+    <button class="tile" data-act="go" data-tab="debts">${I3('h-debts','t3')}<div class="lbl">ديون على الزبائن</div><div class="val">${money(debts)}</div></button>
+    ${isOwner()?`<button class="tile" data-act="openSub" data-s="cash">${I3('cash','t3')}<div class="lbl">المتوقع في الصندوق</div><div class="val">${money(drawer().expected)}</div>${S.sales.some(s=>s.confirmed===false)?'<div class="lbl" style="color:var(--warn)">تحويلات بانتظار التأكيد</div>':''}</button>`:''}
   </div>
   ${(()=>{const sm=smart(); return sm.length?`<div class="card"><div class="row"><h2>اقتراحات المدير الذكي</h2><span class="pill warn">${sm.length}</span></div><div class="list">${sm.map(x=>`<button class="li" ${x.act}><span style="display:flex;gap:10px;align-items:center"><span class="mic" style="margin:0;flex:none;width:34px;height:34px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[x.ic]}</svg></span><span><span class="t">${x.t}</span><br><span class="muted">${x.d}</span></span></span><span class="chev" style="color:var(--gold-deep)">‹</span></button>`).join('')}</div></div>`:''})()}
-  <div class="card"><div class="row"><h2>بحاجة لانتباهك</h2><span class="pill ${al.length?'warn':'ok'}">${al.length||'لا شيء'}</span></div>
+  <div class="card"><div class="row"><h2 style="display:flex;align-items:center;gap:8px">${I3('h-alert','sm3')}بحاجة لانتباهك</h2><span class="pill ${al.length?'warn':'ok'}">${al.length||'لا شيء'}</span></div>
     <div class="list">${al.map(a=>`<button class="li" data-act="editItem" data-id="${a.i.id}"><span class="t">${esc(a.i.name)}</span><span class="pill ${a.cls}">${a.txt}</span></button>`).join('')||'<div class="empty">المخزون والصلاحيات بخير</div>'}</div></div>
   <div class="card"><h2>مبيعات آخر 7 أيام</h2>
     <div class="bars">${days.map((d,k)=>`<div class="bar ${k===6?'today':''}"><span class="num">${Math.round(d.rev)}</span><div class="trk"><i style="height:${Math.round(d.rev/mx*100)}%"></i></div><span>${k===6?'اليوم':new Date(d.from).toLocaleDateString('ar',{weekday:'short'})}</span></div>`).join('')}</div></div>`;
@@ -1685,7 +1698,7 @@ sell(){
   </div></div>
   <div class="card spay">
     <label for="disc">خصم (₪)<input id="disc" type="number" inputmode="decimal" min="0" step="0.5" value="${c.discount||''}" placeholder="0"></label>
-    <div class="seg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${v}</button>`).join('')}</div>
+    <div class="seg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${I3('p-'+k,'sm3')}${v}</button>`).join('')}</div>
     ${c.pay==='split'?`<div class="grid2"><label for="spC">نقدي (₪)<input id="spC" class="cf" data-f="splitCash" type="number" inputmode="decimal" min="0" value="${esc(c.splitCash)}"></label><label for="spA">تطبيق أو محفظة (₪)<input id="spA" class="cf" data-f="splitApp" type="number" inputmode="decimal" min="0" value="${esc(c.splitApp)}"></label></div><p class="muted" id="spRest" style="margin:0">الباقي ${fx(splitPays(gt,c).debt)} ₪ يُسجّل دين على الزبون.</p>`:''}
     ${c.pay==='app'||c.pay==='split'?(()=>{const need=splitPays(gt,c).app, dupR=refDup(c), img=c.proof?PROOF[c.proof]:'';
       return `<div class="tcard"><div class="row"><b>التحويل</b><span class="pill ok">المطلوب <span class="num">${fx(need)}</span> ₪</span></div>
@@ -1770,7 +1783,7 @@ more(){
   if(sub==='biz') return pBizView(); if(sub==='pexp'&&S.pharm) return pExpView();
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
-    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic">${svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
+    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)?' m3':''}">${HAS3.has(k)?I3(k):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
     const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||k==='log')&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
     const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
@@ -2142,8 +2155,8 @@ function render(){
   $('#view').dataset.v=tab==='more'?'more-'+sub:tab;
   if(tab==='sell'&&mOk()) mSet(false);
   $('#view').innerHTML=(tab==='more'&&sub==='rep'&&!mOk())?mGateView():V[tab]();
-  $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&sub==='rep'))?'aria-current="page"':''}><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg></span>${v}</button>`).join('')
-    +`<button class="fab" data-act="go" data-tab="sell" aria-label="بيع" ${tab==='sell'?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON.sell}</svg><span>بيع</span></button>`;
+  $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&sub==='rep'))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
+    +`<button class="fab" data-act="go" data-tab="sell" aria-label="بيع" ${tab==='sell'?'aria-current="page"':''}>${I3('n-sell','fab3')}<span>بيع</span></button>`;
   if(tab==='sell') renderResults();
   syncLive();
 }

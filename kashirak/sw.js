@@ -1,5 +1,5 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v96';
+const CACHE='kashirak-v97';
 const PAGE='./';                 /* مفتاح واحد ثابت لصفحة التطبيق */
 const FILES=['manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png','icons/feat/barcode.jpg','icons/feat/chart.jpg','icons/feat/ledger.jpg','icons/feat/card.jpg','icons/feat/shield.jpg','icons/feat/receipt.jpg','icons/feat/coins.jpg','icons/feat/gift.jpg','icons/feat/calc.jpg'];
 /* المتصفح ما بيقبل يفتح صفحة محفوظة جاية من تحويل (redirect) وقت ما في نت، فبنحفظها دايمًا كنسخة نظيفة */
