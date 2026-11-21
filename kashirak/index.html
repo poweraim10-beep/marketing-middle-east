@@ -394,7 +394,7 @@ main{padding-bottom:44px}
 }
 @media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
-.bizgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.bizc{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);font:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;text-align:center;line-height:1.35}.bizc .bzi{font-size:32px;line-height:1}.bizc:active{transform:scale(.97)}
+.bizgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.bizc{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);font:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;text-align:center;line-height:1.35}.bizc .bzi{font-size:32px;line-height:1}.bizc{position:relative}.bizc .bzk{display:none;position:absolute;top:6px;inset-inline-start:6px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:#fff;font-style:normal;font-size:13px;place-items:center}.bizc[aria-pressed=true]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 14%,var(--surface));box-shadow:0 0 0 3px color-mix(in srgb,var(--gold) 25%,transparent)}.bizc[aria-pressed=true] .bzk{display:grid}.bizc:active{transform:scale(.97)}
 
 table.acct{width:100%;border-collapse:collapse;font-size:13.5px}table.acct th,table.acct td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:start}table.acct td.n,table.acct th.n{text-align:end;white-space:nowrap;font-family:var(--display);font-variant-numeric:tabular-nums;direction:ltr}table.acct tbody tr{cursor:pointer}table.acct tfoot th{border-top:2px solid var(--ink)}
 
@@ -3528,8 +3528,10 @@ function bizOnboard(){ try{ if(!S||!linked()||!isOwner()||isSeller2()||$('#sheet
     if(S.items.length>3||Object.keys(S.tplDone||{}).length){ localStorage.setItem('ksr-biz-ob','1'); return clearInterval(bizOnboard.t) } }
   localStorage.setItem('ksr-biz-ob','1'); localStorage.removeItem('ksr-biz-force'); clearInterval(bizOnboard.t);
   const ks=Object.keys(TPLN).filter(k=>k!=='pharm');
-  openSheet(`${sheetHead('👋 أهلًا فيك! شو مجال شغلك؟')}<p style="margin:0">اختار مجال محلك، وبننزّلك أصنافه جاهزة بالأسماء والصور، وإنت بس بتحط الكمية والسعر. بتقدر تختار أكثر من مجال بعدين من «المزيد ← مجال العمل».</p>
-    <div class="bizgrid">${ks.map(k=>`<button class="bizc" data-act="tplAsk" data-k="${k}"><span class="bzi">${TPLI[k]||'📦'}</span><span>${TPLN[k]}</span></button>`).join('')}<button class="bizc" data-act="bizPharm"><span class="bzi">💊</span><span>صيدلية</span></button></div>
+  openSheet(`${sheetHead('👋 أهلًا فيك! شو مجال شغلك؟')}<p style="margin:0">اختار مجال محلك، وبننزّلك أصنافه جاهزة بالأسماء والصور، وإنت بس بتحط الكمية والسعر. وبتقدر تضيف أو تلغي أي مجال بعدين من «المزيد ← مجال العمل».</p>
+    <p class="muted" style="margin:0">✅ بتقدر تختار أكثر من مجال مع بعض، بعدين اضغط «تفعيل».</p>
+    <div class="bizgrid">${ks.map(k=>`<button class="bizc" data-act="bizTog" data-k="${k}" aria-pressed="false"><span class="bzi">${TPLI[k]||'📦'}</span><span>${TPLN[k]}</span><i class="bzk">✓</i></button>`).join('')}<button class="bizc" data-act="bizTog" data-k="pharm" aria-pressed="false"><span class="bzi">💊</span><span>صيدلية</span><i class="bzk">✓</i></button></div>
+    <button class="btn primary block" data-act="bizGo" id="bizGoBtn" disabled>اختار مجالك أول</button>
     <button class="btn block" data-act="close">بعدين، بدي أضيف أصنافي بإيدي</button>`) }catch(_){} }
 bizOnboard.t=setInterval(bizOnboard,5000);
 setTimeout(tplSync,9000); window.addEventListener('online',()=>setTimeout(tplSync,5000));
@@ -3584,6 +3586,16 @@ Object.assign(A,{
   accV(d){ ACCV=d.k; render() }, accP(d){ ACCP=d.k; render() }, accGL(d){ ACCV='gl'; ACCA=d.k; render() },
   async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); try{ localStorage.removeItem('ksr-pimg') }catch(_){} const bad=()=>S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market')&&badImg(i)).length, before=bad(); await vegFix(); await mkFix(); const after=bad(); render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
   bizPharm(){ closeSheet(); A.openSub({s:'biz'}) },
+  bizTog(d,el){ const b=el||document.querySelector(`[data-act=bizTog][data-k="${d.k}"]`); if(!b) return; b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');
+    const n=document.querySelectorAll('[data-act=bizTog][aria-pressed=true]').length, g=$('#bizGoBtn'); if(g){ g.disabled=!n; g.textContent=n?`تفعيل (${n} ${n===1?'مجال':'مجالات'})`:'اختار مجالك أول' } },
+  async bizGo(){ const ks=[...document.querySelectorAll('[data-act=bizTog][aria-pressed=true]')].map(b=>b.dataset.k); if(!ks.length) return; if(!navigator.onLine){toast('تنزيل الأصناف بدّه نت مرة وحدة');return}
+    const pharm=ks.includes('pharm'), L=ks.filter(k=>k!=='pharm'&&TPLN[k]), g=$('#bizGoBtn'); if(g){ g.disabled=true }
+    let tot=0, done=[]; for(let i=0;i<L.length;i++){ const k=L[i]; if(g) g.textContent=`⏳ جاري تنزيل ${TPLN[k]} (${i+1}/${L.length})…`; try{ const n=await A.tplGo({k,all:1,quiet:1}); if(typeof n==='number'){ tot+=n; done.push(`${TPLI[k]||''} ${TPLN[k]}: ${n} صنف`) } }catch(_){} }
+    closeSheet(); render();
+    if(pharm&&!L.length){ A.openSub({s:'biz'}); return }
+    openSheet(`${sheetHead('✓ تم التفعيل')}<p style="margin:0">انزلّك <b>${tot}</b> صنف جاهز:</p><div class="list">${done.map(t=>`<div class="li">${esc(t)}</div>`).join('')||'<div class="muted">ما نزل إشي، جرّب كمان مرة</div>'}</div>
+      <p style="margin:0">الكمية صفر. حط الكميات والأسعار من «📷 تعديل الأصناف بالباركود» أو من قائمة الأصناف. وبتقدر تلغي أي مجال من «المزيد ← مجال العمل».</p>
+      ${pharm?'<button class="btn block" data-act="bizPharm">💊 كمّل تفعيل نظام الصيدلية</button>':''}<button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   tplAsk(d){ const n=TPLN[d.k]; if(!n) return;
     if((S.tplDone||{})[d.k]){ const {off,keep}=tplSplit(d.k); openSheet(`${sheetHead('أصناف '+n+' ✓ مفعّلة')}<p style="margin:0">هالمجال مفعّل عندك. بدك تلغي تفعيله؟</p>
       <div class="pinfo">• <b>${off.length}</b> صنف ما استعملتهم (كمية صفر وما انباعوا) <b>بيختفوا من قائمة الأصناف</b> وبينحفظوا على جنب.<br>• <b>${keep.length}</b> صنف استعملتهم (إلهم كمية أو مبيعات أو تكلفة) <b>بيضلّوا زي ما هم</b>.<br>• ما بينحذف ولا إشي، ولو رجعت فعّلت المجال بيرجعوا كلهم.</div>
@@ -3603,11 +3615,11 @@ Object.assign(A,{
     if(btn){btn.disabled=true; btn.textContent='جاري التنزيل…'}
     let r; try{ r=await api('/tpl?k='+k) }catch(e){ toast(e.message); if(btn){btn.disabled=false;btn.textContent='تفعيل'} return }
     let list=(r.items||[]); if(!list.length){ closeSheet(); toast('قالب '+n+' لسا فاضي. تواصل مع الدعم'); return }
-    if(k==='market'||FOODT.includes(k)){ if(!d.pick){ TPLR=list; const cnt={}; list.forEach(x=>{const c=x.c||'other'; cnt[c]=(cnt[c]||0)+1});
+    if(k==='market'||FOODT.includes(k)){ if(!d.pick&&!d.all){ TPLR=list; const cnt={}; list.forEach(x=>{const c=x.c||'other'; cnt[c]=(cnt[c]||0)+1});
         openSheet(`${sheetHead('أقسام '+n)}<p style="margin:0">اختار الأقسام اللي بدك تنزل أصنافها (${list.length} صنف). الأصناف الموجودة عندك ما بتتكرر.${FOODT.includes(k)?' الأسعار بتنزل فاضية، حط أسعارك من «تعديل الأصناف».':''}</p>
         <div class="list">${Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(([c,m])=>`<label class="li chk" style="cursor:pointer"><span><input type="checkbox" data-tc="${c}" checked> ${CATL[c]||c}</span><span class="num">${m}</span></label>`).join('')}</div>
         <button class="btn primary block" data-act="tplGo" data-k="${k}" data-pick="1">تفعيل الأقسام المختارة</button>`); return }
-      const sel=new Set([...document.querySelectorAll('[data-tc]:checked')].map(b=>b.dataset.tc)); if(!sel.size){ toast('اختار قسم واحد على الأقل'); if(btn){btn.disabled=false;btn.textContent='تفعيل الأقسام المختارة'} return }
+      const sel=d.all?new Set(list.map(x=>x.c||'other')):new Set([...document.querySelectorAll('[data-tc]:checked')].map(b=>b.dataset.tc)); if(!sel.size){ toast('اختار قسم واحد على الأقل'); if(btn){btn.disabled=false;btn.textContent='تفعيل الأقسام المختارة'} return }
       list=list.filter(x=>sel.has(x.c||'other')); S.tplCats=Object.assign({},S.tplCats,{[k]:[...new Set([...((S.tplCats||{})[k]||[]),...sel])]}) }
     try{ await idb('readwrite',st=>st.put(JSON.stringify(S),'pre-tpl-'+k+'-'+Date.now())) }catch(_){} /* نسخة قبل الإضافة */
     const bars=new Set(S.items.map(i=>String(i.barcode||'').trim()).filter(Boolean)), names=new Set(S.items.map(i=>String(i.name||'').trim()));
@@ -3619,6 +3631,7 @@ Object.assign(A,{
     for(const [it,u] of IMGQ.splice(0)){ const d=await imgData(u); if(d) it.img=d }
     if(PICS.includes(k)||FOODT.includes(k)){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
     S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)||k==='market'||FOODT.includes(k)) setTimeout(vegFix,600);
+    if(d.quiet) return add;
     openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
     if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
@@ -3662,7 +3675,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['astAdd','payGo','payWageGo','drawGo','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['bizGo','astAdd','payGo','payWageGo','drawGo','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
