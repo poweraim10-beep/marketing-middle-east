@@ -1534,7 +1534,7 @@ function accView(){ if(!isOwner()) return back('المحاسبة')+'<div class="
     const node=(c,dep)=>{ const k=kids(c), v=c.length<=2?accSum(b,c):(c.includes(':')?accNet(b,c):accSum(b,c)); return `<div class="li" style="padding-inline-start:${dep*14}px"><span>${dep?'└ ':''}<small class="num">${esc(c.split(':')[0])}</small> ${esc(accName(c))}</span><span>${money(v)}</span></div>`+k.map(x=>node(x,dep+1)).join('') };
     body+=`<div class="card"><h2>شجرة الحسابات</h2><p class="muted" style="margin:0">الحسابات الرئيسية ثابتة، والفرعية (البنوك والمحافظ، وأنواع المصروفات) بتنعمل لحالها من عملياتك.</p><div class="list">${['1','2','3','4','5'].map(c=>node(c,0)).join('')}</div></div>` }
   if(ACCV==='cost'){ const {T,rows}=costMethods(from,to), r=(t,a,b,c,bold)=>`<tr${bold?' style="font-weight:700"':''}><td>${t}</td><td class="n">${fx(a)}</td><td class="n">${fx(b)}</td><td class="n">${fx(c)}</td></tr>`;
-    body+=`<div class="card"><div class="row"><h2>طرق حساب التكلفة</h2><span class="pill ok">${pt}</span></div><p class="muted" style="margin:0">مقارنة بس: التطبيق بيسجّل تكلفة آخر شراء. هون بتشوف كيف بتطلع التكلفة والربح لو انحسبت بالمتوسط المرجح أو بالوارد أولًا صادر أولًا (FIFO). ما بيتغيّر ولا رقم بفواتيرك.</p>
+    body+=`<div class="card"><div class="row"><h2>طرق حساب التكلفة</h2><span class="pill ok">${pt}</span></div><p class="muted" style="margin:0">مقارنة بس: التطبيق أصلًا بيحسب التكلفة بالمتوسط المرجح وقت الشراء (إلا إذا اخترت «اعتمد التكلفة الجديدة»). هون بتشوف الفرق بين المسجّل فعليًا والمتوسط المرجح الدقيق والوارد أولًا صادر أولًا (FIFO). ما بيتغيّر ولا رقم بفواتيرك.</p>
       <div style="overflow-x:auto"><table class="acct"><thead><tr><th></th><th class="n">المسجّل</th><th class="n">المتوسط المرجح</th><th class="n">FIFO</th></tr></thead><tbody>${r('تكلفة البضاعة المباعة',T.rec,T.wac,T.fifo,1)}${r('أثرها على الربح',0,r2(T.rec-T.wac),r2(T.rec-T.fifo))}${r('قيمة المخزون الحالي',T.invC,T.invW,T.invF,1)}</tbody></table></div>
       <p class="muted" style="margin:0">موجب بـ«أثرها على الربح» يعني الربح الحقيقي أعلى من المسجّل، وسالب يعني أقل.</p></div>
       <div class="card"><h2>الأصناف الأكثر فرقًا</h2><p class="muted" style="margin:0">الأصناف اللي تكلفتها بتختلف أكثر إشي حسب طريقة الحساب، لأن سعر شرائها تغيّر.</p><div style="overflow-x:auto"><table class="acct"><thead><tr><th>الصنف</th><th class="n">المسجّل</th><th class="n">المرجح</th><th class="n">FIFO</th></tr></thead><tbody>${rows.slice(0,25).map(x=>`<tr><td>${esc(x.n)}</td><td class="n">${fx(x.rec)}</td><td class="n">${fx(x.wac)}</td><td class="n">${fx(x.fifo)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">ما في مبيعات بالفترة</td></tr>'}</tbody></table></div></div>` }
@@ -1749,8 +1749,24 @@ function smart(){
   const pend=S.sales.filter(s=>s.confirmed===false).length; if(pend&&isOwner()) out.push({p:1,ic:'wallet',t:`${pend} تحويل بانتظار التأكيد`,d:'تأكد إنها وصلت حسابك',act:'data-act="openSub" data-s="cash"'});
   if(isOwner()&&!linked()&&S.items.length) out.push({p:1,ic:'gear',t:'احمِ بيانات محلك',d:'اعمل حساب للمحل وبتنحفظ نسخة تلقائية على السحابة',act:'data-act="cloudNew"'});
   if(isOwner()&&!linked()&&(!S.lastBackup||S.lastBackup<now-7*DAY)&&S.sales.length) out.push({p:3,ic:'gear',t:'نزّل نسخة احتياطية',d:S.lastBackup?`آخر نسخة من ${Math.floor((now-S.lastBackup)/DAY)} يوم`:'ما في نسخة لسا',act:'data-act="bkFile"'});
+  if(isOwner()&&mOk()) try{ out.push(...smartAcc(now)) }catch(_){}
   return out.sort((a,b)=>a.p-b.p).slice(0,6);
 }
+/* المدير الذكي من الأرقام المحاسبية (بيظهر للمالك بعد كود الأرباح بس) */
+function smartAcc(now){ const out=[], d=new Date(now), m0=new Date(d.getFullYear(),d.getMonth(),1).getTime(), m1=new Date(d.getFullYear(),d.getMonth()-1,1).getTime(), go='data-act="openSub" data-s="acc"';
+  const cur=accPL(m0,Infinity), prev=accPL(m1,m0), pct=x=>x.net_s>0?Math.round(x.gross/x.net_s*100):null, pc=pct(cur), pp=pct(prev);
+  if(cur.net_s>200&&cur.net<0) out.push({p:0,ic:'chart',t:'⚠️ الشهر لحد الآن خسارة',d:`صافي ${money(cur.net)}. راجع المصروفات والأسعار`,act:go});
+  if(pc!=null&&pp!=null&&prev.net_s>300&&cur.net_s>200&&pp-pc>=5) out.push({p:1,ic:'chart',t:`هامش الربح نزل من ${pp}% لـ ${pc}%`,d:'غالبًا التكلفة زادت والأسعار ما تعدّلت',act:go});
+  if(cur.net_s>300&&cur.exT/cur.net_s>0.25){ const big=cur.ex[0]; out.push({p:1,ic:'chart',t:`المصروفات ${Math.round(cur.exT/cur.net_s*100)}% من المبيعات`,d:big?`أكبرها «${esc(big[0])}» ${money(big[1])}`:'',act:go}) }
+  const low={}; S.sales.filter(x=>x.ts>=now-14*DAY).forEach(x=>(x.lines||[]).forEach(l=>{ const per=l.baseQty/(l.count||1); if(l.cost>0&&l.price<l.cost*per-0.001) low[l.itemId]=l.name }));
+  const lk=Object.keys(low); if(lk.length) out.push({p:1,ic:'tag',t:lk.length===1?`«${esc(low[lk[0]])}» بينباع بأقل من تكلفته`:`${lk.length} أصناف بتنباع بأقل من تكلفتها`,d:'عدّل السعر عشان ما تخسر',act:lk.length===1?`data-act="editItem" data-id="${lk[0]}"`:'data-act="go" data-tab="items"'});
+  const last={}; S.sales.forEach(x=>(x.lines||[]).forEach(l=>{last[l.itemId]=Math.max(last[l.itemId]||0,x.ts)}));
+  const dead=S.items.filter(i=>i.qty>0&&i.cost>0&&S.sales.length>20&&(!last[i.id]||last[i.id]<now-45*DAY)), dv=r2(dead.reduce((a,i)=>a+i.qty*i.cost,0));
+  if(dead.length>=3&&dv>100) out.push({p:3,ic:'tag',t:`بضاعة راكدة بقيمة ${fx(dv)} ₪`,d:`${dead.length} صنف ما انباعوا من 45 يوم. عرض أو خصم بيحرّك رأس مالك`,act:'data-act="go" data-tab="items"'});
+  const bs=accBS(Infinity), liq=r2((bs.assets.filter(x=>/الصندوق|🏦/.test(x[0])).reduce((a,x)=>a+x[1],0))), ap=r2((bs.liab.find(x=>x[0]==='ذمم الموردين')||[0,0])[1]);
+  if(ap>200&&ap>liq) out.push({p:1,ic:'wallet',t:'ديون الموردين أكبر من المصاري المتوفرة',d:`عليك ${money(ap)} والمتوفر ${money(liq)}`,act:'data-act="openSub" data-s="sup"'});
+  if(S.staff.length&&(S.pay||[]).length){ const [f,t]=[m1,m0]; const due=S.staff.map(st=>payOfStaff(st,f,t)).filter(r=>r.left>0.5); if(due.length) out.push({p:1,ic:'users',t:`رواتب الشهر الماضي ما خلصت`,d:`${due.length} عامل باقيلهم ${money(due.reduce((a,r)=>a+r.left,0))}`,act:'data-act="openSub" data-s="payroll"'}) }
+  return out }
 function alerts(){
   const soon=Date.now()+30*DAY, out=[];
   S.items.forEach(i=>{
