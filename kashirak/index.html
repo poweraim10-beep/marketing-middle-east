@@ -3497,7 +3497,7 @@ async function imgData(u){ try{ const r=await fetch(u+(u.includes('?')?'&':'?')+
 /* الصور بتيجي جوّا القالب نفسه، فما بتعتمد على ملفات الموقع */
 const badImg=i=>!i.img||!/^data:image\//.test(i.img);
 /* أصناف الخضار اللي نزلت بدون صورة: بنجيب صورتها بس (ما بنلمس أي إشي ثاني بالصنف) */
-async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market')&&badImg(i)); if(!L.length||isSeller2()) return mkFix(); vegFix.b=1;
+async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market'||FOODT.includes(i.tpl))&&badImg(i)); if(!L.length||isSeller2()) return mkFix(); vegFix.b=1;
   try{ const map={}, imap={}; for(const c of [...new Set(L.map(i=>i.tpl))]){ const r=await api('/tpl?k='+c); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; else if(x.f) map[k]=TPLIMG(x.f); if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img }) }
     let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&(/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)||u.startsWith(TPLIMG('')))) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; n++ } }
     if(n){ save(); render() } }catch(_){} vegFix.b=0; mkFix() }
@@ -3615,8 +3615,8 @@ Object.assign(A,{
       S.items.push(it); if(bc) bars.add(bc); names.add(nm); add++;
       if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.f==='string'&&/^[a-z]+\/[a-z0-9-]+\.jpg$/.test(x.f)) IMGQ.push([it,TPLIMG(x.f)]); else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
     for(const [it,u] of IMGQ.splice(0)){ const d=await imgData(u); if(d) it.img=d }
-    if(PICS.includes(k)){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
-    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)||k==='market') setTimeout(vegFix,600);
+    if(PICS.includes(k)||FOODT.includes(k)){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
+    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)||k==='market'||FOODT.includes(k)) setTimeout(vegFix,600);
     openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
     if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
