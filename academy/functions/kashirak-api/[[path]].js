@@ -204,6 +204,21 @@ async function tplImgs(env, request, items) { // الصور من ملفات ال
       return { ...x, img: 'data:image/jpeg;base64,' + btoa(bin) }; } catch { return x; }
   }));
 }
+/* صور منتجات السوبر ماركت: (1) بالاسم من صور القوالب الجاهزة (2) بالباركود من Open Food Facts، محفوظة بـ ksr_kv تحت pimg:<باركود> */
+const nmKey = (t) => String(t || '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[^\u0600-\u06FFa-z0-9]/gi, '');
+let PICIDX = null;
+function picIdx() { if (PICIDX) return PICIDX; PICIDX = {}; for (const k of Object.keys(PIC_CAT)) for (const x of TPL_DEFAULT[k] || []) if (x.f) { const kk = nmKey(x.n); if (kk && !PICIDX[kk]) PICIDX[kk] = x.f; } return PICIDX; }
+async function offImg(bc) { // صورة المنتج من Open Food Facts (قاعدة مفتوحة للمنتجات بالباركود)
+  const H = { 'User-Agent': 'Kashirak/1.0 (marketingmiddleeast.com)' };
+  for (const host of ['world.openfoodfacts.org', 'world.openbeautyfacts.org', 'world.openproductsfacts.org']) {
+    try { const r = await fetch(`https://${host}/api/v2/product/${encodeURIComponent(bc)}.json?fields=image_front_small_url,image_small_url`, { headers: H }); if (!r.ok) continue;
+      const j = await r.json(); const u = j && j.product && (j.product.image_front_small_url || j.product.image_small_url); if (!u) continue;
+      const g = await fetch(u, { headers: H }); const ct = g.headers.get('content-type') || ''; if (!g.ok || !/^image\//.test(ct)) continue;
+      const a = new Uint8Array(await g.arrayBuffer()); if (a.length > 90000) continue; let bin = ''; for (let i = 0; i < a.length; i += 0x8000) bin += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000));
+      return 'data:' + ct.split(';')[0] + ';base64,' + btoa(bin); } catch {}
+  }
+  return '';
+}
 function tplClean(list) {
   const out = [], seen = new Set();
   for (const x of Array.isArray(list) ? list : []) {
@@ -522,6 +537,13 @@ export async function onRequest({ request, env, params }) {
     // ----- everything below needs a shop token -----
     const shop = await readShop(env, request);
     if (a === 'admin') return admin(env, request, b);
+    if (a === 'pimgs' && m === 'POST') { // صور منتجات بالباركود (قراءة فقط)
+      if (!(await readShop(env, request))) return err('سجّل الدخول أول', 401);
+      const q = await body(request); const bs = [...new Set((Array.isArray(q.b) ? q.b : []).map((x) => clean(x, 40).replace(/\s/g, '')).filter(Boolean))].slice(0, 40);
+      const out = {}; if (bs.length) { const r = await env.DB.prepare(`SELECT k, v FROM ksr_kv WHERE k IN (${bs.map(() => '?').join(',')})`).bind(...bs.map((x) => 'pimg:' + x)).all();
+        for (const x of r.results || []) if (x.v && x.v.startsWith('data:image/')) out[x.k.slice(5)] = x.v; }
+      return json({ map: out });
+    }
     if (a === 'tpl' && m === 'GET') { // قالب أصناف عام حسب مجال العمل (منفصل عن بيانات أي محل)
       const k = clean(url.searchParams.get('k') || '', 20);
       if (!TPL_KEYS[k]) return err('مجال غير معروف');
@@ -529,7 +551,8 @@ export async function onRequest({ request, env, params }) {
       const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first();
       let o = { t: 0, items: [] }; try { if (r) o = JSON.parse(r.v); } catch {}
       if (TPL_DEFAULT[k] && !(o.items || []).length) o = { t: 1, items: TPL_DEFAULT[k] };
-      const its = (o.items || []).map((x) => ({ ...x, c: x.c || PIC_CAT[k] || catOf(x.n) }));
+      const pi = PIC_CAT[k] ? null : picIdx();
+      const its = (o.items || []).map((x) => ({ ...x, c: x.c || PIC_CAT[k] || catOf(x.n), ...(pi && !x.f && !x.img && pi[nmKey(x.n)] ? { f: pi[nmKey(x.n)] } : {}) }));
       return json({ k, name: TPL_KEYS[k], t: o.t || 0, cats: MCATS.map(([ck, cl]) => [ck, cl]).concat([['other', 'أصناف ثانية']]), items: await tplImgs(env, request, its) });
     }
     if (!shop) return err('سجّل دخول من جديد', 401);
@@ -783,6 +806,18 @@ async function admin(env, request, b) {
     if (v.length > 1800000) return err('القالب كبير كثير (' + items.length + ' صنف). قسّمه أو خفّف الصور');
     await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
     return json({ ok: true, n: items.length });
+  }
+  if (b === 'pimgfetch' && m === 'POST') { // جلب صور منتجات القالب بالباركود. بيضيف بس صور بجدول منفصل، ما بيلمس أي محل ولا القالب
+    const k = clean(q.k, 20) || 'market'; if (!TPL_KEYS[k]) return err('مجال غير معروف');
+    const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first(); let o = {}; try { o = r ? JSON.parse(r.v) : {}; } catch {}
+    const items = (o.items && o.items.length ? o.items : TPL_DEFAULT[k] || []).filter((x) => x.b && /^\d{6,14}$/.test(x.b) && !x.img && !x.f);
+    const have = new Map(); const hr = await env.DB.prepare("SELECT k, substr(v,1,1) AS v FROM ksr_kv WHERE k LIKE 'pimg:%'").all(); for (const x of hr.results || []) have.set(x.k.slice(5), x.v);
+    if (q.retry) for (const [bc, v] of have) if (v === '-') have.delete(bc);
+    const todo = items.filter((x) => !have.has(x.b)).slice(0, Math.min(12, Math.max(1, +q.n || 8)));
+    let found = 0; for (const x of todo) { const d = await offImg(x.b); if (d) found++;
+      await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('pimg:' + x.b, d || '-').run(); have.set(x.b, d ? 'd' : '-'); }
+    const left = items.filter((x) => !have.has(x.b)).length, ok = items.filter((x) => have.get(x.b) === 'd').length;
+    return json({ ok: true, total: items.length, done: items.length - left, found: ok, now: found, left, miss: left ? [] : items.filter((x) => have.get(x.b) === '-').map((x) => x.n) });
   }
   if (b === 'tplfromshop' && m === 'POST') { // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
     const k = clean(q.k, 20) || 'market'; if (!TPL_KEYS[k]) return err('مجال غير معروف');

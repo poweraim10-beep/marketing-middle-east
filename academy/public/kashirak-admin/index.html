@@ -378,9 +378,13 @@ const A={
     const dt=x=>x?new Date(x).toLocaleString('ar-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}):'—';
     $('#sbox').innerHTML=`${head('🗂️ قوالب الأصناف')}<p class="muted" style="margin:0 0 8px">القوالب محفوظة لحالها على السيرفر، منفصلة عن بيانات أي محل. ما بتنزل عند حدا إلا لما هو يضغط «تفعيل» من «مجال العمل». وتعديل القالب ما بيأثر على أصناف نزلت قبل عند المحلات.</p>
     ${Object.entries(t).map(([k,o])=>`<div class="card" style="margin:8px 0;display:flex;flex-direction:column;gap:8px"><b>${esc(o.name)} · ${o.n} صنف</b><small class="muted">آخر تحديث: ${dt(o.t)}${o.src?' · المصدر: '+esc(o.src):''}</small>
-      ${k==='market'?`<label>نسخ من حساب محل (قراءة فقط: الاسم والباركود والسعر)<input id="tsPhone" inputmode="tel" value="0592332664" dir="ltr"></label><button class="btn primary" data-a="tplFromShop">نسخ أصناف هذا المحل للقالب</button><div id="tsRep"></div>`:''}
+      ${k==='market'?`<label>نسخ من حساب محل (قراءة فقط: الاسم والباركود والسعر)<input id="tsPhone" inputmode="tel" value="0592332664" dir="ltr"></label><button class="btn primary" data-a="tplFromShop">نسخ أصناف هذا المحل للقالب</button><div id="tsRep"></div>
+      <button class="btn" data-a="pimgGo">🖼️ جلب صور المنتجات بالباركود</button><small class="muted">بيدوّر على صورة كل منتج برقم الباركود (قاعدة Open Food Facts المفتوحة). بيضيف صور بس، ما بيغيّر ولا إشي بالقالب أو عند المحلات. المحلات اللي مفعّلة السوبر ماركت بتنزل عندها الصور لحالها.</small><div id="piRep"></div>`:''}
       <label>إضافة أصناف للقالب (كل سطر: الاسم، الباركود، السعر، الوحدة)<textarea id="ti_${k}" rows="4" placeholder="${k==='veg'?'بندورة,,0,كيلو':'بنادول 500,6291100000000,15'}"></textarea></label>
       <button class="btn" data-a="tplAdd" data-k="${k}">إضافة للقالب</button></div>`).join('')}`; },
+  async pimgGo(d){ const box=$('#piRep'), btn=$('[data-a=pimgGo]'); if(btn) btn.disabled=true; let r={}, retry=d&&d.retry?1:0;
+    try{ for(let i=0;i<120;i++){ r=await call('pimgfetch',{k:'market',n:8,retry}); retry=0; box.innerHTML=`<div class="muted">⏳ ${r.done} من ${r.total} · لقينا صور لـ <b>${r.found}</b></div>`; if(!r.left) break }
+      box.innerHTML=`<div class="card" style="gap:6px"><b>✓ خلص: لقينا صور لـ ${r.found} منتج من ${r.total}</b>${(r.miss||[]).length?`<small class="muted">ما لقينا صور لـ ${r.miss.length} منتج (بنعملهم صور بعدين):</small><small>${r.miss.map(esc).join(' · ')}</small><button class="btn sm" data-a="pimgGo" data-retry="1">جرّب كمان مرة</button>`:''}</div>` }catch(e){ toast(e.message); box.innerHTML='' } if(btn) btn.disabled=false },
   async tplFromShop(){ const ph=($('#tsPhone').value||'').trim(), box=$('#tsRep'); if(!ph){toast('اكتب الرقم');return}
     if(!confirm('بنقرأ أصناف هذا المحل (الاسم والباركود والسعر بس) وبنحطهم بقالب السوبر ماركت. المحل نفسه ما بيتغيّر فيه إشي. نكمّل؟')) return;
     box.innerHTML='<div class="spin"></div>';

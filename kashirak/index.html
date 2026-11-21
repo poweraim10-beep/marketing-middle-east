@@ -3255,17 +3255,27 @@ async function imgData(u){ try{ const r=await fetch(u+(u.includes('?')?'&':'?')+
 /* الصور بتيجي جوّا القالب نفسه، فما بتعتمد على ملفات الموقع */
 const badImg=i=>!i.img||!/^data:image\//.test(i.img);
 /* أصناف الخضار اللي نزلت بدون صورة: بنجيب صورتها بس (ما بنلمس أي إشي ثاني بالصنف) */
-async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>PICS.includes(i.tpl)&&badImg(i)); if(!L.length) return; vegFix.b=1;
+async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market')&&badImg(i)); if(!L.length||isSeller2()) return mkFix(); vegFix.b=1;
   try{ const map={}, imap={}; for(const c of [...new Set(L.map(i=>i.tpl))]){ const r=await api('/tpl?k='+c); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; else if(x.f) map[k]=TPLIMG(x.f); if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img }) }
     let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&(/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)||u.startsWith(TPLIMG('')))) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; n++ } }
-    if(n){ save(); render() } }catch(_){} vegFix.b=0 }
+    if(n){ save(); render() } }catch(_){} vegFix.b=0; mkFix() }
+/* صور منتجات السوبر ماركت بالباركود: بنحط الصورة بس للصنف اللي ما إله صورة. ما بنغيّر أي إشي ثاني */
+const shrinkImg=(d,px=160)=>new Promise(ok=>{ const im=new Image(); im.onload=()=>{ try{ const r=Math.min(1,px/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*r); c.height=Math.round(im.height*r); const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height); ok(c.toDataURL('image/jpeg',.78)) }catch(_){ ok('') } }; im.onerror=()=>ok(''); im.src=d });
+async function mkFix(){ if(mkFix.b||!S||!navigator.onLine||!linked()||isSeller2()) return; let miss={}; try{ miss=JSON.parse(localStorage.getItem('ksr-pimg')||'{}') }catch(_){}
+  const now=Date.now(), L=S.items.filter(i=>i.tpl==='market'&&badImg(i)&&/^\d{6,14}$/.test(String(i.barcode||''))&&!(miss[i.barcode]>now-3*864e5)); if(!L.length) return; mkFix.b=1;
+  try{ let n=0; for(let k=0;k<L.length;k+=40){ const part=L.slice(k,k+40), r=await api('/pimgs',{method:'POST',body:{b:part.map(i=>i.barcode)}}), m=(r&&r.map)||{};
+      for(const it of part){ const d=m[it.barcode]; if(!d){ miss[it.barcode]=now; continue } const sm=await shrinkImg(d); const cur=itemById(it.id); if(sm&&cur&&badImg(cur)){ cur.img=sm; n++ } } }
+    try{ localStorage.setItem('ksr-pimg',JSON.stringify(miss)) }catch(_){} if(n){ save(); render() } }catch(_){} mkFix.b=0 }
 setTimeout(vegFix,4000); window.addEventListener('online',()=>setTimeout(vegFix,2000));
 const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات',meat:'لحوم ومجمدات وأسماك',deli:'لحوم باردة وألبان وأجبان',bake:'مخبوزات وحلويات',dry:'حبوب وبهارات ومخللات',nuts:'مكسرات وبزر'};
 const TPLI={market:'🛒',pharm:'💊',veg:'🥕',meat:'🥩',deli:'🧀',bake:'🍞',dry:'🌾',nuts:'🥜'}, PICS=['veg','meat','deli','bake','dry','nuts'];
 const TPLIMG=f=>API.replace(/\/kashirak-api$/,'')+'/kashirak-tpl/'+f;
 const tplCard=()=>`<div class="card" style="gap:10px"><h2>📦 أصناف جاهزة حسب مجال العمل</h2><p class="muted" style="margin:0">اختار مجالك واضغط «تفعيل»، وبتنزل أصناف هالمجال على حسابك بالأسماء والباركود والأسعار، والكمية صفر. ما بينحذف ولا بيتغيّر أي صنف موجود عندك، والصنف الموجود ما بيتكرر. بتقدر تفعّل أكثر من مجال.</p>
-  ${S.items.some(i=>PICS.includes(i.tpl)&&badImg(i))?'<button class="btn primary block" data-act="vegFixGo">🖼️ تنزيل صور الأصناف الجاهزة</button>':''}
-  <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${TPLI[k]||'📦'} ${n}${(S.tplDone||{})[k]?' ✓':''}</button>`).join('')}</div></div>`;
+  ${S.items.some(i=>(PICS.includes(i.tpl)||i.tpl==='market')&&badImg(i))?'<button class="btn primary block" data-act="vegFixGo">🖼️ تنزيل صور الأصناف الجاهزة</button>':''}
+  <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${TPLI[k]||'📦'} ${n}${(S.tplDone||{})[k]?' ✓ مفعّل':''}</button>`).join('')}</div></div>`;
+/* إلغاء تفعيل القالب: ما بينحذف ولا صنف. الأصناف اللي ما انستعملت بتنشال على جنب (S.tplOff) وبترجع عند التفعيل مرة ثانية */
+const tplUsedIds=()=>{ const t=JSON.stringify({a:S.sales,b:S.purchases,c:S.adjusts,d:S.returns,e:typeof carts!=='undefined'?carts:null,f:S.batches||null}); const u=new Set(); for(const m of t.matchAll(/"(?:itemId|iid)":(\d+)/g)) u.add(+m[1]); return u };
+const tplSplit=k=>{ const u=tplUsedIds(), off=[], keep=[]; S.items.forEach(i=>{ if(i.tpl!==k){return} ((+i.qty||0)!==0||(+i.cost||0)>0||u.has(i.id)?keep:off).push(i) }); return {off,keep} };
 function pBizView(){ const on=!!S.pharm;
   return back('مجال العمل')+tplCard()+hint('اختار نوع شغلك. إذا اخترت <b>صيدلية</b> بيتحوّل التطبيق كله لنظام صيدلية: تاريخ انتهاء وتشغيلة لكل كمية، البيع بالعلبة والشريط والحبة، الاسم العلمي والبدائل، ومنع بيع المنتهي. الميزان والبيع بالكيلو بيختفوا.')+`
    <div class="card" style="gap:10px">${on?`<div class="rempill"><span>💊 نظام الصيدلية مفعّل</span></div>
@@ -3276,9 +3286,23 @@ function pBizView(){ const on=!!S.pharm;
      <label for="pAct">للتأكيد اكتب كلمة <b>تفعيل</b><input id="pAct" autocomplete="off" placeholder="تفعيل"></label>
      <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
 Object.assign(A,{
-  async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); const before=S.items.filter(i=>PICS.includes(i.tpl)&&badImg(i)).length; await vegFix(); const after=S.items.filter(i=>PICS.includes(i.tpl)&&badImg(i)).length; render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
-  tplAsk(d){ const n=TPLN[d.k]; if(!n) return; openSheet(`${sheetHead('أصناف '+n)}<p style="margin:0">سيتم تنزيل جميع أصناف <b>${n}</b> إلى حسابك.</p><p class="muted" style="margin:0">بتنضاف بكمية صفر. الأصناف الموجودة عندك بنفس الباركود أو الاسم بتضل زي ما هي وما بتتكرر، وما بيتغيّر ولا إشي من ديونك أو زبائنك أو فواتيرك.</p><button class="btn primary block" data-act="tplGo" data-k="${d.k}">تفعيل</button>`) },
-  async tplGo(d){ const k=d.k, n=TPLN[k], btn=$('[data-act=tplGo]'); if(!n) return; if(!linked()){toast('سجّل محلك أول عشان تنزل الأصناف');return} if(!navigator.onLine){toast('تنزيل الأصناف بدّه نت مرة وحدة');return}
+  async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); try{ localStorage.removeItem('ksr-pimg') }catch(_){} const bad=()=>S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market')&&badImg(i)).length, before=bad(); await vegFix(); await mkFix(); const after=bad(); render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
+  tplAsk(d){ const n=TPLN[d.k]; if(!n) return;
+    if((S.tplDone||{})[d.k]){ const {off,keep}=tplSplit(d.k); openSheet(`${sheetHead('أصناف '+n+' ✓ مفعّلة')}<p style="margin:0">هالمجال مفعّل عندك. بدك تلغي تفعيله؟</p>
+      <div class="pinfo">• <b>${off.length}</b> صنف ما استعملتهم (كمية صفر وما انباعوا) <b>بيختفوا من قائمة الأصناف</b> وبينحفظوا على جنب.<br>• <b>${keep.length}</b> صنف استعملتهم (إلهم كمية أو مبيعات أو تكلفة) <b>بيضلّوا زي ما هم</b>.<br>• ما بينحذف ولا إشي، ولو رجعت فعّلت المجال بيرجعوا كلهم.</div>
+      <button class="btn danger block" data-act="tplOffGo" data-k="${d.k}">إلغاء التفعيل</button><button class="btn block" data-act="closeSheet">رجوع</button>`); return }
+    openSheet(`${sheetHead('أصناف '+n)}<p style="margin:0">سيتم تنزيل جميع أصناف <b>${n}</b> إلى حسابك.</p><p class="muted" style="margin:0">بتنضاف بكمية صفر. الأصناف الموجودة عندك بنفس الباركود أو الاسم بتضل زي ما هي وما بتتكرر، وما بيتغيّر ولا إشي من ديونك أو زبائنك أو فواتيرك.</p><button class="btn primary block" data-act="tplGo" data-k="${d.k}">تفعيل</button>`) },
+  async tplOffGo(d){ const k=d.k, n=TPLN[k]; if(!n||!(S.tplDone||{})[k]) return;
+    try{ await idb('readwrite',st=>st.put(JSON.stringify(S),'pre-tploff-'+k+'-'+Date.now())) }catch(_){} /* نسخة قبل */
+    const {off}=tplSplit(k), ids=new Set(off.map(i=>i.id));
+    S.tplOff=Object.assign({},S.tplOff,{[k]:[...((S.tplOff||{})[k]||[]),...off]}); S.items=S.items.filter(i=>!ids.has(i.id));
+    const td=Object.assign({},S.tplDone); delete td[k]; S.tplDone=td;
+    audit(`إلغاء تفعيل أصناف ${n}: ${off.length} صنف انشالوا على جنب (محفوظين)`); save(); closeSheet(); render(); toast(`✓ انلغى التفعيل · ${off.length} صنف محفوظين على جنب`) },
+  tplRestore(k){ const sv=(S.tplOff||{})[k]; if(!sv||!sv.length) return 0; const ids=new Set(S.items.map(i=>i.id)), bars=new Set(S.items.map(i=>String(i.barcode||'').trim()).filter(Boolean)), names=new Set(S.items.map(i=>String(i.name||'').trim())); let n=0, rest=[];
+    sv.forEach(i=>{ const bc=String(i.barcode||'').trim(); if(ids.has(i.id)||(bc&&bars.has(bc))||names.has(String(i.name||'').trim())){rest.push(i);return} S.items.push(i); ids.add(i.id); if(bc) bars.add(bc); names.add(String(i.name||'').trim()); n++ });
+    const o=Object.assign({},S.tplOff); if(rest.length) o[k]=rest; else delete o[k]; S.tplOff=o; return n },
+  async tplGo(d){ const k=d.k, n=TPLN[k], btn=$('[data-act=tplGo]'); if(!n) return; if(!linked()){toast('سجّل محلك أول عشان تنزل الأصناف');return}
+    if(!d.pick&&(S.tplOff||{})[k]){ try{ await idb('readwrite',st=>st.put(JSON.stringify(S),'pre-tplon-'+k+'-'+Date.now())) }catch(_){} const back=A.tplRestore(k); S.tplDone=Object.assign({},S.tplDone,{[k]:Date.now()}); audit(`إعادة تفعيل أصناف ${n}: رجع ${back} صنف`); save(); render(); if(!navigator.onLine){ closeSheet(); toast(`✓ رجع ${back} صنف`); return } } if(!navigator.onLine){toast('تنزيل الأصناف بدّه نت مرة وحدة');return}
     if(btn){btn.disabled=true; btn.textContent='جاري التنزيل…'}
     let r; try{ r=await api('/tpl?k='+k) }catch(e){ toast(e.message); if(btn){btn.disabled=false;btn.textContent='تفعيل'} return }
     let list=(r.items||[]); if(!list.length){ closeSheet(); toast('قالب '+n+' لسا فاضي. تواصل مع الدعم'); return }
@@ -3297,7 +3321,7 @@ Object.assign(A,{
       if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.f==='string'&&/^[a-z]+\/[a-z0-9-]+\.jpg$/.test(x.f)) IMGQ.push([it,TPLIMG(x.f)]); else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
     for(const [it,u] of IMGQ.splice(0)){ const d=await imgData(u); if(d) it.img=d }
     if(PICS.includes(k)){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
-    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)) setTimeout(vegFix,600);
+    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)||k==='market') setTimeout(vegFix,600);
     openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
     if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
@@ -3341,7 +3365,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['tplGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
