@@ -3238,8 +3238,8 @@ async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; 
     let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&(/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)||u.startsWith(TPLIMG('')))) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; n++ } }
     if(n){ save(); render() } }catch(_){} vegFix.b=0 }
 setTimeout(vegFix,4000); window.addEventListener('online',()=>setTimeout(vegFix,2000));
-const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات',meat:'لحوم ومجمدات وأسماك',deli:'لحوم باردة وألبان وأجبان',bake:'مخبوزات وحلويات',dry:'حبوب وبهارات ومخللات'};
-const TPLI={market:'🛒',pharm:'💊',veg:'🥕',meat:'🥩',deli:'🧀',bake:'🍞',dry:'🌾'}, PICS=['veg','meat','deli','bake','dry'];
+const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات',meat:'لحوم ومجمدات وأسماك',deli:'لحوم باردة وألبان وأجبان',bake:'مخبوزات وحلويات',dry:'حبوب وبهارات ومخللات',nuts:'مكسرات وبزر'};
+const TPLI={market:'🛒',pharm:'💊',veg:'🥕',meat:'🥩',deli:'🧀',bake:'🍞',dry:'🌾',nuts:'🥜'}, PICS=['veg','meat','deli','bake','dry','nuts'];
 const TPLIMG=f=>API.replace(/\/kashirak-api$/,'')+'/kashirak-tpl/'+f;
 const tplCard=()=>`<div class="card" style="gap:10px"><h2>📦 أصناف جاهزة حسب مجال العمل</h2><p class="muted" style="margin:0">اختار مجالك واضغط «تفعيل»، وبتنزل أصناف هالمجال على حسابك بالأسماء والباركود والأسعار، والكمية صفر. ما بينحذف ولا بيتغيّر أي صنف موجود عندك، والصنف الموجود ما بيتكرر. بتقدر تفعّل أكثر من مجال.</p>
   ${S.items.some(i=>PICS.includes(i.tpl)&&badImg(i))?'<button class="btn primary block" data-act="vegFixGo">🖼️ تنزيل صور الأصناف الجاهزة</button>':''}
