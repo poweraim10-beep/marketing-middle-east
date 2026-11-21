@@ -574,7 +574,7 @@ function status(){
   if(!S||!linked()) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'reg'};
   if(!LIC) return {...base,active:false,paid:false,daysLeft:0,end:0,why:'nolic'};
   const now=Math.max(Date.now(),d.seen||0,LIC.i||0), trialEnd=LIC.tr||0, licEnd=LIC.e>=0?dayTs(LIC.e+1):0;
-  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id||(LIC.s||[]).includes(d.id);
+  const end=Math.max(trialEnd,licEnd), paid=licEnd>trialEnd, mine=LIC.d===d.id||(LIC.s||[]).includes(d.id)||(linked()&&!!LIC.id&&LIC.id===(CL.shopId||LIC.id));
   return {...base,active:now<end&&(mine||(linked()&&!!LIC.id)),paid,daysLeft:Math.ceil((end-now)/DAY),end,why:!mine&&!isViewer()?'moved':(paid?'paid':'trial')};
 }
 function planTagUI(){ const t=$('#planTag'); if(!t) return; if(!S||!LICREADY||!linked()||!LIC){t.hidden=true;return}
@@ -1007,7 +1007,7 @@ async function cloudPull(full){
   if(!linked()||CLS.busy) return; if(!navigator.onLine){CLS.state='off';setCloudUI();return}
   CLS.busy=true;
   try{
-    const r=await api('/state?have='+(full||(!isMain()&&BASE==null)?-1:(CL.ver||0))+'&device='+devInfo().id), sh=r.shop, was=isMain(), wasS2=isSeller2();
+    const r=await api('/state?have='+(full||(!isMain()&&BASE==null)?-1:(CL.ver||0))+'&device='+devInfo().id+(isMain()?'&dirty='+(cloudPending()?1:0):'')), sh=r.shop, was=isMain(), wasS2=isSeller2();
     CL.multi=!!sh.multi; CL.sellers=sh.sellers||[]; if(r.scanReq) setTimeout(()=>{try{remOffer(r.scanReq)}catch(_){}},0);
     CL.name=sh.name; CL.mainLast=sh.updated; if(sh.id&&!CL.shopId){CL.shopId=sh.id; clSave()}
     if(was&&sh.main!==devInfo().id){CLS.busy=false; await cloudLostMain(sh); return}
@@ -1027,15 +1027,15 @@ async function cloudPull(full){
   }catch(e){ if(e.status===401) cloudSignedOut(); else {CLS.state=e.status?'err':'off'; CLS.err=e.message} }
   finally{CLS.busy=false; setCloudUI()}
 }
-async function cloudLostMain(sh){
+async function cloudLostMain(sh){ const hadPend=!!(S&&CLS.dirty);
   if(sh&&sh.main===devInfo().id){ const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id)); CLS.busy=false; CL.ver=-1; clSave(); await cloudPull(true); return }
   /* جهاز ثاني صار هو الأساسي: بنحفظ نسخة من بيانات هذا الجهاز قبل ما نستبدلها، عشان ما يضيع إشي */
   const id='unsynced-'+Date.now(); if(S) await idb('readwrite',st=>st.put(JSON.stringify(S),id));
-  CL.lost=id; if(sh&&sh.main) CL.main=sh.main; clSave(); CLS.busy=false;
+  CL.lost=hadPend?id:null; if(sh&&sh.main) CL.main=sh.main; clSave(); CLS.busy=false;
   await cloudPull(true);
-  if(!cloudLostMain.v) return; openSheet(`${sheetHead('هذا الجهاز صار للمتابعة')}<p style="margin:0">جهاز ثاني صار هو الجهاز الأساسي للمحل، فهذا الجهاز صار يعرض البيانات بس.</p>
+  if(!hadPend) return; openSheet(`${sheetHead('تنبيه: تعديلات ما انرفعت')}<p style="margin:0">جهاز ثاني من أجهزة المحل اشتغل على الحساب، وهذا الجهاز كان عنده تعديلات لسا ما انرفعت للسحابة.</p>
     <p class="muted" style="margin:0">إذا كان في بيع أو تعديل على هذا الجهاز ما انرفع قبل، حفظنا منه نسخة. بتقدر تنزّلها كملف.</p>
-    <button class="btn" data-act="cloudUnsynced">تنزيل نسخة هذا الجهاز</button><button class="btn primary" data-act="cloudTake">رجّع هذا الجهاز أساسي</button>`);
+    <button class="btn" data-act="cloudUnsynced">تنزيل نسخة هذا الجهاز</button><button class="btn primary" data-act="close">تمام</button>`);
 }
 async function cloudSignedOut(){ const prev=CL;
   /* جهاز البيع الأساسي (مثلًا بعد ما الإدارة غيّرت كلمة السر): بيرجع يتصل لحاله بنفس الحساب */
@@ -1211,9 +1211,10 @@ setInterval(async()=>{ if(!remoteScanIn()||document.visibilityState!=='visible'|
   try{ const r=await api('/scan?after='+Math.max(0,SCANQ.last)); if(SCANQ.last<0){ SCANQ.last=r.last; return }
     if(r.codes&&r.codes.length){ SCANQ.last=r.last; r.codes.forEach(c=>liveHit(c)) } }catch(e){} },1500);
 setInterval(()=>{ if(!linked()||document.visibilityState!=='visible') return; CLS.tick++;
-  if(!isMain()||CL.multi) cloudPull(); else if(CLS.tick%8===0) cloudPull();
+  if(!isMain()||CL.multi||(CL.sellers||[]).length) cloudPull(); else if(CLS.tick%8===0) cloudPull();
   else if(!isDesk()&&!REM.role&&navigator.onLine) api('/sig?k=offer').then(r=>{ if(r&&r.v){ try{const o=JSON.parse(r.v); remOffer({n:o.n,dev:o.dev,label:o.label})}catch(_){} } }).catch(()=>{}); /* الأساسي بيتأكد كل دقيقتين بس، عشان نوفّر طلبات السيرفر */ if(cloudPending()) cloudPush() },15000);
-setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },10*60e3);
+setInterval(()=>{ if(document.visibilityState==='visible') licRefresh() },linked()?90e3:10*60e3);
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&S&&linked()) licRefresh() });
 /* الحساب بلا كلمة سر: جوال صاحب المحل بيحطها لحاله = رمز المالك، عشان باقي الأجهزة تدخل فيها */
 async function autoPass(){ if(autoPass.b||!S||!linked()||!isMain()||!CL.nopass||!navigator.onLine) return; const pw=String(S.pin||''); if(pw.length<4) return;
   autoPass.b=1; try{ const r=await api('/register',{method:'POST',body:{phone:CL.phone,password:pw,device:devInfo().id,name:S.shop,label:devLabel()}}); CL.token=r.token; CL.nopass=false; clSave(); render() }catch(e){} autoPass.b=0 }
@@ -1662,7 +1663,7 @@ items(){
   <div class="tiles"><div class="tile hl"><div class="lbl">عدد الأصناف</div><div class="val">${S.items.length}</div></div><div class="tile"><div class="lbl">قليلة أو خالصة</div><div class="val" style="color:var(--${low?'warn':'good'})">${low}</div></div></div>
   <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
-  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()&&!isSeller2()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
+  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
   <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||iHas(i,iq)||i.barcode.includes(iq)).map(i=>{
     const st=i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
@@ -2549,9 +2550,9 @@ editItem(d){
     ${eanValid(it.barcode)?`<div class="label"><b>${esc(it.name)}</b> · ${fx(it.price)} ₪<br>${eanSvg(it.barcode)}</div>`:''}
     ${it.id?'<p class="fh" style="margin:0">«مقاس أو لون ثاني»: لنفس الصنف بأحجام أو ألوان مختلفة، كل واحد بباركود وسعر. «جرد»: تصحيح الكمية لما تعدّ البضاعة بإيدك. «سجل الحركة»: كل بيع وشراء صار على هالصنف.</p>':''}
     ${it.id?`<button class="btn block" data-act="variant" data-id="${it.id}">إضافة مقاس أو لون ثاني من هالصنف</button>`:''}
-    ${it.id&&isOwner()&&!isSeller2()?`<div class="grid2"><button class="btn" data-act="adjAsk" data-id="${it.id}">جرد / تعديل الكمية</button><button class="btn" data-act="itemLog" data-id="${it.id}">سجل حركة الصنف</button></div>`:''}
+    ${it.id&&isOwner()?`<div class="grid2"><button class="btn" data-act="adjAsk" data-id="${it.id}">جرد / تعديل الكمية</button><button class="btn" data-act="itemLog" data-id="${it.id}">سجل حركة الصنف</button></div>`:''}
     <button class="btn primary block" data-act="saveItem">حفظ الصنف</button>
-    ${it.id&&isOwner()&&!isSeller2()?`<button class="btn danger block" data-act="delItem" data-id="${it.id}">حذف الصنف</button>`:''}`);
+    ${it.id&&isOwner()?`<button class="btn danger block" data-act="delItemAsk" data-id="${it.id}">حذف الصنف</button>`:''}`);
 },
 genCode(){const f=$('#fBar'); if(f.value.trim()){toast('للصنف باركود. امسحه أولًا لو بدك تولّد غيره');return} f.value=newInternalCode(); save(); toast('تولّد باركود داخلي يبدأ بـ 2')},
 saveItem(){
@@ -2575,6 +2576,7 @@ saveItem(){
   else {S.items.push({id:S.nextId++,...data}); audit(`إضافة صنف ${data.name}`)}
   save(); closeSheet(); render(); toast('تم حفظ الصنف');
 },
+delItemAsk(d){const di=itemById(d.id); if(!di) return; openSheet(`${sheetHead('حذف الصنف')}<p style="margin:0">هل أنت متأكد من حذف هذا الصنف؟ <b>${esc(di.name)}</b></p><p class="muted" style="margin:0">الفواتير والمبيعات القديمة اللي فيها هذا الصنف بتضل زي ما هي بالسجلات.</p><button class="btn danger block" data-act="delItem" data-id="${di.id}">نعم، احذف الصنف</button><button class="btn block" data-act="close">لا، رجوع</button>`)},
 delItem(d){const di=itemById(d.id); if(di) audit(`حذف صنف ${di.name}`); S.items=S.items.filter(i=>i.id!==+d.id); carts.forEach(c=>c.lines=c.lines.filter(l=>l.itemId!==+d.id)); save(); closeSheet(); render(); toast('تم حذف الصنف')},
 addParty(d){const w=WORD[d.kind];openSheet(`${sheetHead(w.one+' جديد')}<label for="cName">الاسم<input id="cName"></label><label for="cPhone">رقم الجوال<input id="cPhone" inputmode="tel" placeholder="اختياري"></label><button class="btn primary block" data-act="saveParty" data-kind="${d.kind}">حفظ</button>`)},
 saveParty(d){const n=$('#cName').value.trim(); if(!n){toast('اكتب الاسم');return}
@@ -2597,13 +2599,13 @@ party(d){
     <div class="card"><h2>كشف الحساب</h2><p class="fh" style="margin:0">⚠️ ما بتقدر تعدّل الفواتير من هون. للتعديل أو الإرجاع: التقارير ← سجل المبيعات ← اضغط على الفاتورة.</p><div class="list">${[...c.ledger].sort((a,b)=>b.ts-a.ts).map(l=>`<div class="li"><span><span class="t">${esc(l.note)}</span>${l.photo?` <button class="lnk" data-act="viewPhoto" data-id="${l.photo}">📎 الصورة</button>`:''}<br><span class="muted">${fdate(l.ts)}</span></span><span style="color:var(--${l.amt<0?'good':'ink'})">${money(l.amt)}</span></div>`).join('')||'<div class="empty">لا حركات</div>'}</div></div>
     <button class="btn primary block" data-act="stmtPdf" data-kind="${d.kind}" data-id="${c.id}">كشف الحساب PDF على واتساب</button>
     <div class="withbtn"><label for="pPhone">رقم الجوال<input id="pPhone" inputmode="tel" value="${esc(c.phone)}" placeholder="059xxxxxxx"></label><button class="btn" data-act="savePhone" data-kind="${d.kind}" data-id="${c.id}">حفظ</button></div>
-    ${d.kind==='customers'&&isOwner()&&!isSeller2()?`<div class="card" style="gap:8px"><h2>إضافة دين سابق</h2><p class="muted" style="margin:0;font-size:13px">دين كان عليه قبل ما يستخدم التطبيق. ما بيأثر على المخزون ولا المبيعات.</p><input id="oldAmt" type="number" inputmode="decimal" placeholder="المبلغ بالشيكل" aria-label="مبلغ الدين السابق"><label class="btn" for="oldPh" style="font-size:14.5px">📎 أرفق صورة الدين القديم (دفتر أو ورقة) كمرجع</label><input id="oldPh" type="file" accept="image/*" capture="environment" hidden><input id="oldNote" placeholder="السبب (اختياري)" aria-label="سبب الدين"><button class="btn primary block" data-act="addOldDebt" data-id="${c.id}">إضافة الدين</button></div>`:''}
-    ${d.kind==='customers'&&isOwner()&&!isSeller2()?`<button class="btn danger block" data-act="delParty" data-kind="customers" data-id="${c.id}">حذف الحساب كامل</button>`:''}
+    ${d.kind==='customers'&&isOwner()?`<div class="card" style="gap:8px"><h2>إضافة دين سابق</h2><p class="muted" style="margin:0;font-size:13px">دين كان عليه قبل ما يستخدم التطبيق. ما بيأثر على المخزون ولا المبيعات.</p><input id="oldAmt" type="number" inputmode="decimal" placeholder="المبلغ بالشيكل" aria-label="مبلغ الدين السابق"><label class="btn" for="oldPh" style="font-size:14.5px">📎 أرفق صورة الدين القديم (دفتر أو ورقة) كمرجع</label><input id="oldPh" type="file" accept="image/*" capture="environment" hidden><input id="oldNote" placeholder="السبب (اختياري)" aria-label="سبب الدين"><button class="btn primary block" data-act="addOldDebt" data-id="${c.id}">إضافة الدين</button></div>`:''}
+    ${d.kind==='customers'&&isOwner()?`<button class="btn danger block" data-act="delParty" data-kind="customers" data-id="${c.id}">حذف الحساب كامل</button>`:''}
     ${d.kind==='customers'&&b>0?`<label for="remTxt">رسالة تذكير جاهزة<textarea id="remTxt" rows="3" readonly>${esc(msg)}</textarea></label><div class="grid2"><button class="btn" data-act="copy" data-id="remTxt">نسخ الرسالة</button><a class="btn primary" href="https://wa.me/${waNum(c.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">إرسال واتساب</a></div>`:''}`);
 },
 async payParty(d){const c=S[d.kind].find(x=>x.id===+d.id), a=r2(parseFloat($('#payAmt').value)||0), b=balance(c);
   if(a<=0){toast('اكتب مبلغ الدفعة');return} if(a>b){toast(`المبلغ أكبر من الرصيد ${fx(b)} ₪`);return}
-  if(isSeller2()){ if(d.kind!=='customers'){toast('دفعات الموردين بتنسجّل من الجهاز الأساسي');return}
+  if(isSeller2()){ if(d.kind!=='customers'){ A._hubNext=['payParty',Object.assign({},d)]; hubAuto(); return }
     opQueue({id:opId(),k:'pay',ts:Date.now(),who:opWho(),cid:c.id,cname:c.name,amt:a}); render(); A.party(d); toast(`✓ تم تسجيل ${fx(a)} ₪ · الباقي ${fx(r2(b-a))} ₪`); return }
   const ph=d.kind==='suppliers'&&$('#payPh')&&$('#payPh').files[0]; let pid; if(ph){ try{ const dat=await docImg(ph); pid='img'+Date.now(); await idb('readwrite',st=>st.put(dat,pid)) }catch(e){} }
   c.ledger.push({ts:Date.now(),amt:-a,note:WORD[d.kind].note,photo:pid}); save(); render(); A.party(d); toast(`✓ تم تسجيل ${fx(a)} ₪ · الباقي ${fx(balance(c))} ₪`)},
@@ -2626,10 +2628,10 @@ addBuy(){
   if(paid==='credit'&&sup) sup.ledger.push({ts,amt:total,note:`فاتورة شراء: ${it.name}`});
   save(); render(); toast(`✓ أُضيف ${qty} حبة لـ ${it.name}${chg?' وتحدّثت أسعاره':''} · كمّل الصنف الثاني من نفس الفاتورة`);
 },
-mode(){ if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; render(); toast('وضع الكاشير: الأرباح والتعديل مخفية')}
+mode(){ A._ownNext=null; if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; render(); toast('وضع الكاشير: الأرباح والتعديل مخفية')}
   else { openSheet(`${sheetHead('التحويل لوضع المالك')}<p style="margin:0">اكتب <b>الكود الخاص بالمالك</b> عشان تفتح الأرباح والمخزون والتعديل.</p><label for="pin">كود المالك<input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="اكتب كود المالك"></label><button class="btn primary block" data-act="unlock">دخول كمالك</button>`); setTimeout(()=>{const i=$('#pin'); if(i) i.focus()},150) }},
 unlock(){ const v=String($('#pin').value||'').trim().replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-  if(v===OWNER_CODE){S.mode='owner'; save(); closeSheet(); render(); toast('✓ وضع المالك')} else { beep(false); toast('كود المالك غلط'); const i=$('#pin'); if(i){i.value=''; i.focus()} } },
+  if(v===OWNER_CODE){S.mode='owner'; save(); closeSheet(); render(); toast('✓ وضع المالك'); const nx=A._ownNext; A._ownNext=null; if(nx) setTimeout(()=>{ const b=document.createElement('button'); b.dataset.act=nx[0]; Object.assign(b.dataset,nx[1]); b.hidden=true; document.body.appendChild(b); b.click(); b.remove() },60) } else { beep(false); toast('كود المالك غلط'); const i=$('#pin'); if(i){i.value=''; i.focus()} } },
 syncPinPw(pw){ if(S&&pw){ S.pin=String(pw); save() } },
 savePin(){ if(CL&&CL.token){toast('كلمة سر الحساب بتتغيّر من «حسابي»');return} const v=$('#stPin').value.trim(); if(!/^\d{4,8}$/.test(v)){toast('الرمز لازم يكون 4 لـ8 أرقام');return} S.pin=v; $('#stPin').value=''; save(); toast('تم حفظ الرمز')},
 confirmPay(d){const s=S.sales.find(x=>x.id===+d.id); if(s){s.confirmed=true; if($('#sheetBox [data-act=proofShare]')) closeSheet(); audit(`تأكيد تحويل ${s.appMethod} ${fx(payOf(s).app)} ₪ فاتورة ${s.id}`); save(); render(); toast('تم تأكيد التحويل')}},
@@ -2736,16 +2738,23 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
       <div class="list"><div class="li"><span>بعدها ارجع لهذا الجهاز وادخل بنفس رقم الجوال وكلمة سر الحساب.</span></div></div>
       <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أدخل على حساب محلي من جوال ثاني.\nرقم الجوال: '+ph)}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`); return }
     toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. تأكد من كلمة السر وحاول مرة ثانية':e.message)}},
-async takeHub(){const btn=$('[data-act=takeHub]'); if(btn){btn.disabled=true; btn.textContent='جاري التحويل…'}
+async takeHub(d){const btn=$('[data-act=takeHub]'); if(btn){btn.disabled=true; btn.textContent='جاري التحويل…'} const myHeld=S&&Array.isArray(S.held)?S.held.slice():[];
   if(!navigator.onLine){toast('بدها نت. شغّل النت وجرّب'); if(btn){btn.disabled=false;btn.textContent='كمّل'} return}
   if(OPQ.some(o=>!o.sent)){ await opSend(); if(OPQ.some(o=>!o.sent)){toast('في مبيعات على هذا الجهاز لسا ما انرفعت. جرّب كمان شوي'); if(btn){btn.disabled=false;btn.textContent='كمّل'} return} }
-  try{const m=await api('/main',{method:'POST',body:{device:devInfo().id,label:devLabel()}});
+  try{const m=await api('/main',{method:'POST',body:{device:devInfo().id,label:devLabel(),force:d&&d.force?1:0}});
     const st=await api('/state?have=-1&device='+devInfo().id); CL.main=m.shop.main; CL.sellers=m.shop.sellers||[]; CL.multi=true; OPQ=[]; opqSave(); SRVOPS=[]; BASE=null; clSave(); if(m.license) await licApply(m.license);
     if(st.data) applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); else CL.ver=st.shop.version;
     if(st.ops) mainMerge(st.ops);
-    CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); cloudPullBlobs();
-    const nx=A._hubNext; A._hubNext=null; if(nx&&A[nx[0]]) A[nx[0]](nx[1]);
-  }catch(e){toast(e.message); if(btn){btn.disabled=false;btn.textContent='كمّل'}}},
+    if(myHeld.length&&S){ const have=new Set((S.held||[]).map(h=>JSON.stringify(h))); const add=myHeld.filter(h=>!have.has(JSON.stringify(h))); if(add.length){ S.held=[...(S.held||[]),...add]; save() } }
+    CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; cloudPullBlobs();
+    const nx=A._hubNext; A._hubNext=null; const lock=$('[data-act=takeHub]');
+    if(!nx||!A[nx[0]]||lock){ closeSheet(); render() }
+    if(nx&&A[nx[0]]) A[nx[0]](nx[1]);
+    return;
+  }catch(e){ if(btn){btn.disabled=false;btn.textContent='كمّل'}
+    if(e.code==='main_dirty'){ openSheet(`${sheetHead('لحظة وحدة')}<p style="margin:0">جهاز «${esc(e.data&&e.data.label||'ثاني')}» من أجهزة المحل عنده شغل لسا ما انرفع للسحابة. عشان ما يضيع إشي، خلّيه يتصل بالنت دقيقة، وبعدين اضغط «جرّب مرة ثانية».</p>
+      <button class="btn primary block" data-act="takeHub">جرّب مرة ثانية</button><button class="btn block" data-act="takeHub" data-force="1">كمّل على كل حال (شغل ذاك الجهاز بيضل محفوظ عليه كنسخة)</button>`); return }
+    A._hubNext=null; toast(e.message) }},
 cloudTake(){openSheet(`${sheetHead('خلّي هذا الجهاز هو الأساسي')}<p class="muted" style="margin:0">الجهاز الأساسي الحالي بيصير للمتابعة، وهذا الجهاز بياخد آخر نسخة من المحل وبيصير هو اللي يبيع.</p>
   <label for="clPass">كلمة سر حساب المحل<input id="clPass" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-act="cloudTakeGo">تأكيد</button>`)},
@@ -3200,7 +3209,9 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)});
+['pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+/* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
+function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
 /* البيع: تنبيه الصلاحية ومكان الرف لما ينضاف الدواء */
 { const _add=addToCart; addToCart=function(id){ _add(id); try{pWarnAdd(itemById(id))}catch(_){} };
@@ -3213,8 +3224,9 @@ document.addEventListener('click',e=>{
   const a=el.dataset.act, d=el.dataset;
   if(S&&LICREADY&&!isViewer()&&!EXP_OK.has(a)&&!status().active){subSheet();return}
   if(S&&isViewer()&&!VIEW_OK.has(a)){cloudViewOnly();return}
-  if(S&&isSeller2()&&SELLER_NO.has(a)){A._hubNext=[a,Object.assign({},d)]; openSheet(`${sheetHead('لحظة وحدة')}<p style="margin:0">هاي العملية بتتعمل من جهاز واحد بنفس الوقت عشان ما تتلخبط الحسابات. اضغط «كمّل» وبنحوّلها لهذا الجهاز بثواني، بدون كلمة سر.</p><button class="btn primary block" data-act="takeHub">كمّل</button>`); return}
-  if(S&&!isOwner()&&((OWNER_ONLY.has(a)&&!(S.cashItems&&CASH_ITEM.has(a)))||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){toast('هذا للمالك فقط');return}
+  if(S&&isSeller2()&&SELLER_NO.has(a)){A._hubNext=[a,Object.assign({},d)]; hubAuto(); return}
+  if(0){openSheet(`${sheetHead('لحظة وحدة')}<p style="margin:0">هاي العملية بتتعمل من جهاز واحد بنفس الوقت عشان ما تتلخبط الحسابات. اضغط «كمّل» وبنحوّلها لهذا الجهاز بثواني، بدون كلمة سر.</p><button class="btn primary block" data-act="takeHub">كمّل</button>`); return}
+  if(S&&!isOwner()&&((OWNER_ONLY.has(a)&&!(S.cashItems&&CASH_ITEM.has(a)))||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){A.mode(); A._ownNext=[a,Object.assign({},d)]; return}
   A[a](d);
 });
 document.addEventListener('input',e=>{ const t=e.target; if(['pQty','pCost','pCs','pBig','pSack'].includes(t.id)) pUnitUI(); if(t.id==='pFind') pFindUI(t.value); if(t.id==='edQ'&&EDV) edInvUI(t.value); if(['pCost','pPrice','pPw'].includes(t.id)) pChgUI(); if(t.id==='exAmt'){const h=$('#exHint'); if(h) h.innerHTML=expHint()} if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}

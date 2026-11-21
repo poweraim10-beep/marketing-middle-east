@@ -483,6 +483,10 @@ export async function onRequest({ request, env, params }) {
     if (a === 'state' && m === 'GET') {
       if (device && !devsOf(shop)[device] && activeDevs(shop).length >= MAX_DEV) return err('هذا الجهاز انطلع من حساب المحل. ادخل من جديد', 401, { code: 'dropped' });
       await seen(env, shop, device);
+      const dq = url.searchParams.get('dirty');
+      if (device && device === shop.main && (dq === '1' || dq === '0')) {
+        await env.DB.prepare("INSERT INTO ksr_sig (shop, k, v, t) VALUES (?, 'dirty', ?, ?) ON CONFLICT(shop, k) DO UPDATE SET v = excluded.v, t = excluded.t").bind(shop.id, dq === '1' ? device : '', nowMs()).run().catch(() => {});
+      }
       const have = parseInt(url.searchParams.get('have') || '-1', 10);
       const out = { shop: pubShop(shop) };
       if (shop.version > have && shop.version > 0) out.data = await readState(env, shop.id);
@@ -518,6 +522,7 @@ export async function onRequest({ request, env, params }) {
         throw e;
       }
       await seen(env, shop, dev);
+      await env.DB.prepare("INSERT INTO ksr_sig (shop, k, v, t) VALUES (?, 'dirty', '', ?) ON CONFLICT(shop, k) DO UPDATE SET v = '', t = excluded.t").bind(shop.id, t).run().catch(() => {});
       const done = Array.isArray(q.done) ? q.done.map((x) => clean(x, 40)).filter(Boolean).slice(0, 800) : [];
       for (let i = 0; i < done.length; i += 90) { const part = done.slice(i, i + 90); await env.DB.prepare(`DELETE FROM ksr_ops WHERE shop = ? AND id IN (${part.map(() => '?').join(',')})`).bind(shop.id, ...part).run(); }
       return json({ version: shop.version + 1, updated: t });
@@ -528,6 +533,10 @@ export async function onRequest({ request, env, params }) {
       const dev = clean(q.device, 40);
       if (!(dev && dev === device && isBoss(shop, dev)) && !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('كلمة السر غلط', 401); }
       if (!dev) return err('رقم الجهاز ناقص');
+      if (shop.main && shop.main !== dev && !q.force && !q.password) {
+        const dg = await env.DB.prepare("SELECT v, t FROM ksr_sig WHERE shop = ? AND k = 'dirty'").bind(shop.id).first().catch(() => null);
+        if (dg && dg.v && dg.v === shop.main) return err('الجهاز الثاني عنده شغل لسا ما انرفع', 409, { code: 'main_dirty', label: (devsOf(shop)[shop.main] || {}).label || '' });
+      }
       const sl = sellersOf(shop).filter((x) => x !== dev);
       await env.DB.prepare('UPDATE ksr_shops SET main = ?, sellers = ? WHERE id = ?').bind(dev, JSON.stringify(sl), shop.id).run();
       await seen(env, shop, dev, q.label);
