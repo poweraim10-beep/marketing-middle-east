@@ -436,10 +436,10 @@ const A={
     try{ for(let i=0;i<120;i++){ r=await call('pimgfetch',{k:'market',n:8,retry}); retry=0; box.innerHTML=`<div class="muted">⏳ ${r.done} من ${r.total} · لقينا صور لـ <b>${r.found}</b></div>`; if(!r.left) break }
       box.innerHTML=`<div class="card" style="gap:6px"><b>✓ خلص: لقينا صور لـ ${r.found} منتج من ${r.total}</b>${(r.miss||[]).length?`<small class="muted">ما لقينا صور لـ ${r.miss.length} منتج (بنعملهم صور بعدين):</small><small>${r.miss.map(esc).join(' · ')}</small><button class="btn sm" data-a="pimgGo" data-retry="1">جرّب كمان مرة</button>`:''}</div>` }catch(e){ toast(e.message); box.innerHTML='' } if(btn) btn.disabled=false },
   async tplFromShop(){ const ph=($('#tsPhone').value||'').trim(), box=$('#tsRep'); if(!ph){toast('اكتب الرقم');return}
-    if(!confirm('بنقرأ أصناف هذا المحل (الاسم والباركود والسعر بس) وبنحطهم بقالب السوبر ماركت. المحل نفسه ما بيتغيّر فيه إشي. نكمّل؟')) return;
+    if(!confirm('بنقرأ أصناف هذا المحل (الاسم والباركود والسعر بس) وبنضيف الجديد منهم على قالب السوبر ماركت. أصناف القالب الموجودة بتضل زي ما هي، والمحل نفسه ما بيتغيّر فيه إشي. نكمّل؟')) return;
     box.innerHTML='<div class="spin"></div>';
     try{ const r=await call('tplfromshop',{phone:ph,k:'market'}); const row=(t,a,b)=>`<tr><td>${t}</td><td>${a}</td><td>${b}</td></tr>`;
-      box.innerHTML=`<div class="card" style="border:2px solid ${r.unchanged?'#2e7d32':'#c77700'}"><b>${r.unchanged?'✅':'⚠️'} انتسخ ${r.copied} صنف من «${esc(r.shop)}»</b><p style="margin:6px 0">${esc(r.note)}</p>
+      box.innerHTML=`<div class="card" style="border:2px solid ${r.unchanged?'#2e7d32':'#c77700'}"><b>${r.unchanged?'✅':'⚠️'} انضاف ${r.copied} صنف جديد من «${esc(r.shop)}» · القالب صار ${r.total||r.copied} صنف</b><p style="margin:6px 0">${esc(r.note)}</p>
         <table style="width:100%;border-collapse:collapse;text-align:center"><tr><th></th><th>قبل</th><th>بعد</th></tr>${row('الأصناف',r.before.items,r.after&&r.after.items)}${row('الزبائن',r.before.customers,r.after&&r.after.customers)}${row('الموردين',r.before.suppliers,r.after&&r.after.suppliers)}${row('الفواتير (مبيعات)',r.before.sales,r.after&&r.after.sales)}${row('المشتريات',r.before.purchases,r.after&&r.after.purchases)}${row('مجموع الديون ₪',r.before.debt,r.after&&r.after.debt)}${row('رقم النسخة',r.before.version,r.after&&r.after.version)}</table></div>` }
     catch(e){ box.innerHTML=''; toast(e.message) } },
   async tplAdd(d){ const k=d.k, txt=($('#ti_'+k).value||'').trim(); if(!txt){toast('الصق الأصناف أول');return}

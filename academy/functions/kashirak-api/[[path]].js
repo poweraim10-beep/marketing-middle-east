@@ -219,6 +219,9 @@ async function offImg(bc) { // صورة المنتج من Open Food Facts (قا�
   }
   return '';
 }
+async function tplBackup(env, k) { // نسخة من القالب قبل أي حفظ. النسخ ما بتنمسح
+  try { const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first(); if (r && r.v) await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO NOTHING').bind('tplbak:' + k + ':' + nowMs(), r.v).run(); } catch {}
+}
 async function tplStamp(env, k, items) { // الصنف الجديد بالقالب بياخد وقت إضافته (a)، عشان المحلات المفعّلة تنزّله لحالها
   let prev = []; try { const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first(); prev = r ? (JSON.parse(r.v).items || []) : (TPL_DEFAULT[k] || []); } catch {}
   const old = new Map(prev.map((x) => [x.b || ('n:' + x.n), x.a || 0])), now = nowMs(), first = !prev.length;
@@ -812,6 +815,7 @@ async function admin(env, request, b) {
     const k = clean(q.k, 20); if (!TPL_KEYS[k]) return err('مجال غير معروف');
     const items = await tplStamp(env, k, tplClean(q.items)); const v = JSON.stringify({ t: nowMs(), src: clean(q.src || 'لوحة الكاشير', 80), items });
     if (v.length > 1800000) return err('القالب كبير كثير (' + items.length + ' صنف). قسّمه أو خفّف الصور');
+    await tplBackup(env, k);
     await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
     return json({ ok: true, n: items.length });
   }
@@ -839,13 +843,18 @@ async function admin(env, request, b) {
       return { sh, st, h, counts: { items: L('items'), customers: L('customers'), suppliers: L('suppliers'), sales: L('sales'), purchases: L('purchases'), debt } };
     };
     const before = await snap(); if (!before) return err('ما في محل بهذا الرقم', 404);
-    const items = await tplStamp(env, k, tplClean((before.st.items || []).map((i) => ({ n: i.name, b: i.barcode, p: i.price }))));
+    /* بالإضافة فقط: أصناف القالب الموجودة بتضل، وبينضاف عليها أصناف المحل الجديدة بس */
+    let old = []; try { const r0 = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first(); old = r0 ? (JSON.parse(r0.v).items || []) : []; } catch {}
+    const have = new Set(old.map((x) => x.b || ('n:' + x.n))), haveN = new Set(old.map((x) => x.n));
+    const fresh = tplClean((before.st.items || []).map((i) => ({ n: i.name, b: i.barcode, p: i.price }))).filter((x) => !have.has(x.b || ('n:' + x.n)) && !haveN.has(x.n));
+    const items = await tplStamp(env, k, [...old, ...fresh]);
     const v = JSON.stringify({ t: nowMs(), src: (before.sh.name || '') + ' · ' + ph, items });
+    await tplBackup(env, k);
     if (v.length > 1800000) return err('الأصناف كثيرة كثير (' + items.length + ')');
     await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
     const after = await snap();
     const same = after && after.h === before.h && after.sh.version === before.sh.version && after.sh.updated === before.sh.updated && JSON.stringify(after.counts) === JSON.stringify(before.counts);
-    return json({ ok: true, copied: items.length, shop: before.sh.name || '', before: { ...before.counts, version: before.sh.version }, after: after ? { ...after.counts, version: after.sh.version } : null, unchanged: !!same,
+    return json({ ok: true, copied: fresh.length, total: items.length, shop: before.sh.name || '', before: { ...before.counts, version: before.sh.version }, after: after ? { ...after.counts, version: after.sh.version } : null, unchanged: !!same,
       note: same ? 'حساب المحل ما تغيّر فيه ولا إشي (نفس البصمة ونفس النسخة ونفس الأعداد)' : 'المحل عمل تعديل أثناء النسخ (بيع مثلًا) من جهازه. النسخ نفسه ما كتب على المحل' });
   }
   if (b === 'cfgx') { // صور التخصيص (شعارات الدفع والأيقونات). منفصلة عشان ما تنبعت مع كل فحص اشتراك
