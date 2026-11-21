@@ -169,6 +169,22 @@ async function needSnap(env, shop, newSize) {
   const r = await env.DB.prepare('SELECT MAX(t) AS t FROM ksr_hist WHERE shop = ?').bind(shop.id).first();
   return !r || !r.t || nowMs() - r.t > HIST_EVERY ? 'auto' : null;
 }
+async function stateText(raw) { // بيفك نسخة المحل للقراءة بس
+  if (!raw) return '';
+  if (raw.startsWith('p:')) return raw.slice(2);
+  const bin = atob(raw.slice(2)), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+}
+const TPL_KEYS = { market: 'سوبر ماركت', pharm: 'صيدلية', veg: 'فواكه وخضروات' };
+function tplClean(list) {
+  const out = [], seen = new Set();
+  for (const x of Array.isArray(list) ? list : []) {
+    const n = clean(x && (x.n ?? x.name), 120), bc = clean(x && (x.b ?? x.barcode), 40).replace(/\s/g, ''), pr = Math.max(0, Math.round((parseFloat(x && (x.p ?? x.price)) || 0) * 100) / 100), u = clean(x && x.u, 20), img = typeof (x && x.img) === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(x.img) && x.img.length < 60000 ? x.img : '';
+    if (!n) continue; const key = bc || ('n:' + n); if (seen.has(key)) continue; seen.add(key);
+    out.push({ n, b: bc, p: pr, ...(u ? { u } : {}), ...(img ? { img } : {}) });
+  }
+  return out;
+}
 async function readState(env, id) {
   const r = await env.DB.prepare('SELECT data FROM ksr_chunks WHERE shop = ? ORDER BY i').bind(id).all();
   return (r.results || []).map((x) => x.data).join('');
@@ -468,6 +484,14 @@ export async function onRequest({ request, env, params }) {
     // ----- everything below needs a shop token -----
     const shop = await readShop(env, request);
     if (a === 'admin') return admin(env, request, b);
+    if (a === 'tpl' && m === 'GET') { // قالب أصناف عام حسب مجال العمل (منفصل عن بيانات أي محل)
+      const k = clean(url.searchParams.get('k') || '', 20);
+      if (!TPL_KEYS[k]) return err('مجال غير معروف');
+      if (!(await readShop(env, request))) return err('سجّل الدخول أول', 401);
+      const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first();
+      let o = { t: 0, items: [] }; try { if (r) o = JSON.parse(r.v); } catch {}
+      return json({ k, name: TPL_KEYS[k], t: o.t || 0, items: o.items || [] });
+    }
     if (!shop) return err('سجّل دخول من جديد', 401);
     const device = clean(url.searchParams.get('device') || request.headers.get('x-device') || '', 40);
     if (a === 'push' && b === 'sub' && m === 'POST') {
@@ -707,6 +731,39 @@ async function admin(env, request, b) {
     const subs = (await env.DB.prepare('SELECT endpoint FROM ksr_push').all()).results || [];
     let sent = 0; for (const x of subs) { if (await pSend(env, x.endpoint)) sent++; }
     return json({ ok: true, subs: subs.length, sent });
+  }
+  if (b === 'tpl' && m === 'GET') {
+    const out = {};
+    for (const k of Object.keys(TPL_KEYS)) { const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind('tpl:' + k).first(); let o = {}; try { o = r ? JSON.parse(r.v) : {}; } catch {} out[k] = { name: TPL_KEYS[k], n: (o.items || []).length, t: o.t || 0, src: o.src || '', items: new URL(request.url).searchParams.get('k') === k ? (o.items || []) : undefined }; }
+    return json(out);
+  }
+  if (b === 'tpl' && m === 'POST') { // بيحفظ القالب العام بس. ما بيلمس أي محل، وما بيأثر على أصناف نزلت قبل عند المحلات
+    const k = clean(q.k, 20); if (!TPL_KEYS[k]) return err('مجال غير معروف');
+    const items = tplClean(q.items); const v = JSON.stringify({ t: nowMs(), src: clean(q.src || 'لوحة الكاشير', 80), items });
+    if (v.length > 1800000) return err('القالب كبير كثير (' + items.length + ' صنف). قسّمه أو خفّف الصور');
+    await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
+    return json({ ok: true, n: items.length });
+  }
+  if (b === 'tplfromshop' && m === 'POST') { // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
+    const k = clean(q.k, 20) || 'market'; if (!TPL_KEYS[k]) return err('مجال غير معروف');
+    const ph = phoneOf(q.phone); if (!ph) return err('اكتب رقم جوال المحل');
+    const snap = async () => {
+      const sh = await env.DB.prepare('SELECT id, name, version, updated, size FROM ksr_shops WHERE phone = ?').bind(ph).first();
+      if (!sh) return null; const raw = await readState(env, sh.id); const txt = await stateText(raw); let st = {}; try { st = JSON.parse(txt); } catch {}
+      const h = hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)));
+      const L = (x) => Array.isArray(st[x]) ? st[x].length : 0;
+      const debt = Math.round((st.customers || []).reduce((a, c) => a + (c.ledger || []).reduce((b2, l) => b2 + (l.cur && l.cur !== 'ILS' ? 0 : +l.amt || 0), 0), 0) * 100) / 100;
+      return { sh, st, h, counts: { items: L('items'), customers: L('customers'), suppliers: L('suppliers'), sales: L('sales'), purchases: L('purchases'), debt } };
+    };
+    const before = await snap(); if (!before) return err('ما في محل بهذا الرقم', 404);
+    const items = tplClean((before.st.items || []).map((i) => ({ n: i.name, b: i.barcode, p: i.price })));
+    const v = JSON.stringify({ t: nowMs(), src: (before.sh.name || '') + ' · ' + ph, items });
+    if (v.length > 1800000) return err('الأصناف كثيرة كثير (' + items.length + ')');
+    await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('tpl:' + k, v).run();
+    const after = await snap();
+    const same = after && after.h === before.h && after.sh.version === before.sh.version && after.sh.updated === before.sh.updated && JSON.stringify(after.counts) === JSON.stringify(before.counts);
+    return json({ ok: true, copied: items.length, shop: before.sh.name || '', before: { ...before.counts, version: before.sh.version }, after: after ? { ...after.counts, version: after.sh.version } : null, unchanged: !!same,
+      note: same ? 'حساب المحل ما تغيّر فيه ولا إشي (نفس البصمة ونفس النسخة ونفس الأعداد)' : 'المحل عمل تعديل أثناء النسخ (بيع مثلًا) من جهازه. النسخ نفسه ما كتب على المحل' });
   }
   if (b === 'pushstats' && m === 'GET') {
     const r = await env.DB.prepare('SELECT COUNT(*) AS n, COUNT(DISTINCT shop) AS shops FROM ksr_push').first();

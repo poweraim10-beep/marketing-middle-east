@@ -394,6 +394,31 @@ main{padding-bottom:44px}
 }
 @media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
+#land{position:fixed;inset:0;z-index:160;overflow-y:auto;background:radial-gradient(900px 600px at 50% -10%,#1d4a8a 0%,#0B1F3A 45%,#06111F 100%);color:#F7F1E1}
+body.landing .sheet{z-index:170} body.landing .toast{z-index:180}
+#land .lwrap{max-width:520px;margin:0 auto;padding:0 18px 110px}
+#land .lhd{position:sticky;top:0;display:flex;align-items:center;gap:10px;padding:12px 0;background:linear-gradient(#0B1F3A,#0B1F3Aee 70%,transparent);z-index:2}
+#land .lhd img{width:40px;height:40px}#land .lhd b{font-size:18px;color:#E9C46A}#land .sp{flex:1}
+#land .lmenu{background:rgba(255,255,255,.08);border:1px solid rgba(233,196,106,.4);color:#F7F1E1;border-radius:12px;width:44px;height:44px;font-size:20px}
+#land .lban{text-align:center;padding:14px 0 4px}
+#land .lphone{width:210px;height:400px;margin:0 auto;border-radius:34px;padding:10px;background:linear-gradient(145deg,#2b2f38,#0d0f13);box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 0 0 2px #444,0 0 0 1px #C8A24A55;transform:rotate(-4deg)}
+#land .lscr{height:100%;border-radius:26px;background:#F4F1EA;color:#0B1F3A;overflow:hidden;padding:10px;display:flex;flex-direction:column;gap:7px;text-align:right}
+#land .lbar{display:flex;align-items:center;gap:6px;background:#0B1F3A;color:#E9C46A;border-radius:12px;padding:6px 8px;font-weight:700;font-size:12px}#land .lbar img{width:22px;height:22px}
+#land .ltl{display:grid;grid-template-columns:1fr 1fr;gap:6px}#land .ltl div{background:#fff;border-radius:10px;padding:6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}#land .ltl small{display:block;font-size:9.5px;color:#667}#land .ltl b{font-size:14px}
+#land .lrow{display:flex;justify-content:space-between;background:#fff;border-radius:8px;padding:6px 8px;font-size:11px}
+#land .lpay{margin-top:auto;background:linear-gradient(#E9C46A,#C8A24A);border-radius:12px;padding:9px;text-align:center;font-weight:800;font-size:12px}
+#land .ltag{margin:18px 0 0;color:#C9D2E0;font-size:14px}
+#land .lh1{font-size:32px;margin:14px 0 6px;text-align:center;color:#E9C46A}
+#land .ldesc{text-align:center;line-height:1.8;margin:0 0 16px;color:#E6EBF3}
+#land .lskip{display:block;margin:10px auto 0;background:none;border:0;color:#C9D2E0;text-decoration:underline;font:inherit;font-size:14px}
+#land .lh2{margin:26px 0 10px;font-size:20px;text-align:center}
+#land .lfeat{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#land .lfeat div{background:rgba(255,255,255,.06);border:1px solid rgba(233,196,106,.25);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:3px}
+#land .lfeat span{font-size:24px}#land .lfeat b{font-size:14px}#land .lfeat small{font-size:12px;color:#C9D2E0;line-height:1.5}
+#land .lfoot{text-align:center;color:#E9C46A;margin-top:12px}
+#land .lwa{position:fixed;bottom:22px;left:18px;width:58px;height:58px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:3}
+#land .lwa svg{width:30px;height:30px;fill:#fff;color:#fff}
+
 @media (min-width:900px){.invset{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}}
 @media print{
   @page{size:58mm auto;margin:0}
@@ -3187,8 +3212,11 @@ function pExpView(){
    <div class="card"><h2>خسارة المنتهي</h2><div class="row"><span>مجموع اللي انتلف</span>${money(lossV)}</div>
     <div class="list">${[...(S.pLoss||[])].reverse().slice(0,30).map(x=>`<div class="li"><span>${esc(x.name)} × ${x.q}<br><span class="muted">${fday(x.ts)} · انتهى ${x.exp}</span></span><span class="num">${fx(x.q*x.cost)} ₪</span></div>`).join('')}</div></div>
    <div class="card"><h2>مدة التنبيه</h2><div class="row"><span>نبّهني قبل الانتهاء بـ</span><span class="row" style="gap:6px"><input id="pWarnM" type="number" min="1" max="24" value="${S.expWarnM||3}" style="width:80px" aria-label="أشهر"> شهر <button class="btn sm primary" data-act="pWarnSave">حفظ</button></span></div></div>` }
+const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات'};
+const tplCard=()=>`<div class="card" style="gap:10px"><h2>📦 أصناف جاهزة حسب مجال العمل</h2><p class="muted" style="margin:0">اختار مجالك واضغط «تفعيل»، وبتنزل أصناف هالمجال على حسابك بالأسماء والباركود والأسعار، والكمية صفر. ما بينحذف ولا بيتغيّر أي صنف موجود عندك، والصنف الموجود ما بيتكرر. بتقدر تفعّل أكثر من مجال.</p>
+  <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${k==='market'?'🛒':k==='pharm'?'💊':'🥕'} ${n}${(S.tplDone||{})[k]?' ✓':''}</button>`).join('')}</div></div>`;
 function pBizView(){ const on=!!S.pharm;
-  return back('مجال العمل')+hint('اختار نوع شغلك. إذا اخترت <b>صيدلية</b> بيتحوّل التطبيق كله لنظام صيدلية: تاريخ انتهاء وتشغيلة لكل كمية، البيع بالعلبة والشريط والحبة، الاسم العلمي والبدائل، ومنع بيع المنتهي. الميزان والبيع بالكيلو بيختفوا.')+`
+  return back('مجال العمل')+tplCard()+hint('اختار نوع شغلك. إذا اخترت <b>صيدلية</b> بيتحوّل التطبيق كله لنظام صيدلية: تاريخ انتهاء وتشغيلة لكل كمية، البيع بالعلبة والشريط والحبة، الاسم العلمي والبدائل، ومنع بيع المنتهي. الميزان والبيع بالكيلو بيختفوا.')+`
    <div class="card" style="gap:10px">${on?`<div class="rempill"><span>💊 نظام الصيدلية مفعّل</span></div>
      <p class="muted" style="margin:0">بدك ترجع لنظام المحل العادي؟ اكتب <b>إلغاء</b> واضغط. بياناتك (التشغيلات والأدوية) بتضل محفوظة.</p>
      <input id="pAct" autocomplete="off" placeholder="اكتب: إلغاء"><button class="btn block" data-act="pActGo">رجوع لنظام المحل العادي</button>`
@@ -3197,6 +3225,20 @@ function pBizView(){ const on=!!S.pharm;
      <label for="pAct">للتأكيد اكتب كلمة <b>تفعيل</b><input id="pAct" autocomplete="off" placeholder="تفعيل"></label>
      <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
 Object.assign(A,{
+  tplAsk(d){ const n=TPLN[d.k]; if(!n) return; openSheet(`${sheetHead('أصناف '+n)}<p style="margin:0">سيتم تنزيل جميع أصناف <b>${n}</b> إلى حسابك.</p><p class="muted" style="margin:0">بتنضاف بكمية صفر. الأصناف الموجودة عندك بنفس الباركود أو الاسم بتضل زي ما هي وما بتتكرر، وما بيتغيّر ولا إشي من ديونك أو زبائنك أو فواتيرك.</p><button class="btn primary block" data-act="tplGo" data-k="${d.k}">تفعيل</button>`) },
+  async tplGo(d){ const k=d.k, n=TPLN[k], btn=$('[data-act=tplGo]'); if(!n) return; if(!linked()){toast('سجّل محلك أول عشان تنزل الأصناف');return} if(!navigator.onLine){toast('تنزيل الأصناف بدّه نت مرة وحدة');return}
+    if(btn){btn.disabled=true; btn.textContent='جاري التنزيل…'}
+    let r; try{ r=await api('/tpl?k='+k) }catch(e){ toast(e.message); if(btn){btn.disabled=false;btn.textContent='تفعيل'} return }
+    const list=(r.items||[]); if(!list.length){ closeSheet(); toast('قالب '+n+' لسا فاضي. تواصل مع الدعم'); return }
+    try{ await idb('readwrite',st=>st.put(JSON.stringify(S),'pre-tpl-'+k+'-'+Date.now())) }catch(_){} /* نسخة قبل الإضافة */
+    const bars=new Set(S.items.map(i=>String(i.barcode||'').trim()).filter(Boolean)), names=new Set(S.items.map(i=>String(i.name||'').trim()));
+    let add=0, skip=0;
+    list.forEach(x=>{ const nm=String(x.n||'').trim(), bc=String(x.b||'').trim(); if(!nm) return; if((bc&&bars.has(bc))||names.has(nm)){skip++;return}
+      const kg=!S.pharm&&/كيلو|كغ|kg/i.test(x.u||''); const it={id:S.nextId++,name:nm,barcode:bc,cost:0,price:r2(+x.p||0),qty:0,min:5,cartonSize:0,cartonPrice:0,exp:'',byWeight:kg,...(x.u&&!kg?{unitName:String(x.u).slice(0,20)}:{}),...(k==='pharm'&&S.pharm?{kind:'med'}:{}),tpl:k};
+      S.items.push(it); if(bc) bars.add(bc); names.add(nm); add++;
+      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img });
+    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render();
+    openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
     if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
     if((document.querySelector('[name=pBiz]:checked')||{}).value!=='pharm'){toast('اختار «صيدلية» أول');return}
@@ -3239,7 +3281,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['tplGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
@@ -3310,6 +3352,49 @@ Object.assign(A,{
   invTest(){ invPrint(invSample(),Object.assign(invCfg(),invForm())) }
 });
 ['invSave'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)});
+
+/* ===================== صفحة التثبيت =====================
+   بتطلع لأول مرة بس على الجوال من المتصفح (مش لما التطبيق مثبّت، ومش لمحل عنده بيانات على هذا الجهاز). ما بتلمس أي بيانات. */
+const LAND_WA='970594627887';
+const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function landWanted(){ try{ return !S&&!standalone()&&!isDesk()&&!localStorage.getItem('ksr-land')&&!/[?&]app=1/.test(location.search) }catch(e){ return false } }
+function showLand(){ if($('#land')) return; const d=document.createElement('div'); d.id='land';
+  const F=[['🛒','البيع والكاشير','بيع سريع بالباركود أو بالاسم'],['🧾','فواتير مطبوعة باسم محلك','حراري 58 و80 ملم، وA4 وA5'],['📒','الديون','كشف حساب لكل زبون على واتساب'],['🚚','الموردين','فواتير شراء ودفعات وكشف حساب'],['💱','تعدد العملات','شيكل، دولار، دينار، كل عملة لحالها'],['📦','أصناف جاهزة حسب مجال العمل','سوبر ماركت، صيدلية، خضار وفواكه'],['🤖','إدخال الفواتير بالذكاء الاصطناعي','صوّر الفاتورة وبتنضاف لحالها (قريبًا)'],['📱','أكثر من جهاز بنفس الصلاحيات','كل الأجهزة أساسية'],['📶','يعمل بدون إنترنت','وبيتزامن لحاله لما يرجع النت']];
+  d.innerHTML=`<div class="lwrap">
+   <header class="lhd"><img src="icons/logo-3d-256.png" alt=""><b>كاشيرك الذكي</b><span class="sp"></span><button class="lmenu" data-act="landMenu" aria-label="القائمة">☰</button></header>
+   <div class="lban"><div class="lphone"><div class="lscr"><div class="lbar"><img src="icons/logo-3d-256.png" alt=""><span>كاشيرك الذكي</span></div>
+     <div class="ltl"><div><small>مبيعات اليوم</small><b>1,240 ₪</b></div><div><small>الربح</small><b>312 ₪</b></div></div>
+     <div class="lrow"><span>أرز 1 كغ × 2</span><b>14.00</b></div><div class="lrow"><span>حليب بودرة</span><b>12.00</b></div><div class="lrow"><span>تونة معلبة × 3</span><b>13.50</b></div>
+     <div class="lpay">إتمام البيع · 39.50 ₪</div></div></div>
+     <p class="ltag">تطبيق الكاشير – أندرويد وآيفون</p></div>
+   <h1 class="lh1">كاشيرك الذكي</h1>
+   <p class="ldesc">برنامج كاشير ومحاسبة عربي سهل الاستخدام للمحلات التجارية والسوبر ماركت والصيدليات ومحلات الخضار، يعمل بدون إنترنت.</p>
+   <button class="btn accent big block" data-act="landInstall">⬇️ ثبّت التطبيق الآن</button>
+   <button class="lskip" data-act="landSkip">أو كمّل من المتصفح</button>
+   <h2 class="lh2">أهم الميزات</h2>
+   <div class="lfeat">${F.map(([i,t,x])=>`<div><span>${i}</span><b>${t}</b><small>${x}</small></div>`).join('')}</div>
+   <button class="btn accent big block" data-act="landInstall" style="margin-top:16px">⬇️ ثبّت التطبيق الآن</button>
+   <p class="lfoot">جرّبه مجانًا ${TRIAL_DAYS} أيام</p></div>
+   <a class="lwa" href="https://wa.me/${LAND_WA}?text=${encodeURIComponent('مرحبًا، بدي أستفسر عن تطبيق كاشيرك الذكي')}" target="_blank" rel="noopener" aria-label="تواصل معنا على واتساب">${WAIC}</a>`;
+  document.body.appendChild(d); document.body.style.overflow='hidden'; document.body.classList.add('landing') }
+function closeLand(){ const d=$('#land'); if(d) d.remove(); document.body.style.overflow=''; document.body.classList.remove('landing'); try{localStorage.setItem('ksr-land','1')}catch(e){} }
+Object.assign(A,{
+  landInstall(){ if(INSTALL){ INSTALL.prompt(); INSTALL.userChoice.then(r=>{ if(r&&r.outcome==='accepted'){ toast('جارٍ التثبيت… افتحه من أيقونته على الشاشة'); closeLand(); if(!S&&!localStorage.getItem('ksr-intro')) showIntro() } INSTALL=null }).catch(()=>{}); return }
+    if(isIOS()) return openSheet(`${sheetHead('تثبيت على الآيفون')}<div class="list">
+      <div class="li"><span><b>1.</b> اضغط زر المشاركة <b style="font-size:20px">⎋</b> (المربع اللي طالع منه سهم) تحت أو فوق بالمتصفح Safari</span></div>
+      <div class="li"><span><b>2.</b> انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b> ➕</span></div>
+      <div class="li"><span><b>3.</b> اضغط <b>«إضافة»</b>، وبتطلع أيقونة كاشيرك على شاشتك زي أي تطبيق</span></div></div>
+      <p class="muted" style="margin:0">لازم تفتح الرابط من Safari. إذا فاتح من واتساب أو فيسبوك، اضغط «فتح في Safari» أول.</p><button class="btn primary block" data-act="close">فهمت</button>`);
+    openSheet(`${sheetHead('تثبيت التطبيق')}<div class="list">
+      <div class="li"><span><b>1.</b> اضغط على النقاط الثلاث <b>⋮</b> فوق بالمتصفح Chrome</span></div>
+      <div class="li"><span><b>2.</b> اختار <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b></span></div>
+      <div class="li"><span><b>3.</b> اضغط <b>«تثبيت»</b>، وبتطلع الأيقونة على شاشتك</span></div></div>
+      <p class="muted" style="margin:0">إذا فاتح الرابط من واتساب أو فيسبوك، افتحه بمتصفح Chrome أول.</p><button class="btn primary block" data-act="close">فهمت</button>`) },
+  landSkip(){ closeLand(); if(!S&&!localStorage.getItem('ksr-intro')) showIntro() },
+  landMenu(){ openSheet(`${sheetHead('كاشيرك الذكي')}<div class="list"><button class="li" data-act="landInstall"><span>⬇️ ثبّت التطبيق</span></button><button class="li" data-act="landSkip"><span>🌐 كمّل من المتصفح</span></button><button class="li" data-act="landLogin"><span>🔑 عندي حساب، ادخل</span></button><a class="li" href="https://wa.me/${LAND_WA}" target="_blank" rel="noopener"><span>💬 الدعم على واتساب</span></a></div>`) },
+  landLogin(){ closeSheet(); closeLand(); A.cloudLogin() }
+});
+['landInstall','landSkip','landMenu','landLogin'].forEach(a=>{VIEW_OK.add(a); EXP_OK.add(a)});
 
 document.addEventListener('click',e=>{
   if(e.target.id==='sheet'){closeSheet();return}
@@ -3388,7 +3473,7 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); preUpdateBackup(); route(); try{ if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
+load(); preUpdateBackup(); route(); try{ if(landWanted()) showLand(); else if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */

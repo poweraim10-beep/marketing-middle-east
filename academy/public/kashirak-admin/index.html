@@ -173,6 +173,7 @@ home(){
   <div class="grid2"><button class="btn gold" data-a="newCode">＋ كود تفعيل جديد</button><button class="btn primary" data-a="tab" data-t="shops">المشتركين</button></div>
   <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار لكل المحلات</button>
   <button class="btn block" data-a="adSheet">📣 الإعلان داخل التطبيق</button>
+  <button class="btn block" data-a="tplSheet">🗂️ قوالب الأصناف حسب مجال العمل</button>
   <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
     <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
   <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
@@ -331,6 +332,25 @@ const A={
   cfilter(d){codeFilter=d.f; render()},
   reload(){$('#app').innerHTML='<div class="spin"></div>'; load()},
   close, newCode(){newCodeSheet()},
+  async tplSheet(){ open(`${head('🗂️ قوالب الأصناف')}<div class="spin"></div>`); let t={}; try{t=await call('tpl')}catch(e){toast(e.message);return}
+    const dt=x=>x?new Date(x).toLocaleString('ar-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}):'—';
+    $('#sbox').innerHTML=`${head('🗂️ قوالب الأصناف')}<p class="muted" style="margin:0 0 8px">القوالب محفوظة لحالها على السيرفر، منفصلة عن بيانات أي محل. ما بتنزل عند حدا إلا لما هو يضغط «تفعيل» من «مجال العمل». وتعديل القالب ما بيأثر على أصناف نزلت قبل عند المحلات.</p>
+    ${Object.entries(t).map(([k,o])=>`<div class="card" style="margin:8px 0;display:flex;flex-direction:column;gap:8px"><b>${esc(o.name)} · ${o.n} صنف</b><small class="muted">آخر تحديث: ${dt(o.t)}${o.src?' · المصدر: '+esc(o.src):''}</small>
+      ${k==='market'?`<label>نسخ من حساب محل (قراءة فقط: الاسم والباركود والسعر)<input id="tsPhone" inputmode="tel" value="0592332664" dir="ltr"></label><button class="btn primary" data-a="tplFromShop">نسخ أصناف هذا المحل للقالب</button><div id="tsRep"></div>`:''}
+      <label>إضافة أصناف للقالب (كل سطر: الاسم، الباركود، السعر، الوحدة)<textarea id="ti_${k}" rows="4" placeholder="${k==='veg'?'بندورة,,0,كيلو':'بنادول 500,6291100000000,15'}"></textarea></label>
+      <button class="btn" data-a="tplAdd" data-k="${k}">إضافة للقالب</button></div>`).join('')}`; },
+  async tplFromShop(){ const ph=($('#tsPhone').value||'').trim(), box=$('#tsRep'); if(!ph){toast('اكتب الرقم');return}
+    if(!confirm('بنقرأ أصناف هذا المحل (الاسم والباركود والسعر بس) وبنحطهم بقالب السوبر ماركت. المحل نفسه ما بيتغيّر فيه إشي. نكمّل؟')) return;
+    box.innerHTML='<div class="spin"></div>';
+    try{ const r=await call('tplfromshop',{phone:ph,k:'market'}); const row=(t,a,b)=>`<tr><td>${t}</td><td>${a}</td><td>${b}</td></tr>`;
+      box.innerHTML=`<div class="card" style="border:2px solid ${r.unchanged?'#2e7d32':'#c77700'}"><b>${r.unchanged?'✅':'⚠️'} انتسخ ${r.copied} صنف من «${esc(r.shop)}»</b><p style="margin:6px 0">${esc(r.note)}</p>
+        <table style="width:100%;border-collapse:collapse;text-align:center"><tr><th></th><th>قبل</th><th>بعد</th></tr>${row('الأصناف',r.before.items,r.after&&r.after.items)}${row('الزبائن',r.before.customers,r.after&&r.after.customers)}${row('الموردين',r.before.suppliers,r.after&&r.after.suppliers)}${row('الفواتير (مبيعات)',r.before.sales,r.after&&r.after.sales)}${row('المشتريات',r.before.purchases,r.after&&r.after.purchases)}${row('مجموع الديون ₪',r.before.debt,r.after&&r.after.debt)}${row('رقم النسخة',r.before.version,r.after&&r.after.version)}</table></div>` }
+    catch(e){ box.innerHTML=''; toast(e.message) } },
+  async tplAdd(d){ const k=d.k, txt=($('#ti_'+k).value||'').trim(); if(!txt){toast('الصق الأصناف أول');return}
+    const rows=txt.split(/\r?\n/).map(l=>l.split(/[,\t،]/).map(x=>x.trim())).filter(r=>r[0]);
+    try{ const cur=(await call('tpl?k='+k))[k].items||[]; const key=x=>x.b||('n:'+x.n); const have=new Set(cur.map(key)); let add=0;
+      rows.forEach(r=>{const x={n:r[0],b:(r[1]||'').replace(/\s/g,''),p:parseFloat(r[2])||0,...(r[3]?{u:r[3]}:{})}; if(!have.has(key(x))){cur.push(x); have.add(key(x)); add++}});
+      const r=await call('tpl',{k,items:cur,src:'لوحة الكاشير'}); toast(`✓ انضاف ${add} · القالب فيه ${r.n} صنف`); A.tplSheet() }catch(e){toast(e.message)} },
   async adSheet(){ open(`${head('📣 الإعلان داخل التطبيق')}<div class="spin"></div>`); let a={}; try{a=await call('ad')}catch(e){}
     AD_IMG=a.img||'';
     open(`${head('📣 الإعلان داخل التطبيق')}<p style="font-size:14px;margin:0">بيظهر بالشاشة الرئيسية عند كل المحلات. أنت بس اللي بتتحكم فيه، والمحل بيقدر يخفيه عنده بـ ✕ لحد ما تنشر إعلان جديد.</p>
