@@ -896,7 +896,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
+  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
@@ -1438,6 +1438,7 @@ function accJournal(){ if(ACCJ&&ACCJ.v===S._t&&ACCJ.n===S.sales.length) return A
   for(const e of S.expenses){ const a=r2(+e.amt||0); E(e.ts,'مصروف: '+(e.name||''),'exp',[['52:'+(String(e.name||'').trim()||'مصروفات عامة'),a,0],['1101',0,a]]) }
   for(const x of S.adjusts||[]){ const v=r2(Math.abs(+x.cost||0)); if(!v) continue; E(x.ts,'جرد: '+(x.name||''),'adj',x.diff<0?[['5302',v,0],['1105',0,v]]:[['1105',v,0],['5302',0,v]]) }
   for(const c of S.closes||[]){ const d=r2(+c.diff||0); if(d<0) E(c.ts,'إقفال الصندوق: نقص (مسحوبات أو عجز)','close',[['3103',-d,0],['1101',0,-d]]); else if(d>0) E(c.ts,'إقفال الصندوق: زيادة','close',[['1101',d,0],['3103',0,d]]) }
+  for(const x of S.draws||[]){ const a=r2(+x.amt||0); E(x.ts,(x.kind==='out'?'سحب المالك من الصندوق':'إيداع المالك بالصندوق')+(x.note?': '+x.note:''),'draw',x.kind==='out'?[['3103',a,0],['1101',0,a]]:[['1101',a,0],['3103',0,a]]) }
   const skipC=l=>l.sid!=null||/^(إرجاع من فاتورة|إرجاع فاتورة|حذف فاتورة|تعديل فاتورة)/.test(l.note||'');
   for(const c of S.customers) for(const l of c.ledger||[]){ if(l.cur||skipC(l)) continue; const a=r2(Math.abs(+l.amt||0)), n=l.note||'', who=c.name||'';
     if(l.amt<0){ const dr=/^شيك رقم/.test(n)?'1104':/^استبدال/.test(n)?'5303':l.noCash?bank(''):'1101'; E(l.ts,`${n||'دفعة'} · ${who}`,'col',[[dr,a,0],['1103',0,a]]) }
@@ -1467,10 +1468,29 @@ function accBS(to){ const b=accBal(-Infinity,to), sub=pre=>Object.keys(b).filter
   const pl=accPL(-Infinity,to).net, eq=[['رأس المال والأرصدة الافتتاحية',accNet(b,'3101')],['فروقات تسوية الأرصدة',accNet(b,'3102')],['جاري المالك (مسحوبات وفروقات الصندوق)',accNet(b,'3103')],['الأرباح المحتجزة (صافي الربح)',pl]].filter(x=>Math.abs(x[1])>0.004);
   const T=l=>r2(l.reduce((a,x)=>a+x[1],0)); return {assets,liab,eq,A:T(assets),L:T(liab),Q:T(eq)} }
 function accCF(from,to){ const isC=c=>c==='1101'||c.startsWith('1102'), G={}, add=(k,v)=>G[k]=r2((G[k]||0)+v); let open=0;
-  const LBL={sale:'مقبوضات المبيعات',col:'تحصيل ديون الزبائن',ret:'مردودات للزبائن',buy:'مشتريات نقدية',pay:'دفعات للموردين',exp:'المصروفات',close:'فروقات إقفال الصندوق',chq:'شيكات منصرفة',debt:'حركات ديون أخرى',sdebt:'حركات موردين أخرى',plug:'تسويات'};
+  const LBL={sale:'مقبوضات المبيعات',col:'تحصيل ديون الزبائن',ret:'مردودات للزبائن',buy:'مشتريات نقدية',pay:'دفعات للموردين',exp:'المصروفات',close:'فروقات إقفال الصندوق',draw:'مسحوبات وإيداعات المالك',chq:'شيكات منصرفة',debt:'حركات ديون أخرى',sdebt:'حركات موردين أخرى',plug:'تسويات'};
   for(const j of accJournal()){ const v=r2(j.lines.reduce((a,[c,dr,cr])=>isC(c)?a+(dr||0)-(cr||0):a,0)); if(!v) continue; if(j.ts<from) open=r2(open+v); else if(j.ts<to) add(j.kind,v) }
   const rows=Object.entries(G).map(([k,v])=>[LBL[k]||k,v]).sort((a,b)=>b[1]-a[1]), net=r2(rows.reduce((a,x)=>a+x[1],0)); return {open,rows,net,close:r2(open+net)} }
 function accTB(to){ const b=accBal(-Infinity,to), pl=null; return Object.keys(b).sort().map(c=>{ const x=b[c], n=r2(x.dr-x.cr); return {c,name:(c.includes(':')?accName(accParent(c))+' / ':'')+accName(c),dr:x.dr,cr:x.cr,bd:n>0?n:0,bc:n<0?-n:0} }) }
+/* مقارنة طرق التكلفة: المسجّل (آخر تكلفة) مقابل المتوسط المرجح و FIFO. قراءة فقط */
+function costMethods(from,to){ const ev={}, P=i=>ev[i]||(ev[i]=[]);
+  for(const p of S.purchases){ const q=+p.qty||0; if(q>0) P(p.itemId).push({ts:p.ts,q,c:r2((+p.cost||0)||(+p.total||0)/q),t:'in'}) }
+  for(const s of S.sales) for(const l of s.lines||[]){ const q=+l.baseQty||0; if(q>0) P(l.itemId).push({ts:s.ts,q:-q,rec:r2((+l.cost||0)*q),t:'sale'}) }
+  for(const x of S.returns||[]) for(const l of x.lines||[]){ const q=+l.baseQty||0; if(q>0) P(l.itemId).push({ts:x.ts,q,c:q?r2((+l.cost||0)/q):0,t:'ret',rec:-(+l.cost||0)}) }
+  for(const a of S.adjusts||[]){ const q=+a.diff||0; if(q) P(a.itemId).push({ts:a.ts,q,c:q>0?(a.cost&&q?r2(a.cost/q):0):0,t:'adj'}) }
+  const T={rec:0,wac:0,fifo:0,invW:0,invF:0,invC:0}, rows=[];
+  for(const it of S.items){ const E=(ev[it.id]||[]).sort((a,b)=>a.ts-b.ts), cur=Math.max(0,(+it.qty||0)+(+it.wqty||0)), net=E.reduce((a,e)=>a+e.q,0);
+    const open=Math.max(0,r3(cur-net)), c0=(E.find(e=>e.t==='in')||{}).c||(+it.cost||0);
+    let wq=open, wv=r2(open*c0), lay=open>0?[{q:open,c:c0}]:[], last=c0, R={rec:0,wac:0,fifo:0};
+    for(const e of E){ const inP=e.ts>=from&&e.ts<to;
+      if(e.q>0){ const c=e.c||last||(+it.cost||0); if(e.t==='in') last=c; wq=r3(wq+e.q); wv=r2(wv+e.q*c); lay.push({q:e.q,c}); if(e.t==='ret'&&inP){ R.rec=r2(R.rec+e.rec); R.wac=r2(R.wac-e.q*c); R.fifo=r2(R.fifo-e.q*c) } continue }
+      const q=-e.q, avg=wq>0?wv/wq:last; const wc=r2(q*avg); wq=r3(wq-q); wv=r2(Math.max(0,wv-wc)); if(wq<=0){wq=0;wv=0}
+      let need=q, fc=0; while(need>0.0005&&lay.length){ const L=lay[0], k=Math.min(L.q,need); fc+=k*L.c; L.q=r3(L.q-k); need=r3(need-k); if(L.q<=0.0005) lay.shift() } if(need>0.0005) fc+=need*last;
+      if(e.t==='sale'&&inP){ R.rec=r2(R.rec+e.rec); R.wac=r2(R.wac+wc); R.fifo=r2(R.fifo+fc) } }
+    const invW=r2(wq>0?wv:0), invF=r2(lay.reduce((a,L)=>a+L.q*L.c,0)), invC=r2(cur*(+it.cost||0));
+    T.rec=r2(T.rec+R.rec); T.wac=r2(T.wac+R.wac); T.fifo=r2(T.fifo+R.fifo); T.invW=r2(T.invW+invW); T.invF=r2(T.invF+invF); T.invC=r2(T.invC+invC);
+    if(R.rec||R.wac||R.fifo) rows.push({n:it.name,...R,d:r2(Math.max(Math.abs(R.wac-R.rec),Math.abs(R.fifo-R.rec)))}) }
+  rows.sort((a,b)=>b.d-a.d); return {T,rows} }
 let ACCV='sum', ACCP='month', ACCA='1101';
 function accRange(){ const now=Date.now(), d=new Date(); if(ACCP==='today') return [sod(),Infinity,'اليوم']; if(ACCP==='month') return [new Date(d.getFullYear(),d.getMonth(),1).getTime(),Infinity,'هذا الشهر'];
   if(ACCP==='pmonth') return [new Date(d.getFullYear(),d.getMonth()-1,1).getTime(),new Date(d.getFullYear(),d.getMonth(),1).getTime(),'الشهر الماضي']; if(ACCP==='year') return [new Date(d.getFullYear(),0,1).getTime(),Infinity,'هذه السنة']; return [-Infinity,Infinity,'من البداية'] }
@@ -1502,9 +1522,17 @@ function accView(){ if(!isOwner()) return back('المحاسبة')+'<div class="
     const kids=p=>[...ACC.filter(a=>a[2]===p).map(a=>a[0]),...[...used].filter(c=>c.includes(':')&&c.split(':')[0]===p)];
     const node=(c,dep)=>{ const k=kids(c), v=c.length<=2?accSum(b,c):(c.includes(':')?accNet(b,c):accSum(b,c)); return `<div class="li" style="padding-inline-start:${dep*14}px"><span>${dep?'└ ':''}<small class="num">${esc(c.split(':')[0])}</small> ${esc(accName(c))}</span><span>${money(v)}</span></div>`+k.map(x=>node(x,dep+1)).join('') };
     body+=`<div class="card"><h2>شجرة الحسابات</h2><p class="muted" style="margin:0">الحسابات الرئيسية ثابتة، والفرعية (البنوك والمحافظ، وأنواع المصروفات) بتنعمل لحالها من عملياتك.</p><div class="list">${['1','2','3','4','5'].map(c=>node(c,0)).join('')}</div></div>` }
+  if(ACCV==='cost'){ const {T,rows}=costMethods(from,to), r=(t,a,b,c,bold)=>`<tr${bold?' style="font-weight:700"':''}><td>${t}</td><td class="n">${fx(a)}</td><td class="n">${fx(b)}</td><td class="n">${fx(c)}</td></tr>`;
+    body+=`<div class="card"><div class="row"><h2>طرق حساب التكلفة</h2><span class="pill ok">${pt}</span></div><p class="muted" style="margin:0">مقارنة بس: التطبيق بيسجّل تكلفة آخر شراء. هون بتشوف كيف بتطلع التكلفة والربح لو انحسبت بالمتوسط المرجح أو بالوارد أولًا صادر أولًا (FIFO). ما بيتغيّر ولا رقم بفواتيرك.</p>
+      <div style="overflow-x:auto"><table class="acct"><thead><tr><th></th><th class="n">المسجّل</th><th class="n">المتوسط المرجح</th><th class="n">FIFO</th></tr></thead><tbody>${r('تكلفة البضاعة المباعة',T.rec,T.wac,T.fifo,1)}${r('أثرها على الربح',0,r2(T.rec-T.wac),r2(T.rec-T.fifo))}${r('قيمة المخزون الحالي',T.invC,T.invW,T.invF,1)}</tbody></table></div>
+      <p class="muted" style="margin:0">موجب بـ«أثرها على الربح» يعني الربح الحقيقي أعلى من المسجّل، وسالب يعني أقل.</p></div>
+      <div class="card"><h2>الأصناف الأكثر فرقًا</h2><div style="overflow-x:auto"><table class="acct"><thead><tr><th>الصنف</th><th class="n">المسجّل</th><th class="n">المرجح</th><th class="n">FIFO</th></tr></thead><tbody>${rows.slice(0,25).map(x=>`<tr><td>${esc(x.n)}</td><td class="n">${fx(x.rec)}</td><td class="n">${fx(x.wac)}</td><td class="n">${fx(x.fifo)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">ما في مبيعات بالفترة</td></tr>'}</tbody></table></div></div>` }
+  if(ACCV==='per'){ const L=[...(S.periods||[])].reverse();
+    body+=`<div class="card"><h2>الفترات المالية</h2><p class="muted" style="margin:0">إقفال الشهر بيحفظ نسخة ثابتة من نتائجه. ما بيحذف ولا بيمنع إشي، وإذا تعدّلت عملية قديمة بتشوف هون إنه الرقم تغيّر.</p><button class="btn primary block" data-act="perCloseAsk">إقفال آخر شهر كامل</button>
+      <div class="list">${L.map(x=>{ const now=accPL(x.from,x.to).net, ch=Math.abs(now-x.pl.net)>0.009; return `<div class="li" style="align-items:flex-start"><span><b style="font-weight:600">${new Date(x.from).toLocaleDateString('ar-u-nu-latn')} ← ${new Date(x.to-1).toLocaleDateString('ar-u-nu-latn')}</b><br><small class="muted">مبيعات ${fx(x.pl.sales)} · مصروفات ${fx(x.pl.ex)} · انقفلت ${fdate(x.ts)}</small>${ch?`<br><small style="color:var(--bad)">⚠️ صار الصافي ${fx(now)} بسبب تعديل بعد الإقفال</small>`:''}</span><span class="pill ${x.pl.net>=0?'ok':'bad'}">${fx(x.pl.net)} ₪</span></div>` }).join('')||'<div class="empty">ما في فترات مقفلة لسا</div>'}</div></div>` }
   const pl=accJournal().filter(j=>j.kind==='plug');
-  return back('المحاسبة')+chips([['sum','الملخص'],['pl','الأرباح والخسائر'],['bs','الميزانية'],['cf','التدفقات النقدية'],['tb','ميزان المراجعة'],['gl','دفتر الأستاذ'],['tree','شجرة الحسابات']],ACCV,'accV')
-    +(['tb','tree'].includes(ACCV)?'':chips([['today','اليوم'],['month','هذا الشهر'],['pmonth','الشهر الماضي'],['year','هذه السنة'],['all','من البداية']],ACCP,'accP'))+body
+  return back('المحاسبة')+chips([['sum','الملخص'],['pl','الأرباح والخسائر'],['bs','الميزانية'],['cf','التدفقات النقدية'],['tb','ميزان المراجعة'],['gl','دفتر الأستاذ'],['cost','طرق التكلفة'],['per','الفترات المالية'],['tree','شجرة الحسابات']],ACCV,'accV')
+    +(['tb','tree','per'].includes(ACCV)?'':chips([['today','اليوم'],['month','هذا الشهر'],['pmonth','الشهر الماضي'],['year','هذه السنة'],['all','من البداية']],ACCP,'accP'))+body
     +hint(`القيود بتنعمل لحالها من كل عملية: البيع، المرتجع، الشراء، المصروف، الدين والتحصيل، الشيكات، الجرد، وإقفال الصندوق. ما بتحتاج تدخل إشي، وما بيتغيّر أي إشي ببياناتك.${pl.length?`<br>⚖️ في ${pl.length} سطر تسوية افتتاحية (مثل بضاعة كانت موجودة قبل ما تسجّل مشترياتها). هاي طبيعية بأول استخدام.`:''}<br>المبالغ بالشيكل بس؛ الحركات بالدولار والدينار بتظهر بحسابات الزبائن.`) }
 
 let DQF='';
@@ -1714,7 +1742,8 @@ function drawer(){
   const buys=sum(S.purchases.filter(p=>since(p)&&p.paid==='cash'),p=>p.total);
   const supOut=sum(S.suppliers.flatMap(c=>c.ledger).filter(l=>since(l)&&l.amt<0&&!l.noCash&&!l.cur),l=>-l.amt);
   const refunds=sum((S.returns||[]).filter(x=>since(x)&&x.method==='cash'),x=>x.amount);
-  return {from,open,cashSales,debtIn,exp,buys,supOut,refunds,expected:r2(open+cashSales+debtIn-exp-buys-supOut-refunds)};
+  const dOut=sum((S.draws||[]).filter(x=>since(x)&&x.kind==='out'),x=>x.amt), dIn=sum((S.draws||[]).filter(x=>since(x)&&x.kind==='in'),x=>x.amt);
+  return {from,open,cashSales,debtIn,exp,buys,supOut,refunds,dOut,dIn,expected:r2(open+cashSales+debtIn-exp-buys-supOut-refunds-dOut+dIn)};
 }
 /* شراء نفس الصنف بسعر تكلفة جديد: بنعرض الأسعار الحالية، وبنفتح خيار تحديث سعر البيع والجملة */
 function pInfoTxt(it){ if(!it) return ''; const u=it.byWeight?'للكيلو':'للحبة';
@@ -2017,7 +2046,11 @@ more(){
     <div class="tile hl"><div class="lbl">المتوقع في الصندوق الآن</div><div class="val">${money(d.expected)}</div><div class="lbl">منذ آخر إقفال ${d.from?fdate(d.from):''}</div></div>
     <div class="card"><div class="list">
       ${stat('رصيد الافتتاح',money(d.open))}${stat('مبيعات نقدية',money(d.cashSales))}${stat('دفعات ديون من الزبائن',money(d.debtIn))}
-      ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}</div></div>
+      ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}${d.dOut?stat('مسحوبات المالك',money(-d.dOut)):''}${d.dIn?stat('إيداعات المالك',money(d.dIn)):''}</div></div>
+    <div class="card"><h2>مسحوبات وإيداعات المالك</h2><p class="muted" style="margin:0">إذا أخدت مصاري من الدرج لإلك، أو حطيت مصاري من جيبك، سجّلها هون. هيك الصندوق والمحاسبة بيطلعوا مظبوطين، وما بتنحسب عليك عجز.</p>
+      <div class="withbtn"><label for="drAmt">المبلغ (₪)<input id="drAmt" type="number" inputmode="decimal" min="0"></label></div><input id="drNote" placeholder="ملاحظة (اختياري)">
+      <div class="grid2"><button class="btn" data-act="drawGo" data-k="out">⬆️ سحبت من الصندوق</button><button class="btn" data-act="drawGo" data-k="in">⬇️ حطيت بالصندوق</button></div>
+      ${(S.draws||[]).length?`<div class="list">${[...S.draws].reverse().slice(0,5).map(x=>`<div class="li"><span><span class="t">${x.kind==='out'?'سحب':'إيداع'}${x.note?' · '+esc(x.note):''}</span><br><span class="muted">${fdate(x.ts)}</span></span>${money(x.kind==='out'?-x.amt:x.amt)}</div>`).join('')}</div>`:''}</div>
     ${(()=>{const ap={}; S.sales.filter(s=>s.ts>d.from&&payOf(s).app>0).forEach(s=>{const k=s.appMethod||'أخرى',e=ap[k]||(ap[k]={ok:0,pend:0,n:0}); e.n++; if(s.confirmed===false) e.pend=r2(e.pend+payOf(s).app); else e.ok=r2(e.ok+payOf(s).app)});
       const ks=Object.keys(ap); return ks.length?`<div class="card"><h2>مطابقة المحافظ والبنوك</h2><p class="muted" style="margin:0">قارن هالأرقام مع كشف كل محفظة قبل الإقفال.</p><div class="list">${ks.map(k=>`<div class="li"><span><span class="t">${esc(k)}</span><br><span class="muted">${ap[k].n} عملية${ap[k].pend?` · بانتظار ${fx(ap[k].pend)} ₪`:''}</span></span>${money(ap[k].ok+ap[k].pend)}</div>`).join('')}</div></div>`:''})()}
     ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li">${s.proof?`<button class="pthumb sm" data-act="proofView" data-k="${s.id}" aria-label="إشعار فاتورة ${s.id}">${PROOF[s.proof]?`<img src="${PROOF[s.proof]}" alt="">`:(proofGet(s.proof).then(()=>{if(tab==='more')render()}),'')}</button>`:'<span class="pthumb sm none" title="بلا إشعار">—</span>'}<span style="flex:1"><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">${s.payer?`باسم ${esc(s.payer)} · `:''}فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
@@ -3408,6 +3441,16 @@ function pBizView(){ const on=!!S.pharm;
      <label for="pAct">للتأكيد اكتب كلمة <b>تفعيل</b><input id="pAct" autocomplete="off" placeholder="تفعيل"></label>
      <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
 Object.assign(A,{
+  drawGo(d){ const a=r2(parseFloat(($('#drAmt')||{}).value)||0); if(!(a>0)){toast('اكتب المبلغ');return} const note=(($('#drNote')||{}).value||'').trim().slice(0,80);
+    S.draws=S.draws||[]; S.draws.push({id:S.nextId++,ts:Date.now(),kind:d.k==='in'?'in':'out',amt:a,note}); audit(`${d.k==='in'?'إيداع المالك':'سحب المالك'} ${fx(a)} ₪${note?' · '+note:''}`); save(); render(); toast(d.k==='in'?'✓ انسجّل الإيداع':'✓ انسجّل السحب') },
+  perCloseAsk(){ const last=(S.periods||[]).slice(-1)[0], from=last?last.to:(Math.min(Date.now(),...S.sales.map(x=>x.ts))), d=new Date(), to=new Date(d.getFullYear(),d.getMonth(),1).getTime();
+    if(to<=from){ toast('ما في شهر كامل جديد لسا يتقفل'); return }
+    const pl=accPL(from,to); openSheet(`${sheetHead('إقفال فترة مالية')}<p style="margin:0">من <b>${new Date(from).toLocaleDateString('ar-u-nu-latn')}</b> لـ <b>${new Date(to-1).toLocaleDateString('ar-u-nu-latn')}</b></p>
+      <div class="pinfo">صافي ${pl.net>=0?'الربح':'الخسارة'}: <b>${fx(pl.net)} ₪</b> · المبيعات ${fx(pl.net_s)} ₪</div>
+      <p class="muted" style="margin:0">الإقفال بيحفظ نسخة ثابتة من القوائم المالية لهالفترة (أرشيف). ما بيحذف ولا بيغيّر ولا عملية، وإذا تعدّلت عملية قديمة بعدين بينبّهك إن أرقام الفترة المقفلة تغيّرت.</p>
+      <button class="btn primary block" data-act="perCloseGo" data-f="${from}" data-t="${to}">إقفال الفترة</button>`) },
+  perCloseGo(d){ const from=+d.f, to=+d.t; if(!(to>from)) return; const pl=accPL(from,to), bs=accBS(to); S.periods=S.periods||[];
+    S.periods.push({id:S.nextId++,ts:Date.now(),from,to,pl:{sales:pl.net_s,cogs:pl.cogs,gross:pl.gross,ex:pl.exT,other:pl.oT,net:pl.net},bs:{A:bs.A,L:bs.L,Q:bs.Q}}); audit(`إقفال فترة مالية ${new Date(from).toLocaleDateString('ar-u-nu-latn')} - ${new Date(to-1).toLocaleDateString('ar-u-nu-latn')}: صافي ${fx(pl.net)} ₪`); save(); closeSheet(); ACCV='per'; render(); toast('✓ انقفلت الفترة وانحفظت بالأرشيف') },
   accV(d){ ACCV=d.k; render() }, accP(d){ ACCP=d.k; render() }, accGL(d){ ACCV='gl'; ACCA=d.k; render() },
   async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); try{ localStorage.removeItem('ksr-pimg') }catch(_){} const bad=()=>S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market')&&badImg(i)).length, before=bad(); await vegFix(); await mkFix(); const after=bad(); render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
   tplAsk(d){ const n=TPLN[d.k]; if(!n) return;
@@ -3488,7 +3531,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['drawGo','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
