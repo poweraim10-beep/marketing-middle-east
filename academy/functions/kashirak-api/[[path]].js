@@ -73,6 +73,7 @@ async function ensure(env) {
     'ALTER TABLE ksr_shops ADD COLUMN wa TEXT',
     'ALTER TABLE ksr_shops ADD COLUMN sellers TEXT',
     'ALTER TABLE ksr_shops ADD COLUMN multi INTEGER',
+    'ALTER TABLE ksr_shops ADD COLUMN stopped INTEGER',
     'CREATE TABLE IF NOT EXISTS ksr_scan (id INTEGER PRIMARY KEY AUTOINCREMENT, shop TEXT NOT NULL, code TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL)',
     'CREATE INDEX IF NOT EXISTS ksr_scan_shop ON ksr_scan (shop, id)',
     'CREATE TABLE IF NOT EXISTS ksr_ops (shop TEXT NOT NULL, id TEXT NOT NULL, dev TEXT, t INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (shop, id))',
@@ -187,6 +188,11 @@ function tplClean(list) {
   }
   return out;
 }
+async function kvJson(env, k) { try { const r = await env.DB.prepare('SELECT v FROM ksr_kv WHERE k = ?').bind(k).first(); return r ? JSON.parse(r.v) : {}; } catch { return {}; } }
+async function cfgFor(env, shop) { // إعدادات لوحة الكاشير: العامة + الخاصة بهذا المحل (الخاص بيغلب)
+  const g = await kvJson(env, 'cfg'), sh = shop ? await kvJson(env, 'cfg:' + shop.id) : {};
+  return { ...g, feat: { ...(g.feat || {}), ...(sh.feat || {}) }, ...(sh.notice ? { notice: sh.notice } : {}), t: Math.max(g.t || 0, sh.t || 0) };
+}
 async function readState(env, id) {
   const r = await env.DB.prepare('SELECT data FROM ksr_chunks WHERE shop = ? ORDER BY i').bind(id).all();
   return (r.results || []).map((x) => x.data).join('');
@@ -222,7 +228,8 @@ async function signLicense(env, row) {
 async function signShop(env, shop) {
   shop = await ensureAcct(env, shop);
   const L = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind('shop:' + shop.id).first();
-  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, s: sellersOf(shop), e: L ? L.exp : -1, tr: shop.trial_end || 0, p: L ? (L.plan || '') : 'trial', i: Date.now() }));
+  const off = !!shop.stopped;
+  const payload = b64u(JSON.stringify({ t: 'shop', id: shop.id, a: shop.acct, d: shop.main, s: sellersOf(shop), e: off ? -1 : (L ? L.exp : -1), tr: off ? 0 : (shop.trial_end || 0), p: off ? 'stopped' : (L ? (L.plan || '') : 'trial'), i: Date.now() }));
   const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await signKey(env), new TextEncoder().encode(payload)));
   return payload + '.' + b64uBytes(sig);
 }
@@ -391,6 +398,7 @@ export async function onRequest({ request, env, params }) {
       const shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
       if (shop && !shop.hash) { return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
       if (!shop || !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('رقم الجوال أو كلمة السر غلط', 401); }
+      if (shop.stopped) return err('هذا الحساب موقوف حاليًا. تواصل مع الدعم، وبياناتك كلها محفوظة', 403, { code: 'stopped' });
       const ldev = clean(q.device, 40), act = activeDevs(shop);
       if (ldev && !act.some((x) => x.id === ldev) && act.length >= MAX_DEV) {
         const rp = clean(q.replace, 40);
@@ -456,8 +464,9 @@ export async function onRequest({ request, env, params }) {
           .bind(device, clean(sp.get('shop') || '', 80) || null, clean(sp.get('phone') || '', 20) || null, t, t, null, parseInt(sp.get('sales'), 10) || 0, parseInt(sp.get('items'), 10) || 0, clean(sp.get('v') || '', 10) || null, shopRow ? shopRow.id : null).run().catch(() => {});
         if (shopRow && (devsOf(shopRow)[device] || activeDevs(shopRow).length < MAX_DEV)) await seen(env, shopRow, device);
       }
-      if (!shopRow) return json({ license: null });
-      return json({ license: await signShop(env, shopRow), main: shopRow.main });
+      const cfg = await cfgFor(env, shopRow);
+      if (!shopRow) return json({ license: null, cfg });
+      return json({ license: await signShop(env, shopRow), main: shopRow.main, cfg });
     }
 
 
@@ -768,6 +777,27 @@ async function admin(env, request, b) {
     return json({ ok: true, copied: items.length, shop: before.sh.name || '', before: { ...before.counts, version: before.sh.version }, after: after ? { ...after.counts, version: after.sh.version } : null, unchanged: !!same,
       note: same ? 'حساب المحل ما تغيّر فيه ولا إشي (نفس البصمة ونفس النسخة ونفس الأعداد)' : 'المحل عمل تعديل أثناء النسخ (بيع مثلًا) من جهازه. النسخ نفسه ما كتب على المحل' });
   }
+  if (b === 'cfg') { // الإعدادات العامة لتطبيق الكاشير
+    if (m === 'GET') return json(await kvJson(env, 'cfg'));
+    const feat = {}; for (const [k, v] of Object.entries(q.feat || {})) if (/^[a-z]{2,10}$/.test(k)) feat[k] = v ? 1 : 0;
+    const v = { t: nowMs(), feat, curOff: (Array.isArray(q.curOff) ? q.curOff : []).filter((x) => ['USD', 'JOD'].includes(x)), wa: (String(q.wa || '').replace(/\D/g, '').slice(0, 15)), notice: clean(q.notice, 300),
+      land: { title: clean(q.land && q.land.title, 60), desc: clean(q.land && q.land.desc, 300) } };
+    await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('cfg', JSON.stringify(v)).run();
+    return json(v);
+  }
+  if (b === 'shopcfg') { // ميزات محل معيّن (بتخفي بس، ما بتحذف إشي)
+    const id = clean(q.id || new URL(request.url).searchParams.get('id'), 40); if (!id) return err('المحل ناقص');
+    if (m === 'GET') return json(await kvJson(env, 'cfg:' + id));
+    const feat = {}; for (const [k, v] of Object.entries(q.feat || {})) if (/^[a-z]{2,10}$/.test(k) && v !== null && v !== '') feat[k] = v ? 1 : 0;
+    const v = { t: nowMs(), feat, notice: clean(q.notice, 300) };
+    await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('cfg:' + id, JSON.stringify(v)).run();
+    return json(v);
+  }
+  if (b === 'stop' && m === 'POST') { // إيقاف/تفعيل محل: بيمنع الدخول والإضافة بس، وبياناته كلها بتضل
+    const sh = await env.DB.prepare('SELECT id FROM ksr_shops WHERE id = ?').bind(clean(q.id, 40)).first(); if (!sh) return err('الحساب مش موجود', 404);
+    await env.DB.prepare('UPDATE ksr_shops SET stopped = ? WHERE id = ?').bind(q.on ? nowMs() : null, sh.id).run();
+    return json({ ok: true, stopped: !!q.on });
+  }
   if (b === 'pushstats' && m === 'GET') {
     const r = await env.DB.prepare('SELECT COUNT(*) AS n, COUNT(DISTINCT shop) AS shops FROM ksr_push').first();
     return json({ subs: r ? r.n : 0, shops: r ? r.shops : 0 });
@@ -775,7 +805,7 @@ async function admin(env, request, b) {
 
   if (b === 'summary' && m === 'GET') {
     const [shopsR, licR, codesR, devR] = await Promise.all([
-      env.DB.prepare("SELECT id, phone, name, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip, wa, (hash <> '') AS haspass FROM ksr_shops ORDER BY created DESC LIMIT 3000").all(),
+      env.DB.prepare("SELECT id, phone, name, main, version, size, updated, created, devices, meta, acct, owner, trial_end, fp, ip, wa, stopped, (hash <> '') AS haspass FROM ksr_shops ORDER BY created DESC LIMIT 3000").all(),
       env.DB.prepare('SELECT * FROM ksr_lic').all(),
       env.DB.prepare('SELECT * FROM ksr_codes ORDER BY created DESC LIMIT 3000').all(),
       env.DB.prepare('SELECT * FROM ksr_dev ORDER BY last DESC LIMIT 3000').all(),
@@ -786,7 +816,7 @@ async function admin(env, request, b) {
       let d = {}, meta = {}; try { d = JSON.parse(s.devices || '{}'); } catch {} try { meta = JSON.parse(s.meta || '{}'); } catch {}
       const L = lic['shop:' + s.id];
       const lastSeen = Math.max(0, ...Object.values(d).map((x) => x.last || 0));
-      return { kind: 'shop', id: s.id, acct: s.acct, owner: s.owner || '', wa: s.wa || '', haspass: !!s.haspass, fp: s.fp || '', phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: s.trial_end || meta.trialEnds || null, legacyExp: null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
+      return { kind: 'shop', id: s.id, stopped: s.stopped || 0, acct: s.acct, owner: s.owner || '', wa: s.wa || '', haspass: !!s.haspass, fp: s.fp || '', phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: s.trial_end || meta.trialEnds || null, legacyExp: null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
     });
     // same phone/browser fingerprint behind several accounts = probably the same person repeating the free trial
     const fpN = {}; for (const s of shops) if (s.fp) fpN[s.fp] = (fpN[s.fp] || 0) + 1;
@@ -862,15 +892,9 @@ async function admin(env, request, b) {
     }
     if (b === 'delete') {
       if (String(q.confirm || '') !== String(sh.acct)) return err('اكتب رقم الحساب للتأكيد');
-      await env.DB.batch([
-        env.DB.prepare('DELETE FROM ksr_chunks WHERE shop = ?').bind(sh.id),
-        env.DB.prepare('DELETE FROM ksr_blobs WHERE shop = ?').bind(sh.id),
-        env.DB.prepare('DELETE FROM ksr_hist WHERE shop = ?').bind(sh.id),
-        env.DB.prepare('DELETE FROM ksr_hist_chunks WHERE shop = ?').bind(sh.id),
-        env.DB.prepare('DELETE FROM ksr_lic WHERE id = ?').bind('shop:' + sh.id),
-        env.DB.prepare('DELETE FROM ksr_shops WHERE id = ?').bind(sh.id),
-      ]);
-      return json({ ok: true });
+      // ما في حذف نهائي: الحساب بينقل للأرشيف (موقوف) وكل بياناته بتضل وبترجع بضغطة «تفعيل»
+      await env.DB.prepare('UPDATE ksr_shops SET stopped = ? WHERE id = ?').bind(nowMs(), sh.id).run();
+      return json({ ok: true, archived: true });
     }
   }
   if (b === 'history' && m === 'GET') {

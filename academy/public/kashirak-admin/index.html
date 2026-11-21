@@ -67,7 +67,7 @@ label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;
 input,select,textarea{width:100%;min-height:46px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:#FFFDF8;font-size:16px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(240,207,122,.3)}
 .search{position:relative}.search input{padding-inline-start:40px}.search svg{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
-nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid #EEE8DA;display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(11,31,58,.06)}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid #EEE8DA;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(11,31,58,.06)}
 nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);padding:6px 0;cursor:pointer;border-radius:12px}
 nav button[aria-current=page]{color:var(--navy)}
 nav button[aria-current=page] .ic{background:linear-gradient(180deg,#FFF1C6,#F0CF7A);color:#5A3E05}
@@ -90,6 +90,8 @@ nav .ic{width:44px;height:30px;border-radius:999px;display:grid;place-items:cent
 .login img{width:96px;height:96px;border-radius:24px;margin:0 auto;box-shadow:0 10px 24px rgba(0,0,0,.35)}
 .spin{width:34px;height:34px;border-radius:50%;border:4px solid #E4DED0;border-top-color:var(--gold);animation:sp .8s linear infinite;margin:40px auto}@keyframes sp{to{transform:rotate(360deg)}}
 [hidden]{display:none!important}
+
+.ck{display:flex!important;flex-direction:row!important;align-items:center;gap:10px;font-weight:600;margin:4px 0}.ck input{width:22px!important;height:22px!important;flex:none;margin:0}
 </style>
 </head>
 <body>
@@ -144,10 +146,10 @@ const shopById=id=>D.shops.find(x=>x.id===id&&x.kind==='shop');
 const initials=n=>esc(String(n||'؟').trim().slice(0,1));
 
 /* ---------- rendering ---------- */
-function shell(body){return `<header><div class="hd"><img src="icons/icon-192.png" alt=""><div><b>كاشيرك الذكي</b><small>لوحة المالك · أبو عمر الغزاوي</small></div><span class="sp"></span>
+function shell(body){return `<header><div class="hd"><img src="icons/icon-192.png" alt=""><div><b>كاشيرك الذكي</b><small>لوحة المالك · أبو عمر الغزاوي</small></div><span class="sp"></span><span id="syncPill" style="font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.12)">${syncTxt()}</span>
   <button class="ib" data-a="reload" aria-label="تحديث"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button></div></header>
   <main>${body}</main>
-  <nav>${[['home','الرئيسية','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],['shops','المشتركين','<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3.5 5.5"/>'],['codes','الأكواد','<rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h6M7 14h10"/>'],['money','الدخل','<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>']].map(([k,l,ic])=>`<button data-a="tab" data-t="${k}" ${tab===k?'aria-current="page"':''}><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ic}</svg></span>${l}</button>`).join('')}</nav>`}
+  <nav>${[['home','الرئيسية','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],['shops','المشتركين','<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3.5 5.5"/>'],['codes','الأكواد','<rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h6M7 14h10"/>'],['money','الدخل','<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>'],['ctl','التحكم','<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>']].map(([k,l,ic])=>`<button data-a="tab" data-t="${k}" ${tab===k?'aria-current="page"':''}><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ic}</svg></span>${l}</button>`).join('')}</nav>`}
 function render(){ if(!D) return; $('#app').innerHTML=shell(V[tab]()); }
 const V={
 home(){
@@ -197,6 +199,21 @@ codes(){
   <div class="search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="codeQ" placeholder="ابحث بالكود أو اسم الزبون" value="${esc(codeQ)}"></div>
   <div class="chips">${F.map(([k,l])=>`<button class="chip" data-a="cfilter" data-f="${k}" aria-pressed="${codeFilter===k}">${l} <span class="num">${k==='all'?D.codes.filter(c=>c.kind==='code').length:D.codes.filter(c=>c.kind==='code'&&c.status===k).length}</span></button>`).join('')}</div>
   <div class="card"><div class="list">${cs.map(codeRow).join('')||'<div class="empty">ما في أكواد هون</div>'}</div></div>`},
+ctl(){ const c=D.cfg||{}, f=c.feat||{}, off=c.curOff||[], L=c.land||{};
+  return `<div class="card" style="gap:10px;border:2px solid var(--gold,#C8A24A)"><h2>🗂️ قوالب الأصناف</h2><p style="margin:0;font-size:13.5px;color:var(--muted)">منها بتنسخ أصناف ماركت الرائد لقالب السوبر ماركت (قراءة فقط)، وبتعبّي قالب الصيدلية، وبتشوف قالب الفواكه والخضار.</p><button class="btn gold block" data-a="tplSheet">افتح قوالب الأصناف ونسخ ماركت الرائد</button></div>
+  <div class="card" style="gap:8px"><h2>💱 العملات بتطبيق الكاشير</h2><p style="margin:0;font-size:13px;color:var(--muted)">الشيكل دايمًا شغّال. إيقاف عملة بيخفيها من العمليات الجديدة بس، وما بيمس أي عملية قديمة.</p>
+   ${[['USD','الدولار $'],['JOD','الدينار د.أ']].map(([k,t])=>`<label class="ck"><input type="checkbox" data-cur="${k}" ${off.includes(k)?'':'checked'}> ${t}</label>`).join('')}</div>
+  <div class="card" style="gap:8px"><h2>🧩 الميزات لكل المحلات</h2><p style="margin:0;font-size:13px;color:var(--muted)">إيقاف ميزة بيخفيها بس، وبياناتها بتضل محفوظة. وبتقدر تغيّرها لمحل معيّن من صفحة المحل.</p>
+   <div class="grid2">${[['debts','الديون'],['sup','الموردين'],['buy','المشتريات'],['rep','التقارير والسجل'],['cash','الصندوق'],['exp','المصروفات'],['chq','الشيكات'],['loy','نقاط الولاء'],['lab','ملصقات الباركود'],['staff','العمال والبصمة'],['inv','تعديل الفاتورة']].map(([k,t])=>`<label class="ck"><input type="checkbox" data-feat="${k}" ${f[k]===0?'':'checked'}> ${t}</label>`).join('')}</div></div>
+  <div class="card" style="gap:8px"><h2>📝 النصوص والتواصل</h2>
+   <label>رقم واتساب الدعم بالتطبيق (فاضي = الحالي)<input id="cfWa" class="num" inputmode="tel" dir="ltr" value="${esc(c.wa||'')}" placeholder="970567686774"></label>
+   <label>رسالة بتظهر لكل المحلات بالرئيسية (فاضي = بدون)<textarea id="cfNotice" rows="2">${esc(c.notice||'')}</textarea></label>
+   <label>عنوان صفحة التثبيت<input id="cfLt" value="${esc(L.title||'')}" placeholder="كاشيرك الذكي"></label>
+   <label>وصف صفحة التثبيت<textarea id="cfLd" rows="3" placeholder="برنامج كاشير ومحاسبة عربي…">${esc(L.desc||'')}</textarea></label></div>
+  <button class="btn gold block" data-a="cfgSave">حفظ الإعدادات</button>
+  <p style="font-size:12.5px;color:var(--muted)">التعديلات بتوصل لكل المحلات أول ما يتصلوا بالنت (خلال دقيقة ونص تقريبًا)، وما بتلمس بيانات أي محل. إذا ما في نت هلأ، بتنحفظ هون وبتنرفع لحالها لما يرجع النت.</p>
+  <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار للمحلات</button>
+  <button class="btn block" data-a="adSheet">📣 الإعلان داخل التطبيق</button>`},
 money(){
   const L=ledger(), on=L.filter(e=>e.on), total=on.reduce((a,e)=>a+e.p,0), EX=(BK().exp||[]).slice().sort((a,b)=>b.ts-a.ts), spent=EX.reduce((a,e)=>a+(+e.amt||0),0);
   const by={}; const mk=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
@@ -224,13 +241,24 @@ money(){
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
   <div class="card"><h2>الحساب</h2><a class="btn" href="/" target="_blank" rel="noopener">فتح الأكاديمية</a><button class="btn danger" data-a="logout">تسجيل خروج</button></div>`}
 };
-function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}${s.dup&&s.dup.length?' ⚠️':''}${(s.devices||[]).some(d=>d.main&&/لابتوب|ماك/.test(d.label||''))?' 💻':''}</span><br><span class="s">${s.acct?`حساب <span class="num">${s.acct}</span> · `:''}${s.owner?esc(s.owner)+' · ':''}${s.phone&&!s.owner?`<span class="num">${esc(s.phone)}</span> · `:''}${['trial','tover','visit'].includes(st.k)&&s.created?'بدأ '+new Date(s.created).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short'})+' · ':''}${ago(s.lastSeen)}</span></span>${pillOf(st)}</div>`}
+function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}${s.dup&&s.dup.length?' ⚠️':''}${(s.devices||[]).some(d=>d.main&&/لابتوب|ماك/.test(d.label||''))?' 💻':''}</span><br><span class="s">${s.acct?`حساب <span class="num">${s.acct}</span> · `:''}${s.owner?esc(s.owner)+' · ':''}${s.phone&&!s.owner?`<span class="num">${esc(s.phone)}</span> · `:''}${['trial','tover','visit'].includes(st.k)&&s.created?'بدأ '+new Date(s.created).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short'})+' · ':''}${ago(s.lastSeen)}</span></span>${(s.stopped?'<span class="pill bad">⛔ موقوف</span>':pillOf(st))}</div>`}
 function codeRow(c){const st={new:'<span class="pill ok">جاهز</span>',used:'<span class="pill mute">مستعمل</span>',void:'<span class="pill bad">ملغي</span>'}[c.status];
   return `<div class="li" data-a="code" data-c="${esc(c.code)}"><span class="grow"><span class="t code">${esc(c.code)}</span><br><span class="s">${planLabel(c.plan)} · <span class="num">${fmt(+c.price||0)}</span> ₪${c.acct?' · حساب <span class="num">'+c.acct+'</span>':''}${c.owner?' · '+esc(c.owner):(c.note?' · '+esc(c.note):'')}${c.status==='used'?' · فعّله '+esc(c.used_label||'محل')+' '+fday(c.used_at):''}</span></span>${st}</div>`}
 
 /* ---------- sheets ---------- */
 function open(html){$('#sbox').innerHTML=html; $('#sheet').classList.add('show')}
 function close(){$('#sheet').classList.remove('show')}
+const FEATS=[['debts','الديون'],['sup','الموردين'],['buy','المشتريات'],['rep','التقارير والسجل'],['cash','الصندوق'],['exp','المصروفات'],['chq','الشيكات'],['loy','نقاط الولاء'],['lab','ملصقات الباركود'],['staff','العمال والبصمة'],['inv','تعديل الفاتورة']];
+/* تعديلات الإعدادات: بتنحفظ هون أول، وبتنرفع لما يكون في نت (مع عدّاد) */
+let QQ=[]; try{QQ=JSON.parse(localStorage.getItem('kadm-q')||'[]')||[]}catch(e){QQ=[]}
+let QS='';
+const syncTxt=()=>!navigator.onLine?`⚪ غير متصل${QQ.length?' · '+QQ.length+' تعديل':''}`:QS==='busy'?'🔄 جاري المزامنة':QQ.length?`🟠 ${QQ.length} تعديل ما انرفع`:'🟢 متصل';
+const syncUI=()=>{const e=$('#syncPill'); if(e) e.textContent=syncTxt()};
+function qPush(path,body){ QQ=QQ.filter(x=>!(x.path===path&&(x.body.id||'')===(body.id||''))); QQ.push({path,body}); try{localStorage.setItem('kadm-q',JSON.stringify(QQ))}catch(e){} qFlush() }
+async function qFlush(){ if(QS==='busy'||!navigator.onLine||!QQ.length){syncUI();return} QS='busy'; syncUI();
+  while(QQ.length&&navigator.onLine){ const x=QQ[0]; try{ await call(x.path,x.body); QQ.shift(); try{localStorage.setItem('kadm-q',JSON.stringify(QQ))}catch(e){} }catch(e){ if(e.message==='login') break; toast(e.message); break } }
+  QS=''; syncUI() }
+addEventListener('online',qFlush); addEventListener('offline',syncUI); setInterval(qFlush,30000);
 const head=t=>`<div class="shd"><h2>${t}</h2><button class="x" data-a="close" aria-label="إغلاق">×</button></div>`;
 function codeMsg(code,plan,owner,acct){return `أهلًا ${owner||''} 👋\nهذا كود تفعيل «كاشيرك الذكي» لمدة ${planLabel(plan)}${acct?'\nلرقم الحساب: '+acct:''}\n\n${code}\n\nطريقة التفعيل:\n1. افتح التطبيق على جهاز المحل: ${APPURL}\n2. اضغط «اشترك الآن» أو من «المزيد» ← «الإعدادات» ← «الاشتراك»\n3. الصق الكود واضغط تفعيل (لازم النت يكون شغّال مرة وحدة)\n\n⚠️ الكود بيشتغل مرة وحدة، وبس على حسابك وعلى جهاز المحل.\n\nشكرًا لثقتك 🌟\nشركة أبو عمر الغزاوي`}
 function newCodeSheet(pre={}){
@@ -293,7 +321,9 @@ function shopSheet(id,kind){
       <button class="btn" data-a="passSheet" data-id="${esc(s.id)}">🔑 كلمة سر جديدة</button>
       <button class="btn" data-a="editSheet" data-id="${esc(s.id)}">✏️ تعديل البيانات</button>
       <button class="btn" data-a="trialSheet" data-id="${esc(s.id)}">⏳ تمديد التجربة</button>
-      <button class="btn danger" data-a="delSheet" data-id="${esc(s.id)}">🗑 حذف الحساب</button></div>
+      <button class="btn" data-a="shopCfgSheet" data-id="${esc(s.id)}">🧩 ميزات هذا المحل</button>
+      ${s.stopped?`<button class="btn gold" data-a="stopShop" data-id="${esc(s.id)}" data-on="0">✅ تفعيل المحل</button>`:`<button class="btn danger" data-a="stopShop" data-id="${esc(s.id)}" data-on="1">⛔ إيقاف المحل</button>`}</div>
+      ${s.stopped?'<p style="color:var(--bad);font-weight:700;margin:4px 0">⛔ هذا المحل موقوف (بياناته كلها محفوظة)</p>':''}
       <button class="btn block" data-a="histSheet" data-id="${esc(s.id)}">🕘 نسخ بيانات المحل (استرجاع)</button>
       <p style="font-size:12.5px;color:var(--muted)">كلمات السر محفوظة مشفّرة وما حدا بيقدر يشوفها، بس بتقدر تعطي الزبون كلمة سر جديدة إذا نسيها.</p></div>`:''}
   <h2>تمديد الاشتراك</h2>
@@ -323,7 +353,7 @@ function showLogin(){close(); $('#app').innerHTML=`<div class="login"><div class
   <label style="text-align:start">البريد أو رقم الواتساب<input id="lgE" autocomplete="username" dir="ltr"></label>
   <label style="text-align:start">كلمة المرور<input id="lgP" type="password" autocomplete="current-password"></label>
   <button class="btn primary block" data-a="login">دخول</button><p id="lgErr" style="color:var(--bad);font-size:14px"></p></div></div>`}
-async function load(){try{D=await call('summary'); try{D.books=await call('books')}catch(e){D.books={adj:{},exp:[]}} render()}catch(e){ if(e.message!=='login') $('#app').innerHTML=`<div class="login"><div class="card"><h2>ما قدرنا نجيب البيانات</h2><p>${esc(e.message)}</p><button class="btn primary" data-a="reload">جرّب مرة ثانية</button></div></div>` }}
+async function load(){try{D=await call('summary'); try{D.cfg=await call('cfg')}catch(e){D.cfg={}} qFlush(); try{D.books=await call('books')}catch(e){D.books={adj:{},exp:[]}} render()}catch(e){ if(e.message!=='login') $('#app').innerHTML=`<div class="login"><div class="card"><h2>ما قدرنا نجيب البيانات</h2><p>${esc(e.message)}</p><button class="btn primary" data-a="reload">جرّب مرة ثانية</button></div></div>` }}
 
 /* ---------- actions ---------- */
 const A={
@@ -332,6 +362,18 @@ const A={
   cfilter(d){codeFilter=d.f; render()},
   reload(){$('#app').innerHTML='<div class="spin"></div>'; load()},
   close, newCode(){newCodeSheet()},
+  async cfgSave(){ const v={feat:{},curOff:[],wa:($('#cfWa').value||'').trim(),notice:($('#cfNotice').value||'').trim(),land:{title:($('#cfLt').value||'').trim(),desc:($('#cfLd').value||'').trim()}};
+    document.querySelectorAll('[data-feat]').forEach(b=>v.feat[b.dataset.feat]=b.checked?1:0); document.querySelectorAll('[data-cur]').forEach(b=>{if(!b.checked) v.curOff.push(b.dataset.cur)});
+    D.cfg=Object.assign({},D.cfg,v); qPush('cfg',v); toast(navigator.onLine?'✓ انحفظ':'انحفظ هون، وبينرفع لما يرجع النت') },
+  async shopCfgSheet(d){ open(`${head('🧩 ميزات هذا المحل')}<div class="spin"></div>`); let c={}; try{c=await call('shopcfg?id='+encodeURIComponent(d.id))}catch(e){}
+    const f=c.feat||{}, g=(D.cfg||{}).feat||{};
+    $('#sbox').innerHTML=`${head('🧩 ميزات هذا المحل')}<p style="margin:0;font-size:13px;color:var(--muted)">«حسب العام» يعني بياخد إعداد كل المحلات. الإيقاف بيخفي الميزة بس.</p>
+    ${FEATS.map(([k,t])=>`<label style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0">${t}<select data-sf="${k}"><option value="" ${f[k]==null?'selected':''}>حسب العام (${g[k]===0?'موقوفة':'شغّالة'})</option><option value="1" ${f[k]===1?'selected':''}>شغّالة</option><option value="0" ${f[k]===0?'selected':''}>موقوفة</option></select></label>`).join('')}
+    <label>رسالة خاصة لهذا المحل<textarea id="sfNotice" rows="2">${esc(c.notice||'')}</textarea></label><button class="btn gold block" data-a="shopCfgSave" data-id="${esc(d.id)}">حفظ</button>` },
+  async shopCfgSave(d){ const v={id:d.id,feat:{},notice:($('#sfNotice').value||'').trim()}; document.querySelectorAll('[data-sf]').forEach(b=>{ if(b.value!=='') v.feat[b.dataset.sf]=+b.value });
+    qPush('shopcfg',v); close(); toast('✓ انحفظت ميزات المحل') },
+  async stopShop(d){ const on=d.on==='1'; if(!confirm(on?'إيقاف المحل بيمنع الدخول والإضافة بس، وكل بياناته بتضل محفوظة. نكمّل؟':'تفعيل المحل من جديد؟ بيرجع يشتغل بكل بياناته.')) return;
+    try{ await call('stop',{id:d.id,on}); close(); await load(); toast(on?'⛔ انوقف المحل، بياناته محفوظة':'✅ رجع المحل يشتغل') }catch(e){toast(e.message)} },
   async tplSheet(){ open(`${head('🗂️ قوالب الأصناف')}<div class="spin"></div>`); let t={}; try{t=await call('tpl')}catch(e){toast(e.message);return}
     const dt=x=>x?new Date(x).toLocaleString('ar-u-nu-latn',{dateStyle:'medium',timeStyle:'short'}):'—';
     $('#sbox').innerHTML=`${head('🗂️ قوالب الأصناف')}<p class="muted" style="margin:0 0 8px">القوالب محفوظة لحالها على السيرفر، منفصلة عن بيانات أي محل. ما بتنزل عند حدا إلا لما هو يضغط «تفعيل» من «مجال العمل». وتعديل القالب ما بيأثر على أصناف نزلت قبل عند المحلات.</p>
@@ -354,7 +396,7 @@ const A={
   async adSheet(){ open(`${head('📣 الإعلان داخل التطبيق')}<div class="spin"></div>`); let a={}; try{a=await call('ad')}catch(e){}
     AD_IMG=a.img||'';
     open(`${head('📣 الإعلان داخل التطبيق')}<p style="font-size:14px;margin:0">بيظهر بالشاشة الرئيسية عند كل المحلات. أنت بس اللي بتتحكم فيه، والمحل بيقدر يخفيه عنده بـ ✕ لحد ما تنشر إعلان جديد.</p>
-      <label class="chk" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="adOn" ${a.on?'checked':''}> الإعلان شغّال</label>
+      <label class="ck"><input type="checkbox" id="adOn" ${a.on?'checked':''}> الإعلان شغّال</label>
       <label>العنوان<input id="adT" value="${esc(a.title||'')}" placeholder="مثلاً: عرض الاشتراك الدائم 🔥"></label>
       <label>النص<textarea id="adX" rows="3" placeholder="اختياري">${esc(a.text||'')}</textarea></label>
       <div style="display:flex;gap:10px;align-items:center"><span id="adPrev">${a.img?`<img src="${a.img}" style="width:90px;border-radius:10px">`:''}</span><label class="btn" style="flex:1">🖼 صورة الإعلان (اختياري)<input type="file" id="adImg" accept="image/*" hidden></label>${a.img?'<button class="btn sm" data-a="adImgDel">حذف</button>':''}</div>
@@ -414,9 +456,9 @@ const A={
   async addTrial(d){const n=d.n==='x'?parseInt($('#trD').value,10):+d.n; if(!n){toast('اكتب عدد الأيام');return}
     try{await call('trial',{id:d.id,days:n}); await load(); shopSheet(d.id,'shop'); toast('✓ انمدّدت التجربة '+n+' يوم. بتوصله أول ما يتصل بالنت')}catch(e){toast(e.message)}},
   delSheet(d){const s=shopById(d.id);
-    open(`${head('حذف الحساب نهائيًا')}<p style="color:var(--bad);font-weight:700">انتبه: هذا بيمسح حساب «${esc(s.name)}» ونسخته على السحابة واشتراكه، وما بيرجع.</p>
-    <label>للتأكيد اكتب رقم الحساب <b class="num">${s.acct}</b><input id="delC" class="num" inputmode="numeric"></label><button class="btn danger block" data-a="doDel" data-id="${esc(d.id)}">حذف نهائي</button>`)},
-  async doDel(d){try{await call('delete',{id:d.id,confirm:$('#delC').value.trim()}); close(); await load(); toast('انحذف الحساب')}catch(e){toast(e.message)}},
+    open(`${head('أرشفة الحساب')}<p style="font-weight:700">الحساب «${esc(s.name)}» بينقل للأرشيف وبيتوقف. ما بينحذف ولا إشي من بياناته، وبترجعه بضغطة «تفعيل المحل».</p>
+    <label>للتأكيد اكتب رقم الحساب <b class="num">${s.acct}</b><input id="delC" class="num" inputmode="numeric"></label><button class="btn danger block" data-a="doDel" data-id="${esc(d.id)}">أرشفة (إيقاف)</button>`)},
+  async doDel(d){try{await call('delete',{id:d.id,confirm:$('#delC').value.trim()}); close(); await load(); toast('🗄 انأرشف الحساب، وبياناته محفوظة')}catch(e){toast(e.message)}},
   codeFor(d){newCodeSheet({acct:d.acct,owner:d.owner})},
   async move(d){ return; if(!confirm('أكيد؟ الجهاز الحالي بيوقف بيع، وهذا الجهاز بيصير هو اللي يبيع.')) return;
     try{await call('move',{id:d.id,device:d.dev}); await load(); shopSheet(d.id,'shop'); toast('✓ انتقل الحساب')}catch(e){toast(e.message)}},
