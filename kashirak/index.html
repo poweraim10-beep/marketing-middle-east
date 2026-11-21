@@ -3230,15 +3230,17 @@ function pExpView(){
    <div class="card"><h2>مدة التنبيه</h2><div class="row"><span>نبّهني قبل الانتهاء بـ</span><span class="row" style="gap:6px"><input id="pWarnM" type="number" min="1" max="24" value="${S.expWarnM||3}" style="width:80px" aria-label="أشهر"> شهر <button class="btn sm primary" data-act="pWarnSave">حفظ</button></span></div></div>` }
 const IMGQ=[];
 async function imgData(u){ try{ const r=await fetch(u+(u.includes('?')?'&':'?')+'v=1',{cache:'no-store'}); if(!r.ok) return ''; const b=await r.blob(); if(!/^image\//.test(b.type)) return ''; return await new Promise((ok,no)=>{const f=new FileReader(); f.onload=()=>ok(f.result); f.onerror=no; f.readAsDataURL(b)}) }catch(_){ return '' } }
+/* الصور بتيجي جوّا القالب نفسه، فما بتعتمد على ملفات الموقع */
 const badImg=i=>!i.img||!/^data:image\//.test(i.img);
 /* أصناف الخضار اللي نزلت بدون صورة: بنجيب صورتها بس (ما بنلمس أي إشي ثاني بالصنف) */
 async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>i.tpl==='veg'&&badImg(i)); if(!L.length) return; vegFix.b=1;
-  try{ let map={}; if(L.some(i=>!i.iu)){ const r=await api('/tpl?k=veg'); (r.items||[]).forEach(x=>{ if(x.iu) map[String(x.n).trim()]=x.iu }) }
-    let n=0; for(const it of L){ const u=it.iu||map[it.name.trim()]; if(!u||!/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)) continue; const d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; cur.iu=u; n++ } }
+  try{ const map={}, imap={}; const r=await api('/tpl?k=veg'); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img });
+    let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; if(u) cur.iu=u; n++ } }
     if(n){ save(); render() } }catch(_){} vegFix.b=0 }
 setTimeout(vegFix,4000); window.addEventListener('online',()=>setTimeout(vegFix,2000));
 const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات'};
 const tplCard=()=>`<div class="card" style="gap:10px"><h2>📦 أصناف جاهزة حسب مجال العمل</h2><p class="muted" style="margin:0">اختار مجالك واضغط «تفعيل»، وبتنزل أصناف هالمجال على حسابك بالأسماء والباركود والأسعار، والكمية صفر. ما بينحذف ولا بيتغيّر أي صنف موجود عندك، والصنف الموجود ما بيتكرر. بتقدر تفعّل أكثر من مجال.</p>
+  ${S.items.some(i=>i.tpl==='veg'&&badImg(i))?'<button class="btn primary block" data-act="vegFixGo">🖼️ تنزيل صور الفواكه والخضار</button>':''}
   <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${k==='market'?'🛒':k==='pharm'?'💊':'🥕'} ${n}${(S.tplDone||{})[k]?' ✓':''}</button>`).join('')}</div></div>`;
 function pBizView(){ const on=!!S.pharm;
   return back('مجال العمل')+tplCard()+hint('اختار نوع شغلك. إذا اخترت <b>صيدلية</b> بيتحوّل التطبيق كله لنظام صيدلية: تاريخ انتهاء وتشغيلة لكل كمية، البيع بالعلبة والشريط والحبة، الاسم العلمي والبدائل، ومنع بيع المنتهي. الميزان والبيع بالكيلو بيختفوا.')+`
@@ -3250,6 +3252,7 @@ function pBizView(){ const on=!!S.pharm;
      <label for="pAct">للتأكيد اكتب كلمة <b>تفعيل</b><input id="pAct" autocomplete="off" placeholder="تفعيل"></label>
      <button class="btn primary block" data-act="pActGo">تفعيل</button>`}</div>` }
 Object.assign(A,{
+  async vegFixGo(){ if(!navigator.onLine){toast('بدها نت');return} if(!linked()){toast('سجّل محلك أول');return} toast('⏳ جاري تنزيل الصور…'); const before=S.items.filter(i=>i.tpl==='veg'&&badImg(i)).length; await vegFix(); const after=S.items.filter(i=>i.tpl==='veg'&&badImg(i)).length; render(); toast(after<before?`✓ انضافت ${before-after} صورة`:'ما قدرنا ننزّل الصور. تأكد من النت وجرّب كمان مرة') },
   tplAsk(d){ const n=TPLN[d.k]; if(!n) return; openSheet(`${sheetHead('أصناف '+n)}<p style="margin:0">سيتم تنزيل جميع أصناف <b>${n}</b> إلى حسابك.</p><p class="muted" style="margin:0">بتنضاف بكمية صفر. الأصناف الموجودة عندك بنفس الباركود أو الاسم بتضل زي ما هي وما بتتكرر، وما بيتغيّر ولا إشي من ديونك أو زبائنك أو فواتيرك.</p><button class="btn primary block" data-act="tplGo" data-k="${d.k}">تفعيل</button>`) },
   async tplGo(d){ const k=d.k, n=TPLN[k], btn=$('[data-act=tplGo]'); if(!n) return; if(!linked()){toast('سجّل محلك أول عشان تنزل الأصناف');return} if(!navigator.onLine){toast('تنزيل الأصناف بدّه نت مرة وحدة');return}
     if(btn){btn.disabled=true; btn.textContent='جاري التنزيل…'}
@@ -3264,7 +3267,7 @@ Object.assign(A,{
       if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
     for(const [it,u] of IMGQ.splice(0)){ it.iu=u; const d=await imgData(u); if(d) it.img=d }
     if(k==='veg'){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
-    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render();
+    S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(k==='veg') setTimeout(vegFix,600);
     openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
     if(S.pharm){ if(v!=='إلغاء'){toast('اكتب كلمة «إلغاء» للتأكيد');return} S.pharm=false; audit('إلغاء نظام الصيدلية'); pApplyWords(); save(); sub='menu'; render(); toast('رجع نظام المحل العادي'); return }
