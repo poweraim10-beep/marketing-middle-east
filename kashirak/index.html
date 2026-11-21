@@ -394,6 +394,10 @@ main{padding-bottom:44px}
 }
 @media (min-width:1400px){ .menu{grid-template-columns:repeat(4,1fr)} }
 #printArea{display:none}
+.icards{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.icard{background:var(--card,#fff);border:1px solid var(--line,#e4dfd3);border-radius:16px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;font:inherit;color:inherit;text-align:center}
+.icard .ici{width:100%;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#f3efe6;display:flex;align-items:center;justify-content:center;font-size:30px;color:#9a8a5a}
+.icard .ici img{width:100%;height:100%;object-fit:cover}.icard b{font-size:13.5px;line-height:1.3}
 #land{position:fixed;inset:0;z-index:160;overflow-y:auto;background:radial-gradient(900px 600px at 50% -10%,#1d4a8a 0%,#0B1F3A 45%,#06111F 100%);color:#F7F1E1}
 body.landing .sheet{z-index:170} body.landing .toast{z-index:180}
 #land .lwrap{max-width:520px;margin:0 auto;padding:0 18px 110px}
@@ -1365,6 +1369,7 @@ function report(from,to=Infinity){
           top:Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,5)};
 }
 let DQF='';
+const itemCards=()=>{ try{ const v=localStorage.getItem('ksr-cards'); if(v!=null) return v==='1' }catch(_){} return !!(S.tplDone&&S.tplDone.veg) };
 function dqRun(){ const q=(($('#dq')||{}).value||'').trim().toLowerCase(); let n=0; document.querySelectorAll('#dqList [data-n]').forEach(b=>{ const ok=(!q||b.dataset.n.includes(q))&&(!DQF||b.dataset.t.includes(DQF)); b.hidden=!ok; if(ok) n++ }); const e=$('#dqNone'); if(e) e.hidden=n>0 }
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='dq') dqRun() });
 function fxTotals(list){ const t=['USD','JOD'].map(k=>[k,r2(list.reduce((a,c)=>a+balCur(c,k),0))]).filter(x=>x[1]!==0); return t.length?`<div class="muted" style="text-align:center">وكمان بالعملات الثانية: ${t.map(([k,v])=>moneyC(v,k)).join(' · ')}</div>`:'' }
@@ -1707,12 +1712,14 @@ items(){
   <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
   <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
+  ${canItems()?`<div class="grid2"><button class="btn accent" data-act="scan" data-target="edit">📷 تعديل صنف بالباركود</button><button class="btn" data-act="cardsTog">${itemCards()?'☰ عرض القائمة':'▦ عرض البطاقات'}</button></div><small class="fh" style="margin-top:-6px">صوّر باركود الصنف وبينفتح على طول عشان تعدّل الكمية أو السعر.</small>`:''}
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
+  ${itemCards()?`<div class="icards" id="itemList">${S.items.filter(i=>!iq||iHas(i,iq)||i.barcode.includes(iq)).map(i=>`<button class="icard" data-act="editItem" data-id="${i.id}"><span class="ici">${i.img?`<img src="${i.img}" alt="" loading="lazy">`:`<span>${esc((i.name.trim()[0])||'؟')}</span>`}</span><b>${esc(i.name)}</b><span class="pill ${i.qty<=0?'bad':i.qty<=i.min?'warn':'ok'}">${qtyTxt(i)}</span></button>`).join('')||'<div class="empty">ما في أصناف</div>'}</div>`:`
   <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||iHas(i,iq)||i.barcode.includes(iq)).map(i=>{
     const st=i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
     return `<button class="li" data-act="editItem" data-id="${i.id}">
       <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span><br><span class="muted">${isOwner()?`تكلفة ${fx(i.cost)} · `:''}بيع ${fx(i.price)} ₪${i.cartonSize>1?` · كرتونة ${i.cartonSize}`:''}${i.barcode?'':' · بدون باركود'}<br>مبيع آخر 30 يوم: <span class="num">${sold[i.id]||0}</span>${isOwner()&&mOk()&&sold[i.id]?` · ربح <span class="num">${fx(sold[i.id]*(i.price-i.cost))}</span> ₪`:''}</span></span></span>
-      <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span><br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`;
+      <span style="text-align:end"><span class="num" style="font-weight:700">${qtyTxt(i)}</span><br><span class="pill ${st[0]}">${st[1]}</span></span></button>`}).join('')}</div></div>`}`;
 },
 staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
   const cards=S.staff.map(st=>{const lp=lastPunch(st.id), inNow=lp&&lp.type==='in'&&sod(lp.ts)===t0, img=refImg(st);
@@ -2263,6 +2270,7 @@ function onScan(code){
   closeScan();
   if(scan.target==='field'){const f=$('#fBar'); if(f){beep(true); f.value=code; toast('تم التقاط الباركود')} return}
   if(scan.target==='wBar'){const f=$('#wBar'); if(f){beep(true); f.value=code; A.whFind()} return}
+  if(scan.target==='edit'){ const e=S.items.find(i=>i.barcode===code); if(e){ beep(true); A.editItem({id:e.id}); return } beep(false); openSheet(`${sheetHead('باركود غير مسجّل')}<p style="margin:0">الرقم <span class="num">${esc(code)}</span> مش موجود بالأصناف.</p><button class="btn primary block" data-act="editItem" data-id="0" data-bar="${esc(code)}">إضافة صنف جديد بهذا الباركود</button>`); return }
   const it=S.items.find(i=>i.barcode===code);
   if(it){ beep(true); if(tab!=='sell'){tab='sell'} addToCart(it.id); return }
   beep(false); q=''; const qi=$('#q'); if(qi){qi.value=''; renderResults()}
@@ -2902,6 +2910,7 @@ async addOldDebt(d){ const kind=d.kind==='suppliers'?'suppliers':'customers', c=
 delParty(d){ const c=S.customers.find(x=>x.id===+d.id); if(!c) return; const b=balance(c);
   if(!confirm(`حذف حساب «${c.name}» كامل؟${b>0?`\nعليه دين ${fx(b)} ₪ وبينحذف مع الحساب.`:''}\nما في رجعة.`)) return;
   S.customers=S.customers.filter(x=>x.id!==c.id); audit(`حذف حساب زبون ${c.name}${b>0?' (دين '+fx(b)+' ₪)':''}`); save(); closeSheet(); render(); toast('انحذف الحساب')},
+cardsTog(){ try{ localStorage.setItem('ksr-cards',itemCards()?'0':'1') }catch(_){} render() },
 dqF(d){ document.querySelectorAll('[data-act=dqF]').forEach(b=>b.classList.toggle('on',(b.dataset.f||'')===(d.f||''))); DQF=d.f||''; dqRun() },
 supBuy(d){ closeSheet(); tab='more'; sub='buy'; render(); const s=$('#pSup'); if(s){ s.value=String(d.id); s.dispatchEvent(new Event('change',{bubbles:true})) } toast('اختار الصنف واكتب الكمية والتكلفة') },
 dropPlan(d){const c=S.customers.find(x=>x.id===+d.id); delete c.plan; save(); A.party({kind:'customers',id:c.id})},
@@ -3212,6 +3221,7 @@ function pExpView(){
    <div class="card"><h2>خسارة المنتهي</h2><div class="row"><span>مجموع اللي انتلف</span>${money(lossV)}</div>
     <div class="list">${[...(S.pLoss||[])].reverse().slice(0,30).map(x=>`<div class="li"><span>${esc(x.name)} × ${x.q}<br><span class="muted">${fday(x.ts)} · انتهى ${x.exp}</span></span><span class="num">${fx(x.q*x.cost)} ₪</span></div>`).join('')}</div></div>
    <div class="card"><h2>مدة التنبيه</h2><div class="row"><span>نبّهني قبل الانتهاء بـ</span><span class="row" style="gap:6px"><input id="pWarnM" type="number" min="1" max="24" value="${S.expWarnM||3}" style="width:80px" aria-label="أشهر"> شهر <button class="btn sm primary" data-act="pWarnSave">حفظ</button></span></div></div>` }
+const IMGQ=[];
 const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه وخضروات'};
 const tplCard=()=>`<div class="card" style="gap:10px"><h2>📦 أصناف جاهزة حسب مجال العمل</h2><p class="muted" style="margin:0">اختار مجالك واضغط «تفعيل»، وبتنزل أصناف هالمجال على حسابك بالأسماء والباركود والأسعار، والكمية صفر. ما بينحذف ولا بيتغيّر أي صنف موجود عندك، والصنف الموجود ما بيتكرر. بتقدر تفعّل أكثر من مجال.</p>
   <div class="grid2">${Object.entries(TPLN).map(([k,n])=>`<button class="btn ${(S.tplDone||{})[k]?'':'accent'}" data-act="tplAsk" data-k="${k}">${k==='market'?'🛒':k==='pharm'?'💊':'🥕'} ${n}${(S.tplDone||{})[k]?' ✓':''}</button>`).join('')}</div></div>`;
@@ -3236,7 +3246,9 @@ Object.assign(A,{
     list.forEach(x=>{ const nm=String(x.n||'').trim(), bc=String(x.b||'').trim(); if(!nm) return; if((bc&&bars.has(bc))||names.has(nm)){skip++;return}
       const kg=!S.pharm&&/كيلو|كغ|kg/i.test(x.u||''); const it={id:S.nextId++,name:nm,barcode:bc,cost:0,price:r2(+x.p||0),qty:0,min:5,cartonSize:0,cartonPrice:0,exp:'',byWeight:kg,...(x.u&&!kg?{unitName:String(x.u).slice(0,20)}:{}),...(k==='pharm'&&S.pharm?{kind:'med'}:{}),tpl:k};
       S.items.push(it); if(bc) bars.add(bc); names.add(nm); add++;
-      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img });
+      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
+    for(const [it,u] of IMGQ.splice(0)){ try{ const b=await (await fetch(u)).blob(); it.img=await new Promise((ok,no)=>{const f=new FileReader(); f.onload=()=>ok(f.result); f.onerror=no; f.readAsDataURL(b)}) }catch(_){} }
+    if(k==='veg'){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
     S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render();
     openSheet(`${sheetHead('✓ تم')}<p style="margin:0">تم تنزيل الأصناف (<b>${add}</b> صنف جديد${skip?`، و${skip} كانوا موجودين عندك وضلّوا زي ما هم`:''}).</p><p style="margin:0">يرجى مراجعة الأسعار وإضافة الكميات وسعر التكلفة حسب محلك.</p><button class="btn primary block" data-act="go" data-tab="items">روح للأصناف</button>`) },
   pActGo(){ const v=(($('#pAct')||{}).value||'').trim();
