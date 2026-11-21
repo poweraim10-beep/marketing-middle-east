@@ -1369,6 +1369,7 @@ function report(from,to=Infinity){
           top:Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,5)};
 }
 let DQF='';
+let EDITSCAN=0;
 const itemCards=()=>{ try{ const v=localStorage.getItem('ksr-cards'); if(v!=null) return v==='1' }catch(_){} return !!(S.tplDone&&S.tplDone.veg) };
 function dqRun(){ const q=(($('#dq')||{}).value||'').trim().toLowerCase(); let n=0; document.querySelectorAll('#dqList [data-n]').forEach(b=>{ const ok=(!q||b.dataset.n.includes(q))&&(!DQF||b.dataset.t.includes(DQF)); b.hidden=!ok; if(ok) n++ }); const e=$('#dqNone'); if(e) e.hidden=n>0 }
 document.addEventListener('input',e=>{ if(e.target&&e.target.id==='dq') dqRun() });
@@ -1712,7 +1713,7 @@ items(){
   <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
   <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
-  ${canItems()?`<div class="grid2"><button class="btn accent" data-act="scan" data-target="edit">📷 تعديل صنف بالباركود</button><button class="btn" data-act="cardsTog">${itemCards()?'☰ عرض القائمة':'▦ عرض البطاقات'}</button></div><small class="fh" style="margin-top:-6px">صوّر باركود الصنف وبينفتح على طول عشان تعدّل الكمية أو السعر.</small>`:''}
+  ${canItems()?`<div class="grid2"><button class="btn accent" data-act="scan" data-target="edit">📷 تعديل الأصناف بالباركود</button><button class="btn" data-act="cardsTog">${itemCards()?'☰ عرض القائمة':'▦ عرض البطاقات'}</button></div><small class="fh" style="margin-top:-6px">صوّر باركود الصنف وبينفتح على طول: عدّل الكمية والتكلفة وسعر البيع، واضغط «حفظ وامسح الصنف الجاي» عشان تكمّل على باقي البضاعة بسرعة.</small>`:''}
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
   ${itemCards()?`<div class="icards" id="itemList">${S.items.filter(i=>!iq||iHas(i,iq)||i.barcode.includes(iq)).map(i=>`<button class="icard" data-act="editItem" data-id="${i.id}"><span class="ici">${i.img?`<img src="${i.img}" alt="" loading="lazy">`:`<span>${esc((i.name.trim()[0])||'؟')}</span>`}</span><b>${esc(i.name)}</b><span class="pill ${i.qty<=0?'bad':i.qty<=i.min?'warn':'ok'}">${qtyTxt(i)}</span></button>`).join('')||'<div class="empty">ما في أصناف</div>'}</div>`:`
   <div class="card"><div class="list" id="itemList">${S.items.filter(i=>!iq||iHas(i,iq)||i.barcode.includes(iq)).map(i=>{
@@ -1956,7 +1957,7 @@ function renderResults(){
 let INSTALL=null, BUYSUP='', EDV=null; const PHOTO={data:'',id:''}; const CHQ={dir:'in'};
 const standalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault(); INSTALL=e; if(typeof render==='function') render()});
-window.addEventListener('appinstalled',()=>{INSTALL=null; toast('تم تثبيت كاشيرك على جهازك'); render()});
+window.addEventListener('appinstalled',()=>{INSTALL=null; toast('تم تثبيت كاشيرك على جهازك'); try{ if($('#land')){ closeLand(); closeSheet() } }catch(_){} render()});
 const installCard=()=>standalone()?'':`<div class="banner trial"><span style="display:flex;gap:10px;align-items:center"><span class="mic" style="margin:0;flex:none;width:36px;height:36px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg></span><span><b>ثبّت التطبيق على جهازك</b><br><span class="muted">بيفتح من أيقونة، وبيشتغل بدون إنترنت</span></span></span><button class="btn sm accent" data-act="install">تثبيت</button></div>`;
 function renderSetup(){
   $('.app>header').hidden=true; $('#nav').hidden=true;
@@ -2270,7 +2271,7 @@ function onScan(code){
   closeScan();
   if(scan.target==='field'){const f=$('#fBar'); if(f){beep(true); f.value=code; toast('تم التقاط الباركود')} return}
   if(scan.target==='wBar'){const f=$('#wBar'); if(f){beep(true); f.value=code; A.whFind()} return}
-  if(scan.target==='edit'){ const e=S.items.find(i=>i.barcode===code); if(e){ beep(true); A.editItem({id:e.id}); return } beep(false); openSheet(`${sheetHead('باركود غير مسجّل')}<p style="margin:0">الرقم <span class="num">${esc(code)}</span> مش موجود بالأصناف.</p><button class="btn primary block" data-act="editItem" data-id="0" data-bar="${esc(code)}">إضافة صنف جديد بهذا الباركود</button>`); return }
+  if(scan.target==='edit'){ const e=S.items.find(i=>i.barcode===code); if(e){ beep(true); EDITSCAN=1; A.editItem({id:e.id}); EDITSCAN=0; setTimeout(()=>{const f=$('#fQty'); if(f){f.focus(); f.select&&f.select()}},250); return } beep(false); openSheet(`${sheetHead('باركود غير مسجّل')}<p style="margin:0">الرقم <span class="num">${esc(code)}</span> مش موجود بالأصناف.</p><button class="btn primary block" data-act="editItem" data-id="0" data-bar="${esc(code)}">إضافة صنف جديد بهذا الباركود</button>`); return }
   const it=S.items.find(i=>i.barcode===code);
   if(it){ beep(true); if(tab!=='sell'){tab='sell'} addToCart(it.id); return }
   beep(false); q=''; const qi=$('#q'); if(qi){qi.value=''; renderResults()}
@@ -2612,7 +2613,7 @@ editItem(d){
     ${it.id?'<p class="fh" style="margin:0">«مقاس أو لون ثاني»: لنفس الصنف بأحجام أو ألوان مختلفة، كل واحد بباركود وسعر. «جرد»: تصحيح الكمية لما تعدّ البضاعة بإيدك. «سجل الحركة»: كل بيع وشراء صار على هالصنف.</p>':''}
     ${it.id?`<button class="btn block" data-act="variant" data-id="${it.id}">إضافة مقاس أو لون ثاني من هالصنف</button>`:''}
     ${it.id&&isOwner()?`<div class="grid2"><button class="btn" data-act="adjAsk" data-id="${it.id}">جرد / تعديل الكمية</button><button class="btn" data-act="itemLog" data-id="${it.id}">سجل حركة الصنف</button></div>`:''}
-    <button class="btn primary block" data-act="saveItem">حفظ الصنف</button>
+    <button class="btn primary block" data-act="saveItem">حفظ الصنف</button>${EDITSCAN&&it.id?'<button class="btn accent block" data-act="saveScanNext">💾 حفظ وامسح الصنف الجاي</button>':''}
     ${it.id&&isOwner()?`<button class="btn danger block" data-act="delItemAsk" data-id="${it.id}">حذف الصنف</button>`:''}`);
 },
 genCode(){const f=$('#fBar'); if(f.value.trim()){toast('للصنف باركود. امسحه أولًا لو بدك تولّد غيره');return} f.value=newInternalCode(); save(); toast('تولّد باركود داخلي يبدأ بـ 2')},
@@ -2910,6 +2911,7 @@ async addOldDebt(d){ const kind=d.kind==='suppliers'?'suppliers':'customers', c=
 delParty(d){ const c=S.customers.find(x=>x.id===+d.id); if(!c) return; const b=balance(c);
   if(!confirm(`حذف حساب «${c.name}» كامل؟${b>0?`\nعليه دين ${fx(b)} ₪ وبينحذف مع الحساب.`:''}\nما في رجعة.`)) return;
   S.customers=S.customers.filter(x=>x.id!==c.id); audit(`حذف حساب زبون ${c.name}${b>0?' (دين '+fx(b)+' ₪)':''}`); save(); closeSheet(); render(); toast('انحذف الحساب')},
+saveScanNext(){ const n=S.items.length; A.saveItem(); if(!$('#sheet.open')) setTimeout(()=>openScan('edit'),350) },
 cardsTog(){ try{ localStorage.setItem('ksr-cards',itemCards()?'0':'1') }catch(_){} render() },
 dqF(d){ document.querySelectorAll('[data-act=dqF]').forEach(b=>b.classList.toggle('on',(b.dataset.f||'')===(d.f||''))); DQF=d.f||''; dqRun() },
 supBuy(d){ closeSheet(); tab='more'; sub='buy'; render(); const s=$('#pSup'); if(s){ s.value=String(d.id); s.dispatchEvent(new Event('change',{bubbles:true})) } toast('اختار الصنف واكتب الكمية والتكلفة') },
@@ -3391,7 +3393,8 @@ function showLand(){ if($('#land')) return; const d=document.createElement('div'
   document.body.appendChild(d); document.body.style.overflow='hidden'; document.body.classList.add('landing') }
 function closeLand(){ const d=$('#land'); if(d) d.remove(); document.body.style.overflow=''; document.body.classList.remove('landing'); try{localStorage.setItem('ksr-land','1')}catch(e){} }
 Object.assign(A,{
-  landInstall(){ if(INSTALL){ INSTALL.prompt(); INSTALL.userChoice.then(r=>{ if(r&&r.outcome==='accepted'){ toast('جارٍ التثبيت… افتحه من أيقونته على الشاشة'); closeLand(); if(!S&&!localStorage.getItem('ksr-intro')) showIntro() } INSTALL=null }).catch(()=>{}); return }
+  async landInstall(){ if(!INSTALL&&!isIOS()&&'serviceWorker' in navigator){ const b=[...document.querySelectorAll('#land [data-act=landInstall]')]; b.forEach(x=>{x.disabled=true; x.dataset.t=x.textContent; x.textContent='⏳ لحظة…'}); try{ await navigator.serviceWorker.ready }catch(_){} for(let i=0;i<30&&!INSTALL;i++) await new Promise(r=>setTimeout(r,100)); b.forEach(x=>{x.disabled=false; x.textContent=x.dataset.t}) }
+    if(INSTALL){ INSTALL.prompt(); INSTALL.userChoice.then(r=>{ if(r&&r.outcome==='accepted'){ toast('جارٍ التثبيت… افتحه من أيقونته على الشاشة'); closeLand(); if(!S&&!localStorage.getItem('ksr-intro')) showIntro() } INSTALL=null }).catch(()=>{}); return }
     if(isIOS()) return openSheet(`${sheetHead('تثبيت على الآيفون')}<div class="list">
       <div class="li"><span><b>1.</b> اضغط زر المشاركة <b style="font-size:20px">⎋</b> (المربع اللي طالع منه سهم) تحت أو فوق بالمتصفح Safari</span></div>
       <div class="li"><span><b>2.</b> انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b> ➕</span></div>
@@ -3401,6 +3404,7 @@ Object.assign(A,{
       <div class="li"><span><b>1.</b> اضغط على النقاط الثلاث <b>⋮</b> فوق بالمتصفح Chrome</span></div>
       <div class="li"><span><b>2.</b> اختار <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b></span></div>
       <div class="li"><span><b>3.</b> اضغط <b>«تثبيت»</b>، وبتطلع الأيقونة على شاشتك</span></div></div>
+      <p class="muted" style="margin:0">💡 إذا ما طلع «تثبيت التطبيق» بالقائمة، غالبًا التطبيق <b>مثبّت عندك أصلًا</b>: دوّر على أيقونة «كاشيرك» بشاشة الجوال. أو إنك رفضت التثبيت قبل، فالمتصفح بيخبّي النافذة فترة وبتلاقيه بالقائمة.</p>
       <p class="muted" style="margin:0">إذا فاتح الرابط من واتساب أو فيسبوك، افتحه بمتصفح Chrome أول.</p><button class="btn primary block" data-act="close">فهمت</button>`) },
   landSkip(){ closeLand(); if(!S&&!localStorage.getItem('ksr-intro')) showIntro() },
   landMenu(){ openSheet(`${sheetHead('كاشيرك الذكي')}<div class="list"><button class="li" data-act="landInstall"><span>⬇️ ثبّت التطبيق</span></button><button class="li" data-act="landSkip"><span>🌐 كمّل من المتصفح</span></button><button class="li" data-act="landLogin"><span>🔑 عندي حساب، ادخل</span></button><a class="li" href="https://wa.me/${LAND_WA}" target="_blank" rel="noopener"><span>💬 الدعم على واتساب</span></a></div>`) },
