@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B1B2B">
+<title>كتالوج المحل · كاشيرك الذكي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Readex+Pro:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* كتالوج واتساب: الزبون بيختار الأصناف وبيبعت الطلب على واتساب المحل. ما في أي تكلفة أو كميات أو بيانات خاصة */
+*{box-sizing:border-box}body{margin:0;background:#EEF2F5;color:#0F172A;font-family:"IBM Plex Sans Arabic",Tahoma,sans-serif;padding-bottom:96px}
+.top{background:linear-gradient(160deg,#10263B,#0B1B2B);color:#F1F5F9;padding:22px 16px 18px;border-bottom:3px solid #10B981}
+.top h1{font-family:"Readex Pro",sans-serif;margin:0;font-size:22px}.top p{margin:6px 0 0;color:#CBD5E1;font-size:14px}
+.bar{position:sticky;top:0;z-index:5;background:#EEF2F5;padding:10px 12px 6px}
+.q{width:100%;font:inherit;font-size:15px;padding:11px 14px;border:1.5px solid #E2E8F0;border-radius:14px;background:#fff}
+.cats{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}.cats button{flex:none;font:inherit;font-weight:600;font-size:13px;padding:6px 12px;border-radius:99px;border:1px solid #E2E8F0;background:#fff;color:#334155;cursor:pointer}
+.cats button.on{background:#0B1B2B;color:#fff;border-color:#0B1B2B}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:8px 12px}@media(min-width:620px){.grid{grid-template-columns:repeat(4,1fr)}}
+.it{background:#fff;border:1px solid #E2E8F0;border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.it .im{aspect-ratio:1;background:#F8FAFC;display:grid;place-items:center;font-family:"Readex Pro";font-size:34px;color:#10B981}.it .im img{width:100%;height:100%;object-fit:cover}
+.it .b{padding:8px 10px 10px;display:flex;flex-direction:column;gap:6px;flex:1}.it .n{font-weight:600;font-size:14px;line-height:1.35}
+.it .p{font-family:"Readex Pro";font-weight:700;color:#047857}.it .row{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.add{font:inherit;font-weight:700;border:0;border-radius:10px;background:#10B981;color:#fff;padding:6px 12px;cursor:pointer}
+.qt{display:flex;align-items:center;gap:8px}.qt button{width:30px;height:30px;border-radius:9px;border:1px solid #E2E8F0;background:#fff;font-size:17px;cursor:pointer}.qt b{min-width:16px;text-align:center}
+.out{font-size:12px;color:#DC2626;font-weight:600}
+.foot{position:fixed;inset:auto 0 0 0;background:#fff;border-top:1px solid #E2E8F0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center}
+.foot .tot{flex:1}.foot small{color:#64748B;display:block;font-size:12px}.foot b{font-family:"Readex Pro";font-size:18px}
+.send{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:14px;background:#25D366;color:#fff;padding:12px 18px;cursor:pointer}.send:disabled{opacity:.45}
+.msg{text-align:center;padding:60px 20px;color:#64748B}.cr{text-align:center;color:#94A3B8;font-size:12px;padding:14px}
+</style></head><body>
+<div class="top"><h1 id="shop">…</h1><p id="msg">اختار الأصناف وابعت طلبك على واتساب</p></div>
+<div id="app"><div class="msg">جاري تحميل الكتالوج…</div></div>
+<div class="foot" id="foot" hidden><div class="tot"><small id="cnt">0 صنف</small><b><span id="sum">0.00</span> ₪</b></div><button class="send" id="send" disabled>اطلب عبر واتساب</button></div>
+<script>
+(function(){
+  var API='https://academy.marketingmiddleeast.com/kashirak-api', IMG='https://academy.marketingmiddleeast.com/kashirak-tpl/';
+  var id=(new URLSearchParams(location.search).get('s')||'').replace(/[^a-f0-9]/g,''), $=function(i){return document.getElementById(i)};
+  var D=null, cart={}, cat='', q='';
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function fx(v){return (Math.round(v*100)/100).toFixed(2)}
+  function draw(){
+    var L=D.items.filter(function(x){return (!cat||x.c===cat)&&(!q||x.n.indexOf(q)>=0)});
+    var cats=[]; D.items.forEach(function(x){ if(x.c&&cats.indexOf(x.c)<0) cats.push(x.c) });
+    $('app').innerHTML='<div class="bar"><input class="q" id="q" placeholder="🔎 دوّر على صنف" value="'+esc(q)+'">'+(cats.length>1?'<div class="cats"><button data-c="" class="'+(cat?'':'on')+'">الكل</button>'+cats.map(function(c){return '<button data-c="'+esc(c)+'" class="'+(cat===c?'on':'')+'">'+esc(c)+'</button>'}).join('')+'</div>':'')+'</div>'+
+      (L.length?'<div class="grid">'+L.map(function(x){ var i=D.items.indexOf(x), n=cart[i]||0;
+        return '<div class="it"><div class="im">'+(x.f?'<img loading="lazy" src="'+IMG+esc(x.f)+'" alt="">':esc(x.n.charAt(0)))+'</div><div class="b"><div class="n">'+esc(x.n)+'</div><div class="row"><span class="p">'+fx(x.p)+' ₪</span>'+
+          (x.o?'<span class="out">غير متوفر الآن</span>':n?'<span class="qt"><button data-m="'+i+'">−</button><b>'+n+'</b><button data-a="'+i+'">+</button></span>':'<button class="add" data-a="'+i+'">أضف</button>')+'</div></div></div>' }).join('')+'</div>':'<div class="msg">ما في أصناف بهالبحث</div>')+
+      '<div class="cr">كتالوج من تطبيق كاشيرك الذكي</div>';
+    var s=0,c=0; for(var k in cart){ s+=cart[k]*D.items[k].p; c+=cart[k] }
+    $('foot').hidden=false; $('sum').textContent=fx(s); $('cnt').textContent=c+' قطعة'; $('send').disabled=!c||!D.wa;
+    var qi=$('q'); qi.oninput=function(){ q=qi.value.trim(); var pos=qi.selectionStart; draw(); var n=$('q'); n.focus(); try{n.setSelectionRange(pos,pos)}catch(e){} };
+  }
+  document.addEventListener('click',function(e){ var t=e.target.closest('button'); if(!t||!D) return;
+    if(t.dataset.c!==undefined){ cat=t.dataset.c; draw(); return }
+    if(t.dataset.a!==undefined){ var i=+t.dataset.a; cart[i]=(cart[i]||0)+1; draw(); return }
+    if(t.dataset.m!==undefined){ var j=+t.dataset.m; cart[j]=(cart[j]||0)-1; if(cart[j]<=0) delete cart[j]; draw(); return }
+    if(t.id==='send'){ var lines=[], s=0; for(var k in cart){ var x=D.items[k]; s+=cart[k]*x.p; lines.push('▫️ '+x.n+' × '+cart[k]+' = '+fx(cart[k]*x.p)+' ₪') }
+      var m='مرحبًا '+D.shop+' 👋\nبدي أطلب:\n'+lines.join('\n')+'\n\nالمجموع: '+fx(s)+' ₪\n(من كتالوج المحل)';
+      location.href='https://wa.me/'+D.wa+'?text='+encodeURIComponent(m) }
+  });
+  if(!id){ $('app').innerHTML='<div class="msg">الرابط ناقص</div>'; return }
+  fetch(API+'/catalog?s='+id,{cache:'no-store'}).then(function(r){return r.json()}).then(function(o){
+    if(o.error){ $('app').innerHTML='<div class="msg">'+esc(o.error)+'</div>'; return }
+    $('shop').textContent=o.shop||'المحل'; document.title=(o.shop||'المحل')+' · الكتالوج';
+    if(o.off){ $('app').innerHTML='<div class="msg">الكتالوج موقّف حاليًا</div>'; return }
+    if(o.msg) $('msg').textContent=o.msg; D=o; draw();
+  }).catch(function(){ $('app').innerHTML='<div class="msg">ما قدرنا نحمّل الكتالوج. تأكد من النت وجرّب مرة ثانية.</div>' });
+})();
+</script>
+</body></html>

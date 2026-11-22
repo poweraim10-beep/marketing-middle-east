@@ -546,9 +546,29 @@ export async function onRequest({ request, env, params }) {
       return json({ ok: true, hour: h, subs: subs.length, sent });
     }
 
+    if (a === 'catalog' && m === 'GET') { // كتالوج واتساب العام: نسخة منفصلة فيها الاسم والسعر والصورة بس (بدون تكلفة ولا كميات)
+      const id = clean(url.searchParams.get('s') || '', 40).replace(/[^a-f0-9]/g, '');
+      if (!id) return err('الرابط ناقص', 404);
+      const o = await kvJson(env, 'cat:' + id);
+      if (!o || !o.shop) return err('الكتالوج مش موجود', 404);
+      if (!o.on) return json({ off: 1, shop: o.shop });
+      return json(o);
+    }
     // ----- everything below needs a shop token -----
     const shop = await readShop(env, request);
     if (a === 'admin') return admin(env, request, b);
+    if (a === 'catalog' && m === 'POST') { // نشر كتالوج المحل: بيكتب على مفتاح الكتالوج بس، وما بيلمس بيانات المحل
+      if (!shop) return err('سجّل الدخول أول', 401);
+      const q = await body(request); const pi = picIdx();
+      const items = (Array.isArray(q.items) ? q.items : []).slice(0, 3000).map((x) => {
+        const n = clean(x.n, 80), p = Math.max(0, Math.round((+x.p || 0) * 100) / 100); if (!n || !(p > 0)) return null;
+        const f = clean(x.f, 120); const ff = /^[a-z0-9_-]+\/[a-z0-9_.-]+\.jpg$/i.test(f) ? f : (pi[nmKey(n)] || mkPic(n) || '');
+        return { n, p, c: clean(x.c, 40), ...(ff ? { f: ff } : {}), ...(x.o ? { o: 1 } : {}) };
+      }).filter(Boolean);
+      const o = { on: !!q.on, shop: clean(q.shop, 60) || shop.name || 'المحل', msg: clean(q.msg, 200), wa: waOf(q.wa) || waOf(shop.phone ? '970' + String(shop.phone).replace(/^0/, '') : ''), items, t: nowMs() };
+      await env.DB.prepare('INSERT INTO ksr_kv (k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v').bind('cat:' + shop.id, JSON.stringify(o)).run();
+      return json({ ok: true, id: shop.id, n: items.length, on: o.on });
+    }
     if (a === 'tplv' && m === 'GET') { const out = {}; const r = await env.DB.prepare("SELECT k, json_extract(v,'$.t') AS t FROM ksr_kv WHERE k LIKE 'tpl:%'").all(); for (const x of r.results || []) out[x.k.slice(4)] = +x.t || 0; return json(out); }
     if (a === 'cfgx' && m === 'GET') { const x = await kvJson(env, 'cfgx'); return json({ v: x.v || 0, pay: x.pay || {}, ic: x.ic || {} }); }
     if (a === 'pimgs' && m === 'POST') { // صور منتجات بالباركود (قراءة فقط)

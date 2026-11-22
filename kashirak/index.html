@@ -483,6 +483,10 @@ h2{font-size:17.5px;color:var(--ink)}.mrow .mt b{font-size:16px}.qk b{font-size:
 .tile.hl{background:linear-gradient(135deg,#047857,#10B981)}.tile.hl .val,.tile.hl .lbl{color:#fff!important}
 .repcard{background:#ECFDF5;color:var(--ink);border:1.5px solid #A7F3D0}.repcard b{color:#047857}.repcard span.s{color:#334155}
 .fab{color:#fff}
+.annb{display:flex;gap:10px;align-items:flex-start;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:16px;padding:12px 14px}.annb>span{font-size:22px}.annb b{color:#B45309;font-family:var(--display)}.annb p{margin:4px 0;font-size:15px}
+.faq{border-top:1px solid #F1F5F9;padding:10px 0}.faq:first-child{border-top:0}.faq summary{font-weight:700;cursor:pointer;font-family:var(--display)}.faq p{margin:6px 0 0;color:#334155;line-height:1.7}
+#hq{width:100%}
+label.tgl{display:flex!important;flex-direction:row!important;align-items:center;justify-content:space-between;gap:10px;padding:4px 0}label.tgl b{color:var(--ink)}
 .helpbtn{display:inline-flex;align-items:center;gap:5px;flex:none;font:inherit;font-weight:700;font-size:12.5px;color:#F1F5F9;background:rgba(255,255,255,.08);border:1px solid rgba(52,211,153,.45);border-radius:999px;padding:4px 10px 4px 5px;cursor:pointer}
 .helpbtn span{width:22px;height:22px;border-radius:50%;background:#10B981;color:#fff;display:grid;place-items:center;font-size:13px}
 .app>header .cloudbtn{margin-inline-start:0}.app>header .helpbtn{margin-inline-start:auto}
@@ -951,7 +955,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.partners=o.partners||[]; o.walNo=o.walNo||{}; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
+  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.partners=o.partners||[]; o.walNo=o.walNo||{}; o.offers=o.offers||[]; o.ann=o.ann||[]; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
@@ -1404,6 +1408,11 @@ function promoOf(lines){ /* buy N get M free, per item, counted in pieces */
   const by={}, pp={}; lines.forEach(l=>{if(l.unit==='كغ'||!l.baseQty) return; by[l.itemId]=(by[l.itemId]||0)+l.baseQty; const per=l.price*l.count/l.baseQty; pp[l.itemId]=Math.min(pp[l.itemId]??Infinity,per)});
   let v=0, txt=[]; for(const id in by){const it=itemById(id); if(!it||!(it.promoBuy>0)||!(it.promoGet>0)) continue;
     const free=Math.floor(by[id]/(it.promoBuy+it.promoGet))*it.promoGet; if(free>0){v+=free*pp[id]; txt.push(`${it.name}: ${free} مجانًا`)}}
+  /* خصومات العروض بنسبة (لفترة): على السعر العادي بس، مش على صنف إله «اشتري وخذ» ولا سعر معدّل باليد */
+  const OF=(S&&S.offers||[]).filter(offNow); if(OF.length){ const ag={}; lines.forEach(l=>{ if(l.manual) return; const it=itemById(l.itemId); if(!it||it.promoBuy>0) return;
+    let b=null; OF.forEach(o=>{ if((o.scope==='all'||(o.scope==='cat'&&icat(it)===o.cat)||(o.scope==='item'&&o.itemId===it.id))&&(!b||o.pct>b.pct)) b=o });
+    if(b){ const d=r2(l.price*l.count*b.pct/100); if(d>0){ v+=d; ag[b.id]=r2((ag[b.id]||0)+d) } } });
+    OF.forEach(o=>{ if(ag[o.id]) txt.push(`${o.title}: −${fx(ag[o.id])} ₪`) }) }
   return {v:r2(v),txt};
 }
 function cartTotals(lines,discount){
@@ -1952,7 +1961,7 @@ home(){
   const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
-  return `${RCFG.notice?`<div class="banner" style="background:#FFFBEB;border:1px solid #F59E0B"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${(Array.isArray(RCFG.cards)?RCFG.cards:[]).map(x=>{ const u=/^\d{9,15}$/.test(x.u||'')?'https://wa.me/'+x.u:(/^https:\/\//.test(x.u||'')?x.u:''); const inner=`<span class="ccic">${esc(x.ic||'⭐')}</span><span style="flex:1;min-width:0"><b>${esc(x.t)}</b>${x.d?`<small>${esc(x.d)}</small>`:''}</span>${u?'<span class="chev">‹</span>':''}`; return u?`<a class="ccard" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`:`<div class="ccard">${inner}</div>` }).join('')}${greetCard()}${startCard()}${quickGrid()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
+  return `${RCFG.notice?`<div class="banner" style="background:#FFFBEB;border:1px solid #F59E0B"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${(Array.isArray(RCFG.cards)?RCFG.cards:[]).map(x=>{ const u=/^\d{9,15}$/.test(x.u||'')?'https://wa.me/'+x.u:(/^https:\/\//.test(x.u||'')?x.u:''); const inner=`<span class="ccic">${esc(x.ic||'⭐')}</span><span style="flex:1;min-width:0"><b>${esc(x.t)}</b>${x.d?`<small>${esc(x.d)}</small>`:''}</span>${u?'<span class="chev">‹</span>':''}`; return u?`<a class="ccard" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`:`<div class="ccard">${inner}</div>` }).join('')}${greetCard()}${annBanner()}${startCard()}${quickGrid()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big m3">${I3('att')}</span><span hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl">${I3('h-sales','t3')}<div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
@@ -2087,21 +2096,22 @@ debts(){
 more(){
   if(sub==='inv'){ setTimeout(invPrev,0); return invView() }
   if(sub==='acc') return accView();
+  if(sub==='offers') return offersView(); if(sub==='tools') return toolsView(); if(sub==='help') return helpCenter(); if(sub==='ann') return annView(); if(sub==='cat') return catView();
   if(sub==='payroll') return payrollView();
   if(sub==='assets') return assetsView();
   if(sub==='biz') return pBizView(); if(sub==='pexp'&&S.pharm) return pExpView();
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
     const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)||(RX.ic&&RX.ic[k])?' m3':''}">${HAS3.has(k)||(RX.ic&&RX.ic[k])?I3(k):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
-    const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||k==='log')&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
+    const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||['log','help','ann','fb','offers'].includes(k))&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
     const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
     ${grp('شغلك اليومي',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet']])}
     ${grp('التقارير والملفات',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['acc','المحاسبة','الميزانية، ميزان المراجعة، دفتر الأستاذ، التدفقات النقدية','chart'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
     ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
-    ${grp('إضافات',[['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
-    ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
-    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
+    ${grp('إضافات',[['offers','العروض والخصومات','خصم بنسبة لقسم أو صنف لفترة، واشتري وخذ مجانًا','tag'],['cat','كتالوج واتساب','رابط فيه أصنافك وأسعارك، والزبون بيطلب على واتساب','cash'],['tools','أدوات','استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، النسخ الاحتياطية','gear'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
+    ${grp('العمال',[['ann','التعميمات','رسالة بتظهر على كل أجهزة المحل','users'],['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
+    ${grp('الحساب والمساعدة',[['help','المساعدة','شرح كل صفحة والأسئلة الشائعة','list'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -2370,6 +2380,11 @@ att:{t:'بصمة العمال',why:'دوام العمال: إمتى دخل وإ�
 audit:{t:'سجل العمليات',why:'مين عمل شو وإمتى: كل تعديل أو حذف أو تحويل بينكتب هون.',how:['دوّر بالتاريخ أو بالعملية.'],tips:['مفيد لما تشك بإشي صار بغيابك.']},
 biz:{t:'مجال العمل',why:'اختار نوع محلك، والتطبيق بينزّلك أصناف جاهزة بأسمائها وصورها.',how:['اختار مجال أو أكثر، واضغط تفعيل.','بتقدر تلغي تفعيل أي مجال بعدين.'],tips:['الأصناف الجاهزة بتنزل بدون أسعار: حط أسعارك.']},
 acct:{t:'حسابي',why:'بياناتك وبيانات المحل والاشتراك.',how:['غيّر صورتك واسم المحل.','شوف اشتراكك وجدّده.'],tips:[]},
+offers:{t:'العروض والخصومات',why:'عروض بتتطبّق لحالها بشاشة البيع وبتظهر بالفاتورة: خصم بنسبة لفترة، أو «اشتري وخذ مجانًا».',how:['اضغط «عرض جديد»: الاسم والنسبة، وعلى شو (كل الأصناف، قسم، أو صنف)، ومن إمتى لإمتى.','العرض بيشتغل لحاله بالتاريخ وبيوقف لحاله لما يخلص.','«وقّف» بيوقفه بأي وقت، و«شغّل» بيرجّعه.'],tips:['الخصم ما بينطبق على صنف إله «اشتري وخذ» ولا على سعر عدّلته باليد.','جرّب خصم على قسم راكد لأسبوع.']},
+tools:{t:'أدوات',why:'أدوات للشغل الكبير مرة وحدة: استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، والنسخ الاحتياطية.',how:['«تحديث الأسعار»: اختار القسم والنسبة أو المبلغ، اضغط معاينة، وبعدين تطبيق وتأكيد.','«استيراد»: ملف CSV فيه الاسم والباركود والتكلفة والسعر والكمية.','«احفظ نسخة احتياطية»: ابعت الملف لحالك على واتساب.'],tips:['قبل تحديث الأسعار التطبيق بياخد نسخة احتياطية كاملة.']},
+help:{t:'المساعدة',why:'شرح كل صفحة بالتطبيق، وأجوبة على أكثر الأسئلة.',how:['دوّر بكلمة (بيع، دين، طابعة…).','اضغط على أي صفحة لتقرأ شرحها.'],tips:[]},
+ann:{t:'التعميمات',why:'رسالة من المالك بتظهر على كل أجهزة المحل: مواعيد الدوام، سعر جديد، تنبيه.',how:['اكتب التعميم واضغط «انشر».','بيظهر بأول الرئيسية عند كل جهاز لحد ما يضغط «تمام».','«إخفاء» بيشيله عن الكل.'],tips:['الأجهزة لازم تكون مربوطة بحساب المحل عشان يوصلها.']},
+cat:{t:'كتالوج واتساب',why:'رابط لمحلك فيه الأصناف والأسعار. الزبون بيختار وبيبعتلك الطلب جاهز على واتساب.',how:['شغّل الكتالوج واكتب رقم الواتساب ورسالة ترحيب.','اضغط «انشر الكتالوج»، وبيطلعلك الرابط ورمز QR.','شارك الرابط بالجروبات، أو اطبع الرمز وحطه على باب المحل.','لما تغيّر أسعار اضغط «حدّث الكتالوج».'],tips:['التكلفة والكميات ما بتظهر للزبون أبدًا.']},
 wh:{t:'المخازن',why:'لو عندك أكثر من مخزن، بتتابع البضاعة بكل واحد.',how:['أضف المخزن، وانقل البضاعة بينهم.'],tips:[]},
 };
 function helpKey(){ return tab==='more'?(sub||'menu'):tab }
@@ -2378,6 +2393,72 @@ function fbTabUp(){ let b=$('#fbTab'); let hid=false; try{ hid=+localStorage.get
   const show=!!S&&!hid&&tab!=='sell'&&!document.querySelector('#sheet.open')&&!$('.app>header').hidden;
   if(!b){ if(!show) return; b=document.createElement('button'); b.id='fbTab'; b.dataset.act='fbOpen'; b.setAttribute('aria-label','رأيك يهمنا'); b.innerHTML='<span>💬</span><b>رأيك</b>'; document.body.appendChild(b) }
   b.hidden=!show }
+/* ===== العروض والخصومات: خصم بنسبة على كل الأصناف أو قسم أو صنف، لفترة محددة ===== */
+const offNow=o=>{const n=Date.now(); return o.on&&n>=o.from&&n<=o.to};
+const offScope=o=>o.scope==='all'?'كل الأصناف':o.scope==='cat'?('قسم '+(CATL[o.cat]||TPLN[o.cat]||o.cat)):('الصنف: '+((itemById(o.itemId)||{}).name||'—'));
+function offersView(){ const L=[...(S.offers||[])].sort((a,b)=>b.ts-a.ts), P=S.items.filter(i=>i.promoBuy>0&&i.promoGet>0);
+  const st=o=>!o.on?['','موقّف']:Date.now()<o.from?['warn','بيبلش '+fday(o.from)]:Date.now()>o.to?['bad','خلص']:['ok','شغّال'];
+  return back('العروض والخصومات')+`<p class="muted" style="margin:0">العرض بيتطبّق لحاله بشاشة البيع وبيظهر بالفاتورة، فالكاشير ما بيحتاج يتذكر إشي.</p>
+  ${isOwner()?`<button class="btn accent block big" data-act="offerNew">＋ عرض جديد</button>`:''}
+  <div class="card"><h2>خصومات بنسبة</h2>${L.length?`<div class="list">${L.map(o=>{const s=st(o); return `<div class="li"><span><span class="t">${esc(o.title)} · <b class="num" style="color:var(--good)">−${o.pct}%</b></span><br><span class="muted" style="font-size:13px">${esc(offScope(o))} · من ${fday(o.from)} لـ ${fday(o.to)}</span></span>
+    <span class="row" style="gap:6px"><span class="pill ${s[0]}">${s[1]}</span>${isOwner()?`<button class="btn sm" data-act="offerTog" data-id="${o.id}">${o.on?'وقّف':'شغّل'}</button>`:''}</span></div>`}).join('')}</div>`:'<div class="empty">لا عروض لسا. جرّب خصم 10% على قسم راكد لأسبوع.</div>'}</div>
+  <div class="card"><h2>اشتري وخذ مجانًا</h2><p class="muted" style="margin:0;font-size:13px">مثل «اشتري 2 والثالث مجانًا» على صنف. بتضيفه من تعديل الصنف نفسه.</p>
+    ${P.length?`<div class="list">${P.map(i=>`<button class="li" data-act="editItem" data-id="${i.id}"><span class="t">${esc(i.name)}</span><span class="pill ok">اشتري ${i.promoBuy} وخذ ${i.promoGet}</span></button>`).join('')}</div>`:''}
+    ${isOwner()?`<button class="btn block" data-act="go" data-tab="items">اختار صنف وحط عليه عرض</button>`:''}</div>` }
+/* ===== أدوات ===== */
+function toolsView(){ const row=(ic,t,d,a)=>`<button class="mrow" ${a}><span class="mic"><span style="font-size:20px">${ic}</span></span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev">‹</span></button>`;
+  return back('أدوات')+`<div class="mgroup"><h3>الأصناف</h3><div class="mlist">
+    ${row('📥','استيراد أصناف من ملف','ملف CSV أو Excel محفوظ كـCSV: الاسم والباركود والتكلفة والسعر والكمية','data-act="importItems"')}
+    ${row('🏷️','تحديث الأسعار مرة وحدة','رفع أو تخفيض بنسبة أو مبلغ، لقسم أو لكل الأصناف','data-act="bulkPrice"')}
+    ${row('▦','ملصقات الباركود','اطبع ملصقات للأصناف','data-act="sub" data-s="lab"')}
+    ${row('📤','تصدير الأصناف لـExcel','كل الأصناف بأسعارها ومخزونها','data-act="csv" data-k="items"')}</div></div>
+  <div class="mgroup"><h3>النسخة الاحتياطية</h3><div class="mlist">
+    ${row('💾','احفظ نسخة احتياطية','ملف فيه كل بيانات المحل، ابعته لحالك على واتساب','data-act="bkFile"')}
+    ${row('♻️','استعادة نسخة','من الإعدادات، بتستبدل بيانات هالجوال بالملف','data-act="sub" data-s="set"')}</div></div>` }
+function bulkCats(){ const n={}; S.items.forEach(i=>{const c=icat(i); if(c) n[c]=(n[c]||0)+1}); return Object.keys(n).map(k=>[k,CATL[k]||TPLN[k]||k,n[k]]) }
+function bulkCalc(){ const sc=($('#bpS')||{}).value||'all', md=($('#bpM')||{}).value||'pup', v=parseFloat(($('#bpV')||{}).value)||0, rd=!!($('#bpR')||{}).checked;
+  const L=S.items.filter(i=>i.price>0&&(sc==='all'||icat(i)===sc));
+  const f=p=>{ let x=md==='pup'?p*(1+v/100):md==='pdn'?p*(1-v/100):md==='aup'?p+v:p-v; x=Math.max(0.01,x); return rd?Math.max(0.5,(md==='pup'||md==='aup'?Math.ceil(r2(x)*2):Math.floor(r2(x)*2))/2):r2(x) };
+  return {L,f,v,ok:v>0&&(md!=='pdn'||v<100)} }
+/* ===== المساعدة ===== */
+const FAQ=[['كيف بضيف أصنافي بسرعة؟','من «الأصناف» اضغط «تعديل الأصناف بالباركود» وامسح كل صنف واكتب سعره. أو من «المزيد ← مجال العمل» نزّل أصناف جاهزة.'],
+ ['بيشتغل التطبيق بدون نت؟','أيوه. كل إشي بينحفظ على الجوال، ولما يرجع النت بينرفع على السحابة لحاله.'],
+ ['ضاع جوالي، شو بصير ببياناتي؟','افتح التطبيق على جوال ثاني واضغط «عندي حساب»، ادخل برقم الجوال وكلمة السر، وبترجع كل بياناتك.'],
+ ['كيف بخلي العامل يبيع بدون ما يشوف الأرباح؟','من زر «المالك» فوق حوّل لوضع الكاشير. العامل بيبيع بس، والرجوع للمالك برمز سري.'],
+ ['كيف بسجل دين على زبون؟','بشاشة البيع اختار «دين» واختار الزبون. أو من «الديون ← إضافة دين» لدين قديم.'],
+ ['كيف ببعت كشف حساب لزبون؟','من «الديون» اضغط على اسمه، وتحت في «إرسال كشف الحساب واتساب».'],
+ ['كيف بطبع الفاتورة؟','بعد البيع اضغط «طباعة». بتشتغل مع طابعات البلوتوث الحرارية 58 و80 مم.'],
+ ['كيف بعرف ربحي الحقيقي؟','من «التقارير»: الربح بعد التكلفة والمصاريف. لازم تكون التكلفة مكتوبة صح لكل صنف.'],
+ ['بقدر أشتغل على جوالين؟','أيوه، الحساب بيفتح على 3 أجهزة بنفس الرقم وكلمة السر.'],
+ ['كيف بجدد الاشتراك؟','من «حسابي» أو زر الاشتراك فوق، أو تواصل معنا على واتساب.']];
+function helpCenter(){ return back('المساعدة')+`<div class="hwhy" style="background:linear-gradient(135deg,#047857,#10B981);border:0;color:#fff"><b style="color:#fff;font-size:18px">كيف بنساعدك؟</b><p style="color:#ECFDF5">شرح لكل صفحة بالتطبيق، وأجوبة قصيرة على أكثر الأسئلة.</p></div>
+  <input id="hq" placeholder="🔎 دوّر: بيع، دين، طابعة، عامل…" oninput="hqF(this.value)">
+  <div class="card"><h2>شرح الصفحات</h2><div class="list" id="hqL">${Object.entries(HELP).map(([k,h])=>`<button class="li" data-act="help" data-k="${k}" data-s="${esc(h.t+' '+h.why)}"><span><span class="t">${h.t}</span><br><span class="muted" style="font-size:13px">${h.why.slice(0,70)}…</span></span><span class="chev">‹</span></button>`).join('')}</div></div>
+  <div class="card"><h2>الأسئلة الشائعة</h2><div id="hqF">${FAQ.map(([q,a])=>`<details class="faq" data-s="${esc(q+' '+a)}"><summary>${q}</summary><p>${a}</p></details>`).join('')}</div></div>
+  <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي سؤال عن تطبيق كاشيرك الذكي:\n')}" target="_blank" rel="noopener">💬 ما لقيت جوابك؟ اسألنا على واتساب</a>` }
+window.hqF=v=>{ v=String(v||'').trim(); document.querySelectorAll('#hqL [data-s], #hqF [data-s]').forEach(x=>{ x.hidden=!!v&&!x.dataset.s.includes(v); if(v&&x.tagName==='DETAILS'&&!x.hidden) x.open=true }) };
+/* ===== التعميمات: رسالة من المالك بتظهر على كل أجهزة المحل ===== */
+function annSeen(){ try{ return JSON.parse(localStorage.getItem('ksr-ann-seen')||'[]') }catch(e){ return [] } }
+function annBanner(){ const s=annSeen(), L=(S.ann||[]).filter(a=>a.on&&!s.includes(a.id)).slice(-2); return L.map(a=>`<div class="annb"><span>📢</span><div style="flex:1"><b>تعميم من ${esc(a.by||'المالك')}</b><p>${esc(a.txt)}</p><small class="muted">${fdate(a.ts)}</small></div><button class="btn sm" data-act="annOk" data-id="${a.id}">تمام</button></div>`).join('') }
+function annView(){ const L=[...(S.ann||[])].sort((a,b)=>b.ts-a.ts);
+  return back('التعميمات')+`<p class="muted" style="margin:0">اكتب تعميم (مواعيد الدوام، سعر جديد، تنبيه…)، وبيظهر على كل أجهزة المحل اللي مربوطة بالحساب.</p>
+  ${isOwner()?`<div class="card"><label for="annT">تعميم جديد<textarea id="annT" rows="3" maxlength="400" placeholder="مثلًا: من بكرا الدوام بيبلش الساعة 8"></textarea></label><button class="btn accent block" data-act="annGo">📢 انشر التعميم</button></div>`:''}
+  <div class="card"><h2>التعميمات</h2>${L.length?`<div class="list">${L.map(a=>`<div class="li"><span><span class="t">${esc(a.txt)}</span><br><span class="muted" style="font-size:13px">${fdate(a.ts)}${a.on?'':' · مخفي'}</span></span>${isOwner()?`<button class="btn sm" data-act="annTog" data-id="${a.id}">${a.on?'إخفاء':'إظهار'}</button>`:''}</div>`).join('')}</div>`:'<div class="empty">لا تعميمات لسا</div>'}</div>` }
+/* ===== كتالوج واتساب ===== */
+function catLink(){ const c=S.catalog||{}; return c.id?new URL('catalog.html?s='+c.id,location.href).href:'' }
+function catView(){ const c=S.catalog||{}, ln=catLink();
+  return back('كتالوج واتساب')+`<div class="hwhy"><b>🛍️ محلك على جوال كل زبون</b><p>رابط فيه أصنافك وأسعارك. الزبون بيختار وبيضغط «اطلب عبر واتساب» فبتوصلك رسالة الطلب جاهزة. التكلفة والكميات ما بتظهر للزبون.</p></div>
+  ${!linked()?`<div class="banner over"><span>لازم يكون المحل مربوط بحساب على السحابة عشان ينشر الكتالوج.</span></div>`:`
+  <div class="card"><label class="tgl"><span><b>الكتالوج شغّال</b><br><small class="muted">${c.on?'الرابط بيعرض أصنافك':'موقّف: الرابط ما بيعرض إشي'}</small></span><input type="checkbox" id="catOn" ${c.on?'checked':''} style="width:24px;height:24px"></label>
+    <label class="tgl"><span><b>أخفي الأصناف الخالصة</b><br><small class="muted">وإلا بتظهر «غير متوفر الآن»</small></span><input type="checkbox" id="catHide" ${c.hideOut?'checked':''} style="width:24px;height:24px"></label>
+    <label for="catMsg">رسالة ترحيب أعلى الكتالوج<input id="catMsg" maxlength="200" value="${esc(c.msg||'')}" placeholder="مثال: التوصيل مجاني داخل البلدة فوق 50 ₪"></label>
+    <label for="catWa">رقم واتساب اللي بتوصله الطلبات<input id="catWa" inputmode="tel" dir="ltr" value="${esc(c.wa||waOf()||S.phone||'')}" placeholder="059xxxxxxx"></label>
+    <button class="btn accent block big" data-act="catPub">${c.id?'🔄 حدّث الكتالوج':'🚀 انشر الكتالوج'}</button>
+    ${c.pub?`<small class="fh" style="text-align:center">آخر تحديث: ${fdate(c.pub)} · ${c.n||0} صنف. لما تغيّر أسعار، اضغط «حدّث».</small>`:''}</div>
+  ${ln&&c.on?`<div class="card" style="align-items:center;text-align:center"><h2>رابط الكتالوج</h2><div class="qrbox">${typeof KQR==='function'?KQR(ln,200):''}</div>
+    <p class="num" dir="ltr" style="margin:0;font-size:12.5px;word-break:break-all">${esc(ln)}</p>
+    <div class="grid2" style="width:100%"><button class="btn" data-act="catCopy">📋 نسخ الرابط</button><a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ تسوّق من '+S.shop+' واطلب على واتساب:\n'+ln)}">📤 شارك</a></div>
+    <small class="muted">اطبع رمز QR وحطه على باب المحل أو الكاشير.</small></div>`:''}`}` }
 /* «ابدأ من هنا»: 3 خطوات للمحل الجديد، بتختفي لحالها لما تخلص أو لما يسكّرها */
 function startCard(){ try{ if(!isOwner()||localStorage.getItem('ksr-start-x')) return '' }catch(e){}
   const st=[[S.items.length>0,'أضف أصنافك','امسح الباركود واكتب الاسم والسعر، أو نزّل أصناف جاهزة','data-act="go" data-tab="items"'],
@@ -3207,7 +3288,7 @@ walSet(){ const W=WALS(); openSheet(`${sheetHead('أرقام محافظ الاس
   <button class="btn accent block" data-act="walSave">حفظ</button>`) },
 walSave(){ const W=WALS(), o={}; W.forEach((m,i)=>{ const v=String(($('#wn'+i)||{}).value||'').replace(/[^\d+]/g,'').slice(0,20); if(v) o[m]=v });
   S.walNo=o; audit('تعديل أرقام محافظ الاستلام'); save(); closeSheet(); render(); toast('✓ انحفظت أرقام المحافظ') },
-help(){ const k=helpKey(), h=HELP[k]||HELP.home;
+help(d){ const k=(d&&d.k)||helpKey(), h=HELP[k]||HELP.home;
   openSheet(`${sheetHead('شرح: '+h.t)}
     <div class="hwhy"><b>ⓘ ليش هالصفحة؟</b><p>${h.why}</p></div>
     ${h.how.length?`<h3 class="hh">✓ كيف أستعملها؟</h3><div class="hsteps">${h.how.map((x,i)=>`<div class="hstep"><span>${i+1}</span><p>${x}</p></div>`).join('')}</div>`:''}
@@ -3224,6 +3305,42 @@ fbSend(){ const tx=String(($('#fbTx')||{}).value||'').trim(); if(!tx){toast('ا�
   const msg=`${k} · كاشيرك الذكي\n${tx}\n\n— ${S.shop||''}${CL&&CL.acct?' · حساب '+CL.acct:''} · صفحة: ${(HELP[helpKey()]||{}).t||helpKey()}`;
   window.open('https://wa.me/'+SUPPORT_WA+'?text='+encodeURIComponent(msg),'_blank'); closeSheet(); toast('شكرًا! رأيك بيفرق معنا') },
 fbHide(){ try{ localStorage.setItem('ksr-fb-x',String(Date.now()+7*864e5)) }catch(e){} closeSheet(); fbTabUp(); toast('تمام، بيرجع بعد أسبوع. وبتلاقيه دايمًا بالمزيد') },
+offerNew(){ const cats=bulkCats(), n0=new Date(); openSheet(`${sheetHead('عرض جديد')}
+  <label for="ofT">اسم العرض<input id="ofT" maxlength="40" placeholder="مثلًا: خصم المنظفات"></label>
+  <label for="ofP">نسبة الخصم %<input id="ofP" type="number" inputmode="numeric" min="1" max="90" placeholder="10"></label>
+  <label for="ofS">على شو؟<select id="ofS"><option value="all">كل الأصناف</option>${cats.map(([k,tl,c])=>`<option value="cat:${k}">قسم ${esc(tl)} (${c})</option>`).join('')}<option value="item">صنف معيّن…</option></select></label>
+  <label for="ofI">الصنف (إذا اخترت صنف معيّن)<input id="ofI" list="ofIL" autocomplete="off" placeholder="اكتب اسم الصنف"><datalist id="ofIL">${S.items.slice(0,1500).map(i=>`<option value="${esc(i.name)}">`).join('')}</datalist></label>
+  <div class="grid2"><label for="ofF">من<input id="ofF" type="date" value="${ymd(Date.now())}"></label><label for="ofTo">لـ<input id="ofTo" type="date" value="${ymd(Date.now()+6*864e5)}"></label></div>
+  <button class="btn accent block" data-act="offerSave">حفظ وتشغيل العرض</button>`) },
+offerSave(){ const tl=String($('#ofT').value||'').trim().slice(0,40)||'عرض', p=Math.round(parseFloat($('#ofP').value)||0), s=$('#ofS').value, fv=$('#ofF').value, tv=$('#ofTo').value;
+  if(!(p>=1&&p<=90)){toast('النسبة لازم تكون بين 1 و90');return}
+  const dt=v=>{const [y,m,d]=String(v).split('-').map(Number); return y?new Date(y,m-1,d).getTime():0}; const from=dt(fv), to=dt(tv)+864e5-1; if(!from||!(to>from)){toast('اختار التاريخ صح');return}
+  let o={id:S.nextId++,ts:Date.now(),title:tl,pct:p,from,to,on:true};
+  if(s==='all') o.scope='all'; else if(s.startsWith('cat:')){o.scope='cat'; o.cat=s.slice(4)} else { const nm=String($('#ofI').value||'').trim(), it=S.items.find(i=>i.name.trim()===nm); if(!it){toast('اختار الصنف من القائمة');return} o.scope='item'; o.itemId=it.id }
+  S.offers=S.offers||[]; S.offers.push(o); audit(`عرض جديد: ${tl} −${p}%`); save(); closeSheet(); render(); toast('✓ العرض شغّال') },
+offerTog(d){ const o=(S.offers||[]).find(x=>x.id===+d.id); if(!o) return; o.on=!o.on; audit(`${o.on?'تشغيل':'إيقاف'} عرض ${o.title}`); save(); render() },
+bulkPrice(){ const cats=bulkCats(); openSheet(`${sheetHead('تحديث الأسعار مرة وحدة')}<p class="muted" style="margin:0">بتغيّر سعر البيع لكل الأصناف أو لقسم. قبل ما يتغير إشي بنحفظ نسخة احتياطية كاملة على الجوال.</p>
+  <label for="bpS">على شو؟<select id="bpS"><option value="all">كل الأصناف (${S.items.filter(i=>i.price>0).length})</option>${cats.map(([k,tl,c])=>`<option value="${k}">قسم ${esc(tl)} (${c})</option>`).join('')}</select></label>
+  <div class="grid2"><label for="bpM">التغيير<select id="bpM"><option value="pup">رفع بنسبة %</option><option value="pdn">تخفيض بنسبة %</option><option value="aup">رفع بمبلغ ₪</option><option value="adn">تخفيض بمبلغ ₪</option></select></label>
+  <label for="bpV">القيمة<input id="bpV" type="number" inputmode="decimal" min="0" placeholder="10"></label></div>
+  <label class="row" style="gap:8px"><input type="checkbox" id="bpR" checked style="width:20px;height:20px"> قرّب السعر لنص شيكل (الرفع لفوق والتخفيض لتحت)</label>
+  <div id="bpPrev" class="muted" style="font-size:13.5px"></div>
+  <div class="grid2"><button class="btn" data-act="bulkPrev">معاينة</button><button class="btn accent" data-act="bulkGo">تطبيق</button></div>`) },
+bulkPrev(){ const {L,f,ok}=bulkCalc(); if(!ok){toast('اكتب قيمة صحيحة');return} $('#bpPrev').innerHTML=`رح يتغير سعر <b>${L.length}</b> صنف. مثلًا:<br>${L.slice(0,4).map(i=>`${esc(i.name)}: ${fx(i.price)} ← <b>${fx(f(i.price))}</b>`).join('<br>')}` },
+async bulkGo(d,el){ const {L,f,ok}=bulkCalc(); if(!ok){toast('اكتب قيمة صحيحة');return} if(!L.length){toast('ما في أصناف');return}
+  if(!el||el.dataset.c!=='1'){ if(el){el.dataset.c='1'; el.textContent=`تأكيد تغيير ${L.length} سعر`} A.bulkPrev(); return }
+  try{ await idb('readwrite',st=>st.put(JSON.stringify(S),'bulk-'+Date.now())) }catch(e){}
+  L.forEach(i=>{ const cur=itemById(i.id); if(cur) cur.price=f(cur.price) }); audit(`تحديث أسعار ${L.length} صنف`); save(); closeSheet(); render(); toast(`✓ تغيّر سعر ${L.length} صنف`) },
+annGo(){ const tx=String(($('#annT')||{}).value||'').trim().slice(0,400); if(!tx){toast('اكتب التعميم');return} S.ann=S.ann||[]; S.ann.push({id:S.nextId++,ts:Date.now(),txt:tx,by:ownerName()||'المالك',on:true}); audit('تعميم جديد'); save(); render(); toast('✓ انتشر التعميم على كل الأجهزة') },
+annTog(d){ const a=(S.ann||[]).find(x=>x.id===+d.id); if(!a) return; a.on=!a.on; save(); render() },
+annOk(d){ const s=annSeen(); s.push(+d.id); try{ localStorage.setItem('ksr-ann-seen',JSON.stringify(s.slice(-200))) }catch(e){} render() },
+async catPub(){ if(!linked()){toast('اربط المحل بحساب السحابة أول');return} if(!navigator.onLine){toast('بدّه نت');return}
+  const on=!!$('#catOn').checked, hide=!!$('#catHide').checked, msg=String($('#catMsg').value||'').trim().slice(0,200), w=String($('#catWa').value||'').replace(/\D/g,'');
+  const wa=w.startsWith('970')||w.startsWith('972')?w:w?('970'+w.replace(/^0/,'')):'';
+  const items=S.items.filter(i=>i.price>0&&!(hide&&!i.ns&&i.qty<=0)).map(i=>({n:i.name,p:i.price,c:CATL[icat(i)]||TPLN[icat(i)]||'',...(!i.ns&&i.qty<=0?{o:1}:{})}));
+  toast('جاري النشر…'); try{ const r=await api('/catalog',{method:'POST',body:{on,msg,wa,shop:S.shop,items}});
+    S.catalog={on,hideOut:hide,msg,wa,id:r.id,pub:Date.now(),n:r.n}; save(); render(); toast(on?`✓ الكتالوج منشور · ${r.n} صنف`:'✓ انحفظ، والكتالوج موقّف') }catch(e){ toast(e.message||'ما زبط، جرّب كمان مرة') } },
+catCopy(){ const l=catLink(); try{ navigator.clipboard.writeText(l); toast('✓ انتسخ الرابط') }catch(e){ prompt('انسخ الرابط:',l) } },
 startX(){ try{localStorage.setItem('ksr-start-x','1')}catch(e){} render() },
 suTab(d){ const nw=d.t!=='have'; const a=$('#suNew'), b=$('#suHave'); if(a) a.hidden=!nw; if(b) b.hidden=nw; document.querySelectorAll('.suseg button').forEach(x=>x.setAttribute('aria-selected',String(x.dataset.t===d.t))) },
 cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
@@ -3882,7 +3999,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['bizGo','astAdd','payGo','payWageGo','drawGo','drPick','walSet','walSave','partnerAdd','partnerSave','partnerView','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['bizGo','astAdd','payGo','payWageGo','drawGo','drPick','walSet','walSave','offerNew','offerSave','offerTog','bulkPrice','bulkPrev','bulkGo','annGo','annTog','catPub','partnerAdd','partnerSave','partnerView','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
@@ -4009,7 +4126,7 @@ document.addEventListener('click',e=>{
   if(S&&isSeller2()&&SELLER_NO.has(a)){A._hubNext=[a,Object.assign({},d)]; hubAuto(); return}
   if(0){openSheet(`${sheetHead('لحظة وحدة')}<p style="margin:0">هاي العملية بتتعمل من جهاز واحد بنفس الوقت عشان ما تتلخبط الحسابات. اضغط «كمّل» وبنحوّلها لهذا الجهاز بثواني، بدون كلمة سر.</p><button class="btn primary block" data-act="takeHub">كمّل</button>`); return}
   if(S&&!isOwner()&&((OWNER_ONLY.has(a)&&!(S.cashItems&&CASH_ITEM.has(a)))||(a==='sub'&&!['menu','log','acct'].includes(d.s))||(a==='party'&&d.kind==='suppliers'))){A.mode(); A._ownNext=[a,Object.assign({},d)]; return}
-  A[a](d);
+  A[a](d,el);
 });
 document.addEventListener('input',e=>{ const t=e.target; if(['pQty','pCost','pCs','pBig','pSack'].includes(t.id)) pUnitUI(); if(t.id==='pFind') pFindUI(t.value); if(t.id==='edQ'&&EDV) edInvUI(t.value); if(['pCost','pPrice','pPw'].includes(t.id)) pChgUI(); if(t.id==='exAmt'){const h=$('#exHint'); if(h) h.innerHTML=expHint()} if(['fW','fCost','fPrice'].includes(t.id)){const w=$('#wPrev'); if(w) w.innerHTML=wPrevTxt($('#fW').checked,$('#fCost').value,$('#fPrice').value)} if(t.id==='fsQ'){const l=$('#fsList'); if(l) l.innerHTML=fsRows(t.value); return}
   if(t.classList&&t.classList.contains('retq')){const m=+t.dataset.max; if(+t.value>m) t.value=m; if(+t.value<0) t.value=0; return}

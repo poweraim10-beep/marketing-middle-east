@@ -1,5 +1,5 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v131';
+const CACHE='kashirak-v132';
 const PAGE='./';                 /* مفتاح واحد ثابت لصفحة التطبيق */
 const FILES=['manifest.webmanifest','qr.js','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png','icons/feat/barcode.jpg','icons/feat/chart.jpg','icons/feat/ledger.jpg','icons/feat/card.jpg','icons/feat/shield.jpg','icons/feat/receipt.jpg','icons/feat/coins.jpg','icons/feat/gift.jpg','icons/feat/calc.jpg'];
 /* المتصفح ما بيقبل يفتح صفحة محفوظة جاية من تحويل (redirect) وقت ما في نت، فبنحفظها دايمًا كنسخة نظيفة */
@@ -21,7 +21,7 @@ self.addEventListener('activate',e=>{e.waitUntil((async()=>{
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET') return;
   const u=new URL(r.url);
-  if(u.pathname.endsWith('/pay.html')) return; /* صفحة الدفع للزبون: من الشبكة دايمًا، وما بتنحفظ مكان التطبيق */
+  if(/\/(pay|catalog)\.html$/.test(u.pathname)) return; /* صفحة الدفع للزبون: من الشبكة دايمًا، وما بتنحفظ مكان التطبيق */
   if(r.mode==='navigate'){ /* الصفحة: من الشبكة إن وُجدت (بمهلة قصيرة إذا النت ضعيف)، وإلا من النسخة المحفوظة على الجهاز */
     e.respondWith((async()=>{
       const c=await caches.open(CACHE);
