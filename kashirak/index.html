@@ -2031,6 +2031,7 @@ debts(){
   return `
   <div class="tile hl"><div class="lbl">مجموع الديون على الزبائن</div><div class="val">${money(total)}</div></div>
   <div class="row"><h2>الزبائن</h2><div class="row" style="gap:6px"><button class="btn sm" data-act="debtList">كشف الديون</button><button class="btn sm accent" data-act="debtPdf">📄 PDF</button><button class="btn primary sm" data-act="addParty" data-kind="customers">إضافة زبون</button></div></div>
+  ${isOwner()?`<button class="btn accent block" data-act="debtNew">➕ إضافة دين (المبلغ والسبب)</button>`:''}
   ${fxTotals(S.customers)}
   <div class="card" style="gap:8px"><input id="dq" type="search" placeholder="🔎 ابحث باسم الزبون" aria-label="بحث باسم الزبون" autocomplete="off">
    <div class="seg" role="group" aria-label="نوع الحساب"><button class="on" data-act="dqF" data-f="">الكل</button><button data-act="dqF" data-f="d">المدين (عليه)</button><button data-act="dqF" data-f="c">الدائن (إله رصيد)</button></div>
@@ -3214,6 +3215,18 @@ redeem(d){const c=S.customers.find(x=>x.id===+d.id); const v=r2((c.points||0)*S.
   c.ledger.push({ts:Date.now(),amt:-v,note:`استبدال ${c.points} نقطة`,noCash:true}); audit(`استبدال ${c.points} نقطة لـ ${c.name} بـ ${fx(v)} ₪`); c.points=0; save(); render(); A.party({kind:'customers',id:c.id}); toast(`انضاف ${fx(v)} ₪ لرصيده`)},
 makePlan(d){const c=S.customers.find(x=>x.id===+d.id), b=balance(c), n=Math.max(2,Math.round(+$('#plN').value||0)), ev=Math.max(1,Math.round(+$('#plE').value||30)), st=new Date(($('#plS').value||new Date().toISOString().slice(0,10))+'T00:00').getTime();
   if(!(b>0)){toast('ما عليه دين للتقسيط');return} c.plan={ts:Date.now(),start:st,every:ev,n,total:b,amt:r2(b/n)}; audit(`جدول تقسيط لـ ${c.name}: ${n} دفعات`); save(); A.party({kind:'customers',id:c.id}); toast('تم عمل جدول التقسيط')},
+debtNew(){ openSheet(`${sheetHead('إضافة دين')}<p class="fh" style="margin:0">لزبون عليه دين من قبل أو أخد إشي برّا البيع. اكتب اسمه والمبلغ والسبب. ما بيأثر على المخزون ولا المبيعات.</p>
+  <label for="dnName">اسم الزبون<input id="dnName" list="dnList" autocomplete="off" placeholder="اختار زبون أو اكتب اسم جديد"><datalist id="dnList">${S.customers.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></label>
+  <div class="row"><input id="dnAmt" type="number" inputmode="decimal" min="0" placeholder="المبلغ" aria-label="المبلغ">${curSel('dnCur')}</div>
+  <label for="dnNote">السبب<input id="dnNote" maxlength="120" placeholder="مثلًا: دين قديم من الدفتر، أو أخد مصاري"></label>
+  <label for="dnDay">التاريخ${bdInput('dnDay')}</label>
+  <small class="fh">إذا الاسم مش موجود، بينضاف زبون جديد لحاله.</small>
+  <button class="btn primary block" data-act="debtNewGo">إضافة الدين</button>`) },
+debtNewGo(){ const n=(($('#dnName')||{}).value||'').trim().replace(/\s+/g,' ').slice(0,60), a=r2(parseFloat(($('#dnAmt')||{}).value)||0), cur=curVal('dnCur'), note=(($('#dnNote')||{}).value||'').trim().slice(0,120);
+  if(!n){toast('اكتب اسم الزبون');return} if(!(a>0)){toast('اكتب المبلغ');return} const ts=bdTs(($('#dnDay')||{}).value); if(ts==null) return;
+  let c=S.customers.find(x=>x.name.trim()===n), isNew=false; if(!c){ c={id:S.nextId++,name:n,phone:'',ledger:[]}; S.customers.push(c); isNew=true }
+  c.ledger.push({ts,amt:a,note:'دين سابق'+(note?': '+note:''),...(cur?{cur}:{})}); audit(`إضافة دين ${fx(a)} ${CURS[cur||'ILS']} على ${c.name}${note?' · '+note:''}${isNew?' (زبون جديد)':''}`);
+  save(); closeSheet(); render(); toast(`✓ انضاف الدين على ${c.name}`) },
 async addOldDebt(d){ const kind=d.kind==='suppliers'?'suppliers':'customers', c=S[kind].find(x=>x.id===+d.id), cur=curVal('oldCur'); const a=r2(parseFloat($('#oldAmt').value)||0); const pf=($('#oldPh')||{}).files&&$('#oldPh').files[0]; let pid='';
   if(pf&&a>0){ try{ const dat=await docImg(pf); pid='img'+Date.now(); await idb('readwrite',st=>st.put(dat,pid)) }catch(e){} }
   if(!c) return; if(a<=0){toast('اكتب المبلغ');return}
@@ -3454,7 +3467,7 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 const VIEW_OK=new Set(['go','wedgeLink','wedgeCancel','wedgeDone','wedgeOffAsk','wedgeOff','remHost','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
-const SELLER_NO=new Set(['edInv','edInvQ','edInvRm','edInvAdd','edInvSave','imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','setupGo']);
+const SELLER_NO=new Set(['edInv','edInvQ','edInvRm','edInvAdd','edInvSave','imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','debtNew','debtNewGo','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
