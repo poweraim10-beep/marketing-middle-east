@@ -518,6 +518,7 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .mnote{margin-top:6px;text-align:start;background:#FFFBEB;border:2px solid #F59E0B;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .mnote b{font-family:var(--display);font-size:19px;color:#B45309}.mnote p{margin:0;font-size:16.5px;line-height:1.75;font-weight:700;color:#0F172A}.mnote .mn2{font-size:14.5px;color:#92400E;font-weight:600}
 .sname{background:#fff;border:2px solid #A7F3D0;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}.sname label{font-weight:700;color:var(--gold-deep)}.sname small{font-weight:500;color:var(--muted)}
+.seg.payseg{display:grid;grid-template-columns:1fr 1fr;gap:4px}.seg.payseg button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;white-space:nowrap}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -616,7 +617,7 @@ const ICON={
 const I3=(k,c='')=>`<img class="i3 ${c}" src="${(RX.ic&&RX.ic[k])||'icons/3d/'+k+'.webp'}" alt="" decoding="async" onerror="i3Retry(this)">`;
 function i3Retry(im){ const n=+(im.dataset.r||0); if(n>=4) return; im.dataset.r=n+1; setTimeout(()=>{ im.src=im.src.split('?')[0]+'?r='+(n+1) },1500*(n+1)) }
 addEventListener('online',()=>document.querySelectorAll('img.i3').forEach(im=>{ if(im.complete&&!im.naturalWidth){ im.dataset.r=0; im.src=im.src.split('?')[0]+'?o='+Date.now() } }));
-const K3={offers:'disc',cat:'s-phone',tools:'h-ret',ann:'h-alert',help:'support',fb:'h-wa',walq:'p-app',acc:'h-find'};
+const K3={staffT:'n-staff',offers:'disc',cat:'s-phone',tools:'h-ret',ann:'h-alert',help:'support',fb:'h-wa',walq:'p-app',acc:'h-find'};
 const HAS3=new Set(['assets','payroll','cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
@@ -2036,7 +2037,7 @@ sell(){
   </div></div>
   <div class="card spay">
     <label for="disc">خصم (₪)<input id="disc" type="number" inputmode="decimal" min="0" step="0.5" value="${c.discount||''}" placeholder="0"></label>
-    <div class="seg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${I3('p-'+k,'sm3')}${v}</button>`).join('')}</div>
+    <div class="seg payseg">${[...Object.entries(PAY),['split','مقسّم']].map(([k,v])=>`<button data-act="pay" data-p="${k}" aria-pressed="${c.pay===k}">${I3('p-'+k,'sm3')}${v}</button>`).join('')}</div>
     ${c.pay==='split'?`<div class="grid2"><label for="spC">نقدي (₪)<input id="spC" class="cf" data-f="splitCash" type="number" inputmode="decimal" min="0" value="${esc(c.splitCash)}"></label><label for="spA">تطبيق أو محفظة (₪)<input id="spA" class="cf" data-f="splitApp" type="number" inputmode="decimal" min="0" value="${esc(c.splitApp)}"></label></div><p class="muted" id="spRest" style="margin:0">الباقي ${fx(splitPays(gt,c).debt)} ₪ يُسجّل دين على الزبون.</p>`:''}
     ${c.pay==='app'||c.pay==='split'?(()=>{const need=splitPays(gt,c).app, dupR=refDup(c), img=c.proof?PROOF[c.proof]:'';
       return `<div class="tcard"><div class="row"><b>التحويل</b><span class="pill ok">المطلوب <span class="num">${fx(need)}</span> ₪</span></div>
@@ -2138,7 +2139,7 @@ more(){
     ${grp('التقارير والملفات',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['acc','المحاسبة','الميزانية، ميزان المراجعة، دفتر الأستاذ، التدفقات النقدية','chart'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
     ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('إضافات',[['offers','العروض والخصومات','خصم بنسبة لقسم أو صنف لفترة، واشتري وخذ مجانًا','tag'],['cat','كتالوج واتساب','رابط فيه أصنافك وأسعارك، والزبون بيطلب على واتساب','cash'],['tools','أدوات','استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، النسخ الاحتياطية','gear'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
-    ${grp('العمال',[['ann','التعميمات','رسالة بتظهر على كل أجهزة المحل','users'],['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
+    ${grp('العمال',[...(featOn('staff')?[['staffT','العمال','قائمة العمال وصلاحياتهم ودوامهم','users','goStaff']]:[]),['ann','التعميمات','رسالة بتظهر على كل أجهزة المحل','users'],['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
     ${grp('الحساب والمساعدة',[['help','المساعدة','شرح كل صفحة والأسئلة الشائعة','list'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}
     <div class="lic-foot"><span class="lic-seal">${I3('h-shield')}</span><div><b>نسخة مرخّصة ومعتمدة</b><span>لدى شركة أبو عمر الغزاوي<br>للإعلانات والتسويق الرقمي</span><small>الإصدار ${APPVER} · © ${new Date().getFullYear()} جميع الحقوق محفوظة</small></div></div>`;
   }
@@ -2654,7 +2655,8 @@ function render(){
   $('#view').dataset.v=tab==='more'?'more-'+sub:tab;
   if(tab==='sell'&&mOk()) mSet(false);
   $('#view').innerHTML=(tab==='more'&&(sub==='rep'||sub==='acc')&&!mOk())?mGateView():V[tab]();
-  $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&sub==='rep'))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
+  const navBuy=isOwner()&&featOn('buy');
+  $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||(k==='staff'&&navBuy)||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':(k==='staff'&&navBuy)?`<button data-act="openSub" data-s="buy" ${tab==='more'&&sub==='buy'?'aria-current="page"':''}><span class="ic">${I3('buy')}</span>المشتريات</button>`:`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&(sub==='rep'||(navBuy&&sub==='buy'))))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
     +`<button class="fab" data-act="go" data-tab="sell" aria-label="بيع" ${tab==='sell'?'aria-current="page"':''}>${I3('n-sell','fab3')}<span>بيع</span></button>`;
   if(tab==='sell') renderResults();
   syncLive();
@@ -3727,6 +3729,7 @@ camTorch(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0],
 camZoom(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0], c=t.getCapabilities?t.getCapabilities():{}; if(!c.zoom) return;
   const z=Math.max(c.zoom.min||1,Math.min(c.zoom.max,+d.z));
   t.applyConstraints({advanced:[{zoom:z}]}).then(()=>{ document.querySelectorAll(`#${d.w} [data-act=camZoom]`).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.z===d.z))) }).catch(()=>{}) },
+goStaff(){ A.go({tab:'staff'}) },
 scanPick(d){ const t=scan.target, id=+d.id; closeScan();
   if(t==='edit') A.editItem({id}); else if(t==='edInv'&&typeof EDV!=='undefined'&&EDV) A.edInvAdd({id}); else { if(tab!=='sell'){tab='sell'} addToCart(id) } },
 qbAdd(d){ addToCart(+d.id) },
