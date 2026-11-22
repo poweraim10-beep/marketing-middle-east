@@ -815,6 +815,8 @@ function expMayKeep(){ if(!LICREADY||!S||isViewer()||status().active){EXPSNAP=nu
   const keep={};LOCALF.forEach(k=>keep[k]=S[k]); S=norm(JSON.parse(EXPSNAP)); Object.assign(S,keep); persist(1); setTimeout(()=>{render();subSheet()},0); return false}
 function expGate(){ if(!S||!LICREADY) return; const open=document.querySelector('#sheet.open'), sub=open&&$('#sheetBox').dataset.sub;
   if(isViewer()||status().active){EXPSNAP=null; if(sub) closeSheet(); return}
+  /* «بنتأكد من اشتراكك»: إذا في نت، بنتأكد لحالنا من السيرفر أول، وما بنطلّع الشاشة إلا إذا فعلًا ما قدرنا */
+  if(status().why==='nolic'&&navigator.onLine&&linked()&&!expGate.tr){ expGate.tr=1; licRefresh().finally(()=>setTimeout(expGate,0)); return }
   if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!open||sub) subSheet()}
 const WAIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>';
 function waMsg(){const st=status(); return `مرحبًا، بدي ${st.why==='paid'?'أجدّد':'أشترك في'} «كاشيرك الذكي».\nاسم صاحب المحل: ${CL&&CL.owner||S.owner||''}\nاسم المحل: ${S.shop}\nرقم الحساب: ${st.acct||'—'}\nرقم الجوال: ${CL&&CL.phone||S.phone||''}`}
