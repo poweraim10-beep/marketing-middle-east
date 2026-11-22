@@ -61,7 +61,7 @@ header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F1F5F9;
 .greet .gav img{width:100%;height:100%;object-fit:cover}
 .qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .qk{display:flex;flex-direction:column;align-items:center;gap:7px;padding:13px 4px 11px;border-radius:18px;background:var(--card,#fff);border:1px solid var(--line,#E2E8F0);box-shadow:0 4px 12px rgba(15,23,42,.06);font:inherit;color:var(--ink);cursor:pointer;min-width:0}
-.qk:active{transform:scale(.96)}.qk .i3{width:54px;height:54px;object-fit:contain}.qk b{font-size:14px;font-weight:600;line-height:1.25;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.qk.key{border:2px solid #34D399;background:linear-gradient(180deg,#F0FDF7,#fff)}.qk:active{transform:scale(.96)}.qk .i3{width:54px;height:54px;object-fit:contain}.qk b{font-size:14px;font-weight:600;line-height:1.25;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 @media(min-width:620px){.qgrid{grid-template-columns:repeat(3,1fr);max-width:520px;margin-inline:auto;width:100%}}
 .greet b{display:block;font-size:15.5px;line-height:1.35}.greet small{display:block;color:#CBD5E1;font-size:13.5px;margin-top:2px}
 .acchero{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:24px 16px 18px;border-radius:24px;background:radial-gradient(420px 260px at 50% 0%,#12304A,#0B1B2B 70%);color:#F1F5F9;border:1px solid rgba(52,211,153,.35);box-shadow:0 14px 34px rgba(15,23,42,.25)}
@@ -2517,12 +2517,12 @@ function startCard(){ try{ if(!isOwner()||localStorage.getItem('ksr-start-x')) r
     <div class="sbar"><i style="width:${Math.round(n/st.length*100)}%"></i></div>
     ${st.map(([ok,tl,d,a],i)=>`<button class="sstep${ok?' ok':''}" ${a}><span class="sn">${ok?'✓':i+1}</span><span class="st"><b>${tl}</b><small>${d}</small></span><span class="chev">‹</span></button>`).join('')}</div>` }
 function quickGrid(){ const own=isOwner();
-  const Q=[['n-sell','بيع','data-act="go" data-tab="sell"',1],['buy','المشتريات','data-act="openSub" data-s="buy"',0],['sup','الموردين','data-act="openSub" data-s="sup"',0],['n-debts','الديون','data-act="go" data-tab="debts"',1],
-    ['exp','المصروفات','data-act="openSub" data-s="exp"',0],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['n-items','الأصناف','data-act="go" data-tab="items"',1],['log','الفواتير','data-act="openSub" data-s="log"',1],
+  const Q=[['n-sell','بيع','data-act="go" data-tab="sell"',1,1],['n-debts','الديون','data-act="go" data-tab="debts"',1,1],['n-items','الأصناف','data-act="go" data-tab="items"',1,1],
+    ['buy','المشتريات','data-act="openSub" data-s="buy"',0],['sup','الموردين','data-act="openSub" data-s="sup"',0],['exp','المصروفات','data-act="openSub" data-s="exp"',0],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['log','الفواتير','data-act="openSub" data-s="log"',1],
     ['n-rep','التقارير','data-act="openSub" data-s="rep"',0]];
   const subOf=a=>(a.match(/data-s="(\w+)"/)||[])[1];
   const L=Q.filter(([k,,a,all])=>(own||all)&&(!subOf(a)||featOn(subOf(a))));
-  return L.length?`<div class="qgrid" aria-label="اختصارات">${L.map(([k,tl,a])=>`<button class="qk" ${a}>${I3(k)}<b>${tl}</b></button>`).join('')}</div>`:'' }
+  return L.length?`<div class="qgrid" aria-label="اختصارات">${L.map(([k,tl,a,,key])=>`<button class="qk${key?' key':''}" ${a}>${I3(k)}<b>${tl}</b></button>`).join('')}</div>`:'' }
 function greetTxt(){ const h=new Date().getHours(); return h<12?'صباح الخير':h<17?'نهارك سعيد':'مساء الخير' }
 function greetCard(){ const n=ownerName(), first=n.split(/\s+/)[0]||'';
   return `<button class="greet" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span style="flex:1;min-width:0">
