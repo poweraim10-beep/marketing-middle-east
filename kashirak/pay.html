@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B1B2B"><meta name="robots" content="noindex">
+<title>الدفع بالتحويل · كاشيرك الذكي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Readex+Pro:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* صفحة بيفتحها الزبون لما يمسح رمز QR من كاشيرك: رقم المحفظة والمبلغ جاهزين للنسخ. ما فيها أي بيانات غير اللي بالرابط */
+*{box-sizing:border-box}body{margin:0;background:#EEF2F5;color:#0F172A;font-family:"IBM Plex Sans Arabic",Tahoma,sans-serif;min-height:100vh}
+.top{background:linear-gradient(160deg,#10263B,#0B1B2B);color:#F1F5F9;padding:26px 18px 54px;text-align:center;border-bottom:3px solid #10B981}
+.top small{color:#94A3B8;font-size:13px}.top h1{font-family:"Readex Pro",sans-serif;margin:6px 0 0;font-size:22px}
+.wrap{max-width:460px;margin:-38px auto 0;padding:0 14px 30px;display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border:1px solid #E2E8F0;border-radius:18px;padding:16px;box-shadow:0 6px 18px rgba(15,23,42,.06)}
+.amt{text-align:center}.amt .l{color:#64748B;font-size:13.5px}.amt .v{font-family:"Readex Pro",sans-serif;font-size:38px;font-weight:700;color:#047857;margin:2px 0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.row .k{color:#64748B;font-size:13px}.row .val{font-family:"Readex Pro",sans-serif;font-size:21px;font-weight:700;direction:ltr}
+.cp{font:inherit;font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;border:0;background:linear-gradient(180deg,#10B981,#047857);color:#fff;cursor:pointer;flex:none}
+.cp.ok{background:#0B1B2B}
+.wal{display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:15px;padding:4px 12px;border-radius:99px;background:#ECFDF5;color:#047857;border:1px solid #A7F3D0}
+ol{margin:0;padding-inline-start:20px;line-height:1.9;font-size:14.5px}ol b{color:#047857}
+.foot{text-align:center;color:#94A3B8;font-size:12px}
+.bad{text-align:center;color:#DC2626;font-weight:700}
+</style></head><body>
+<div class="top"><small>دفع بالتحويل إلى</small><h1 id="shop">المحل</h1></div>
+<div class="wrap" id="app">
+  <div class="card amt"><div class="l">المبلغ المطلوب</div><div class="v"><span id="amt">0.00</span> ₪</div>
+    <button class="cp" data-copy="amt">نسخ المبلغ</button></div>
+  <div class="card"><div class="row" style="margin-bottom:10px"><span class="k">حوّل على</span><span class="wal" id="wal">المحفظة</span></div>
+    <div class="row"><div><div class="k">رقم المحفظة</div><div class="val" id="num">—</div></div><button class="cp" data-copy="num">نسخ الرقم</button></div></div>
+  <div class="card"><ol>
+    <li>افتح تطبيق <b id="wal2">المحفظة</b> على جوالك.</li>
+    <li>اختار <b>تحويل</b> والصق <b>رقم المحفظة</b>.</li>
+    <li>الصق <b>المبلغ</b> وأكّد التحويل.</li>
+    <li>فرجي الكاشير شاشة نجاح التحويل.</li></ol></div>
+  <div class="foot">كاشيرك الذكي · ما بنحفظ أي إشي من هالصفحة</div>
+</div>
+<script>
+(function(){
+  var h=new URLSearchParams(location.hash.slice(1)), num=(h.get('n')||'').replace(/[^\d+]/g,'').slice(0,20), a=parseFloat(h.get('a')||''), w=(function(x){return {j:'جوال باي',p:'PalPay',b:'بنك فلسطين'}[x]||x})((h.get('w')||'').slice(0,30)), s=(h.get('s')||'').slice(0,60);
+  var $=function(i){return document.getElementById(i)};
+  if(!num||!(a>0)){ $('app').innerHTML='<div class="card bad">الرابط ناقص. اطلب من الكاشير يعرضلك الرمز مرة ثانية.</div>'; return }
+  $('shop').textContent=s||'المحل'; $('amt').textContent=a.toFixed(2); $('num').textContent=num; $('wal').textContent=w||'المحفظة'; $('wal2').textContent=w||'المحفظة';
+  var val={amt:a.toFixed(2),num:num};
+  document.querySelectorAll('[data-copy]').forEach(function(b){ b.addEventListener('click',function(){ var t=val[b.dataset.copy], old=b.textContent;
+    var done=function(){ b.textContent='✓ تم النسخ'; b.classList.add('ok'); setTimeout(function(){b.textContent=old;b.classList.remove('ok')},1600) };
+    if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done,function(){ prompt('انسخ:',t) }); else prompt('انسخ:',t) }) });
+})();
+</script>
+</body></html>

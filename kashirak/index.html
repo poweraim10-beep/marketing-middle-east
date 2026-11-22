@@ -482,8 +482,16 @@ h2{font-size:17.5px;color:var(--ink)}.mrow .mt b{font-size:16px}.qk b{font-size:
 .tile.hl{background:linear-gradient(135deg,#047857,#10B981)}.tile.hl .val,.tile.hl .lbl{color:#fff!important}
 .repcard{background:#ECFDF5;color:var(--ink);border:1.5px solid #A7F3D0}.repcard b{color:#047857}.repcard span.s{color:#334155}
 .fab{color:#fff}
+.startc{border:1.5px solid #A7F3D0;gap:10px}.startc h2{color:var(--gold-deep)}.xbtn{border:0;background:#F1F5F9;border-radius:10px;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--muted)}
+.sbar{height:7px;border-radius:9px;background:#E2E8F0;overflow:hidden}.sbar i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#047857);border-radius:9px}
+.sstep{display:flex;align-items:center;gap:12px;width:100%;padding:10px 0;border:0;border-top:1px solid #F1F5F9;background:none;font:inherit;color:var(--ink);text-align:start;cursor:pointer}
+.sstep .sn{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-family:var(--display);font-weight:700;background:#F1F5F9;color:var(--muted)}
+.sstep:not(.ok) .sn{background:var(--gold);color:#fff}.sstep.ok{opacity:.6}.sstep.ok .sn{background:#ECFDF5;color:var(--good)}.sstep.ok b{text-decoration:line-through}
+.sstep .st{flex:1}.sstep b{display:block;font-family:var(--display);font-size:15.5px}.sstep small{color:var(--muted);font-size:13px}
+.qrbox{background:#fff;padding:10px;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}.qrbox svg{display:block;width:250px;height:250px}
 .tile.hl.debt{background:linear-gradient(135deg,#B45309,#F59E0B)}
 </style>
+<script src="qr.js" defer></script>
 </head>
 <body>
 <div class="app">
@@ -931,7 +939,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.partners=o.partners||[]; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
+  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.partners=o.partners||[]; o.walNo=o.walNo||{}; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
@@ -1932,7 +1940,7 @@ home(){
   const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
     :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
-  return `${RCFG.notice?`<div class="banner" style="background:#FFFBEB;border:1px solid #F59E0B"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${(Array.isArray(RCFG.cards)?RCFG.cards:[]).map(x=>{ const u=/^\d{9,15}$/.test(x.u||'')?'https://wa.me/'+x.u:(/^https:\/\//.test(x.u||'')?x.u:''); const inner=`<span class="ccic">${esc(x.ic||'⭐')}</span><span style="flex:1;min-width:0"><b>${esc(x.t)}</b>${x.d?`<small>${esc(x.d)}</small>`:''}</span>${u?'<span class="chev">‹</span>':''}`; return u?`<a class="ccard" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`:`<div class="ccard">${inner}</div>` }).join('')}${greetCard()}${quickGrid()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
+  return `${RCFG.notice?`<div class="banner" style="background:#FFFBEB;border:1px solid #F59E0B"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${(Array.isArray(RCFG.cards)?RCFG.cards:[]).map(x=>{ const u=/^\d{9,15}$/.test(x.u||'')?'https://wa.me/'+x.u:(/^https:\/\//.test(x.u||'')?x.u:''); const inner=`<span class="ccic">${esc(x.ic||'⭐')}</span><span style="flex:1;min-width:0"><b>${esc(x.t)}</b>${x.d?`<small>${esc(x.d)}</small>`:''}</span>${u?'<span class="chev">‹</span>':''}`; return u?`<a class="ccard" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`:`<div class="ccard">${inner}</div>` }).join('')}${greetCard()}${startCard()}${quickGrid()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big m3">${I3('att')}</span><span hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
     <div class="tile hl">${I3('h-sales','t3')}<div class="lbl">مبيعات اليوم</div><div class="val">${money(t.rev)}</div><div class="lbl">${t.count} فاتورة</div></div>
@@ -1984,6 +1992,7 @@ sell(){
     ${c.pay==='app'||c.pay==='split'?(()=>{const need=splitPays(gt,c).app, dupR=refDup(c), img=c.proof?PROOF[c.proof]:'';
       return `<div class="tcard"><div class="row"><b>التحويل</b><span class="pill ok">المطلوب <span class="num">${fx(need)}</span> ₪</span></div>
       <div class="wals" role="group" aria-label="جهة التحويل">${APPM.map(m=>`<button class="wal" data-act="apM" data-m="${esc(m)}" aria-pressed="${c.appMethod===m}" style="--wc:${APPC[m]||'var(--gold)'}">${appLogo(m)}<span>${esc(m)}</span><i class="wck">✓</i></button>`).join('')}</div>
+      ${walQRBtn(c)}
       ${img?`<div class="proof"><button class="pthumb" data-act="proofView" data-k="cart" aria-label="عرض إشعار التحويل"><img src="${img}" alt=""></button><div style="flex:1;display:flex;flex-direction:column;gap:6px"><span class="pill ok" style="align-self:flex-start">✓ إشعار التحويل مرفق</span>${c.proofDup?`<span class="pdup">⚠ هذا الإشعار بيشبه إشعار فاتورة ${c.proofDup}. تأكد إنه تحويل جديد.</span>`:'<span class="muted" style="font-size:13px">تأكد إن المبلغ والاسم بالإشعار صح، وإن التحويل لحسابك.</span>'}<div class="row" style="justify-content:flex-start;gap:8px"><label class="btn sm" for="prGal">تغيير</label><button class="btn sm danger" data-act="proofDrop">حذف</button></div></div></div>`
         :`<div class="pbtns"><label class="pbtn" for="prCam"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>صوّر الإشعار</label><label class="pbtn" for="prGal"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>من الصور أو واتساب</label></div>
         <p class="muted" style="margin:0;font-size:13px">${S.proofReq?'صورة إشعار التحويل مطلوبة قبل إتمام البيع.':'صوّر شاشة التحويل من جوال الزبون، أو اختار الصورة اللي بعتها على واتساب.'}</p>`}
@@ -2080,7 +2089,7 @@ more(){
     ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('إضافات',[['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
-    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
+    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -2277,6 +2286,12 @@ function renderResults(){
   el.innerHTML=`<div class="list">${found.map(i=>`<button class="li" data-act="${S.pharm&&pSellable(i)<=0&&pAlts(i).length?'pAlts':'add'}" data-id="${i.id}">
     <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span>${pSub(i)}${S.pharm&&pSellable(i)<=0&&pAlts(i).length?' <span class="pill warn">خلص · شوف البدائل</span>':''}<br><span class="muted">المتوفر ${qtyTxt(i)}</span></span></span><span>${money(i.price)} <span class="pill ok">أضف</span></span></button>`).join('')||'<div class="empty">لا يوجد صنف بهذا الاسم أو الباركود</div>'}</div>`;
 }
+/* استلام بالمحفظة: رمز QR بيفتح عند الزبون صفحة فيها رقم المحفظة والمبلغ جاهزين للنسخ */
+const WALS=()=>APPM.filter(m=>m!=='بنك آخر');
+function walQRBtn(c){ const m=c.appMethod; if(!m||m==='بنك آخر') return '';
+  if((S.walNo||{})[m]) return `<button class="btn accent block" data-act="walQR">📱 اعرض رمز QR للزبون</button>`;
+  return isOwner()&&!isSeller2()?`<button class="lnk" data-act="walSet" style="align-self:flex-start">＋ أضف رقم ${esc(m)} عشان يطلع رمز QR للزبون</button>`:'' }
+function walLink(m,amt){ const u=new URL('pay.html',location.href); const wc={'جوال باي':'j','PalPay':'p','بنك فلسطين':'b'}[m]||m; u.hash=new URLSearchParams({n:S.walNo[m],a:r2(amt).toFixed(2),w:wc,s:S.shop||''}).toString(); return u.href }
 let DRP=0; function partnersBox(){ const P=S.partners||[]; if(P.length&&!P.some(x=>x.id===DRP)) DRP=P[0].id; const m0=new Date(); m0.setDate(1); m0.setHours(0,0,0,0);
   const tot=(p,f)=>r2((S.draws||[]).filter(x=>x.pid===p.id&&x.kind==='out'&&x.ts>=f).reduce((a,x)=>a+(+x.amt||0),0));
   return `${P.length?`<div class="seg" style="flex-wrap:wrap">${P.map(p=>`<button data-act="drPick" data-id="${p.id}" aria-pressed="${DRP===p.id}">${esc(p.name)}</button>`).join('')}</div>
@@ -2316,6 +2331,15 @@ const waOf=()=>(S&&S.wa)||(CL&&CL.wa)||'';
 const ownerName=()=>(S&&(S.owner||(CL&&CL.owner)))||'';
 const avHTML=()=>(S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0)))+(S&&status().paid?'<span class="vtick" title="مشترك موثّق"><svg viewBox="0 0 40 40"><defs><linearGradient id="vtg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5CC8FF"/><stop offset=".55" stop-color="#1D9BF0"/><stop offset="1" stop-color="#0A6CC2"/></linearGradient><radialGradient id="vth" cx=".35" cy=".25" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><path fill="url(#vtg)" stroke="#fff" stroke-width="2.2" d="M20 2.5l4.2 3.1 5.2-.4 1.9 4.9 4.6 2.4-.9 5.1 2.6 4.5-3.6 3.8-.2 5.2-5 1.6-2.9 4.3-5-1.3-4.9 1.5-3-4.3-5.1-1.4-.4-5.2-3.7-3.7 2.5-4.6-1-5.1 4.6-2.5 1.8-4.9 5.2.3z"/><ellipse cx="16" cy="12" rx="10" ry="6.5" fill="url(#vth)"/><path d="M13 20.5l4.6 4.6 9.4-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':'');
 /* اختصارات الواجهة: الأقسام الأساسية بضغطة وحدة (العامل بيشوف اللي مسموحله بس) */
+/* «ابدأ من هنا»: 3 خطوات للمحل الجديد، بتختفي لحالها لما تخلص أو لما يسكّرها */
+function startCard(){ try{ if(!isOwner()||localStorage.getItem('ksr-start-x')) return '' }catch(e){}
+  const st=[[S.items.length>0,'أضف أصنافك','امسح الباركود واكتب الاسم والسعر، أو نزّل أصناف جاهزة','data-act="go" data-tab="items"'],
+    [S.sales.length>0,'بِع أول فاتورة','من الزر الأخضر «بيع» تحت','data-act="go" data-tab="sell"'],
+    [S.customers.length>0,'أضف زبائنك','وسجّل ديونهم القديمة من الدفتر','data-act="go" data-tab="debts"']];
+  const n=st.filter(x=>x[0]).length; if(n===st.length) return '';
+  return `<div class="card startc"><div class="row"><h2>🚀 ابدأ من هنا</h2><span class="row" style="gap:10px"><span class="muted num">${n}/${st.length}</span><button class="xbtn" data-act="startX" aria-label="إخفاء">✕</button></span></div>
+    <div class="sbar"><i style="width:${Math.round(n/st.length*100)}%"></i></div>
+    ${st.map(([ok,tl,d,a],i)=>`<button class="sstep${ok?' ok':''}" ${a}><span class="sn">${ok?'✓':i+1}</span><span class="st"><b>${tl}</b><small>${d}</small></span><span class="chev">‹</span></button>`).join('')}</div>` }
 function quickGrid(){ const own=isOwner();
   const Q=[['n-sell','بيع','data-act="go" data-tab="sell"',1],['buy','المشتريات','data-act="openSub" data-s="buy"',0],['sup','الموردين','data-act="openSub" data-s="sup"',0],['n-debts','الديون','data-act="go" data-tab="debts"',1],
     ['exp','المصروفات','data-act="openSub" data-s="exp"',0],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['n-items','الأصناف','data-act="go" data-tab="items"',1],['log','الفواتير','data-act="openSub" data-s="log"',1],
@@ -3122,6 +3146,21 @@ async cloudNewGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, p
     closeSheet(); render(); toast('انعمل الحساب. جاري رفع بيانات المحل…'); await cloudPush(); render();
     if(CLS.state==='ok') toast('✓ بيانات المحل محفوظة على السحابة');
   }catch(e){toast(e.message); btn.disabled=false; btn.textContent='إنشاء الحساب ورفع المحل'}},
+walQR(){ const c=cart(), m=c.appMethod, tt=cartTotals(c.lines.map(l=>lineOf(itemById(l.itemId),l.unit,l.count,l.p)),c.discount), gt=r2(tt.total+appFeeOf(tt.total,c)+xt(c)); const need=splitPays(gt,c).app;
+  if(!m||!(S.walNo||{})[m]){toast('اختار المحفظة أول');return} if(!(need>0)){toast('ما في مبلغ للتحويل');return}
+  if(typeof KQR!=='function'){toast('ثانية وحدة… جاري تجهيز الرمز');return}
+  openSheet(`${sheetHead('امسح وحوّل')}<div style="display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+    <div class="qrbox">${KQR(walLink(m,need),250)}</div>
+    <div style="font-family:var(--display);font-size:30px;font-weight:700;color:var(--good)"><span class="num">${fx(need)}</span> ₪</div>
+    <div class="pill ok" style="font-size:14px">${esc(m)} · <span class="num" dir="ltr">${esc(S.walNo[m])}</span></div>
+    <p class="muted" style="margin:0;font-size:13.5px">خلّي الزبون يمسح الرمز بكاميرا جواله. بتفتحله صفحة فيها رقم المحفظة والمبلغ جاهزين للنسخ، وبعد ما يحوّل صوّر الإشعار وكمّل البيع.</p></div>
+    <button class="btn block" data-act="close">تمام</button>`) },
+walSet(){ const W=WALS(); openSheet(`${sheetHead('أرقام محافظ الاستلام')}<p class="muted" style="margin:0">اكتب أرقام المحافظ اللي بتستلم عليها. لما الزبون يدفع تحويل، بيطلعله رمز QR فيه الرقم والمبلغ. اترك الخانة فاضية إذا ما عندك هالمحفظة.</p>
+  ${W.map((m,i)=>`<label for="wn${i}">${esc(m)}<input id="wn${i}" inputmode="tel" dir="ltr" maxlength="20" placeholder="${m==='بنك فلسطين'?'رقم الحساب أو الجوال':'059xxxxxxx'}" value="${esc((S.walNo||{})[m]||'')}"></label>`).join('')}
+  <button class="btn accent block" data-act="walSave">حفظ</button>`) },
+walSave(){ const W=WALS(), o={}; W.forEach((m,i)=>{ const v=String(($('#wn'+i)||{}).value||'').replace(/[^\d+]/g,'').slice(0,20); if(v) o[m]=v });
+  S.walNo=o; audit('تعديل أرقام محافظ الاستلام'); save(); closeSheet(); render(); toast('✓ انحفظت أرقام المحافظ') },
+startX(){ try{localStorage.setItem('ksr-start-x','1')}catch(e){} render() },
 suTab(d){ const nw=d.t!=='have'; const a=$('#suNew'), b=$('#suHave'); if(a) a.hidden=!nw; if(b) b.hidden=nw; document.querySelectorAll('.suseg button').forEach(x=>x.setAttribute('aria-selected',String(x.dataset.t===d.t))) },
 cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
   <p class="muted" style="margin:0">نفس رقم الجوال وكلمة السر اللي سجّلت فيهم المحل.</p>
@@ -3779,7 +3818,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['bizGo','astAdd','payGo','payWageGo','drawGo','drPick','partnerAdd','partnerSave','partnerView','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['bizGo','astAdd','payGo','payWageGo','drawGo','drPick','walSet','walSave','partnerAdd','partnerSave','partnerView','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');

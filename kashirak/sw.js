@@ -1,7 +1,7 @@
 /* كاشيرك الذكي: يحفظ ملفات التطبيق على الجهاز ليشتغل بدون إنترنت */
-const CACHE='kashirak-v129';
+const CACHE='kashirak-v130';
 const PAGE='./';                 /* مفتاح واحد ثابت لصفحة التطبيق */
-const FILES=['manifest.webmanifest','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png','icons/feat/barcode.jpg','icons/feat/chart.jpg','icons/feat/ledger.jpg','icons/feat/card.jpg','icons/feat/shield.jpg','icons/feat/receipt.jpg','icons/feat/coins.jpg','icons/feat/gift.jpg','icons/feat/calc.jpg'];
+const FILES=['manifest.webmanifest','qr.js','icons/icon-192-v2.png','icons/icon-512-v2.png','icons/maskable-512-v2.png','icons/apple-touch-icon-v2.png','icons/logo.svg','icons/logo-3d-256.png','icons/feat/barcode.jpg','icons/feat/chart.jpg','icons/feat/ledger.jpg','icons/feat/card.jpg','icons/feat/shield.jpg','icons/feat/receipt.jpg','icons/feat/coins.jpg','icons/feat/gift.jpg','icons/feat/calc.jpg'];
 /* المتصفح ما بيقبل يفتح صفحة محفوظة جاية من تحويل (redirect) وقت ما في نت، فبنحفظها دايمًا كنسخة نظيفة */
 const clean=async res=>res&&res.redirected?new Response(await res.blob(),{status:200,headers:res.headers}):res;
 async function savePage(c,res){ if(res&&res.ok&&(res.headers.get('content-type')||'').includes('text/html')) await c.put(PAGE,await clean(res.clone())) }
@@ -21,6 +21,7 @@ self.addEventListener('activate',e=>{e.waitUntil((async()=>{
 self.addEventListener('fetch',e=>{
   const r=e.request; if(r.method!=='GET') return;
   const u=new URL(r.url);
+  if(u.pathname.endsWith('/pay.html')) return; /* صفحة الدفع للزبون: من الشبكة دايمًا، وما بتنحفظ مكان التطبيق */
   if(r.mode==='navigate'){ /* الصفحة: من الشبكة إن وُجدت (بمهلة قصيرة إذا النت ضعيف)، وإلا من النسخة المحفوظة على الجهاز */
     e.respondWith((async()=>{
       const c=await caches.open(CACHE);
