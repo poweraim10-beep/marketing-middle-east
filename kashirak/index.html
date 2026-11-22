@@ -592,6 +592,7 @@ const ICON={
  staff:'<circle cx="10" cy="8" r="4"/><path d="M3 21c1.2-4 4-6 7-6 1.6 0 3 .5 4.2 1.4M15.5 18.5l2 2 4-4"/>'
 };
 const I3=(k,c='')=>`<img class="i3 ${c}" src="${(RX.ic&&RX.ic[k])||'icons/3d/'+k+'.webp'}" alt="" decoding="async">`;
+const K3={offers:'disc',cat:'s-phone',tools:'h-ret',ann:'h-alert',help:'support',fb:'h-wa',walq:'p-app',acc:'h-find'};
 const HAS3=new Set(['assets','payroll','cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
@@ -2105,7 +2106,7 @@ more(){
   if(sub==='biz') return pBizView(); if(sub==='pexp'&&S.pharm) return pExpView();
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
-    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)||(RX.ic&&RX.ic[k])?' m3':''}">${HAS3.has(k)||(RX.ic&&RX.ic[k])?I3(k):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
+    const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)||K3[k]||(RX.ic&&RX.ic[k])?' m3':''}">${HAS3.has(k)||(RX.ic&&RX.ic[k])?I3(k):K3[k]?I3(K3[k]):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
     const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||['log','help','ann','fb','offers'].includes(k))&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
     const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
