@@ -513,6 +513,11 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .camctl .cbtn{display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(7,18,29,.55);color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.camctl .cbtn[aria-pressed=true]{background:#FBBF24;color:#0B1B2B;border-color:#FBBF24}
 .czoom{display:flex;gap:2px;padding:3px;border-radius:999px;background:rgba(7,18,29,.55);border:1px solid rgba(255,255,255,.25)}.czoom button{border:0;background:none;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:4px 9px;border-radius:999px;cursor:pointer}.czoom button[aria-pressed=true]{background:#fff;color:#0B1B2B}
 .scanwrap{position:relative;flex-shrink:0}
+.plbtn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:64px;border:0!important;color:#fff!important;font-weight:700;line-height:1.35;box-shadow:0 8px 18px rgba(15,23,42,.14)}.plbtn span{font-size:22px}
+.plbtn.wa2{background:linear-gradient(135deg,#22C55E,#15803D)}.plbtn.pdf2{background:linear-gradient(135deg,#F43F5E,#B91C1C)}
+.mnote{margin-top:6px;text-align:start;background:#FFFBEB;border:2px solid #F59E0B;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.mnote b{font-family:var(--display);font-size:19px;color:#B45309}.mnote p{margin:0;font-size:16.5px;line-height:1.75;font-weight:700;color:#0F172A}.mnote .mn2{font-size:14.5px;color:#92400E;font-weight:600}
+.sname{background:#fff;border:2px solid #A7F3D0;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}.sname label{font-weight:700;color:var(--gold-deep)}.sname small{font-weight:500;color:var(--muted)}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -2071,7 +2076,7 @@ items(){
   const low=S.items.filter(i=>!i.ns&&i.qty<=i.min).length, val=S.items.reduce((a,i)=>a+Math.max(i.qty,0)*i.price,0);
   return `
   <div class="tiles"><div class="tile hl"><div class="lbl">عدد الأصناف</div><div class="val">${S.items.length}</div></div><div class="tile"><div class="lbl">قليلة أو خالصة</div><div class="val" style="color:var(--${low?'warn':'good'})">${low}</div></div></div>
-  <div class="grid2"><button class="btn" data-act="priceWa">قائمة الأسعار واتساب</button><button class="btn" data-act="pdfGo" data-sel="prices">قائمة الأسعار PDF</button></div>
+  <div class="grid2"><button class="btn plbtn wa2" data-act="priceWa"><span>💬</span>قائمة الأسعار واتساب</button><button class="btn plbtn pdf2" data-act="pdfGo" data-sel="prices"><span>📄</span>قائمة الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
   <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}<button class="btn primary sm" data-act="editItem" data-id="0">إضافة صنف</button></div>`:''}</div>
   ${canItems()?`<div class="grid2"><button class="btn accent" data-act="scan" data-target="edit">📷 تعديل الأصناف بالباركود</button><button class="btn" data-act="cardsTog">${itemCards()?'☰ عرض القائمة':'▦ عرض البطاقات'}</button></div><small class="fh" style="margin-top:-6px">صوّر باركود الصنف وبينفتح على طول: عدّل الكمية والتكلفة وسعر البيع، واضغط «حفظ وامسح الصنف الجاي» عشان تكمّل على باقي البضاعة بسرعة.</small>`:''}
@@ -2636,7 +2641,8 @@ function mGateView(){ return `<div class="card" style="gap:10px;text-align:cente
   <p class="muted" style="margin:0">الأرباح وقيمة المخزون مخفية عن العمال. اكتب كود الانتقال.</p>
   <input id="mCode" type="password" inputmode="numeric" autocomplete="off" placeholder="كود الانتقال" style="text-align:center;font-size:20px;letter-spacing:6px">
   <button class="btn primary block" data-act="mGo">دخول</button>
-  <p class="fh" style="margin:0">إذا نسيت الكود تواصل معنا: <a href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('نسيت كود الانتقال لواجهة المال بكاشيرك')}" target="_blank" rel="noopener">واتساب</a></p></div>` }
+  <div class="mnote"><b>⚠️ ملاحظة مهمة</b><p>إذا إنت المالك ومش عارف شو الكود، تواصل معنا الآن على الواتساب وراح نرسلك الكود بكل سهولة.</p><p class="mn2">هذا الكود موحّد على جميع المنصات.</p>
+  <a class="btn wa block" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، أنا صاحب المحل وبدي كود الانتقال لواجهة المال بكاشيرك الذكي')}" target="_blank" rel="noopener">💬 تواصل معنا الآن على واتساب</a></div></div>` }
 let ALN=5;
 function render(){
   if(!S){renderSetup();return}
@@ -2772,8 +2778,12 @@ async function openScan(target){
     <p class="muted" id="scanMsg" style="margin:0">جارٍ تشغيل الكاميرا…</p>
     <label class="btn primary block" for="scanFile">تصوير الباركود أو اختيار صورة</label>
     <input id="scanFile" type="file" accept="image/*" capture="environment" hidden>
-    <div class="withbtn"><label for="scanTxt">أو اكتب الرقم<input id="scanTxt" inputmode="numeric" placeholder="مثال: 5285000391647"></label><button class="btn" data-act="scanTyped">تأكيد</button></div>`;
+    <div class="withbtn"><label for="scanTxt">أو اكتب الرقم<input id="scanTxt" inputmode="numeric" placeholder="مثال: 5285000391647"></label><button class="btn" data-act="scanTyped">تأكيد</button></div>
+    ${['field','wBar'].includes(target)?'':`<div class="sname"><label for="scanName">🔎 أو ابحث بالاسم <small>(للصنف اللي ما إله باركود)</small><input id="scanName" inputmode="search" autocomplete="off" placeholder="اكتب أول حرفين من اسم الصنف"></label><div class="list" id="scanNameR"></div></div>`}`;
   $('#scanSheet').classList.add('open'); scanCam();
+  const sn=$('#scanName'); if(sn) sn.addEventListener('input',()=>{ const t=sn.value.trim(), r=$('#scanNameR'); if(!r) return;
+    const L=t?S.items.filter(i=>String(i.name).includes(t)).slice(0,8):[];
+    r.innerHTML=t?(L.map(i=>`<button class="li" data-act="scanPick" data-id="${i.id}"><span><span class="t">${esc(i.name)}</span><br><span class="muted">${i.barcode?'باركود '+esc(i.barcode):'بلا باركود'}</span></span><span class="num">${fx(i.price)} ₪</span></button>`).join('')||'<div class="empty">ما لقينا صنف بهالاسم</div>'):'' });
 }
 async function scanCam(){ stopScan(); const rb=$('#scanRetry'); if(rb) rb.hidden=true; scanMsg('جارٍ تشغيل الكاميرا…');
   try{
@@ -3717,6 +3727,8 @@ camTorch(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0],
 camZoom(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0], c=t.getCapabilities?t.getCapabilities():{}; if(!c.zoom) return;
   const z=Math.max(c.zoom.min||1,Math.min(c.zoom.max,+d.z));
   t.applyConstraints({advanced:[{zoom:z}]}).then(()=>{ document.querySelectorAll(`#${d.w} [data-act=camZoom]`).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.z===d.z))) }).catch(()=>{}) },
+scanPick(d){ const t=scan.target, id=+d.id; closeScan();
+  if(t==='edit') A.editItem({id}); else if(t==='edInv'&&typeof EDV!=='undefined'&&EDV) A.edInvAdd({id}); else { if(tab!=='sell'){tab='sell'} addToCart(id) } },
 qbAdd(d){ addToCart(+d.id) },
 qbPick(){ QBQ=''; openSheet(`${sheetHead('الأزرار السريعة')}<p class="fh" style="margin:0">اختار الأصناف اللي بدك إلها زر بشاشة البيع. الأصناف اللي بلا باركود بتطلع أول.</p><label for="qbQ">بحث<input id="qbQ" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف"></label><div class="list" id="qbL">${qbList()}</div><button class="btn primary block" data-act="qbDone">تم</button>`);
   const f=$('#qbQ'); if(f) f.addEventListener('input',()=>{ QBQ=f.value; $('#qbL').innerHTML=qbList() }) },
