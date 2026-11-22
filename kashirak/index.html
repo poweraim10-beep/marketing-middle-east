@@ -636,9 +636,9 @@ async function licVerify(tok){ try{
   return o.t==='shop'&&typeof CL!=='undefined'&&CL&&CL.shopId===o.id?o:null }catch(e){return null}}
 async function licCheckStored(){ const was=JSON.stringify(status());
   LIC=S&&S.licTok?await licVerify(S.licTok):null;
-  if(S){ S.licExp=LIC&&LIC.e>=0?LIC.e:null; S.licPlan=LIC?LIC.p:null; delete S.licLegacy; persist() }
+  if(S){ S.licExp=LIC&&LIC.e>=0?LIC.e:null; S.licPlan=LIC?LIC.p:null; delete S.licLegacy; persist(1) }
   LICREADY=true; if(JSON.stringify(status())!==was) render(); expGate() }
-async function licApply(tok){const o=await licVerify(tok); if(!o) return false; const prevE=LIC?LIC.e:(S&&S.licExp!=null?S.licExp:-1), grew=o.e>prevE&&o.e>=dayNum(Date.now())&&!isViewer(); LIC=o; S.licTok=tok; S.licExp=o.e>=0?o.e:null; S.licPlan=o.p; if(CL&&o.a&&CL.acct!==o.a){CL.acct=o.a;clSave()} persist(); EXPSNAP=null; render(); if(grew) setTimeout(()=>celebrate(o),150); return o}
+async function licApply(tok){const o=await licVerify(tok); if(!o) return false; const prevE=LIC?LIC.e:(S&&S.licExp!=null?S.licExp:-1), grew=o.e>prevE&&o.e>=dayNum(Date.now())&&!isViewer(); LIC=o; S.licTok=tok; S.licExp=o.e>=0?o.e:null; S.licPlan=o.p; if(CL&&o.a&&CL.acct!==o.a){CL.acct=o.a;clSave()} persist(1); EXPSNAP=null; render(); if(grew) setTimeout(()=>celebrate(o),150); return o}
 async function licRefresh(){ if(!navigator.onLine) return;
   if(!S||!linked()){ api('/license?'+new URLSearchParams({device:devInfo().id,v:APPVER,shop:S&&S.shop||'',phone:S&&S.phone||''})).catch(()=>{}); return }
   try{ const q=new URLSearchParams({device:devInfo().id,shop:S.shop||'',phone:S.phone||'',sales:String(S.sales.length),items:String(S.items.length),v:APPVER}); const r=await api('/license?'+q); if(r&&r.cfg) rcfgApply(r.cfg);
@@ -812,7 +812,7 @@ let EXPSNAP=null;
 function expMayKeep(){ if(!LICREADY||!S||isViewer()||status().active){EXPSNAP=null;return true}
   if(EXPSNAP==null){EXPSNAP=stripLocal(S);return true}
   if(stripLocal(S)===EXPSNAP) return true;
-  const keep={};LOCALF.forEach(k=>keep[k]=S[k]); S=norm(JSON.parse(EXPSNAP)); Object.assign(S,keep); persist(); setTimeout(()=>{render();subSheet()},0); return false}
+  const keep={};LOCALF.forEach(k=>keep[k]=S[k]); S=norm(JSON.parse(EXPSNAP)); Object.assign(S,keep); persist(1); setTimeout(()=>{render();subSheet()},0); return false}
 function expGate(){ if(!S||!LICREADY) return; const open=document.querySelector('#sheet.open'), sub=open&&$('#sheetBox').dataset.sub;
   if(isViewer()||status().active){EXPSNAP=null; if(sub) closeSheet(); return}
   if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!open||sub) subSheet()}
@@ -909,7 +909,8 @@ function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
-function persist(){ if(!S) return; S._t=Date.now(); const j=JSON.stringify(S);
+/* local=1: حفظ معلومات خاصة بالجهاز بس (زي الاشتراك) أو رجوع لنفس النسخة، فما بنعتبرها تغيير لازم ينرفع */
+function persist(local){ if(!S) return; if(!local) S._t=Date.now(); const j=JSON.stringify(S);
   try{localStorage.setItem(KEY,j)}catch(e){ try{localStorage.removeItem(KEY)}catch(_){} persist.big=true }
   persist.j=j; clearTimeout(persist.t); persist.t=setTimeout(persist.flush,300)}
 persist.flush=()=>{ const j=persist.j; if(!j) return; persist.j=null; return idb('readwrite',st=>{st.put(j,KEY);st.put(localStorage.getItem(DEVKEY),DEVKEY)}).catch(()=>{ persist.j=persist.j||j })};
