@@ -3936,7 +3936,8 @@ document.addEventListener('keydown',e=>{
 });
 function route(){const h=location.hash.slice(1); if(V[h]) tab=h; render()}
 window.addEventListener('hashchange',route);
-load(); preUpdateBackup(); route(); try{ if(landWanted()) showLand(); else if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} restoreFromIdb(); licCheckStored().then(licRefresh); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
+load(); preUpdateBackup(); route(); try{ if(landWanted()) showLand(); else if(!S&&!localStorage.getItem('ksr-intro')) showIntro() }catch(e){} /* بيانات المحل الكبيرة بتنحفظ بـIndexedDB بس، فلازم نستناها قبل ما نفحص الاشتراك المحفوظ (وإلا بنفكر إنه ما في اشتراك لما النت مقطوع) */
+restoreFromIdb().catch(()=>{}).finally(()=>licCheckStored().then(licRefresh)); setTimeout(()=>{ if(!linked()) return; if(cloudPending()) cloudPush(); else cloudPull() },800);
 { let n=0; const tk=setInterval(()=>{ n++; try{tourMaybe()}catch(e){} if(TOUR.asked||n>30) clearInterval(tk) },4000) }
 setTimeout(()=>{ try{ if(linked()&&pushState()==='on') pushSubscribe(false).catch(()=>{}) }catch(e){} },6000);
 /* تحديث تلقائي: كل ما ينزل إصدار جديد بيتحدّث التطبيق لحاله، بس وهو فاضي (ما في سلة ولا شاشة مفتوحة) */
