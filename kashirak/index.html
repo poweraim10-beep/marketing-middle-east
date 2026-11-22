@@ -532,6 +532,16 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .dact{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:14px 10px;border-radius:18px;border:0;font:inherit;cursor:pointer;text-align:center;box-shadow:0 8px 18px rgba(15,23,42,.12)}.dact:active{transform:scale(.97)}
 .dact .dic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:21px;background:rgba(255,255,255,.2)}.dact b{font-family:var(--display);font-size:16px}.dact small{font-size:12.5px;line-height:1.5;opacity:.9}
 .dact.urg{background:linear-gradient(135deg,#10B981,#047857);color:#fff}.dact.cus{background:linear-gradient(135deg,#10263B,#0B1B2B);color:#fff}
+.plans{display:flex;flex-direction:column;gap:10px;flex-shrink:0}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.plan{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:14px 12px 12px;border-radius:18px;border:2px solid var(--line);background:#fff;font:inherit;color:var(--ink);cursor:pointer;text-align:start;transition:.15s}
+.plan .pt{font-family:var(--display);font-size:16px}.plan .pp{font-family:var(--display);font-size:26px;font-weight:700;color:var(--gold-deep);line-height:1.2}.plan .pper{font-size:12px;color:var(--muted)}
+.plan ul{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px;line-height:1.5}.plan li:before{content:"✓ ";color:#10B981;font-weight:700}
+.plan .psave{position:absolute;top:-10px;left:10px;background:#F59E0B;color:#fff;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px}
+.plan .pchk{position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;display:none;place-items:center;background:#10B981;color:#fff;font-size:13px;font-weight:700}
+.plan.sel{border-color:#10B981;background:#F0FDF7;box-shadow:0 8px 20px rgba(16,185,129,.22)}.plan.sel .pchk{display:grid}.plan.sel .psave{top:-10px;left:40px}
+.plan.life{background:linear-gradient(135deg,#0B1B2B,#10263B);color:#F1F5F9;border-color:#FBBF24;padding:16px}.plan.life .pp{color:#FBBF24;font-size:32px}.plan.life .pper{color:#CBD5E1}.plan.life .pt{font-size:18px;color:#fff}.plan.life ul{font-size:13.5px}.plan.life li:before{color:#34D399}
+.plan.life.sel{border-color:#34D399;box-shadow:0 10px 26px rgba(16,185,129,.35);background:linear-gradient(135deg,#0B1B2B,#0F2E2A)}
+.ptags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}.ptags i{font-style:normal;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#FBBF24;color:#0B1B2B}.ptags i+i{background:#EF4444;color:#fff}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -909,9 +919,23 @@ function expGate(){ if(!S||!LICREADY) return; const open=document.querySelector(
   if(status().why==='nolic'&&navigator.onLine&&linked()&&!expGate.tr){ expGate.tr=1; licRefresh().finally(()=>setTimeout(expGate,0)); return }
   if(EXPSNAP==null) EXPSNAP=stripLocal(S); if(!open||sub) subSheet()}
 const WAIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2s-1 .3-3.4-.7c-2.9-1.2-4.7-4.1-4.8-4.3s-1.2-1.5-1.2-2.9 .7-2.1 1-2.4.6-.4.8-.4h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6s.8 1.3 1.6 2.1c1.1 1 2 1.3 2.3 1.4s.4.1.6-.1l.8-1c.2-.3.4-.2.6-.1l2 1c.3.1.5.2.5.3s.1.6-.1 1.2z"/></svg>';
-function waMsg(){const st=status(); return `مرحبًا، بدي ${st.why==='paid'?'أجدّد':'أشترك في'} «كاشيرك الذكي».\nاسم صاحب المحل: ${CL&&CL.owner||S.owner||''}\nاسم المحل: ${S.shop}\nرقم الحساب: ${st.acct||'—'}\nرقم الجوال: ${CL&&CL.phone||S.phone||''}`}
+/* باقات الاشتراك: للعرض واختيار الباقة برسالة الواتساب. التفعيل نفسه بيضل بكود من لوحة التحكم */
+const PLANS=[
+  {k:'life',t:'الباقة المفتوحة الدائمة',p:600,per:'تدفع مرة وحدة بس',tags:['⭐ الأكثر طلبًا','🔥 عرض حصري لفترة محدودة'],f:['مفتوحة المدة: ما بتنتهي أبدًا','أجهزة غير محدودة','تخزين مفتوح وكل مجالات العمل','كل التحديثات الجاية مجانًا','مندوب بيجهّزلك المحل مجانًا']},
+  {k:'y1',t:'سنة',p:400,per:'33 ₪ بالشهر',save:140,f:['3 أجهزة','مندوب مجانًا','أولوية بالدعم']},
+  {k:'m6',t:'6 شهور',p:200,per:'33 ₪ بالشهر',save:70,f:['جهازين','مندوب مجانًا']},
+  {k:'m3',t:'3 شهور',p:120,per:'40 ₪ بالشهر',save:15,f:['جهازين','دعم على واتساب']},
+  {k:'m1',t:'شهر',p:45,per:'45 ₪ بالشهر',f:['جهاز واحد','دعم على واتساب']}];
+let PSEL='life';
+const planOf=k=>PLANS.find(x=>x.k===k)||PLANS[0];
+function planCards(){ const one=x=>`<button class="plan${x.k==='life'?' life':''}${x.k===PSEL?' sel':''}" data-act="planPick" data-p="${x.k}">${x.tags?`<span class="ptags">${x.tags.map(t=>`<i>${t}</i>`).join('')}</span>`:''}${x.save?`<span class="psave">وفّر ${x.save} ₪</span>`:''}
+    <b class="pt">${x.t}</b><span class="pp"><span class="num">${x.p}</span> ₪</span><small class="pper">${x.per}</small><ul>${x.f.map(f=>`<li>${f}</li>`).join('')}</ul><span class="pchk">✓</span></button>`;
+  return `<div class="plans"><h3 class="hh" style="margin:0">اختار باقتك</h3>${one(PLANS[0])}<div class="pgrid">${PLANS.slice(1).map(one).join('')}</div><p class="fh" style="margin:0;text-align:center">كل الباقات فيها كل ميزات البرنامج. الأسعار بالشيكل.</p></div>` }
+function planWaHref(){ return `https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}` }
+function planWaTxt(){ const x=planOf(PSEL); return `اشترك ب${x.k==='life'?'الباقة المفتوحة':'باقة '+x.t} · ${x.p} ₪` }
+function waMsg(){const st=status(), x=planOf(PSEL); return `مرحبًا، أنا ${CL&&CL.owner||S.owner||''}، صاحب محل ${S.shop}\nرقم حسابي: ${st.acct||'—'}\nرقم جوالي: ${CL&&CL.phone||S.phone||''}\nبدي ${st.why==='paid'?'أجدّد اشتراكي في':'أشترك في'} «كاشيرك الذكي» بـ${x.k==='life'?'الباقة المفتوحة الدائمة':'باقة '+x.t} (${x.p} ₪)`}
 function subSheet(){ if(!S) return; const st=status(); setTimeout(()=>{const bx=$('#sheetBox'); if(bx&&$('#sheet.open')&&bx.querySelector('[data-act=activate],[data-act=joinGo],[data-act=subRetry],[data-act=cloudTake]')) bx.dataset.sub='1'},0);
-  const wa=`<a class="btn wa block big" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}${st.why==='paid'?'جدّد اشتراكك الآن على واتساب':'اشترك الآن على واتساب'}</a>`;
+  const wa=`${planCards()}<a class="btn wa block big" id="planWa" href="${planWaHref()}" target="_blank" rel="noopener">${WAIC}<span>${planWaTxt()}</span></a>`;
   const code=`<label for="licIn">عندك كود تفعيل؟<input id="licIn" class="code" placeholder="KSR-XXXX-XXXX" autocomplete="off" autocapitalize="characters" dir="ltr"></label>
     <button class="btn primary block" data-act="activate">تفعيل</button><p class="muted" style="margin:0;font-size:13px">الكود بيشتغل بس على رقم حسابك وعلى هذا الجهاز. التفعيل بدّه نت مرة وحدة.</p>`;
   const acct=st.acct?`<div class="tile hl"><div class="lbl">رقم حسابك</div><div class="val code" style="color:#34D399;font-size:30px;letter-spacing:3px">${st.acct}</div><div class="lbl">${esc(CL&&CL.owner||'')} · ${esc(S.shop)}</div></div>`:'';
@@ -3769,6 +3793,7 @@ appShareSys(){ try{ navigator.share({title:'كاشيرك الذكي',text:APP_SH
 goStaff(){ A.go({tab:'staff'}) },
 scanPick(d){ const t=scan.target, id=+d.id; closeScan();
   if(t==='edit') A.editItem({id}); else if(t==='edInv'&&typeof EDV!=='undefined'&&EDV) A.edInvAdd({id}); else { if(tab!=='sell'){tab='sell'} addToCart(id) } },
+planPick(d){ PSEL=d.p; document.querySelectorAll('.plan').forEach(b=>b.classList.toggle('sel',b.dataset.p===PSEL)); const a=$('#planWa'); if(a){ a.href=planWaHref(); a.querySelector('span').textContent=planWaTxt() } },
 qbAdd(d){ addToCart(+d.id) },
 qbPick(){ QBQ=''; openSheet(`${sheetHead('الأزرار السريعة')}<p class="fh" style="margin:0">اختار الأصناف اللي بدك إلها زر بشاشة البيع. الأصناف اللي بلا باركود بتطلع أول.</p><label for="qbQ">بحث<input id="qbQ" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف"></label><div class="list" id="qbL">${qbList()}</div><button class="btn primary block" data-act="qbDone">تم</button>`);
   const f=$('#qbQ'); if(f) f.addEventListener('input',()=>{ QBQ=f.value; $('#qbL').innerHTML=qbList() }) },
