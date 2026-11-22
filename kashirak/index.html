@@ -473,7 +473,7 @@ body.landing .sheet{z-index:170} body.landing .toast{z-index:180}
   #printArea{display:block;position:absolute;inset:0 auto auto 0;width:58mm}
   #printArea img{width:58mm;display:block}
 }
-.fh{display:block;font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;margin-top:3px}.vtick{position:absolute;bottom:-3px;right:-5px;width:42%;height:42%;min-width:18px;min-height:18px;max-width:34px;max-height:34px;z-index:2;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));pointer-events:none}.vtick svg{width:100%;height:100%;display:block}.gav,.avbtn,.bav{position:relative;overflow:visible!important}.gav img,.avbtn img{border-radius:50%}
+.fh{display:block;font-size:12px;line-height:1.5;color:var(--muted);font-weight:400;margin-top:3px}.vtick{position:absolute;bottom:-4px;right:-6px;width:48%;height:48%;min-width:20px;min-height:20px;max-width:36px;max-height:36px;z-index:2;filter:drop-shadow(0 2px 4px rgba(8,40,110,.5));pointer-events:none}.vtick.off{filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));opacity:.95}.vtick svg{width:100%;height:100%;display:block}.gav,.avbtn,.bav{position:relative;overflow:visible!important}.gav img,.avbtn img{border-radius:50%}
 
 /* ===== هوية كاشيرك: كحلي ليلي + زمردي ===== */
 /* خط العناوين: عريض ومميز */
@@ -2391,7 +2391,12 @@ function renderSetup(){
 /* ===== حسابي: صورة صاحب المحل والاسم التجاري وبيانات الحساب ===== */
 const waOf=()=>(S&&S.wa)||(CL&&CL.wa)||'';
 const ownerName=()=>(S&&(S.owner||(CL&&CL.owner)))||'';
-const avHTML=()=>(S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0)))+(S&&status().paid?'<span class="vtick" title="مشترك موثّق"><svg viewBox="0 0 40 40"><defs><linearGradient id="vtg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5CC8FF"/><stop offset=".55" stop-color="#1D9BF0"/><stop offset="1" stop-color="#0A6CC2"/></linearGradient><radialGradient id="vth" cx=".35" cy=".25" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><path fill="url(#vtg)" stroke="#fff" stroke-width="2.2" d="M20 2.5l4.2 3.1 5.2-.4 1.9 4.9 4.6 2.4-.9 5.1 2.6 4.5-3.6 3.8-.2 5.2-5 1.6-2.9 4.3-5-1.3-4.9 1.5-3-4.3-5.1-1.4-.4-5.2-3.7-3.7 2.5-4.6-1-5.1 4.6-2.5 1.8-4.9 5.2.3z"/><ellipse cx="16" cy="12" rx="10" ry="6.5" fill="url(#vth)"/><path d="M13 20.5l4.6 4.6 9.4-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':'');
+let VTN=0;
+/* شارة التوثيق: زرقا لامعة (زي فيسبوك) للمشترك، وبيضا باهتة لغير المشترك. كل نسخة بأسماء ألوان خاصة فيها عشان ما تختفي الألوان لما في نسخة مخفية */
+function vTick(paid){ const n=++VTN, g='vg'+n, h='vh'+n, sh='vs'+n;
+  const c=paid?['#4FA8FF','#1877F2','#0B4FC4','#0A3F9E']:['#FFFFFF','#E2E8F0','#B8C2D0','#94A3B8'], ck=paid?'#fff':'#94A3B8';
+  return `<span class="vtick${paid?'':' off'}" title="${paid?'مشترك موثّق':'غير مشترك'}"><svg viewBox="0 0 40 40"><defs><linearGradient id="${g}" x1="0" y1="0" x2=".3" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset=".5" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient><radialGradient id="${h}" cx=".35" cy=".22" r=".55"><stop offset="0" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><linearGradient id="${sh}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c[3]}" stop-opacity="0"/><stop offset="1" stop-color="${c[3]}" stop-opacity=".55"/></linearGradient></defs><path fill="url(#${g})" stroke="#fff" stroke-width="1.6" d="M20 2.5l4.2 3.1 5.2-.4 1.9 4.9 4.6 2.4-.9 5.1 2.6 4.5-3.6 3.8-.2 5.2-5 1.6-2.9 4.3-5-1.3-4.9 1.5-3-4.3-5.1-1.4-.4-5.2-3.7-3.7 2.5-4.6-1-5.1 4.6-2.5 1.8-4.9 5.2.3z"/><path fill="url(#${sh})" d="M6 24l3.7 3.7.4 5.2 5.1 1.4 3 4.3 4.9-1.5 5 1.3 2.9-4.3 5-1.6.2-5.2 3.6-3.8-.6-1C30 30 10 30 6 24z"/><ellipse cx="15.5" cy="11.5" rx="10.5" ry="6.5" fill="url(#${h})"/><path d="M12.8 20.6l4.8 4.7 9.6-10.2" fill="none" stroke="${ck}" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>` }
+const avHTML=()=>(S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0)))+(S?vTick(!!status().paid):'');
 /* اختصارات الواجهة: الأقسام الأساسية بضغطة وحدة (العامل بيشوف اللي مسموحله بس) */
 /* ===== «شرح»: شرح كامل للصفحة اللي إنت فيها ===== */
 const HELP={
