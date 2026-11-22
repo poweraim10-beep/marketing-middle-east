@@ -493,6 +493,13 @@ const fx=n=>r2(n).toFixed(2);
 const money=n=>`<span class="num">${fx(n)} ₪</span>`;
 const DAY=864e5;
 const sod=(t=Date.now())=>new Date(t).setHours(0,0,0,0);
+/* تسجيل بتاريخ يوم قديم (نسيت تدخله): أقدم تاريخ مسموح = بعد آخر فترة مقفلة، ولآخر 62 يوم */
+const ymd=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const bdMin=()=>Math.max(sod(Date.now()-62*864e5),((S&&S.periods||[]).slice(-1)[0]||{}).to||0);
+function bdTs(v){ if(!v) return Date.now(); const [y,m,dd]=String(v).split('-').map(Number); if(!y||!m||!dd){toast('اختار التاريخ صح');return null}
+  const n=new Date(), d0=new Date(y,m-1,dd).getTime(); if(d0>=sod()) return Date.now(); if(d0<sod(bdMin())){toast('هالتاريخ قديم كتير أو داخل فترة مقفلة');return null}
+  return new Date(y,m-1,dd,n.getHours(),n.getMinutes(),n.getSeconds()).getTime() }
+const bdInput=(id,extra='')=>`<input id="${id}" type="date" ${extra} max="${ymd(Date.now())}" min="${ymd(bdMin())}" value="${ymd(Date.now())}">`;
 const fdate=t=>new Date(t).toLocaleString('ar-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const KEY='kashirak-v1', DEVKEY='kashirak-dev';
 const PAY={cash:'نقدي',app:'تطبيق أو محفظة',debt:'دين'};
@@ -898,7 +905,7 @@ function load(){try{navigator.storage&&navigator.storage.persist&&navigator.stor
 function idb(mode,fn){return new Promise(res=>{try{const o=indexedDB.open('kashirak',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');
   o.onsuccess=()=>{try{const tx=o.result.transaction('kv',mode),st=tx.objectStore('kv'),r=fn(st);tx.oncomplete=()=>res(r&&r.result);tx.onerror=()=>res(null)}catch(e){res(null)}};o.onerror=()=>res(null)}catch(e){res(null)}})}
 function norm(o){ if(!o) return o; o.returns=o.returns||[]; o.held=o.held||[]; o.audit=o.audit||[]; o.adjusts=o.adjusts||[];
-  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
+  o.cheques=o.cheques||[]; o.draws=o.draws||[]; o.partners=o.partners||[]; o.pay=o.pay||[]; o.assets=o.assets||[]; o.periods=o.periods||[]; o.staff=o.staff||[]; o.punches=o.punches||[]; if(o.proofReq==null) o.proofReq=false; o.attRej=o.attRej||[]; if(!o.loyal) o.loyal={on:false,per:10,val:0.1}; if(o.rateJ==null) o.rateJ=5.2; if(o.appFee==null) o.appFee=0; if(o.maxDisc==null) o.maxDisc=10; if(o.pharm&&o.items) o.items.forEach(pSync); if(o===S) pApplyWords(); return o}
 function audit(what){ if(!S||(LICREADY&&!isViewer()&&!status().active)) return; S.audit.push({ts:Date.now(),who:isOwner()?'المالك':'الكاشير',what}); if(S.audit.length>800) S.audit.splice(0,S.audit.length-800)}
 /* الحفظ على الجهاز بمكانين: localStorage (سريع) و IndexedDB (مساحته أكبر بكثير).
    إذا localStorage امتلى، بنعتمد على IndexedDB، وعند الفتح بناخد دايمًا النسخة الأحدث من الثنتين */
@@ -982,6 +989,7 @@ function opSale(op){
   const sale={...(op.rcv&&op.rcv.v>0?{rcv:op.rcv}:{}),id:S.nextInv++,ts:op.ts,lines:op.lines,discount:op.disc,promo:op.promo||0,wholesale:!!op.wholesale,fee:op.fee,total:op.total,cost:op.cost,pays,appMethod:app?op.appMethod:'',ref:app?op.ref||'':'',confirmed:!app,payer:app?op.payer||'':'',proof:app&&op.proof?op.proof:'',proofHash:app&&op.proof?op.proofHash:'',custId:debtor?debtor.id:null,who:op.who||''};
   if(op.extra>0){sale.extra=op.extra; sale.extraNote=op.extraNote||''}
   if(op.s2){sale.s2=1; sale.op=op.id}
+  if(op.late){sale.late=Date.now(); opAudit(op,`بيع بتاريخ قديم ${fday(op.ts)} بقيمة ${fx(op.total)} ₪`)}
   const orig=op.addTo?S.sales.find(x=>x.id===op.addTo):null;
   if(orig){ sale.addTo=orig.id; orig.adds=[...(orig.adds||[]),sale.id]; opAudit(op,`إضافة أصناف بقيمة ${fx(sale.total)} ₪ على فاتورة ${orig.id}`) }
   S.sales.push(sale);
@@ -1459,7 +1467,7 @@ function accJournal(){ if(ACCJ&&ACCJ.v===S._t&&ACCJ.n===S.sales.length) return A
   for(const a of S.assets||[]){ const c=r2(+a.cost||0), cr=a.src==='cash'?'1101':a.src==='app'?bank(''):'3101'; E(a.src==='cash'?(a.at||a.ts):a.ts,'شراء أصل: '+(a.name||''),'asset',[['1201',c,0],[cr,0,c]]);
     const n=Math.max(1,Math.round((+a.life||5)*12)), mm=astMonthly(a), m=Math.min(n,astMonths(a,Infinity)), base=Math.max(0,c-(+a.salv||0)), sd=new Date(a.ts); let done=0;
     for(let k=1;k<=m;k++){ const v=k===n?r2(base-done):mm; done=r2(done+v); if(v>0) E(new Date(sd.getFullYear(),sd.getMonth()+k,1).getTime()-1,'إهلاك شهري: '+(a.name||''),'dep',[['52:إهلاك الأصول الثابتة',v,0],['1202',0,v]]) } }
-  for(const x of S.draws||[]){ const a=r2(+x.amt||0); E(x.ts,(x.kind==='out'?'سحب المالك من الصندوق':'إيداع المالك بالصندوق')+(x.note?': '+x.note:''),'draw',x.kind==='out'?[['3103',a,0],['1101',0,a]]:[['1101',a,0],['3103',0,a]]) }
+  for(const x of S.draws||[]){ const a=r2(+x.amt||0); E(x.ts,(x.kind==='out'?(x.who?'سحب الشريك '+x.who+' من الصندوق':'سحب المالك من الصندوق'):(x.who?'إيداع الشريك '+x.who+' بالصندوق':'إيداع المالك بالصندوق'))+(x.note?': '+x.note:''),'draw',x.kind==='out'?[['3103',a,0],['1101',0,a]]:[['1101',a,0],['3103',0,a]]) }
   const skipC=l=>l.sid!=null||/^(إرجاع من فاتورة|إرجاع فاتورة|حذف فاتورة|تعديل فاتورة)/.test(l.note||'');
   for(const c of S.customers) for(const l of c.ledger||[]){ if(l.cur||skipC(l)) continue; const a=r2(Math.abs(+l.amt||0)), n=l.note||'', who=c.name||'';
     if(l.amt<0){ const dr=/^شيك رقم/.test(n)?'1104':/^استبدال/.test(n)?'5303':l.noCash?bank(''):'1101'; E(l.ts,`${n||'دفعة'} · ${who}`,'col',[[dr,a,0],['1103',0,a]]) }
@@ -1971,6 +1979,9 @@ sell(){
     ${c.pay==='cash'?`<div class="withbtn"><label for="rcv">استلمت من الزبون<input id="rcv" class="cf" data-f="rcv" type="number" inputmode="decimal" min="0" value="${esc(c.rcv||'')}" placeholder="المبلغ"></label>
       <select id="rcvC" class="cf" data-f="rcvC" style="width:110px" aria-label="عملة المبلغ المستلم">${[['ils','شيكل'],['usd','دولار'],['jod','دينار']].map(([k,v])=>`<option value="${k}" ${c.rcvC===k?'selected':''}>${v}</option>`).join('')}</select></div>
       <div class="row" id="chg">${changeTxt(gt,c)}</div>`:''}
+    ${isOwner()&&!isSeller2()&&c.lines.length?`<details class="bdx"${c.bd&&c.bd!==ymd(Date.now())?' open':''}><summary class="muted" style="cursor:pointer;font-size:13.5px">📅 نسيت تسجّل بيع؟ سجّله بتاريخ يوم قديم</summary>
+      <label for="saleDay" style="margin-top:6px">تاريخ البيع<input id="saleDay" class="cf" data-f="bd" type="date" max="${ymd(Date.now())}" min="${ymd(bdMin())}" value="${esc(c.bd||ymd(Date.now()))}"></label>
+      <small class="fh">البيع بينحسب بتقارير اليوم اللي بتختاره، والمخزون بينقص من هلا. إذا كنت مسكّر صندوق هداك اليوم، الإقفال القديم ما بيتغير.</small></details>`:''}
     <button class="btn accent block" data-act="checkout">إتمام البيع</button>
     ${scanStatus()}
   </div>`;
@@ -2091,7 +2102,7 @@ more(){
     ${hint('لما توصلك بضاعة من المورد، سجّلها هون عشان تزيد المخزون وتعرف كم كلّفتك. إذا دفعت كاش بينخصم من الصندوق، وإذا دفعت بالدين بينضاف على حساب المورد (لازم تختار المورد). وإذا تغيّر السعر، فعّل «السعر تغيّر؟».')}
     <div class="card"><h2>استلام بضاعة</h2>
       <p class="fh" style="margin:0">💡 فاتورة فيها أكثر من صنف؟ سجّل الصنف الأول واضغط حفظ، المورد والصورة بيضلّوا، وكمّل الصنف الثاني من نفس الفاتورة.</p>
-      <label for="pSup">المورد<select id="pSup">${S.suppliers.length?'':'<option value="">بدون مورد</option>'}${S.suppliers.map(x=>`<option value="${x.id}" ${+BUYSUP===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><small class="fh">اختار المورد، وأصنافه المسجّلة بتطلع أول القائمة بسعرها</small></label>
+      <label for="pSup">المورد<select id="pSup">${S.suppliers.length?'':'<option value="">بدون مورد</option>'}${S.suppliers.map(x=>`<option value="${x.id}" ${+BUYSUP===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="lnk" data-act="addParty" data-kind="suppliers" data-from="buy" style="align-self:flex-start;margin-top:4px">＋ إضافة مورد جديد</button><small class="fh">اختار المورد، وأصنافه المسجّلة بتطلع أول القائمة بسعرها</small></label>
       <label for="pFind">بحث عن الصنف<input id="pFind" placeholder="اكتب اسم الصنف أو امسح الباركود" autocomplete="off"><small class="fh">اكتب أول حرفين وبيختارلك الصنف لحاله.</small></label>
       ${(()=>{const sp=S.suppliers.find(x=>x.id===+BUYSUP)||S.suppliers[0], my=(sp&&sp.items||[]).filter(x=>itemById(x.itemId)), ids=new Set(my.map(x=>x.itemId));
         return `<label for="pItem">الصنف<select id="pItem">${my.length?`<optgroup label="⭐ أصناف ${esc(sp.name)}">${my.map(x=>`<option value="${x.itemId}" data-pc="${x.price||''}">${esc(itemById(x.itemId).name)}${x.price?' · '+fx(x.price)+' ₪':''}</option>`).join('')}</optgroup><optgroup label="كل الأصناف">`:''}${S.items.filter(x=>!ids.has(x.id)).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}${my.length?'</optgroup>':''}</select></label>`})()}
@@ -2130,6 +2141,9 @@ more(){
     <div class="card"><h2>مصروف جديد</h2>
       <div class="grid2"><label for="exName">البيان<input id="exName" placeholder="مثال: إيجار، كهرباء، رواتب"></label>
       <label for="exAmt">المبلغ (₪)<input id="exAmt" type="number" inputmode="decimal" min="0"></label></div>
+      ${(()=>{const seen=new Set(), q=[...S.expenses].sort((a,b)=>b.ts-a.ts).filter(e=>{const k=String(e.name).trim(); if(!k||seen.has(k)) return false; seen.add(k); return true}).slice(0,8);
+        return q.length?`<div><div class="muted" style="font-size:13px;margin-bottom:6px">مصاريفك المتكررة (اضغط بتنعبى لحالها):</div><div class="row" style="flex-wrap:wrap;gap:6px;justify-content:flex-start">${q.map(e=>`<button class="btn sm" data-act="exQ" data-n="${esc(e.name)}" data-a="${e.amt}" data-p="${e.per||'day'}">${esc(e.name)} · <span class="num">${fx(e.amt)}</span></button>`).join('')}</div></div>`:''})()}
+      ${isSeller2()?'':`<label for="exDay">تاريخ المصروف${bdInput('exDay')}<small class="fh">اليوم تلقائيًا. إذا نسيت تسجّل مصروف يوم قديم، اختار تاريخه.</small></label>`}
       <div><div class="muted" style="font-size:13.5px;margin-bottom:6px">هالمصروف عن قديش؟</div>
       <div class="seg">${Object.entries(EXPER).map(([k,[n,t]])=>`<button data-act="exPer" data-p="${k}" aria-pressed="${EXP_PER===k}">${t}</button>`).join('')}</div></div>
       <p class="muted" id="exHint" style="margin:0;font-size:13.5px">${expHint()}</p>
@@ -2145,10 +2159,12 @@ more(){
     <div class="card"><div class="list">
       ${stat('رصيد الافتتاح',money(d.open))}${stat('مبيعات نقدية',money(d.cashSales))}${stat('دفعات ديون من الزبائن',money(d.debtIn))}
       ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}${d.wages?stat('رواتب وسُلف وأصول',money(-d.wages)):''}${d.dOut?stat('مسحوبات المالك',money(-d.dOut)):''}${d.dIn?stat('إيداعات المالك',money(d.dIn)):''}</div></div>
-    <div class="card"><h2>مسحوبات وإيداعات المالك</h2><p class="muted" style="margin:0">إذا أخدت مصاري من الدرج لإلك، أو حطيت مصاري من جيبك، سجّلها هون. هيك الصندوق والمحاسبة بيطلعوا مظبوطين، وما بتنحسب عليك عجز.</p>
+    <div class="card"><h2>مسحوبات المالك والشركاء</h2><p class="muted" style="margin:0">إذا أخدت مصاري من الدرج لإلك، أو حطيت مصاري من جيبك، سجّلها هون. وإذا إنتو شركاء، اختار اسم الشريك وكل سحبة بتنحفظ باسمه. هيك الصندوق والمحاسبة بيطلعوا مظبوطين، وما بتنحسب عليكم عجز.</p>
+      ${partnersBox()}
       <div class="withbtn"><label for="drAmt">المبلغ (₪)<input id="drAmt" type="number" inputmode="decimal" min="0"></label></div><input id="drNote" placeholder="ملاحظة (اختياري)">
+      <label for="drDay">التاريخ${bdInput('drDay')}</label>
       <div class="grid2"><button class="btn" data-act="drawGo" data-k="out">⬆️ سحبت من الصندوق</button><button class="btn" data-act="drawGo" data-k="in">⬇️ حطيت بالصندوق</button></div>
-      ${(S.draws||[]).length?`<div class="list">${[...S.draws].reverse().slice(0,5).map(x=>`<div class="li"><span><span class="t">${x.kind==='out'?'سحب':'إيداع'}${x.note?' · '+esc(x.note):''}</span><br><span class="muted">${fdate(x.ts)}</span></span>${money(x.kind==='out'?-x.amt:x.amt)}</div>`).join('')}</div>`:''}</div>
+      ${(S.draws||[]).length?`<div class="list">${[...S.draws].sort((a,b)=>b.ts-a.ts).slice(0,5).map(x=>`<div class="li"><span><span class="t">${x.kind==='out'?'سحب':'إيداع'}${x.who?' · <b>'+esc(x.who)+'</b>':''}${x.note?' · '+esc(x.note):''}</span><br><span class="muted">${fdate(x.ts)}</span></span>${money(x.kind==='out'?-x.amt:x.amt)}</div>`).join('')}</div>`:''}</div>
     ${(()=>{const ap={}; S.sales.filter(s=>s.ts>d.from&&payOf(s).app>0).forEach(s=>{const k=s.appMethod||'أخرى',e=ap[k]||(ap[k]={ok:0,pend:0,n:0}); e.n++; if(s.confirmed===false) e.pend=r2(e.pend+payOf(s).app); else e.ok=r2(e.ok+payOf(s).app)});
       const ks=Object.keys(ap); return ks.length?`<div class="card"><h2>مطابقة المحافظ والبنوك</h2><p class="muted" style="margin:0">قارن هالأرقام مع كشف كل محفظة قبل الإقفال.</p><div class="list">${ks.map(k=>`<div class="li"><span><span class="t">${esc(k)}</span><br><span class="muted">${ap[k].n} عملية${ap[k].pend?` · بانتظار ${fx(ap[k].pend)} ₪`:''}</span></span>${money(ap[k].ok+ap[k].pend)}</div>`).join('')}</div></div>`:''})()}
     ${(()=>{const pend=S.sales.filter(s=>s.confirmed===false);return `<div class="card"><h2>تحويلات بانتظار التأكيد</h2><p class="muted" style="margin:0">تأكد إنها وصلت على حسابك قبل ما تضغط «وصل».</p><div class="list">${pend.map(s=>`<div class="li">${s.proof?`<button class="pthumb sm" data-act="proofView" data-k="${s.id}" aria-label="إشعار فاتورة ${s.id}">${PROOF[s.proof]?`<img src="${PROOF[s.proof]}" alt="">`:(proofGet(s.proof).then(()=>{if(tab==='more')render()}),'')}</button>`:'<span class="pthumb sm none" title="بلا إشعار">—</span>'}<span style="flex:1"><span class="t">${esc(s.appMethod)} · ${money(payOf(s).app)}</span><br><span class="muted">${s.payer?`باسم ${esc(s.payer)} · `:''}فاتورة ${s.id} · ${fdate(s.ts)}${s.ref?` · رقم ${esc(s.ref)}`:''}</span></span><button class="btn sm primary" data-act="confirmPay" data-id="${s.id}">وصل</button></div>`).join('')||'<div class="empty">لا يوجد</div>'}</div></div>`})()}
@@ -2233,6 +2249,10 @@ function renderResults(){
   el.innerHTML=`<div class="list">${found.map(i=>`<button class="li" data-act="${S.pharm&&pSellable(i)<=0&&pAlts(i).length?'pAlts':'add'}" data-id="${i.id}">
     <span style="display:flex;gap:10px;align-items:center">${ithumb(i)}<span><span class="t">${esc(i.name)}</span>${pSub(i)}${S.pharm&&pSellable(i)<=0&&pAlts(i).length?' <span class="pill warn">خلص · شوف البدائل</span>':''}<br><span class="muted">المتوفر ${qtyTxt(i)}</span></span></span><span>${money(i.price)} <span class="pill ok">أضف</span></span></button>`).join('')||'<div class="empty">لا يوجد صنف بهذا الاسم أو الباركود</div>'}</div>`;
 }
+let DRP=0; function partnersBox(){ const P=S.partners||[]; if(P.length&&!P.some(x=>x.id===DRP)) DRP=P[0].id; const m0=new Date(); m0.setDate(1); m0.setHours(0,0,0,0);
+  const tot=(p,f)=>r2((S.draws||[]).filter(x=>x.pid===p.id&&x.kind==='out'&&x.ts>=f).reduce((a,x)=>a+(+x.amt||0),0));
+  return `${P.length?`<div class="seg" style="flex-wrap:wrap">${P.map(p=>`<button data-act="drPick" data-id="${p.id}" aria-pressed="${DRP===p.id}">${esc(p.name)}</button>`).join('')}</div>
+    <div class="list">${P.map(p=>`<button class="li" data-act="partnerView" data-id="${p.id}"><span class="t">${esc(p.name)}</span><span class="muted" style="font-size:13px">اليوم <b class="num" style="color:var(--ink)">${fx(tot(p,sod()))}</b> · الشهر <b class="num" style="color:var(--ink)">${fx(tot(p,m0.getTime()))}</b> · الكل <b class="num" style="color:var(--ink)">${fx(tot(p,0))}</b> ₪</span></button>`).join('')}</div>`:''}<button class="btn sm" data-act="partnerAdd" style="align-self:flex-start">＋ ${P.length?'شريك ثاني':'عندي شركاء؟ أضف شريك'}</button>` }
 let INSTALL=null, BUYSUP='', EDV=null; const PHOTO={data:'',id:''}; const CHQ={dir:'in'};
 const standalone=()=>{try{return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){return false}};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault(); INSTALL=e; if(typeof render==='function') render()});
@@ -2844,13 +2864,14 @@ checkout(){
   if(pays.debt>0&&!dName){toast(`اكتب اسم الشخص لتسجيل الدين (${fx(pays.debt)} ₪)`);const f=$('#dName');if(f)f.focus();return}
   if(pays.app>0){ if(S.proofReq&&!c.proof){beep(false); toast('صوّر إشعار التحويل قبل إتمام البيع'); const b=$('.pbtns'); if(b) b.scrollIntoView({block:'center'}); return}
     const dr=refDup(c); if(dr){beep(false); toast(`رقم العملية مستعمل قبل بفاتورة ${dr.id}. تأكد منه`); const f=$('#apR'); if(f) f.focus(); return}}
+  const sts=(isOwner()&&!isSeller2()&&c.bd)?bdTs(c.bd):Date.now(); if(sts==null) return; const late=sts<sod();
   if(c.proof&&!(pays.app>0)) idb('readwrite',st=>st.delete(c.proof));
-  const op={id:opId(),k:'sale',ts:Date.now(),who:opWho(),lines,disc:tt.disc,promo:tt.promo||0,wholesale:!!c.wholesale,fee,total:tt.total,cost:tt.cost,pays,appMethod:c.appMethod||'',ref:String(c.ref||'').trim(),payer:String(c.payer||'').trim(),proof:c.proof||'',proofHash:c.proofHash||'',extra,extraNote:String(c.extraNote||'').trim(),dName,dPhone:String(c.custPhone||'').trim(),addTo:c.addTo||null,...(c.pay==='cash'&&(c.rcvC==='usd'||c.rcvC==='jod')&&parseFloat(c.rcv)>0?{rcv:{c:c.rcvC,v:r2(parseFloat(c.rcv)),rate:c.rcvC==='usd'?S.rate:S.rateJ}}:{})};
+  const op={id:opId(),k:'sale',ts:sts,...(late?{late:1}:{}),who:opWho(),lines,disc:tt.disc,promo:tt.promo||0,wholesale:!!c.wholesale,fee,total:tt.total,cost:tt.cost,pays,appMethod:c.appMethod||'',ref:String(c.ref||'').trim(),payer:String(c.payer||'').trim(),proof:c.proof||'',proofHash:c.proofHash||'',extra,extraNote:String(c.extraNote||'').trim(),dName,dPhone:String(c.custPhone||'').trim(),addTo:c.addTo||null,...(c.pay==='cash'&&(c.rcvC==='usd'||c.rcvC==='jod')&&parseFloat(c.rcv)>0?{rcv:{c:c.rcvC,v:r2(parseFloat(c.rcv)),rate:c.rcvC==='usd'?S.rate:S.rateJ}}:{})};
   let sale; carts[ci]=newCart();
   if(isSeller2()){ opQueue(op); sale=S.sales.find(x=>x.op===op.id) } else { sale=opSale(op); save() }
   if(!sale){render(); toast('تم البيع'); return}
   const orig=sale.addTo?S.sales.find(x=>x.id===sale.addTo):null, debtor=sale.custId?S.customers.find(x=>x.id===sale.custId):null;
-  render(); if(orig) saleSheet(orig,`✓ انضافت الأصناف على الفاتورة ${orig.id}`); else saleSheet(sale,'تم البيع');
+  render(); if(orig) saleSheet(orig,`✓ انضافت الأصناف على الفاتورة ${orig.id}`); else saleSheet(sale,late?`✓ انسجل البيع بتاريخ ${fday(sale.ts)}`:'تم البيع');
   if(debtor) toast(`انسجل ${fx(pays.debt)} ₪ على ${debtor.name} بدفتر الديون`);
 },
 sale(d){const s=S.sales.find(x=>x.id===+d.id); if(s) saleSheet(s,'تفاصيل الفاتورة')},
@@ -2921,9 +2942,11 @@ saveItem(){
 },
 delItemAsk(d){const di=itemById(d.id); if(!di) return; openSheet(`${sheetHead('حذف الصنف')}<p style="margin:0">هل أنت متأكد من حذف هذا الصنف؟ <b>${esc(di.name)}</b></p><p class="muted" style="margin:0">الفواتير والمبيعات القديمة اللي فيها هذا الصنف بتضل زي ما هي بالسجلات.</p><button class="btn danger block" data-act="delItem" data-id="${di.id}">نعم، احذف الصنف</button><button class="btn block" data-act="close">لا، رجوع</button>`)},
 delItem(d){const di=itemById(d.id); if(di) audit(`حذف صنف ${di.name}`); S.items=S.items.filter(i=>i.id!==+d.id); carts.forEach(c=>c.lines=c.lines.filter(l=>l.itemId!==+d.id)); save(); closeSheet(); render(); toast('تم حذف الصنف')},
-addParty(d){const w=WORD[d.kind];openSheet(`${sheetHead(w.one+' جديد')}<label for="cName">الاسم<input id="cName"></label><label for="cPhone">رقم الجوال<input id="cPhone" inputmode="tel" placeholder="اختياري"></label><button class="btn primary block" data-act="saveParty" data-kind="${d.kind}">حفظ</button>`)},
+addParty(d){const w=WORD[d.kind];openSheet(`${sheetHead(w.one+' جديد')}<label for="cName">الاسم<input id="cName"></label><label for="cPhone">رقم الجوال<input id="cPhone" inputmode="tel" placeholder="اختياري"></label><button class="btn primary block" data-act="saveParty" data-kind="${d.kind}" data-from="${d.from||''}">حفظ</button>`)},
 saveParty(d){const n=$('#cName').value.trim(); if(!n){toast('اكتب الاسم');return}
-  S[d.kind].push({id:S.nextId++,name:n,phone:$('#cPhone').value.trim(),ledger:[]}); save(); closeSheet(); render()},
+  const np={id:S.nextId++,name:n,phone:$('#cPhone').value.trim(),ledger:[]}; S[d.kind].push(np); save(); closeSheet();
+  const sel=d.from==='buy'&&$('#pSup'); if(sel){ [...sel.options].forEach(o=>{if(!o.value) o.remove()}); const o=document.createElement('option'); o.value=np.id; o.textContent=n; sel.appendChild(o); sel.value=String(np.id); BUYSUP=np.id; sel.dispatchEvent(new Event('change',{bubbles:true})); toast('✓ انضاف المورد واخترناه'); return }
+  render()},
 party(d){
   const c=S[d.kind].find(x=>x.id===+d.id), b=balance(c), w=WORD[d.kind];
   const msg=`مرحبًا ${c.name}، تذكير ودّي من ${S.shop}: رصيد حسابك عندنا ${fx(b)} ₪. شاكرين تعاملك معنا.`;
@@ -2990,7 +3013,9 @@ period(d){period=d.p; render()},
 addExp(){const n=$('#exName').value.trim(), a=r2(parseFloat($('#exAmt').value)||0);
   if(!n||a<=0){toast('اكتب البيان والمبلغ');return}
   if(isSeller2()){ opQueue({id:opId(),k:'exp',ts:Date.now(),who:opWho(),name:n,amt:a,per:EXP_PER}); render(); toast('تم حفظ المصروف'); return }
-  const sp=spanNow(EXP_PER); S.expenses.push({id:S.nextId++,ts:Date.now(),name:n,amt:a,per:EXP_PER,span:sp}); save(); render(); toast(sp>1?`تم حفظ المصروف: ${fx(a/sp)} ₪ باليوم لمدة ${sp} يوم`:'تم حفظ المصروف')},
+  const ets=bdTs(($('#exDay')||{}).value); if(ets==null) return; const old=ets<sod();
+  const sp=spanNow(EXP_PER); S.expenses.push({id:S.nextId++,ts:ets,name:n,amt:a,per:EXP_PER,span:sp,...(old?{late:Date.now()}:{})}); if(old) audit(`مصروف بتاريخ قديم ${fday(ets)}: ${n} ${fx(a)} ₪`); save(); render(); toast(old?`تم حفظ المصروف بتاريخ ${fday(ets)}`:sp>1?`تم حفظ المصروف: ${fx(a/sp)} ₪ باليوم لمدة ${sp} يوم`:'تم حفظ المصروف')},
+exQ(d){ const n=$('#exName'), a=$('#exAmt'); if(n) n.value=d.n; if(a){a.value=d.a; a.focus()} if(d.p&&EXPER[d.p]) A.exPer({p:d.p}) },
 exPer(d){ EXP_PER=d.p; document.querySelectorAll('[data-act=exPer]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===d.p)); const h=$('#exHint'); if(h) h.innerHTML=expHint() },
 delExp(d){ const e=S.expenses.find(x=>x.id===+d.id); if(!e) return; if(!confirm(`حذف مصروف «${e.name}» (${fx(e.amt)} ₪)؟`)) return; S.expenses=S.expenses.filter(x=>x.id!==e.id); audit(`حذف مصروف ${e.name} ${fx(e.amt)} ₪`); save(); render(); toast('انحذف المصروف')},
 closeDay(){const d=drawer(), raw=$('#cnt').value, counted=raw===''?d.expected:r2(parseFloat(raw)||0); if(r2(counted-d.expected)!==0) audit(`إقفال صندوق بفرق ${fx(counted-d.expected)} ₪`);
@@ -3591,7 +3616,15 @@ Object.assign(A,{
     const rec={id:S.nextId++,ts:Date.now(),m:from,staffId:st.id,kind:k,amt:a,note,...(app?{src:'app'}:{})}; if(k==='sal') rec.advUsed=Math.max(0,r.advOpen); if(k==='sal'&&!(a>0)&&!(rec.advUsed>0)){toast('اكتب المبلغ');return}
     S.pay=S.pay||[]; S.pay.push(rec); audit(`${PAYK[k]} ${st.name}: ${fx(a)} ₪${rec.advUsed?` (وخصم سُلف ${fx(rec.advUsed)})`:''}`); save(); closeSheet(); render(); toast('✓ '+PAYK[k]) },
   drawGo(d){ const a=r2(parseFloat(($('#drAmt')||{}).value)||0); if(!(a>0)){toast('اكتب المبلغ');return} const note=(($('#drNote')||{}).value||'').trim().slice(0,80);
-    S.draws=S.draws||[]; S.draws.push({id:S.nextId++,ts:Date.now(),kind:d.k==='in'?'in':'out',amt:a,note}); audit(`${d.k==='in'?'إيداع المالك':'سحب المالك'} ${fx(a)} ₪${note?' · '+note:''}`); save(); render(); toast(d.k==='in'?'✓ انسجّل الإيداع':'✓ انسجّل السحب') },
+    const pr=(S.partners||[]).find(x=>x.id===DRP); if((S.partners||[]).length&&!pr){toast('اختار اسم الشريك أول');return} const ts=bdTs(($('#drDay')||{}).value); if(ts==null) return;
+    S.draws=S.draws||[]; S.draws.push({id:S.nextId++,ts,kind:d.k==='in'?'in':'out',amt:a,note,...(pr?{pid:pr.id,who:pr.name}:{}),...(ts<sod()?{late:Date.now()}:{})}); audit(`${d.k==='in'?'إيداع':'سحب'} ${pr?pr.name:'المالك'} ${fx(a)} ₪${note?' · '+note:''}${ts<sod()?' · بتاريخ '+fday(ts):''}`); save(); render(); toast(`✓ انسجّل ${d.k==='in'?'الإيداع':'السحب'}${pr?' باسم '+pr.name:''}`) },
+  drPick(d){ DRP=+d.id; render() },
+  partnerAdd(){ openSheet(`${sheetHead('شريك جديد')}<p class="fh" style="margin:0">اكتب اسم الشريك. كل سحبة أو إيداع بتسجّله باسمه بينحفظ عنده، وبتشوف مجموع كل شريك.</p><label for="ptName">اسم الشريك<input id="ptName" maxlength="40"></label><button class="btn primary block" data-act="partnerSave">حفظ</button>`) },
+  partnerSave(){ const n=(($('#ptName')||{}).value||'').trim().replace(/\s+/g,' ').slice(0,40); if(!n){toast('اكتب الاسم');return} S.partners=S.partners||[]; if(S.partners.some(x=>x.name===n)){toast('الاسم موجود');return}
+    const p={id:S.nextId++,name:n}; S.partners.push(p); DRP=p.id; audit(`إضافة شريك ${n}`); save(); closeSheet(); render(); toast('✓ انضاف الشريك') },
+  partnerView(d){ const p=(S.partners||[]).find(x=>x.id===+d.id); if(!p) return; const L=(S.draws||[]).filter(x=>x.pid===p.id).sort((a,b)=>b.ts-a.ts), S_=k=>r2(L.filter(x=>x.kind===k).reduce((a,x)=>a+(+x.amt||0),0)), o=S_('out'), i=S_('in');
+    openSheet(`${sheetHead('حساب الشريك: '+esc(p.name))}<div class="tiles"><div class="tile"><div class="lbl">مجموع سحوباته</div><div class="val">${money(o)}</div></div><div class="tile"><div class="lbl">مجموع إيداعاته</div><div class="val">${money(i)}</div></div></div>
+      <div class="card"><div class="list">${L.map(x=>`<div class="li"><span><span class="t">${x.kind==='out'?'سحب':'إيداع'}${x.note?' · '+esc(x.note):''}</span><br><span class="muted">${fdate(x.ts)}</span></span>${money(x.kind==='out'?-x.amt:x.amt)}</div>`).join('')||'<div class="empty">لسا ما في حركات</div>'}</div></div>`) },
   perCloseAsk(){ const last=(S.periods||[]).slice(-1)[0], from=last?last.to:(Math.min(Date.now(),...S.sales.map(x=>x.ts))), d=new Date(), to=new Date(d.getFullYear(),d.getMonth(),1).getTime();
     if(to<=from){ toast('ما في شهر كامل جديد لسا يتقفل'); return }
     const pl=accPL(from,to); openSheet(`${sheetHead('إقفال فترة مالية')}<p style="margin:0">من <b>${new Date(from).toLocaleDateString('ar-u-nu-latn')}</b> لـ <b>${new Date(to-1).toLocaleDateString('ar-u-nu-latn')}</b></p>
@@ -3693,7 +3726,7 @@ Object.assign(A,{
     (S.supRet=S.supRet||[]).push({id:S.nextId++,ts:Date.now(),supId:sup.id,itemId:it.id,name:it.name,q,cost:c,total:tot,exp,lot});
     audit(`مرتجع للمستودع ${sup.name}: ${it.name} × ${q} (${fx(tot)} ₪)`); save(); closeSheet(); render(); toast(`✓ انخصم ${fx(tot)} ₪ من حساب ${sup.name}`) }
 });
-['bizGo','astAdd','payGo','payWageGo','drawGo','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
+['bizGo','astAdd','payGo','payWageGo','drawGo','drPick','partnerAdd','partnerSave','partnerView','perCloseGo','tplGo','tplOffGo','pActGo','pWarnSave','pDispose','pDisposeGo','pRetSup','pRetGo'].forEach(a=>{SELLER_NO.add(a); OWNER_ONLY.add(a)}); OWNER_ONLY.add('delItemAsk');
 /* كل أجهزة الحساب متساوية: العملية اللي بدها الحساب كامل بتنقل هذا الجهاز تلقائيًا (بعد ما ترفع مبيعاته) وبتكمل لحالها */
 function hubAuto(){ if(!navigator.onLine){ A._hubNext=null; openSheet(`${sheetHead('بدها نت')}<p style="margin:0">هاي العملية بتتحفظ على حساب المحل كله، فبدها نت على هذا الجهاز. البيع والديون بيضلوا شغّالين بدون نت.</p><button class="btn primary block" data-act="close">تمام</button>`); return } toast('لحظة… بنجهّز الحساب على هذا الجهاز'); A.takeHub() }
 VIEW_OK.add('pAlts'); VIEW_OK.add('pAltAdd');
