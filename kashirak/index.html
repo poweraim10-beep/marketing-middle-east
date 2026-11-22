@@ -73,6 +73,7 @@ header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F1F5F9;
 .brand svg,.brand .lg3d{width:40px;height:40px;flex:none;border-radius:10px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.35))}
 header h1{font-family:var(--display);font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
 header h1 b{color:#34D399;font-weight:700}
+header h1{white-space:nowrap}header{gap:8px;padding-inline:12px}@media(max-width:385px){#hdrAv{display:none!important}}@media(max-width:430px){header h1{font-size:16px}.app>header .modebtn{min-width:0;padding:5px 9px}.helpbtn{padding:3px 8px 3px 4px;font-size:12px}#hdrLogo .lg3d,#hdrLogo svg{width:34px;height:34px}}
 header .sub{font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #remOv{position:fixed;inset:0;z-index:160;background:#07121D;color:#F1F5F9;display:flex;flex-direction:column}
 #remOv .rhd{display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:linear-gradient(135deg,#10263B,#0B1B2B);border-bottom:2px solid #10B981;font-size:18px}
@@ -482,6 +483,16 @@ h2{font-size:17.5px;color:var(--ink)}.mrow .mt b{font-size:16px}.qk b{font-size:
 .tile.hl{background:linear-gradient(135deg,#047857,#10B981)}.tile.hl .val,.tile.hl .lbl{color:#fff!important}
 .repcard{background:#ECFDF5;color:var(--ink);border:1.5px solid #A7F3D0}.repcard b{color:#047857}.repcard span.s{color:#334155}
 .fab{color:#fff}
+.helpbtn{display:inline-flex;align-items:center;gap:5px;flex:none;font:inherit;font-weight:700;font-size:12.5px;color:#F1F5F9;background:rgba(255,255,255,.08);border:1px solid rgba(52,211,153,.45);border-radius:999px;padding:4px 10px 4px 5px;cursor:pointer}
+.helpbtn span{width:22px;height:22px;border-radius:50%;background:#10B981;color:#fff;display:grid;place-items:center;font-size:13px}
+.app>header .cloudbtn{margin-inline-start:0}.app>header .helpbtn{margin-inline-start:auto}
+.hwhy{background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:16px;padding:12px 14px}.hwhy b{color:#1D4ED8;font-family:var(--display)}.hwhy p{margin:6px 0 0;font-size:15px;line-height:1.7}
+.hh{font-family:var(--display);font-size:16px;margin:4px 0 -2px;color:var(--good)}
+.hsteps{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}.hstep{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid #F1F5F9}.hstep:first-child{border-top:0}
+.hstep span{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--good);color:#fff;font-weight:700;font-family:var(--display)}.hstep p{margin:3px 0 0;font-size:14.5px;line-height:1.65}
+.htips{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:16px;padding:12px 14px}.htips b{color:#B45309;font-family:var(--display)}.htips ul{margin:6px 0 0;padding-inline-start:20px;line-height:1.75;font-size:14px}
+#fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#7C3AED,#5B21B6);color:#fff;font:inherit;font-size:11px;font-weight:700;box-shadow:0 6px 16px rgba(91,33,182,.35);cursor:pointer;opacity:.92}
+#fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 .startc{border:1.5px solid #A7F3D0;gap:10px}.startc h2{color:var(--gold-deep)}.xbtn{border:0;background:#F1F5F9;border-radius:10px;width:32px;height:32px;font-size:15px;cursor:pointer;color:var(--muted)}
 .sbar{height:7px;border-radius:9px;background:#E2E8F0;overflow:hidden}.sbar i{display:block;height:100%;background:linear-gradient(90deg,#10B981,#047857);border-radius:9px}
 .sstep{display:flex;align-items:center;gap:12px;width:100%;padding:10px 0;border:0;border-top:1px solid #F1F5F9;background:none;font:inherit;color:var(--ink);text-align:start;cursor:pointer}
@@ -498,6 +509,7 @@ h2{font-size:17.5px;color:var(--ink)}.mrow .mt b{font-size:16px}.qk b{font-size:
   <header>
     <div class="brand"><span id="hdrLogo"></span><div style="min-width:0"><h1>كاشيرك <b>الذكي</b></h1><div class="sub" id="today"></div><button class="plantag" id="planTag" data-act="license" hidden></button></div></div>
     <button class="avbtn" id="hdrAv" data-act="openSub" data-s="acct" aria-label="حسابي" hidden></button>
+    <button class="helpbtn" id="helpBtn" data-act="help" aria-label="شرح الصفحة"><span>؟</span>شرح</button>
     <button class="cloudbtn" id="cloudBtn" data-act="cloudSheet" hidden aria-label="حساب المحل على السحابة"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/></svg><i></i></button>
     <button class="modebtn" id="modeBtn" data-act="mode"></button>
   </header>
@@ -1923,8 +1935,8 @@ function receive(it,qty,cost){ /* weighted average cost */
 let iq='', tab='home', carts=[0,1,2].map(()=>newCart()), ci=0, period='today', sub='menu', q='';
 const cart=()=>carts[ci];
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400)}
-function openSheet(html){const bx=$('#sheetBox'); delete bx.dataset.sub; bx.innerHTML=html;$('#sheet').classList.add('open')}
-function closeSheet(){$('#sheet').classList.remove('open'); if(typeof CAM!=='undefined'&&CAM.stream){camStop(); setTimeout(syncLive,50)} if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
+function openSheet(html){const bx=$('#sheetBox'); delete bx.dataset.sub; bx.innerHTML=html;$('#sheet').classList.add('open'); if(typeof fbTabUp==='function') fbTabUp()}
+function closeSheet(){$('#sheet').classList.remove('open'); if(typeof fbTabUp==='function') setTimeout(fbTabUp,0); if(typeof CAM!=='undefined'&&CAM.stream){camStop(); setTimeout(syncLive,50)} if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
 const sheetHead=(t,act='close')=>`<div class="row"><h2>${esc(t)}</h2><button class="btn sm" data-act="${act}">إغلاق</button></div>`;
 const stat=(l,v)=>`<div class="li"><span>${l}</span>${v}</div>`;
 const hint=t=>`<div class="card" style="background:#ECFDF5;gap:6px"><p style="margin:0;font-size:14px;line-height:1.8">💡 ${t}</p></div>`;
@@ -2089,7 +2101,7 @@ more(){
     ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('إضافات',[['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('العمال',[['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
-    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
+    ${grp('الحساب والمساعدة',[['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -2331,6 +2343,41 @@ const waOf=()=>(S&&S.wa)||(CL&&CL.wa)||'';
 const ownerName=()=>(S&&(S.owner||(CL&&CL.owner)))||'';
 const avHTML=()=>(S&&S.avatar?`<img src="${S.avatar}" alt="">`:esc((ownerName()||S&&S.shop||'ك').trim().charAt(0)))+(S&&status().paid?'<span class="vtick" title="مشترك موثّق"><svg viewBox="0 0 40 40"><defs><linearGradient id="vtg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5CC8FF"/><stop offset=".55" stop-color="#1D9BF0"/><stop offset="1" stop-color="#0A6CC2"/></linearGradient><radialGradient id="vth" cx=".35" cy=".25" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><path fill="url(#vtg)" stroke="#fff" stroke-width="2.2" d="M20 2.5l4.2 3.1 5.2-.4 1.9 4.9 4.6 2.4-.9 5.1 2.6 4.5-3.6 3.8-.2 5.2-5 1.6-2.9 4.3-5-1.3-4.9 1.5-3-4.3-5.1-1.4-.4-5.2-3.7-3.7 2.5-4.6-1-5.1 4.6-2.5 1.8-4.9 5.2.3z"/><ellipse cx="16" cy="12" rx="10" ry="6.5" fill="url(#vth)"/><path d="M13 20.5l4.6 4.6 9.4-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':'');
 /* اختصارات الواجهة: الأقسام الأساسية بضغطة وحدة (العامل بيشوف اللي مسموحله بس) */
+/* ===== «شرح»: شرح كامل للصفحة اللي إنت فيها ===== */
+const HELP={
+home:{t:'الرئيسية',why:'نظرة وحدة على محلك اليوم: قديش بعت وربحت، شو بالدرج، ومين إلك عليه. ومنها بتوصل لأي قسم بضغطة.',how:['الاختصارات (بيع، المشتريات، الموردين، الديون…) بتفتح القسم مباشرة.','«مبيعات اليوم» و«ربح اليوم» بيتحدثوا مع كل فاتورة.','«ديون على الزبائن» بيفتح دفتر الديون، و«المتوقع في الصندوق» بيفتح الصندوق.','«بحاجة لانتباهك»: أصناف خلصت أو قربت تنتهي صلاحيتها.','«مبيعات آخر 7 أيام» بتوريك إذا شغلك طالع ولا نازل.'],tips:['الربح بيشوفه المالك بس، العامل ما بيشوفه.','النقطة الخضراء جنب السحابة فوق يعني بياناتك محفوظة على السيرفر.']},
+sell:{t:'البيع',why:'هون بتبيع: بتجمع أصناف الزبون بالسلة، بتقبض، والبيع بينحفظ والمخزون بينقص والفاتورة بتطلع، كله بخطوة وحدة.',how:['امسح باركود الصنف بالكاميرا، أو اكتب أول حرفين من اسمه.','عدّل الكمية بـ + و −، أو غيّر السعر لهالبيعة بس.','اختار طريقة الدفع: كاش، تحويل، دين على زبون، أو تقسيم.','بالتحويل: اختار المحفظة، واعرض رمز QR للزبون، وصوّر الإشعار.','اضغط «إتمام البيع»، وبعدها بتقدر تطبع الفاتورة أو تبعتها واتساب.'],tips:['عندك 3 سلال: بتقدر تخدم أكثر من زبون بنفس الوقت.','«تعليق كمسودة» بيحفظ السلة لترجعلها بعدين.','«فاتورة سابقة» للمرتجع أو لإضافة أصناف على فاتورة قديمة.']},
+items:{t:'الأصناف',why:'كل بضاعة محلك: الأسعار، التكلفة، والكمية الموجودة. التطبيق بيحسب الربح والنواقص منها.',how:['«إضافة صنف»: الاسم والباركود وسعر البيع والتكلفة والكمية.','«تعديل الأصناف بالباركود»: امسح الصنف وعدّل كميته وسعره بسرعة.','«استيراد» بينزّلك أصناف جاهزة حسب مجال شغلك.','اضغط على أي صنف لتعديله أو تشوف حركته.'],tips:['حط التكلفة صح عشان الربح يطلع مظبوط.','«قليلة أو خالصة» بتنبهك قبل ما تخلص البضاعة.']},
+debts:{t:'الديون',why:'دفتر الديون الذكي: مين عليه إلك وقديش بالقرش، بدل الدفتر الورق.',how:['«➕ إضافة دين»: اكتب اسم الزبون والمبلغ والسبب.','اضغط على اسم الزبون: بتشوف كشف حسابه، وبتسجّل دفعة أو شحن رصيد.','«كشف الديون» بيطلع ملف PDF بكل الديون تبعته لأي حدا.','من صفحة الزبون بتبعتله كشف حسابه على واتساب.'],tips:['البيع بالدين من شاشة البيع بينزل على حساب الزبون لحاله.','بتقدر تقسّط الدين على دفعات بمواعيد.']},
+staff:{t:'العمال',why:'عمالك وصلاحياتهم ودوامهم: مين بيبيع، مين بيشوف الأرباح، وقديش اشتغل كل واحد.',how:['أضف العامل باسمه ورمزه.','بصمة العمال: العامل بيضغط على صورته والكاميرا بتصوّره وقت الدخول والطلوع.','من «الرواتب والسُلف» بتسجّل الراتب والسلفة والمكافأة.'],tips:['العامل بوضع الكاشير بيبيع بس: ما بيشوف الأرباح ولا بيعدّل الأسعار.']},
+menu:{t:'المزيد',why:'كل أقسام إدارة المحل بمكان واحد: الصندوق، الفواتير، المشتريات، الموردين، المصاريف، التقارير، والإعدادات.',how:['«شغلك اليومي»: الصندوق والفواتير والمشتريات والموردين والمصاريف.','«التقارير والملفات»: الأرباح والمحاسبة وملفات PDF.','«تجهيز المحل»: مجال العمل، شكل الفاتورة، الملصقات.','«الحساب والمساعدة»: حسابك والإعدادات والجولة التعليمية.'],tips:[]},
+cash:{t:'الصندوق',why:'قديش لازم يكون بالدرج هلا، ومن وين جاي، وإقفال اليوم.',how:['«المتوقع في الصندوق» = رصيد الافتتاح + المبيعات النقدية + دفعات الزبائن − المصاريف والمشتريات النقدية.','آخر اليوم عدّ المصاري واكتبها بـ«إقفال اليوم»، والتطبيق بيوريك الزيادة أو النقص.','«مسحوبات المالك والشركاء»: سجّل أي مصاري بتاخدها من الدرج باسم كل شريك.'],tips:['سجّل كل سحبة عشان الصندوق ما يطلع عليك عجز.']},
+log:{t:'الفواتير',why:'كل الفواتير اللي انباعت: بتدوّر على أي فاتورة، بتطبعها، بتبعتها، أو بترجّع منها.',how:['اضغط على الفاتورة لتشوف تفاصيلها.','من الفاتورة: طباعة، واتساب، مرتجع، أو إضافة أصناف.'],tips:['التحويلات اللي لسا ما تأكدت بتطلع بلون مختلف.']},
+buy:{t:'المشتريات',why:'لما توصلك بضاعة من مورد، سجّلها هون: المخزون بيزيد، والتكلفة بتتحدث، وحساب المورد بيتسجّل.',how:['اختار المورد، أو ضيف مورد جديد.','دوّر على الصنف أو امسح باركوده، واكتب الكمية والتكلفة.','اختار: دفعت كاش، أو دين على حساب المورد.','لو الفاتورة فيها أكثر من صنف، كمّل الصنف الثاني على نفس الفاتورة.'],tips:['إذا تغيّر سعر الشراء، فعّل «السعر تغيّر؟» عشان يتحدث.']},
+sup:{t:'الموردين',why:'حساب كل مورد: قديش أخدت منه، قديش دفعتله، وقديش باقي عليك.',how:['اضغط على المورد لتشوف ملخص حسابه وفواتير الشراء منه.','«تسجيل دفعة» لما تدفعله.','«إضافة دين سابق» لدين قديم قبل ما تبلّش بالتطبيق.'],tips:[]},
+exp:{t:'المصروفات',why:'كل مصاريف المحل: إيجار، كهربا، مواصلات، رواتب… عشان الربح يطلع صافي.',how:['اكتب اسم المصروف والمبلغ، واختار إذا يومي أو شهري.','مصاريفك المتكررة بتطلع كأزرار: اضغط وبتنعبى لحالها.','لو نسيت مصروف يوم قديم، اختار تاريخه.'],tips:['المصروف الشهري بيتوزع على أيام الشهر بالتقارير.']},
+rep:{t:'التقارير',why:'أرقام محلك بالتفصيل: المبيعات والأرباح والخسائر، وأكثر الأصناف مبيعًا وربحًا.',how:['اختار الفترة: اليوم، الأسبوع، الشهر، أو فترة بتختارها.','شوف الربح الصافي بعد المصاريف.','شوف أكثر الأصناف مبيعًا والأصناف اللي ما بتنباع.'],tips:[]},
+acc:{t:'المحاسبة',why:'المحاسبة الكاملة لمحلك تلقائيًا: الميزانية، الأرباح والخسائر، ميزان المراجعة، والتدفقات النقدية.',how:['ما في داعي تكتب قيود: التطبيق بيعملها من البيع والشراء والمصاريف لحاله.','«الملخص» فيه أهم الأرقام، وكل تبويب إله تقرير.','«إقفال فترة» بيحفظ نسخة من الأرقام بنهاية الشهر أو السنة.'],tips:['مفيدة إذا بدك تقدّم حساباتك لمحاسب أو شريك.']},
+pdf:{t:'مركز ملفات PDF',why:'ملفات جاهزة للطباعة أو الإرسال: الأرباح، المبيعات، الديون، المخزون.',how:['اختار الملف والفترة، وبيطلعلك PDF.','ابعته واتساب أو اطبعه.'],tips:[]},
+chq:{t:'الشيكات',why:'الشيكات اللي إلك واللي عليك ومواعيدها، عشان ما يفوتك موعد.',how:['أضف الشيك: وارد أو صادر، المبلغ، البنك، والتاريخ.','لما ينصرف، علّمه «انصرف».'],tips:['التطبيق بينبهك على الشيكات المستحقة.']},
+payroll:{t:'الرواتب والسُلف',why:'راتب كل عامل، السلف اللي أخدها، والمكافآت والخصومات، وقديش باقيله.',how:['حدد راتب كل عامل.','سجّل السلفة أو المكافأة أو الخصم.','آخر الشهر اضغط «صرف الراتب»، والسلف بتنخصم لحالها.'],tips:[]},
+assets:{t:'الأصول الثابتة',why:'الإشيات اللي بتضل بالمحل سنين: ثلاجات، مولّد، رفوف. التطبيق بيحسب إهلاكها الشهري.',how:['أضف الأصل: الاسم والسعر وعمره المتوقع.','الإهلاك بينزل كمصروف شهري بالتقارير لحاله.'],tips:[]},
+set:{t:'الإعدادات',why:'إعدادات المحل: السحابة، الأسعار، وضع المالك، النسخ الاحتياطي.',how:['غيّر رمز المالك من هون.','اعمل نسخة احتياطية أو استرجعها.','فعّل أو وقّف الميزات اللي بدك ياها.'],tips:[]},
+inv:{t:'تعديل الفاتورة',why:'شكل فاتورتك: اسم المحل، الشعار، العنوان، الملاحظة، وحجم الورق.',how:['عدّل البيانات وشوف المعاينة تحت.','اختار حجم ورق الطابعة (58 أو 80 مم).'],tips:[]},
+lab:{t:'ملصقات الأسعار',why:'اطبع ملصقات باركود وأسعار للأصناف.',how:['اختار الأصناف وعدد الملصقات.','اطبع على طابعة الملصقات أو ورق عادي.'],tips:[]},
+loy:{t:'نقاط الولاء',why:'الزبون بيجمع نقاط على مشترياته، وبيستبدلها بخصم. بتخليه يرجعلك.',how:['حدد كم نقطة لكل شيكل، وقيمة النقطة.','النقاط بتنضاف للزبون لحالها مع كل بيعة.'],tips:[]},
+att:{t:'بصمة العمال',why:'دوام العمال: إمتى دخل وإمتى طلع، مع صورة من الكاميرا.',how:['العامل بيضغط على صورته، والكاميرا بتصوّره.','شوف ساعات كل عامل بالأسبوع والشهر.'],tips:[]},
+audit:{t:'سجل العمليات',why:'مين عمل شو وإمتى: كل تعديل أو حذف أو تحويل بينكتب هون.',how:['دوّر بالتاريخ أو بالعملية.'],tips:['مفيد لما تشك بإشي صار بغيابك.']},
+biz:{t:'مجال العمل',why:'اختار نوع محلك، والتطبيق بينزّلك أصناف جاهزة بأسمائها وصورها.',how:['اختار مجال أو أكثر، واضغط تفعيل.','بتقدر تلغي تفعيل أي مجال بعدين.'],tips:['الأصناف الجاهزة بتنزل بدون أسعار: حط أسعارك.']},
+acct:{t:'حسابي',why:'بياناتك وبيانات المحل والاشتراك.',how:['غيّر صورتك واسم المحل.','شوف اشتراكك وجدّده.'],tips:[]},
+wh:{t:'المخازن',why:'لو عندك أكثر من مخزن، بتتابع البضاعة بكل واحد.',how:['أضف المخزن، وانقل البضاعة بينهم.'],tips:[]},
+};
+function helpKey(){ return tab==='more'?(sub||'menu'):tab }
+/* «رأيك يهمنا»: تبويب صغير على جنب الشاشة بيبعت الرأي على واتساب الدعم */
+function fbTabUp(){ let b=$('#fbTab'); let hid=false; try{ hid=+localStorage.getItem('ksr-fb-x')>Date.now() }catch(e){}
+  const show=!!S&&!hid&&tab!=='sell'&&!document.querySelector('#sheet.open')&&!$('.app>header').hidden;
+  if(!b){ if(!show) return; b=document.createElement('button'); b.id='fbTab'; b.dataset.act='fbOpen'; b.setAttribute('aria-label','رأيك يهمنا'); b.innerHTML='<span>💬</span><b>رأيك</b>'; document.body.appendChild(b) }
+  b.hidden=!show }
 /* «ابدأ من هنا»: 3 خطوات للمحل الجديد، بتختفي لحالها لما تخلص أو لما يسكّرها */
 function startCard(){ try{ if(!isOwner()||localStorage.getItem('ksr-start-x')) return '' }catch(e){}
   const st=[[S.items.length>0,'أضف أصنافك','امسح الباركود واكتب الاسم والسعر، أو نزّل أصناف جاهزة','data-act="go" data-tab="items"'],
@@ -2487,7 +2534,7 @@ function render(){
   norm(S); if(tab==='staff') facePrewarm();
   $('.app>header').hidden=false; $('#nav').hidden=false; $('#hdrLogo').innerHTML=LOGO('h'); { const av=$('#hdrAv'); if(av){ av.hidden=false; av.innerHTML=avHTML() } }
   $('#today').textContent=S.shop+' · '+new Date().toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
-  planTagUI();
+  planTagUI(); setTimeout(fbTabUp,0);
   $('#modeBtn').textContent=isOwner()?'المالك':'الكاشير'; setCloudUI();
   $('#view').dataset.v=tab==='more'?'more-'+sub:tab;
   if(tab==='sell'&&mOk()) mSet(false);
@@ -3160,6 +3207,23 @@ walSet(){ const W=WALS(); openSheet(`${sheetHead('أرقام محافظ الاس
   <button class="btn accent block" data-act="walSave">حفظ</button>`) },
 walSave(){ const W=WALS(), o={}; W.forEach((m,i)=>{ const v=String(($('#wn'+i)||{}).value||'').replace(/[^\d+]/g,'').slice(0,20); if(v) o[m]=v });
   S.walNo=o; audit('تعديل أرقام محافظ الاستلام'); save(); closeSheet(); render(); toast('✓ انحفظت أرقام المحافظ') },
+help(){ const k=helpKey(), h=HELP[k]||HELP.home;
+  openSheet(`${sheetHead('شرح: '+h.t)}
+    <div class="hwhy"><b>ⓘ ليش هالصفحة؟</b><p>${h.why}</p></div>
+    ${h.how.length?`<h3 class="hh">✓ كيف أستعملها؟</h3><div class="hsteps">${h.how.map((x,i)=>`<div class="hstep"><span>${i+1}</span><p>${x}</p></div>`).join('')}</div>`:''}
+    ${h.tips.length?`<div class="htips"><b>💡 نصائح</b><ul>${h.tips.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}
+    <div class="grid2"><button class="btn" data-act="tourStart">🧭 الجولة الكاملة</button><a class="btn wa" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي سؤال عن صفحة «'+h.t+'» بتطبيق كاشيرك الذكي:\n')}" target="_blank" rel="noopener">💬 اسألنا واتساب</a></div>`) },
+fbOpen(){ openSheet(`${sheetHead('رأيك يهمنا 💬')}<p class="muted" style="margin:0">بلّغ عن مشكلة، أو اطلب ميزة، أو احكيلنا شو عجبك. رسالتك بتوصلنا مباشرة على واتساب.</p>
+  <div class="seg" id="fbK" role="group" style="flex-wrap:wrap">${['🐞 مشكلة','✨ اقتراح ميزة','❓ سؤال','❤️ إشي عجبني'].map((x,i)=>`<button data-act="fbK" data-i="${i}" aria-pressed="${i===0}">${x}</button>`).join('')}</div>
+  <label for="fbTx">اكتب رسالتك<textarea id="fbTx" rows="4" maxlength="800" placeholder="مثلًا: بدي أطبع الفاتورة بحجم أكبر"></textarea></label>
+  <button class="btn wa block" data-act="fbSend">إرسال على واتساب</button>
+  <button class="lnk" data-act="fbHide" style="align-self:center">أخفي زر «رأيك» أسبوع</button>`) },
+fbK(d){ document.querySelectorAll('#fbK button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.i===d.i))) },
+fbSend(){ const tx=String(($('#fbTx')||{}).value||'').trim(); if(!tx){toast('اكتب رسالتك أول');return}
+  const k=($('#fbK [aria-pressed="true"]')||{}).textContent||'';
+  const msg=`${k} · كاشيرك الذكي\n${tx}\n\n— ${S.shop||''}${CL&&CL.acct?' · حساب '+CL.acct:''} · صفحة: ${(HELP[helpKey()]||{}).t||helpKey()}`;
+  window.open('https://wa.me/'+SUPPORT_WA+'?text='+encodeURIComponent(msg),'_blank'); closeSheet(); toast('شكرًا! رأيك بيفرق معنا') },
+fbHide(){ try{ localStorage.setItem('ksr-fb-x',String(Date.now()+7*864e5)) }catch(e){} closeSheet(); fbTabUp(); toast('تمام، بيرجع بعد أسبوع. وبتلاقيه دايمًا بالمزيد') },
 startX(){ try{localStorage.setItem('ksr-start-x','1')}catch(e){} render() },
 suTab(d){ const nw=d.t!=='have'; const a=$('#suNew'), b=$('#suHave'); if(a) a.hidden=!nw; if(b) b.hidden=nw; document.querySelectorAll('.suseg button').forEach(x=>x.setAttribute('aria-selected',String(x.dataset.t===d.t))) },
 cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
