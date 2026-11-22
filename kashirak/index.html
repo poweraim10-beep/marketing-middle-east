@@ -3954,7 +3954,19 @@ try{ const k=JSON.parse(sessionStorage.getItem('ksr-carts')||'null'); if(k&&Arra
 document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkUpdate() });
 setInterval(applyUpdate,20e3);
 try{ if(sessionStorage.getItem('ksr-upd')){sessionStorage.removeItem('ksr-upd'); setTimeout(()=>toast('✓ انحدّث التطبيق لآخر إصدار'),1200)} }catch(e){}
-if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{setInterval(()=>r.update().catch(()=>{}),30*60e3)}).catch(()=>{}))}
+/* التحديثات: كل الأجهزة بتفحص كل 10 دقايق، وكل ما ترجع للتطبيق أو يرجع النت. أول ما ينزل إصدار جديد بيتطبّق لحاله
+   بلحظة آمنة: ما في سلة فيها أصناف، ولا نافذة مفتوحة، ولا حدا بيكتب، وما لمس الشاشة من 20 ثانية. البيانات ما بتتأثر أبدًا */
+if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude\.ai|claudeusercontent/.test(location.host)){
+  let UPD=false, LASTT=Date.now(); const hadCtl=!!navigator.serviceWorker.controller;
+  ['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{LASTT=Date.now()},{passive:true,capture:true}));
+  const safe=()=>{ try{ const ae=document.activeElement; return !document.querySelector('#sheet.open')&&carts.every(c=>!c.lines.length)&&!(ae&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName))&&Date.now()-LASTT>20e3 }catch(e){return false} };
+  const go=()=>{ try{ if(S) persist(1); persist.flush&&persist.flush() }catch(e){} setTimeout(()=>location.reload(),400) };
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{ if(!hadCtl||UPD) return; UPD=true;
+    if(document.visibilityState==='hidden') return go();
+    const iv=setInterval(()=>{ if(document.visibilityState==='hidden'||safe()){ clearInterval(iv); go() } },3000) });
+  window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{
+    const up=()=>r.update().catch(()=>{}); setInterval(up,10*60e3);
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') up() }); window.addEventListener('online',up) }).catch(()=>{}))}
 </script>
 </body>
 </html>
