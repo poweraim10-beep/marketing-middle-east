@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  «كاشيرك الذكي» — © 2026 شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي (د. محمود أيمن نصرالله). جميع الحقوق محفوظة.
+  «كاشيرك الذكي» — © 2026 شركة ماركتنج الشرق الأوسط (Marketing Middle East) (د. محمود أيمن نصرالله). جميع الحقوق محفوظة.
   هذا البرنامج وتصميمه وشعاره وكوده ملك خاص لصاحبه. يُمنع نسخه أو تعديله أو إعادة بيعه أو نشره كليًا أو جزئيًا بدون إذن خطي من المالك.
   Kashirak Smart — Copyright (c) 2026 Abu Omar Al-Ghazawi Advertising & Digital Marketing. All rights reserved. Unauthorized copying, modification or redistribution is prohibited.
 -->
@@ -8,8 +8,8 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="author" content="شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي">
-<meta name="copyright" content="© 2026 شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي. جميع الحقوق محفوظة">
+<meta name="author" content="شركة ماركتنج الشرق الأوسط (Marketing Middle East)">
+<meta name="copyright" content="© 2026 شركة ماركتنج الشرق الأوسط (Marketing Middle East). جميع الحقوق محفوظة">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B1B2B">
 <meta name="description" content="كاشيرك الذكي: كاشير ومحاسبة ودفتر ديون للمحلات، يشتغل بدون إنترنت.">
@@ -778,7 +778,7 @@ function showIntro(){ if($('#intro')) return; const d=document.createElement('di
    <div class="igift"><img src="icons/feat/gift.jpg" alt=""><div><b>جرّبه مجانًا ${TRIAL_DAYS} أيام</b><span>بدون أي دفع، وبتجرّب كل المميزات.</span></div></div>
    <div class="ifeats">${FEATS.map(([ic,t,x],i)=>`<div class="ift" style="animation-delay:${.08+i*.07}s"><span class="ii"><img src="icons/feat/${ic}.jpg" alt="" loading="lazy"></span><div><b>${t}</b><span>${x}</span></div></div>`).join('')}</div>
    <div style="margin:16px 0 4px">${repCard()}</div>
-   <p class="ifoot">تطوير شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</p></div>
+   <p class="ifoot">تطوير شركة ماركتنج الشرق الأوسط (Marketing Middle East)</p></div>
    <div class="ibar"><button class="btn accent big" data-act="introClose">${S?'تمام، رجوع للتطبيق':'ابدأ الآن مجانًا'}</button>${S?'':'<button class="ilog" data-act="introLogin" style="background:none;border:0;color:#CBD5E1;font:inherit;font-size:14px;text-decoration:underline;cursor:pointer">عندي حساب؟ ادخل واسترجع محلك</button>'}</div>`;
   document.body.appendChild(d); document.body.style.overflow='hidden' }
 function closeIntro(){ const d=$('#intro'); if(d) d.remove(); document.body.style.overflow=''; try{localStorage.setItem('ksr-intro','1')}catch(e){} }
@@ -888,7 +888,7 @@ function celebrate(o){ const life=o.e>=LIC_LIFE, end=fday(dayTs(o.e)), pn=planNa
   d.innerHTML=Array.from({length:46},(_,i)=>`<i style="left:${Math.random()*100}%;background:${cols[i%cols.length]};animation-duration:${2.2+Math.random()*2.2}s;animation-delay:${Math.random()*.8}s;transform:rotate(${Math.random()*180}deg)"></i>`).join('')+
    `<div class="cbox"><div class="cic">🎉</div><h2>مبروك!</h2><p>تم تفعيل اشتراكك في «كاشيرك الذكي» بنجاح</p>
     <div class="cplan">${life?'<span>نوع الاشتراك</span><b>⭐ اشتراك مفتوح</b><span>ما بينتهي أبدًا</span>':`<span>مدة الاشتراك</span><b>${pn||'اشتراك مفعّل'}</b><span>لغاية ${end}</span>`}</div>
-    <p style="font-size:13.5px">شكرًا لثقتك 🌟 · شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</p>
+    <p style="font-size:13.5px">شكرًا لثقتك 🌟 · شركة ماركتنج الشرق الأوسط (Marketing Middle East)</p>
     <button class="btn accent big" data-act="celebOk">يلا نبيع</button></div>`;
   document.body.appendChild(d); try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){} try{beep(true)}catch(e){} }
 function needActive(){const st=status(); if(st.active) return true; expiredSheet(); return false}
@@ -2150,7 +2150,7 @@ more(){
     ${grp('إضافات',[['offers','العروض والخصومات','خصم بنسبة لقسم أو صنف لفترة، واشتري وخذ مجانًا','tag'],['cat','كتالوج واتساب','رابط فيه أصنافك وأسعارك، والزبون بيطلب على واتساب','cash'],['tools','أدوات','استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، النسخ الاحتياطية','gear'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('العمال',[...(featOn('staff')?[['staffT','العمال','قائمة العمال وصلاحياتهم ودوامهم','users','goStaff']]:[]),['ann','التعميمات','رسالة بتظهر على كل أجهزة المحل','users'],['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
     ${grp('الحساب والمساعدة',[['help','المساعدة','شرح كل صفحة والأسئلة الشائعة','list'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['share','مشاركة التطبيق','ابعت رابط التطبيق الأصلي على واتساب أو انسخه','list','appShare'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}
-    <div class="lic-foot"><span class="lic-seal">${I3('h-shield')}</span><div><b>نسخة مرخّصة ومعتمدة</b><span>لدى شركة أبو عمر الغزاوي<br>للإعلانات والتسويق الرقمي</span><em>✓ النسخة الأصلية · احذر البرامج المزيفة والتقليد</em><em class="g">🌍 أحدث إصدار · على أسس المحاسبة المعتمدة دوليًا</em><small>الإصدار ${APPVER} · © ${new Date().getFullYear()} جميع الحقوق محفوظة</small></div></div>`;
+    <div class="lic-foot"><span class="lic-seal">${I3('h-shield')}</span><div><b>نسخة مرخّصة ومعتمدة</b><span>لدى شركة ماركتنج الشرق الأوسط<br>Marketing Middle East</span><em>✓ النسخة الأصلية · احذر البرامج المزيفة والتقليد</em><em class="g">🌍 أحدث إصدار · على أسس المحاسبة المعتمدة دوليًا</em><small>الإصدار ${APPVER} · © ${new Date().getFullYear()} جميع الحقوق محفوظة</small></div></div>`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -2313,13 +2313,13 @@ more(){
       <details><summary class="muted">بدون ملفات: نسخ النص ولصقه</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       <textarea id="bk" rows="4" placeholder="الصق هنا نص نسخة سابقة"></textarea>
       <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>`)}
-  ${setSec('🎓','المساعدة والدعم','الجولة التعليمية، مميزات التطبيق، والتواصل معنا',`<div class="sin"><button class="btn primary block" data-act="tourStart">🎓 ابدأ الجولة التعليمية</button></div><div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div></div>
+  ${setSec('🎓','المساعدة والدعم','الجولة التعليمية، مميزات التطبيق، والتواصل معنا',`<div class="sin"><button class="btn primary block" data-act="tourStart">🎓 ابدأ الجولة التعليمية</button></div><div class="card supcard"><div class="suphd">${LOGO()}<div><div class="muted" style="font-size:13px">القائمون على هذا العمل</div><b>شركة ماركتنج الشرق الأوسط (Marketing Middle East)</b></div></div>
       <a class="btn wa block big" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent(waMsg())}" target="_blank" rel="noopener">${WAIC}تواصل معنا الآن واطلب كود التفعيل</a>
       <a class="btn wa block" style="background:#fff;color:#047857;border:1.5px solid #25D366" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي استفسار بخصوص «كاشيرك الذكي».\nاسم المحل: '+S.shop+(status().acct?'\nرقم الحساب: '+status().acct:''))}" target="_blank" rel="noopener">${WAIC}للدعم والاستشارة تواصل معنا</a>
       <p class="muted" style="margin:0;text-align:center;font-size:13px">الاشتراك والأكواد: <span class="num">+${SALES_WA}</span> · الدعم: <span class="num">+${SUPPORT_WA}</span></p>
       <button class="btn" data-act="introShow">✨ مميزات التطبيق</button></div>`)}
   ${setSec('⚠️','منطقة الخطر','مسح كل البيانات من هذا الجهاز',`<div class="sin"><p class="muted" style="margin:0">بيمسح الأصناف والفواتير والديون من هذا الجهاز. نزّل نسخة احتياطية قبلها.</p><button class="btn danger" data-act="wipeAsk">مسح والبدء من جديد</button></div>`)}
-  <div class="card setfoot"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>`;
+  <div class="card setfoot"><h2>حقوق الملكية</h2><p class="muted" style="margin:0">«كاشيرك الذكي» برنامج وعلامة تجارية مملوكة لـ<b>شركة ماركتنج الشرق الأوسط (Marketing Middle East)</b>. اشتراكك بيعطيك حق استخدام التطبيق لمحلك فقط، ويُمنع نسخه أو تعديله أو إعادة بيعه أو مشاركة أكواد التفعيل.</p><p class="muted" style="margin:0;font-size:13px">© 2026 جميع الحقوق محفوظة · الإصدار ${APPVER}</p></div>`;
   const from=period==='today'?sod():period==='week'?sod(Date.now()-6*DAY):sod(Date.now()-29*DAY), r=report(from);
   const mx=Math.max(1,...r.top.map(t=>t[1]));
   const ib=itemBreakdown(from);
@@ -2663,7 +2663,7 @@ function origCheck(){ if(!S||tab==='sell'||document.hidden||document.querySelect
   if(!origDue()) return; try{ localStorage.setItem('ksr-orig2-t',String(Date.now())) }catch(e){} origShow() }
 function origShow(){ openSheet(`<div class="orig"><div class="orig-top">${I3('h-shield')}<div><b>نسخة أصلية ومعتمدة</b><span>كاشيرك الذكي · أحدث إصدار ${APPVER}</span></div></div>
   <div class="orig-intl"><span>🌍</span><p><b>أحدث إصدار، بمعايير عالمية</b>مبني بأحدث التقنيات العالمية، وحساباته ماشية على أسس المحاسبة المعتمدة دوليًا: الميزانية، ميزان المراجعة، دفتر الأستاذ، والتدفقات النقدية. وبيتحدّث لحاله أول بأول.</p></div>
-  <p class="orig-p">إنت بتستعمل <b>النسخة الأصلية</b> من كاشيرك الذكي، المرخّصة والمعتمدة من <b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b> و<b>شركة ماركتنج الشرق الأوسط</b>.</p>
+  <p class="orig-p">إنت بتستعمل <b>النسخة الأصلية</b> من كاشيرك الذكي، المرخّصة والمعتمدة من <b>شركة ماركتنج الشرق الأوسط</b> <bdi dir="ltr">(Marketing Middle East)</bdi>.</p>
   <div class="orig-warn"><b>⚠️ احذر البرامج المزيفة والتقليد</b><p>أي نسخة مش من عنا ممكن تضيّع بياناتك وحساباتك وفلوس محلك. وإذا بدك تعطي البرنامج لصاحب محل ثاني، شاركه من زر «مشاركة التطبيق» عشان يوصله الرابط الأصلي.</p><button class="btn block" data-act="appShare" style="background:#fff">📤 مشاركة التطبيق</button></div>
   <div class="grid2"><a class="btn wa" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، بدي أتأكد إنه نسختي من كاشيرك الذكي أصلية')}" target="_blank" rel="noopener">💬 تأكد معنا</a><button class="btn primary" data-act="close">فهمت ✓</button></div></div>`) }
 setInterval(origCheck,20000); setTimeout(origCheck,3500); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) setTimeout(origCheck,2500) });
