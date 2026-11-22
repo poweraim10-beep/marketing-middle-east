@@ -496,6 +496,7 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .hsteps{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}.hstep{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid #F1F5F9}.hstep:first-child{border-top:0}
 .hstep span{width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--good);color:#fff;font-weight:700;font-family:var(--display)}.hstep p{margin:3px 0 0;font-size:14.5px;line-height:1.65}
 .htips{background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:16px;padding:12px 14px}.htips b{color:#B45309;font-family:var(--display)}.htips ul{margin:6px 0 0;padding-inline-start:20px;line-height:1.75;font-size:14px}
+.morebtn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px;padding:10px;border:0;border-radius:12px;background:#ECFDF5;color:var(--gold-deep);font:inherit;font-weight:700;cursor:pointer}.morebtn i{font-style:normal;font-size:18px;line-height:1}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -1973,7 +1974,7 @@ home(){
   </div>
   ${(()=>{const sm=smart(); return sm.length?`<div class="card"><div class="row"><h2>اقتراحات المدير الذكي</h2><span class="pill warn">${sm.length}</span></div><div class="list">${sm.map(x=>`<button class="li" ${x.act}><span style="display:flex;gap:10px;align-items:center"><span class="mic" style="margin:0;flex:none;width:34px;height:34px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[x.ic]}</svg></span><span><span class="t">${x.t}</span><br><span class="muted">${x.d}</span></span></span><span class="chev" style="color:var(--gold-deep)">‹</span></button>`).join('')}</div></div>`:''})()}
   <div class="card"><div class="row"><h2 style="display:flex;align-items:center;gap:8px">${I3('h-alert','sm3')}بحاجة لانتباهك</h2><span class="pill ${al.length?'warn':'ok'}">${al.length||'لا شيء'}</span></div>
-    <div class="list">${al.map(a=>`<button class="li" data-act="editItem" data-id="${a.i.id}"><span class="t">${esc(a.i.name)}</span><span class="pill ${a.cls}">${a.txt}</span></button>`).join('')||'<div class="empty">المخزون والصلاحيات بخير</div>'}</div></div>
+    <div class="list">${al.slice(0,ALN).map(a=>`<button class="li" data-act="editItem" data-id="${a.i.id}"><span class="t">${esc(a.i.name)}</span><span class="pill ${a.cls}">${a.txt}</span></button>`).join('')||'<div class="empty">المخزون والصلاحيات بخير</div>'}</div>${al.length>ALN?`<button class="morebtn" data-act="alMore">عرض المزيد <span class="muted">(باقي ${al.length-ALN})</span> <i>⌄</i></button>`:al.length>5?`<button class="morebtn" data-act="alLess">إخفاء <i>⌃</i></button>`:''}</div>
   <div class="card"><h2>مبيعات آخر 7 أيام</h2>
     <div class="bars">${days.map((d,k)=>`<div class="bar ${k===6?'today':''}"><span class="num">${Math.round(d.rev)}</span><div class="trk"><i style="height:${Math.round(d.rev/mx*100)}%"></i></div><span>${k===6?'اليوم':new Date(d.from).toLocaleDateString('ar',{weekday:'short'})}</span></div>`).join('')}</div></div>`;
 },
@@ -2615,6 +2616,7 @@ function mGateView(){ return `<div class="card" style="gap:10px;text-align:cente
   <input id="mCode" type="password" inputmode="numeric" autocomplete="off" placeholder="كود الانتقال" style="text-align:center;font-size:20px;letter-spacing:6px">
   <button class="btn primary block" data-act="mGo">دخول</button>
   <p class="fh" style="margin:0">إذا نسيت الكود تواصل معنا: <a href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('نسيت كود الانتقال لواجهة المال بكاشيرك')}" target="_blank" rel="noopener">واتساب</a></p></div>` }
+let ALN=5;
 function render(){
   if(!S){renderSetup();return}
   norm(S); if(tab==='staff') facePrewarm();
@@ -3309,6 +3311,8 @@ fbSend(){ const tx=String(($('#fbTx')||{}).value||'').trim(); if(!tx){toast('ا�
   const k=($('#fbK [aria-pressed="true"]')||{}).textContent||'';
   const msg=`${k} · كاشيرك الذكي\n${tx}\n\n— ${S.shop||''}${CL&&CL.acct?' · حساب '+CL.acct:''} · صفحة: ${(HELP[helpKey()]||{}).t||helpKey()}`;
   window.open('https://wa.me/'+SUPPORT_WA+'?text='+encodeURIComponent(msg),'_blank'); closeSheet(); toast('شكرًا! رأيك بيفرق معنا') },
+alMore(){ ALN+=10; render() },
+alLess(){ ALN=5; render() },
 fbHide(){ try{ localStorage.setItem('ksr-fb-x',String(Date.now()+7*864e5)) }catch(e){} closeSheet(); fbTabUp(); toast('تمام، بيرجع بعد أسبوع. وبتلاقيه دايمًا بالمزيد') },
 offerNew(){ const cats=bulkCats(), n0=new Date(); openSheet(`${sheetHead('عرض جديد')}
   <label for="ofT">اسم العرض<input id="ofT" maxlength="40" placeholder="مثلًا: خصم المنظفات"></label>
