@@ -262,6 +262,7 @@ label.chk input[type=radio],label.chk input[type=checkbox]{width:22px;height:22p
 .hbar i{display:block;height:100%;background:linear-gradient(90deg,#059669,#34D399);border-radius:99px}
 .sheet{position:fixed;inset:0;background:rgba(6,14,28,.6);display:none;align-items:flex-end;justify-content:center;z-index:10}
 .sheet.open{display:flex}
+.sheet .box>*{flex-shrink:0}.sheet .box{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 #scanSheet{z-index:15}
 .sheet .box{background:var(--bg);width:100%;max-width:520px;max-height:92%;overflow-y:auto;border-radius:20px 20px 0 0;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;border-top:3px solid var(--gold)}
 .toast{position:fixed;bottom:124px;left:50%;transform:translateX(-50%);background:#0B1B2B;color:#F1F5F9;border:1px solid #10B981;padding:8px 16px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20;max-width:90%;text-align:center}
