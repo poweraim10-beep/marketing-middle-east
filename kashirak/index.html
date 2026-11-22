@@ -2655,18 +2655,18 @@ function mGateView(){ return `<div class="card" style="gap:10px;text-align:cente
   <div class="mnote"><b>⚠️ ملاحظة مهمة</b><p>إذا إنت المالك ومش عارف شو الكود، تواصل معنا الآن على الواتساب وراح نرسلك الكود بكل سهولة.</p><p class="mn2">هذا الكود موحّد على جميع المنصات.</p>
   <a class="btn wa block" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، أنا صاحب المحل وبدي كود الانتقال لواجهة المال بكاشيرك الذكي')}" target="_blank" rel="noopener">💬 تواصل معنا الآن على واتساب</a></div></div>` }
 let ALN=5;
-/* تنبيه «النسخة الأصلية واحذر التقليد»: بيطلع كل 3 أيام بوقت هادي (الرئيسية، بلا سلة ولا نافذة مفتوحة) */
+/* تنبيه «النسخة الأصلية واحذر التقليد»: بيطلع أول ما يفتح التطبيق، وبعدها كل يومين، بوقت هادي (مش بشاشة البيع، بلا سلة ولا نافذة مفتوحة) */
 const APP_URL='https://marketingmiddleeast.com/kashirak', APP_SHARE_TXT='جرّب «كاشيرك الذكي» 🧾: برنامج كاشير ومحاسبة لمحلك على الجوال. بيع بالباركود، دفتر ديون، مخزون، أرباح، وتقارير، وبيشتغل بدون نت. هذا الرابط الأصلي:';
-function origDue(){ let t=0; try{ t=+localStorage.getItem('ksr-orig-t')||0 }catch(e){} return Date.now()-t>3*864e5 }
-function origCheck(){ if(!S||tab!=='home'||document.hidden||document.querySelector('#sheet.open')||$('#intro')||$('#celeb')||document.body.classList.contains('landing')) return;
+function origDue(){ let t=0; try{ t=+localStorage.getItem('ksr-orig2-t')||0 }catch(e){} return Date.now()-t>2*864e5 }
+function origCheck(){ if(!S||tab==='sell'||document.hidden||document.querySelector('#sheet.open')||$('#intro')||$('#celeb')||document.body.classList.contains('landing')) return;
   if(carts.some(c=>c.lines.length)||(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) return;
-  if(!origDue()) return; try{ localStorage.setItem('ksr-orig-t',String(Date.now())) }catch(e){} origShow() }
+  if(!origDue()) return; try{ localStorage.setItem('ksr-orig2-t',String(Date.now())) }catch(e){} origShow() }
 function origShow(){ openSheet(`<div class="orig"><div class="orig-top">${I3('h-shield')}<div><b>نسخة أصلية ومعتمدة</b><span>كاشيرك الذكي · أحدث إصدار ${APPVER}</span></div></div>
   <div class="orig-intl"><span>🌍</span><p><b>أحدث إصدار، بمعايير عالمية</b>مبني بأحدث التقنيات العالمية، وحساباته ماشية على أسس المحاسبة المعتمدة دوليًا: الميزانية، ميزان المراجعة، دفتر الأستاذ، والتدفقات النقدية. وبيتحدّث لحاله أول بأول.</p></div>
   <p class="orig-p">إنت بتستعمل <b>النسخة الأصلية</b> من كاشيرك الذكي، المرخّصة والمعتمدة من <b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b> و<b>شركة ماركتنج الشرق الأوسط</b>.</p>
   <div class="orig-warn"><b>⚠️ احذر البرامج المزيفة والتقليد</b><p>أي نسخة مش من عنا ممكن تضيّع بياناتك وحساباتك وفلوس محلك. وإذا بدك تعطي البرنامج لصاحب محل ثاني، شاركه من زر «مشاركة التطبيق» عشان يوصله الرابط الأصلي.</p><button class="btn block" data-act="appShare" style="background:#fff">📤 مشاركة التطبيق</button></div>
   <div class="grid2"><a class="btn wa" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، بدي أتأكد إنه نسختي من كاشيرك الذكي أصلية')}" target="_blank" rel="noopener">💬 تأكد معنا</a><button class="btn primary" data-act="close">فهمت ✓</button></div></div>`) }
-setInterval(origCheck,45000);
+setInterval(origCheck,20000); setTimeout(origCheck,3500); document.addEventListener('visibilitychange',()=>{ if(!document.hidden) setTimeout(origCheck,2500) });
 function render(){
   if(!S){renderSetup();return}
   norm(S); if(tab==='staff') facePrewarm();
