@@ -945,8 +945,10 @@ function viewerMayKeep(){ /* جهاز المتابعة: بنسمح بس بالإ
 const devLabel=()=>{const u=navigator.userAgent;return /iPhone|iPad/.test(u)?'آيفون':/Android/.test(u)?(/Mobile/.test(u)?'جوال أندرويد':'تابلت أندرويد'):/Windows/.test(u)?'لابتوب ويندوز':/Mac/.test(u)?'ماك':'جهاز'};
 async function api(path,opt={}){
   const h={'content-type':'application/json','x-device':devInfo().id}; if(CL&&CL.token) h.authorization='Bearer '+CL.token;
-  let r; try{r=await fetch(API+path,{method:opt.method||'GET',headers:h,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'})}
-  catch(e){const x=new Error('ما في اتصال بالنت');x.status=0;throw x}
+  let r; const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),opt.to||90000);
+  try{r=await fetch(API+path,{method:opt.method||'GET',headers:h,body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store',...(ac?{signal:ac.signal}:{})})}
+  catch(e){const x=new Error(e&&e.name==='AbortError'?'النت ضعيف، رح نعيد المحاولة لحالنا':'ما في اتصال بالنت');x.status=0;throw x}
+  finally{if(tm) clearTimeout(tm)}
   let j={}; try{j=await r.json()}catch(e){}
   if(!r.ok){const x=new Error(j.error||('خطأ '+r.status));x.status=r.status;x.code=j.code;x.shop=j.shop;x.data=j;throw x} return j}
 async function gz(str){ if(!window.CompressionStream) return 'p:'+str;
@@ -1041,7 +1043,7 @@ async function cloudPush(rebase){
     const t0=S._t||0, txt=JSON.stringify(Object.assign({},S,{_by:devInfo().id}));
     CL.triedT=Math.max(CL.triedT||0,t0); clSave();
     const done=(CL.done||[]).slice(0,800);
-    const r=await api('/state',{method:'PUT',body:{device:devInfo().id,base:CL.ver||0,data:await gz(txt),name:S.shop,meta:cloudMeta(),done}});
+    const r=await api('/state',{method:'PUT',to:240000,body:{device:devInfo().id,base:CL.ver||0,data:await gz(txt),name:S.shop,meta:cloudMeta(),done}});
     if(done.length){const dn=new Set(done); CL.done=(CL.done||[]).filter(x=>!dn.has(x))}
     CL.ver=r.version; CL.last=r.updated; CL.sentT=Math.max(CL.sentT||0,t0); clSave(); CLS.state='ok'; CLS.err='';
     await cloudPushBlobs();
@@ -1127,12 +1129,15 @@ async function cloudSignedOut(){ const prev=CL;
     try{ const r=await api('/join',{method:'POST',body:{owner:prev.owner||S.owner||'صاحب المحل',phone:prev.phone,shop:S.shop,device:devInfo().id,label:devLabel()}});
       CL=Object.assign(prev,{token:r.token,acct:r.shop.acct,nopass:!r.shop.haspass}); clSave(); cloudSignedOut.busy=0; await licApply(r.license); setCloudUI(); return }catch(e){} cloudSignedOut.busy=0 }
   CL=null;clSave();CLS.state='idle';setCloudUI();toast('انتهى الدخول لحساب المحل. ادخل من جديد من الإعدادات')}
+const clLiveBody=()=>cloudCard().replace('<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>','<div style="display:flex;flex-direction:column;gap:12px">')+multiCard();
+/* نافذة «حساب المحل» بتتحدّث لحالها (حالة الرفع وقائمة الأجهزة) بدل ما تضل على أول حالة انفتحت فيها */
+function clLiveUp(){ const lv=$('#clLive'); if(!lv||lv.contains(document.activeElement)&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return; const h=clLiveBody(); if(lv.innerHTML!==h) lv.innerHTML=h }
 function setCloudUI(){
   const b=$('#cloudBtn'), bar=$('#cloudBar'); if(!b) return;
   if(!S||!linked()){b.hidden=true; if(bar) bar.hidden=true; return}
   b.hidden=false; const st=isSeller2()?(OPQ.some(o=>!o.sent)?(navigator.onLine?'wait':'off'):CLS.state):isViewer()?'view':(cloudPending()&&CLS.state!=='sync'?(navigator.onLine?'wait':'off'):CLS.state);
   b.dataset.st=st; b.title={ok:'محفوظ على السحابة',sync:'جاري الرفع…',wait:'بانتظار الرفع',off:'بدون نت: رح يرفع لما يرجع النت',err:'ما انرفع: '+CLS.err,view:'جهاز متابعة',idle:'السحابة'}[st]||'';
-  if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث <span class="num">${CL.last?hm(CL.last):'—'}</span></span><span style="display:flex;gap:6px"><button class="btn sm accent" data-act="remScan">📷 ماسح للابتوب</button><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button></span>`}
+  clLiveUp(); if(bar){bar.hidden=!isViewer(); if(isViewer()) bar.innerHTML=`<span>وضع المتابعة · آخر تحديث <span class="num">${CL.last?hm(CL.last):'—'}</span></span><span style="display:flex;gap:6px"><button class="btn sm accent" data-act="remScan">📷 ماسح للابتوب</button><button class="btn sm" data-act="cloudTake">خلّيه أساسي</button></span>`}
 }
 function cloudCard(){
   if(!linked()) return `<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>
@@ -1266,14 +1271,14 @@ function scanCard(){
     <label class="chk"><input type="checkbox" id="scOut" ${localStorage.getItem('ksr-scanout')==='1'?'checked':''}>هذا الجوال ماسح: كل باركود بيمسحه بينرسل للابتوب ومش بيضيفه لسلته</label>
     <p class="muted" style="margin:0;font-size:12.5px">بيشتغل بالنت. الجوال والابتوب لازم يكونوا على نفس الحساب.</p></div>`:'')}
 function multiCard(){ if(!linked()) return '';
-  if(!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
+  if(!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; clSave(); render(); setTimeout(clLiveUp,0)}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
   return `<div class="card" style="gap:10px"><h2>📱💻 أجهزة المحل</h2>
     <p class="muted" style="margin:0">الحساب بيفتح على <b>3 أجهزة</b> (مثلاً جوالين ولابتوب) بنفس رقم الجوال وكلمة السر. كلهم بيبيعوا، والمبيعات والديون والمخزون بتتجمع بنفس المحل.</p>
     <div class="list">${(MDEV||[]).map(x=>`<div class="li"><span>${esc(String(x.label||'جهاز').replace(/ \(طلب دخول\)$/,''))}${x.id===devInfo().id?' <span class="muted">(هذا الجهاز)</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><span class="pill ok">مفعّل</span></div>`).join('')||'<div class="li muted">جاري تحميل الأجهزة…</div>'}</div>
     <p class="muted" style="margin:0;font-size:13px">لإضافة جهاز: افتح عليه <b dir="ltr">marketingmiddleeast.com/kashirak</b> ← «عندي حساب» ← رقم جوال المحل وكلمة السر.</p></div>`}
 function multiCardOld(){ if(!linked()) return '';
   const main=isMain(), s2=isSeller2(), on=!!CL.multi;
-  if(main&&!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; CL.multi=r.multi; clSave(); render()}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
+  if(main&&!MDEV&&navigator.onLine&&!multiCard.f){ multiCard.f=1; api('/devices').then(r=>{MDEV=r.devices; CL.multi=r.multi; clSave(); render(); setTimeout(clLiveUp,0)}).catch(()=>{}).finally(()=>{multiCard.f=0}) }
   const role=x=>x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">📱 بائع ثاني</span>':'<span class="pill">متابعة</span>';
   const rows=(MDEV||[]).map(x=>`<div class="li"><span>${esc(x.label||'جهاز')}${x.id===devInfo().id?' <span class="muted">(هذا الجهاز)</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span>
     <span class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">${role(x)}${!x.main&&on?(x.seller?`<button class="btn sm" data-act="sellerSet" data-dev="${x.id}" data-on="">رجّعه متابعة</button>`:`<button class="btn sm accent" data-act="sellerSet" data-dev="${x.id}" data-on="1">خلّيه بائع</button>`):''}${!x.main?`<button class="btn sm danger" data-act="devDrop" data-dev="${x.id}">تطليع</button>`:''}</span></div>`).join('');
@@ -3036,7 +3041,7 @@ faceRej(){const t0=sod(), rs=(S.attRej||[]).slice().reverse(); Promise.all(rs.ma
     return `<div class="li"><span class="pair">${img?`<img src="${img}" alt="">`:''}<img src="${st?refImg(st):''}" alt=""></span><span style="flex:1"><span class="t">باسم ${esc(st?st.name:'—')} · <span style="color:var(--bad)">${W[r.why]||''}</span>${o?` (${esc(o.name)})`:''}</span><br><span class="muted">${r.ts>=t0?'اليوم':new Date(r.ts).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long'})} · <span class="num">${hm(r.ts)}</span></span></span></div>`}).join('')||'<div class="empty">ما في محاولات مرفوضة</div>'}</div>
   ${xs.length?'<button class="btn sm" data-act="faceRejClear">مسح السجل</button>':''}`)})},
 refRetry(){if(A._ref) A._ref()},
-cloudSheet(){openSheet(sheetHead('حساب المحل')+cloudCard().replace('<div class="card cloudcard"><h2>حساب المحل على السحابة</h2>','<div style="display:flex;flex-direction:column;gap:12px">')+multiCard())},
+cloudSheet(){openSheet(sheetHead('حساب المحل')+'<div id="clLive" style="display:contents">'+clLiveBody()+'</div>')},
 cloudNew(){openSheet(`${sheetHead(linked()?'كلمة سر حساب المحل':'إنشاء حساب للمحل')}<p class="muted" style="margin:0">رقم الجوال وكلمة السر هم مفتاح محلك. بيهم بترجع بياناتك على أي جهاز، وبتتابع محلك من اللابتوب أو جوال ثاني.</p>
   <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" value="${esc(linked()?CL.phone:(S.phone||''))}" ${linked()?'readonly':''} placeholder="059xxxxxxx"></label>
   <label for="clPass">كلمة السر (6 أحرف أو أرقام على الأقل)<input id="clPass" type="password" autocomplete="new-password"></label>
@@ -3106,10 +3111,10 @@ async cloudTakeGo(){const pw=$('#clPass').value, btn=$('[data-act=cloudTakeGo]')
     if(st.data) applyRemote(await gunz(st.data),st.shop.version,st.shop.updated); else CL.ver=st.shop.version;
     CL.lost=null; clSave(); CLSNAP=null; CLS.state='ok'; closeSheet(); render(); toast('✓ هذا الجهاز صار الأساسي'); cloudPullBlobs(); licRefresh();
   }catch(e){toast(e.message); btn.disabled=false}},
-async cloudNow(){await cloudPush(); render(); toast(CLS.state==='ok'?'✓ انرفع':CLS.err||'ما انرفع')},
+async cloudNow(){await cloudPush(); render(); clLiveUp(); toast(CLS.state==='ok'?'✓ انرفع':CLS.err||'ما انرفع')},
 async cloudNow2(){await cloudPull(isViewer()); render(); toast(CLS.state==='ok'?'✓ محدّث':CLS.err||'ما في اتصال')},
 cloudOut(){openSheet(`${sheetHead('تسجيل خروج من حساب المحل')}<p style="margin:0">بيانات المحل بتضل على هذا الجهاز، بس ما رح تنرفع نسخ جديدة للسحابة.</p><button class="btn danger block" data-act="cloudOutGo">تسجيل خروج</button>`)},
-async multiLoad(){ try{const r=await api('/devices'); MDEV=r.devices; CL.multi=r.multi; clSave(); render()}catch(e){toast(e.message)} },
+async multiLoad(){ try{const r=await api('/devices'); MDEV=r.devices; CL.multi=r.multi; clSave(); render(); clLiveUp()}catch(e){toast(e.message)} },
 async multiSet(d){ const on=!!d.on;
   if(!on&&!confirm('توقيف البيع من جوالين؟ الجوال الثاني بيرجع للمتابعة بس.')) return;
   if(on&&CL.nopass){A.cloudNew();return}
