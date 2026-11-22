@@ -548,6 +548,9 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .optsec:has(input:checked){border-color:#6EE7B7;background:#F0FDF7}.optbody{display:flex;flex-direction:column;gap:6px}.optbody[hidden]{display:none}
 .barrow{display:flex;align-items:flex-end;gap:8px}.barrow label{flex:1;min-width:0;margin:0}
 .bbtn{flex:none;width:58px;height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;border-radius:14px;border:1px solid var(--line);background:#fff;font:inherit;font-size:11.5px;font-weight:700;color:var(--ink);cursor:pointer}.bbtn span{font-size:18px;line-height:1.1}.bbtn.scanb{background:#ECFDF5;border-color:#6EE7B7;color:var(--gold-deep)}.bbtn:active{transform:scale(.95)}
+.namerow{display:flex;align-items:flex-end;gap:10px}.namerow>label[for=fName]{flex:1;min-width:0;margin:0}
+.imgbox{flex:none;width:72px;height:72px;border-radius:16px;border:2px dashed #6EE7B7;background:#ECFDF5;cursor:pointer;overflow:hidden;display:block;padding:0}.imgbox #fImgPrev{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;color:var(--gold-deep)}
+.imgbox #fImgPrev img{width:100%!important;height:100%!important;object-fit:cover;border-radius:0!important}.imgbox i{font-style:normal;font-size:24px;line-height:1.1}.imgbox small{font-size:11.5px;font-weight:700}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -3079,6 +3082,7 @@ function wPrevTxt(on,cost,price){ cost=+cost||0; price=+price||0; if(!on||!(pric
   const g=x=>fx(price*x/1000);
   return `💡 بالغرام: 15 غ = <b class="num">${g(15)}</b> ₪ · 50 غ = <b class="num">${g(50)}</b> · 100 غ = <b class="num">${g(100)}</b> · 250 غ = <b class="num">${g(250)}</b>${cost>0?` · ربحك بالكيلو <b class="num">${fx(price-cost)}</b> ₪`:''}` }
 /* خيار بالصنف بيتفعّل بصح: لما ينشال الصح بيختفي، وعند الحفظ قيمته بتصير صفر */
+const IMGPH='<i>📷</i><small>صورة</small>';
 function optSec(id,t,d,on,body){ return `<div class="optsec"><label class="chk optchk" for="${id}"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="this.closest('.optsec').querySelector('.optbody').hidden=!this.checked"><span><b>${t}</b><small class="fh">${d}</small></span></label><div class="optbody"${on?'':' hidden'}>${body}</div></div>` }
 function qbCard(){ const L=S.items.filter(i=>i.qb);
   if(!L.length) return isOwner()?`<button class="qbadd" data-act="qbPick">＋ أضف زر سريع لصنف بلا باركود</button>`:'';
@@ -3169,7 +3173,7 @@ lpSave(d){const l=cart().lines[+d.k], v=r2(parseFloat($('#lpV').value)||0); if(!
 lpReset(d){const l=cart().lines[+d.k]; delete l.p; closeSheet(); render()},
 wmon(d){const l=cart().lines[+d.k], it=itemById(l.itemId), pk=lineOf(it,l.unit,1,l.p).price; if(!(pk>0)) return; let kg=Math.max(0.001,Math.round(+d.m/pk*1000)/1000);
   if(kg-l.count>it.qty-usedQty(it.id)+1e-9){toast(`المتوفر ${qtyTxt(it)} بس`);return} l.count=kg; render(); toast(`${d.m} ₪ = ${wtTxt(kg)}`)},
-imgDel(){ITEMIMG=''; const p=$('#fImgPrev'); if(p) p.innerHTML=''; toast('بتنحذف الصورة لما تحفظ')},
+imgDel(){ITEMIMG=''; const p=$('#fImgPrev'); if(p) p.innerHTML=IMGPH; toast('بتنحذف الصورة لما تحفظ')},
 unit(d){const l=cart().lines[+d.k], it=itemById(l.itemId), old=l.unit; l.unit=d.u;
   if(usedQty(it.id)>it.qty){l.unit=old; toast(`الكمية المتوفرة ${it.qty} لا تكفي`)} render()},
 pay(d){cart().pay=d.p; render()},
@@ -3208,11 +3212,12 @@ editItem(d){
   openSheet(`${sheetHead(wh?(it.id?'صنف بالمخزن':'صنف جديد للمخزن'):(it.id?'تعديل صنف':'صنف جديد'))}
     ${wh?'<p class="muted" style="margin:0;font-size:13px">نفس تفاصيل الصنف كاملة. الكمية بتنحط بالمخزن، والمحل ما بيتأثر إلا لما تنقل.</p>':''}
     <input type="hidden" id="fId" value="${it.id}">
-    <label for="fName">اسم الصنف<input id="fName" value="${esc(it.name)}"><small class="fh">الاسم اللي بيطلع بالبحث وعلى الفاتورة. اكتبه واضح، مثلاً: حليب نيدو 900غ</small></label>
+    <div class="namerow"><label class="imgbox" for="fImg" aria-label="صورة الصنف"><span id="fImgPrev">${it.img?`<img src="${it.img}" alt="">`:IMGPH}</span></label><input id="fImg" type="file" accept="image/*" hidden><label for="fName">اسم الصنف<input id="fName" value="${esc(it.name)}" placeholder="مثال: حليب نيدو 900غ"></label></div>
+    <small class="fh" style="margin-top:-6px">اضغط المربع لتضيف صورة للصنف (اختياري)${it.img?' · <button class="lnk" data-act="imgDel" style="font-size:12px">حذف الصورة</button>':''}</small>
     <div class="barrow"><label for="fBar">الباركود<input id="fBar" inputmode="numeric" value="${esc(it.barcode)}" placeholder="امسح أو اكتب الرقم"></label><button class="bbtn scanb" data-act="scan" data-target="field" aria-label="مسح بالكاميرا"><span>📷</span>مسح</button><button class="bbtn" data-act="genCode" aria-label="باركود جديد"><span>＋</span>جديد</button></div>
     <small class="fh" style="margin-top:-6px">«مسح»: صوّر باركود العلبة. «جديد»: للصنف اللي ما إله باركود، بيعمله باركود لحاله.</small>
     <label for="fUnitSel">وحدة البيع<select id="fUnitSel"><option value="piece" ${!it.byWeight&&it.unitName!=='كرتونة'?'selected':''}>بالقطعة (حبة)</option>${S.pharm?'':'<option value="kg" '+(it.byWeight?'selected':'')+'>بالكيلو (بالوزن)</option>'}<option value="box" ${it.unitName==='كرتونة'?'selected':''}>بالكرتونة</option></select><small class="fh">كيف بتبيع الصنف: بالحبة، أو بالكيلو للبهارات والخضرة (والبيع بالغرام أو بالمبلغ)، أو كرتونة كاملة.</small></label>
-    <div style="display:flex;gap:10px;align-items:center"><span id="fImgPrev">${it.img?`<img src="${it.img}" alt="" style="width:64px;height:64px;border-radius:12px;object-fit:cover">`:''}</span><label class="btn" for="fImg" style="flex:1">📷 ${it.img?'تغيير صورة الصنف':'إضافة صورة للصنف (اختياري)'}</label>${it.img?'<button class="btn sm" data-act="imgDel">حذف الصورة</button>':''}<input id="fImg" type="file" accept="image/*" hidden></div>
+    
     <label class="chk" for="fW" hidden><input type="checkbox" id="fW" ${it.byWeight?'checked':''}>يُباع بالوزن: التكلفة والسعر للكيلو، والبيع بالغرام<small class="fh">علّم عليها للأشياء اللي بتنوزن (خضرة، لحمة، بزر). الأسعار بتكتبها للكيلو</small></label>
     <div id="wPrev" class="muted" style="font-size:13.5px;margin-top:-4px">${wPrevTxt(it.byWeight,it.cost,it.price)}</div>
     ${wh?whq:''}
