@@ -52,7 +52,7 @@ html,body{height:100%;margin:0;overscroll-behavior-y:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font:inherit;color:inherit}
 .app{height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column;background:var(--bg)}
-header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F1F5F9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid #10B981;padding-top:max(12px,env(safe-area-inset-top))}
+header{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#F1F5F9;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:max(12px,env(safe-area-inset-top))}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
 .avbtn{width:42px;height:42px;border-radius:50%;overflow:hidden;flex:none;border:2px solid var(--gold);padding:0;background:#0B1B2B;cursor:pointer;display:grid;place-items:center;color:#34D399;font-weight:700;font-size:18px;box-shadow:0 3px 10px rgba(0,0,0,.35)}
 .avbtn img{width:100%;height:100%;object-fit:cover;display:block}
@@ -376,7 +376,7 @@ main{padding-bottom:44px}
 @media (prefers-reduced-motion: reduce){.fab::before,.fab::after{animation:none;opacity:0}}
 /* ===== اللابتوب والشاشات الكبيرة: كل الشاشة، قائمة جانبية، والمحتوى بعمودين ===== */
 @media (min-width:900px){
-  .app{max-width:none;display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);grid-template-areas:"hdr hdr" "nav bar" "nav live" "nav view"}
+  .app{max-width:none;display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-rows:auto auto auto auto minmax(0,1fr);grid-template-areas:"hdr hdr" "tk tk" "nav bar" "nav live" "nav view"} #tk{grid-area:tk}
   .app>header{grid-area:hdr;padding-inline:28px}
   #cloudBar{grid-area:bar} #live{grid-area:live;margin:16px 28px 0;height:230px;max-width:760px;width:calc(100% - 56px);justify-self:center}
   main#view{grid-area:view;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;align-items:start;gap:18px;padding:22px max(28px,calc((100% - 1180px)/2)) 40px}
@@ -551,6 +551,12 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .namerow{display:flex;align-items:flex-end;gap:10px}.namerow>label[for=fName]{flex:1;min-width:0;margin:0}
 .imgbox{flex:none;width:72px;height:72px;border-radius:16px;border:2px dashed #6EE7B7;background:#ECFDF5;cursor:pointer;overflow:hidden;display:block;padding:0}.imgbox #fImgPrev{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;color:var(--gold-deep)}
 .imgbox #fImgPrev img{width:100%!important;height:100%!important;object-fit:cover;border-radius:0!important}.imgbox i{font-style:normal;font-size:24px;line-height:1.1}.imgbox small{font-size:11.5px;font-weight:700}
+.tk{position:relative;overflow:hidden;height:26px;background:linear-gradient(90deg,#7F1D1D,#B91C1C 50%,#7F1D1D);border-top:1px solid #EF4444;border-bottom:1px solid #450A0A;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center;flex-shrink:0}
+.tk:before,.tk:after{content:"";position:absolute;top:0;bottom:0;width:22px;z-index:1;pointer-events:none}.tk:before{right:0;background:linear-gradient(270deg,#7F1D1D,transparent)}.tk:after{left:0;background:linear-gradient(90deg,#7F1D1D,transparent)}
+.tk-in{display:flex;width:max-content;animation:tkm 55s linear infinite}.tk-g{display:flex;align-items:center;gap:14px;padding-inline-end:14px;white-space:nowrap}.tk-g i{font-style:normal;color:#FCA5A5;font-size:11px}
+@keyframes tkm{from{transform:translateX(0)}to{transform:translateX(50%)}}
+header[hidden]+.tk{display:none}
+@media (prefers-reduced-motion: reduce){.tk-in{animation:none}}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -574,6 +580,7 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
     <button class="cloudbtn" id="cloudBtn" data-act="cloudSheet" hidden aria-label="حساب المحل على السحابة"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/></svg><i></i></button>
     <button class="modebtn" id="modeBtn" data-act="mode"></button>
   </header>
+  <div id="tk" class="tk" role="marquee" aria-label="نسخة أصلية ومعتمدة، احذروا البرامج المزيفة"><div class="tk-in"><div class="tk-g"><span>✅ كاشيرك الذكي: نسخة أصلية مرخّصة ومعتمدة من شركة ماركتنج الشرق الأوسط</span><i>✦</i><span>🌍 أحدث إصدار، وحساباته على أسس المحاسبة المعتمدة دوليًا</span><i>✦</i><span>⚠️ احذروا البرامج المزيفة وغير الموثوقة، وأي نسخة مش من عنا</span><i>✦</i><span>🔒 بياناتك محفوظة على جهازك، ونسخة منها على السحابة</span><i>✦</i><span>💬 لأي سؤال أو تأكيد، تواصل معنا من «رأيك يهمنا»</span><i>✦</i></div><div class="tk-g" aria-hidden="true"><span>✅ كاشيرك الذكي: نسخة أصلية مرخّصة ومعتمدة من شركة ماركتنج الشرق الأوسط</span><i>✦</i><span>🌍 أحدث إصدار، وحساباته على أسس المحاسبة المعتمدة دوليًا</span><i>✦</i><span>⚠️ احذروا البرامج المزيفة وغير الموثوقة، وأي نسخة مش من عنا</span><i>✦</i><span>🔒 بياناتك محفوظة على جهازك، ونسخة منها على السحابة</span><i>✦</i><span>💬 لأي سؤال أو تأكيد، تواصل معنا من «رأيك يهمنا»</span><i>✦</i></div></div></div>
   <div id="cloudBar" hidden></div>
   <div id="live" hidden>
     <video id="liveVid" playsinline muted autoplay></video>
@@ -2473,7 +2480,7 @@ wh:{t:'المخازن',why:'لو عندك أكثر من مخزن، بتتابع 
 function helpKey(){ return tab==='more'?(sub||'menu'):tab }
 /* «رأيك يهمنا»: تبويب صغير على جنب الشاشة بيبعت الرأي على واتساب الدعم */
 function helpUp(show){ let h=$('#helpBtn'); if(!h){ if(!show) return; h=document.createElement('button'); h.id='helpBtn'; h.className='helpbtn'; h.dataset.act='help'; h.setAttribute('aria-label','شرح الصفحة'); h.innerHTML='<span>؟</span>شرح'; document.body.appendChild(h) }
-  h.hidden=!show; if(show){ const hd=$('.app>header'); h.style.top=Math.round((hd?hd.getBoundingClientRect().bottom:60)+10)+'px' } }
+  h.hidden=!show; if(show){ const hd=$('.app>header'), tk=$('#tk'), el=(tk&&tk.offsetHeight)?tk:hd; h.style.top=Math.round((el?el.getBoundingClientRect().bottom:60)+10)+'px' } }
 function fbTabUp(){ let b=$('#fbTab'); let hid=false; try{ hid=+localStorage.getItem('ksr-fb-x')>Date.now() }catch(e){}
   const show=!!S&&!hid&&tab!=='sell'&&!document.querySelector('#sheet.open')&&!$('.app>header').hidden;
   helpUp(!!S&&!document.querySelector('#sheet.open')&&!$('.app>header').hidden&&(tab!=='more'||sub==='menu'));
