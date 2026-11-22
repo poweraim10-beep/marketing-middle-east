@@ -19,8 +19,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <title>كاشيرك الذكي</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/alexandria.woff" as="font" type="font/woff" crossorigin>
+<style>@font-face{font-family:"Alexandria";src:url("fonts/alexandria.woff") format("woff");font-weight:100 900;font-display:swap}</style>
 <style>
 /* Layout idea: phone-width column; navy header with a gold rule, ivory body, floating gold sell button in the bottom bar. */
 :root{
@@ -28,8 +28,8 @@
   --brand:#0B1B2B; --brand-ink:#F1F5F9; --gold:#10B981; --gold-deep:#047857; --gold-ink:#FFFFFF;
   --good:#047857; --warn:#B45309; --bad:#DC2626;
   --hdr1:#10263B; --hdr2:#0B1B2B;
-  --display:"Readex Pro","IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,sans-serif;
-  --body:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+  --display:"Alexandria","Noto Sans Arabic",Tahoma,sans-serif;
+  --body:"Alexandria","Noto Sans Arabic",Tahoma,"Segoe UI",sans-serif;
   --shadow:0 1px 2px rgba(15,23,42,.06),0 6px 18px rgba(15,23,42,.06);
 }
 @media (prefers-color-scheme: dark){
@@ -1467,7 +1467,7 @@ function receiptCanvas(s,k=1){
     const hOf=o=>o.k==='hr'?14:o.k==='img'?96:Math.round(o.sz*1.5), H=ops.reduce((a,o)=>a+hOf(o),2*P);
     const cv=document.createElement('canvas'); cv.width=W*k; cv.height=H*k; const x=cv.getContext('2d'); x.scale(k,k);
     x.fillStyle='#fff'; x.fillRect(0,0,W,H); x.fillStyle='#000'; x.strokeStyle='#000'; x.direction='rtl'; x.textBaseline='middle';
-    const F=(sz,b)=>`${b?700:500} ${sz}px "IBM Plex Sans Arabic", Tahoma, sans-serif`; let y=P;
+    const F=(sz,b)=>`${b?700:500} ${sz}px "Alexandria", Tahoma, sans-serif`; let y=P;
     ops.forEach(o=>{const h=hOf(o), m=y+h/2;
       if(o.k==='img'){ try{ const r=Math.min(84/o.im.naturalHeight,200/o.im.naturalWidth), w=o.im.naturalWidth*r, hh=o.im.naturalHeight*r; x.drawImage(o.im,(W-w)/2,y+(h-hh)/2,w,hh) }catch(_){} }
       else if(o.k==='hr'){x.setLineDash([6,4]);x.beginPath();x.moveTo(P,m);x.lineTo(W-P,m);x.stroke();x.setLineDash([])}
@@ -2822,7 +2822,7 @@ function makePdf(pages){ /* pages: [{cv, wpt, hpt}] */
 }
 /* A4 document builder. blocks: {h:'title'} | {kv:[[label,value,bold]]} | {table:{cols:[[title,width,align]],rows:[[..]],foot:[..]}} | {p:'text'} */
 function docPages(title,sub,blocks){
-  const W=1240,H=1754,M=72,F=(s,b)=>`${b?700:500} ${s}px "IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,sans-serif`;
+  const W=1240,H=1754,M=72,F=(s,b)=>`${b?700:500} ${s}px "Alexandria","Noto Sans Arabic",Tahoma,sans-serif`;
   const pages=[]; let cv,x,y;
   const newPage=()=>{cv=document.createElement('canvas');cv.width=W;cv.height=H;x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
     x.direction='rtl';x.textBaseline='middle';
@@ -4026,7 +4026,7 @@ function invHTML(s,cfg){ cfg=cfg||invCfg(); const p=payOf(s), thin=cfg.paper==='
   const sums=`${pr('الإجمالي',fx(sub)+' ₪')}${cfg.show.disc&&disc>0?pr('الخصم',fx(disc)+' ₪')+pr('نسبة الخصم',fx(pct)+'%')+pr('المبلغ بعد الخصم',fx(after)+' ₪'):''}${s.extra>0?pr('إضافة'+(s.extraNote?': '+e(s.extraNote):''),fx(s.extra)+' ₪'):''}${s.fee>0?pr('رسوم',fx(s.fee)+' ₪'):''}<div class="r big"><span>مبلغ الفاتورة</span><b>${fx(s.total)} ₪ <small>شيكل</small></b></div>${payRows?'<div class="pm">طريقة الدفع</div>'+payRows:''}`;
   const side=`${pr('الكاشير',e(cfg.cashier||s.who||'—'))}${pr('الساعة',z(d.getHours())+':'+z(d.getMinutes()))}${cfg.note?`<div class="nt"><b>ملاحظة</b><div>${e(cfg.note)}</div></div>`:''}`;
   return `<div class="kinv ${thin?'thin':'wide'}" dir="rtl" style="width:${INV_PAPER[cfg.paper][0]}">
-   <style>.kinv{font-family:"IBM Plex Sans Arabic",Tahoma,sans-serif;color:#000;background:#fff;padding:${thin?'3mm':'0'};box-sizing:border-box;font-size:${cfg.paper==='58'?'10.5px':thin?'12px':'13px'};line-height:1.45}
+   <style>.kinv{font-family:"Alexandria",Tahoma,sans-serif;color:#000;background:#fff;padding:${thin?'3mm':'0'};box-sizing:border-box;font-size:${cfg.paper==='58'?'10.5px':thin?'12px':'13px'};line-height:1.45}
    .kinv *{box-sizing:border-box}.kinv .hd{text-align:center;border-bottom:1.5px solid #000;padding-bottom:5px;margin-bottom:6px}.kinv .hd img{max-height:${thin?'14mm':'20mm'};max-width:60%;display:block;margin:0 auto 3px}
    .kinv .sn{font-size:1.75em;font-weight:800;margin:0}.kinv .meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 10px;margin:6px 0;font-size:.95em}.kinv .meta span b{font-weight:700}
    .kinv table{width:100%;border-collapse:collapse;margin:4px 0}.kinv th,.kinv td{border:1px solid #000;padding:${thin?'2px 3px':'4px 6px'};text-align:center;vertical-align:top}.kinv th{background:#eee;font-weight:700}.kinv td.nm{text-align:right}
