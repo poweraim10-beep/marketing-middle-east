@@ -2657,7 +2657,7 @@ function origCheck(){ if(!S||tab!=='home'||document.hidden||document.querySelect
   if(!origDue()) return; try{ localStorage.setItem('ksr-orig-t',String(Date.now())) }catch(e){} origShow() }
 function origShow(){ openSheet(`<div class="orig"><div class="orig-top">${I3('h-shield')}<div><b>نسخة أصلية ومعتمدة</b><span>كاشيرك الذكي · الإصدار ${APPVER}</span></div></div>
   <p class="orig-p">إنت بتستعمل <b>النسخة الأصلية</b> من كاشيرك الذكي، المرخّصة والمعتمدة من <b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b> و<b>شركة ماركتنج الشرق الأوسط</b>.</p>
-  <div class="orig-warn"><b>⚠️ احذر البرامج المزيفة والتقليد</b><p>أي نسخة مش من عنا ممكن تضيّع بياناتك وحساباتك وفلوس محلك. حمّل التطبيق وجدّد اشتراكك من عنا بس، ومن موقعنا الرسمي:</p><span class="num">marketingmiddleeast.com/kashirak</span></div>
+  <div class="orig-warn"><b>⚠️ احذر البرامج المزيفة والتقليد</b><p>أي نسخة مش من عنا ممكن تضيّع بياناتك وحساباتك وفلوس محلك. حمّل التطبيق من موقعنا الرسمي بس:</p><span class="num">marketingmiddleeast.com/kashirak</span></div>
   <div class="grid2"><a class="btn wa" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، بدي أتأكد إنه نسختي من كاشيرك الذكي أصلية')}" target="_blank" rel="noopener">💬 تأكد معنا</a><button class="btn primary" data-act="close">فهمت ✓</button></div></div>`) }
 setInterval(origCheck,45000);
 function render(){
