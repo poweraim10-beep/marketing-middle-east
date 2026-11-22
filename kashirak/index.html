@@ -426,7 +426,7 @@ table.acct{width:100%;border-collapse:collapse;font-size:13.5px}table.acct th,ta
 
 .i3{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(15,23,42,.28))}
 .mrow .mic.m3,.mic.m3{background:none;padding:0;width:46px;height:46px}
-nav button .ic{width:30px;height:30px;display:block}nav button .ic .i3{filter:drop-shadow(0 2px 4px rgba(15,23,42,.25)) saturate(.55);opacity:.72;transition:.2s}
+nav button .ic{width:30px;height:30px;display:block}@media(max-width:899px){nav button .ic{width:38px;height:38px}nav button{font-size:12.5px!important;gap:3px!important;padding:7px 0 9px!important}}nav button .ic .i3{filter:drop-shadow(0 2px 4px rgba(15,23,42,.25)) saturate(.55);opacity:.72;transition:.2s}
 nav button[aria-current="page"] .ic .i3{filter:drop-shadow(0 3px 7px rgba(4,120,87,.45));opacity:1;transform:scale(1.12)}
 .fab .fab3{width:34px;height:34px;flex:none;filter:none;border-radius:9px}
 .i3.sm3{display:inline-block;width:22px;height:22px;vertical-align:middle;margin-inline-end:5px;filter:none}
@@ -2687,7 +2687,7 @@ function render(){
   if(tab==='sell'&&mOk()) mSet(false);
   $('#view').innerHTML=(tab==='more'&&(sub==='rep'||sub==='acc')&&!mOk())?mGateView():V[tab]();
   const navBuy=isOwner()&&featOn('buy');
-  $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||(k==='staff'&&navBuy)||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':(k==='staff'&&navBuy)?`<button data-act="openSub" data-s="buy" ${tab==='more'&&sub==='buy'?'aria-current="page"':''}><span class="ic">${I3('buy')}</span>المشتريات</button>`:`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&(sub==='rep'||(navBuy&&sub==='buy'))))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
+  $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||(k==='staff'&&navBuy)||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':(k==='staff'&&navBuy)?`<button data-act="openSub" data-s="buy" ${tab==='more'&&sub==='buy'?'aria-current="page"':''}><span class="ic">${I3('buy')}</span>مشتريات</button>`:`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&(sub==='rep'||(navBuy&&sub==='buy'))))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
     +`<button class="fab" data-act="go" data-tab="sell" aria-label="بيع" ${tab==='sell'?'aria-current="page"':''}>${I3('n-sell','fab3')}<span>بيع</span></button>`;
   if(tab==='sell') renderResults();
   syncLive();
