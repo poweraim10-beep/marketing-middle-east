@@ -526,6 +526,8 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .orig-warn{background:#FEF2F2;border:2px solid #EF4444;border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:6px}.orig-warn b{font-family:var(--display);font-size:18.5px;color:#B91C1C}.orig-warn p{margin:0;font-size:15px;line-height:1.75;font-weight:600}.orig-warn .num{direction:ltr;text-align:center;font-weight:700;color:#0F172A;background:#fff;border-radius:10px;padding:6px}
 .orig-intl{display:flex;gap:10px;align-items:flex-start;background:#ECFDF5;border:1.5px solid #6EE7B7;border-radius:16px;padding:12px 14px}.orig-intl>span{font-size:26px;line-height:1}.orig-intl p{margin:0;font-size:14.5px;line-height:1.75}.orig-intl b{display:block;font-family:var(--display);font-size:16.5px;color:var(--gold-deep)}
 .lic-foot em.g{color:#6EE7B7}
+.shareapp{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;border:2px solid #A7F3D0;background:linear-gradient(135deg,#ECFDF5,#fff);font:inherit;color:var(--ink);cursor:pointer;text-align:start;flex-shrink:0}.shareapp .i3{width:46px;height:46px;flex:none}.shareapp span:not(.chev){flex:1;display:flex;flex-direction:column;gap:2px}.shareapp b{font-family:var(--display);font-size:16px}.shareapp small{color:var(--muted);font-size:13px}
+.shbox{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:16px;border-radius:18px;background:linear-gradient(135deg,#0B1B2B,#10263B);color:#E2E8F0}.shbox b{font-family:var(--display);font-size:20px;color:#34D399}.shbox p{margin:0;font-size:14.5px;line-height:1.7}.shurl{direction:ltr;background:rgba(255,255,255,.1);border-radius:10px;padding:6px 12px;font-weight:700;color:#fff}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -624,7 +626,7 @@ const ICON={
 const I3=(k,c='')=>`<img class="i3 ${c}" src="${(RX.ic&&RX.ic[k])||'icons/3d/'+k+'.webp'}" alt="" decoding="async" onerror="i3Retry(this)">`;
 function i3Retry(im){ const n=+(im.dataset.r||0); if(n>=4) return; im.dataset.r=n+1; setTimeout(()=>{ im.src=im.src.split('?')[0]+'?r='+(n+1) },1500*(n+1)) }
 addEventListener('online',()=>document.querySelectorAll('img.i3').forEach(im=>{ if(im.complete&&!im.naturalWidth){ im.dataset.r=0; im.src=im.src.split('?')[0]+'?o='+Date.now() } }));
-const K3={staffT:'n-staff',offers:'disc',cat:'s-phone',tools:'h-ret',ann:'h-alert',help:'support',fb:'h-wa',walq:'p-app',acc:'h-find'};
+const K3={share:'h-cust',staffT:'n-staff',offers:'disc',cat:'s-phone',tools:'h-ret',ann:'h-alert',help:'support',fb:'h-wa',walq:'p-app',acc:'h-find'};
 const HAS3=new Set(['assets','payroll','cash','log','buy','sup','exp','rep','pdf','biz','inv','lab','chq','loy','att','audit','acct','set','tour','pexp','wh']);
 const MIC={pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',chart:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
  list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',truck:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
@@ -2147,7 +2149,7 @@ more(){
     ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('إضافات',[['offers','العروض والخصومات','خصم بنسبة لقسم أو صنف لفترة، واشتري وخذ مجانًا','tag'],['cat','كتالوج واتساب','رابط فيه أصنافك وأسعارك، والزبون بيطلب على واتساب','cash'],['tools','أدوات','استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، النسخ الاحتياطية','gear'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('العمال',[...(featOn('staff')?[['staffT','العمال','قائمة العمال وصلاحياتهم ودوامهم','users','goStaff']]:[]),['ann','التعميمات','رسالة بتظهر على كل أجهزة المحل','users'],['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
-    ${grp('الحساب والمساعدة',[['help','المساعدة','شرح كل صفحة والأسئلة الشائعة','list'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}
+    ${grp('الحساب والمساعدة',[['help','المساعدة','شرح كل صفحة والأسئلة الشائعة','list'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['share','مشاركة التطبيق','ابعت رابط التطبيق الأصلي على واتساب أو انسخه','list','appShare'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}
     <div class="lic-foot"><span class="lic-seal">${I3('h-shield')}</span><div><b>نسخة مرخّصة ومعتمدة</b><span>لدى شركة أبو عمر الغزاوي<br>للإعلانات والتسويق الرقمي</span><em>✓ النسخة الأصلية · احذر البرامج المزيفة والتقليد</em><em class="g">🌍 أحدث إصدار · على أسس المحاسبة المعتمدة دوليًا</em><small>الإصدار ${APPVER} · © ${new Date().getFullYear()} جميع الحقوق محفوظة</small></div></div>`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
@@ -2280,6 +2282,7 @@ more(){
   if(sub==='acct') return acctView();
   if(sub==='set') return back('الإعدادات')+`
   <div class="setq"><button class="btn" data-act="openSub" data-s="acct">👤 حسابي</button><button class="btn" data-act="license">💎 الاشتراك</button><button class="btn" data-act="tourStart">🎓 الجولة التعليمية</button></div>
+  <button class="shareapp" data-act="appShare">${I3('h-cust')}<span><b>مشاركة التطبيق</b><small>ابعت رابط كاشيرك الأصلي لصاحب محل على واتساب، أو انسخه</small></span><span class="chev">‹</span></button>
   ${setSec('💎','الاشتراك','رقم الحساب، حالة الاشتراك، وكود التفعيل',`${(()=>{const st=status();return `<div class="sin"><div class="list">
       <div class="li"><span>رقم الحساب</span><span class="code">${st.acct||'—'}</span></div>
       <div class="li"><span>الحالة</span><span class="pill ${st.active?'ok':'bad'}">${st.active?(st.paid?'مفعّل':'تجربة مجانية'):'منتهي'}</span></div>
@@ -2653,6 +2656,7 @@ function mGateView(){ return `<div class="card" style="gap:10px;text-align:cente
   <a class="btn wa block" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، أنا صاحب المحل وبدي كود الانتقال لواجهة المال بكاشيرك الذكي')}" target="_blank" rel="noopener">💬 تواصل معنا الآن على واتساب</a></div></div>` }
 let ALN=5;
 /* تنبيه «النسخة الأصلية واحذر التقليد»: بيطلع كل 3 أيام بوقت هادي (الرئيسية، بلا سلة ولا نافذة مفتوحة) */
+const APP_URL='https://marketingmiddleeast.com/kashirak', APP_SHARE_TXT='جرّب «كاشيرك الذكي» 🧾: برنامج كاشير ومحاسبة لمحلك على الجوال. بيع بالباركود، دفتر ديون، مخزون، أرباح، وتقارير، وبيشتغل بدون نت. هذا الرابط الأصلي:';
 function origDue(){ let t=0; try{ t=+localStorage.getItem('ksr-orig-t')||0 }catch(e){} return Date.now()-t>3*864e5 }
 function origCheck(){ if(!S||tab!=='home'||document.hidden||document.querySelector('#sheet.open')||$('#intro')||$('#celeb')||document.body.classList.contains('landing')) return;
   if(carts.some(c=>c.lines.length)||(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) return;
@@ -2660,7 +2664,7 @@ function origCheck(){ if(!S||tab!=='home'||document.hidden||document.querySelect
 function origShow(){ openSheet(`<div class="orig"><div class="orig-top">${I3('h-shield')}<div><b>نسخة أصلية ومعتمدة</b><span>كاشيرك الذكي · أحدث إصدار ${APPVER}</span></div></div>
   <div class="orig-intl"><span>🌍</span><p><b>أحدث إصدار، بمعايير عالمية</b>مبني بأحدث التقنيات العالمية، وحساباته ماشية على أسس المحاسبة المعتمدة دوليًا: الميزانية، ميزان المراجعة، دفتر الأستاذ، والتدفقات النقدية. وبيتحدّث لحاله أول بأول.</p></div>
   <p class="orig-p">إنت بتستعمل <b>النسخة الأصلية</b> من كاشيرك الذكي، المرخّصة والمعتمدة من <b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b> و<b>شركة ماركتنج الشرق الأوسط</b>.</p>
-  <div class="orig-warn"><b>⚠️ احذر البرامج المزيفة والتقليد</b><p>أي نسخة مش من عنا ممكن تضيّع بياناتك وحساباتك وفلوس محلك. حمّل التطبيق من موقعنا الرسمي بس:</p><span class="num">marketingmiddleeast.com/kashirak</span></div>
+  <div class="orig-warn"><b>⚠️ احذر البرامج المزيفة والتقليد</b><p>أي نسخة مش من عنا ممكن تضيّع بياناتك وحساباتك وفلوس محلك. وإذا بدك تعطي البرنامج لصاحب محل ثاني، شاركه من زر «مشاركة التطبيق» عشان يوصله الرابط الأصلي.</p><button class="btn block" data-act="appShare" style="background:#fff">📤 مشاركة التطبيق</button></div>
   <div class="grid2"><a class="btn wa" href="https://wa.me/${SALES_WA}?text=${encodeURIComponent('مرحبًا، بدي أتأكد إنه نسختي من كاشيرك الذكي أصلية')}" target="_blank" rel="noopener">💬 تأكد معنا</a><button class="btn primary" data-act="close">فهمت ✓</button></div></div>`) }
 setInterval(origCheck,45000);
 function render(){
@@ -3747,6 +3751,12 @@ camTorch(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0],
 camZoom(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0], c=t.getCapabilities?t.getCapabilities():{}; if(!c.zoom) return;
   const z=Math.max(c.zoom.min||1,Math.min(c.zoom.max,+d.z));
   t.applyConstraints({advanced:[{zoom:z}]}).then(()=>{ document.querySelectorAll(`#${d.w} [data-act=camZoom]`).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.z===d.z))) }).catch(()=>{}) },
+appShare(){ const msg=APP_SHARE_TXT+'\n'+APP_URL;
+  openSheet(`${sheetHead('مشاركة التطبيق')}<div class="shbox"><img src="icons/logo-3d-256.png" alt="" style="width:68px;height:68px;border-radius:18px"><b>كاشيرك الذكي</b><p>ابعت الرابط الأصلي للتطبيق لأي صاحب محل. بيفتحه وبيسجّل محله وبيبلّش.</p><span class="num shurl">${APP_URL.replace('https://','')}</span></div>
+    <a class="btn wa block" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">💬 مشاركة على واتساب</a>
+    <div class="grid2"><button class="btn" data-act="appCopy">📋 نسخ الرابط</button>${navigator.share?'<button class="btn" data-act="appShareSys">📤 مشاركة بطريقة ثانية</button>':''}</div>`) },
+appCopy(){ const done=()=>toast('✓ انتسخ الرابط'); try{ navigator.clipboard.writeText(APP_URL).then(done).catch(()=>prompt('انسخ الرابط:',APP_URL)) }catch(e){ prompt('انسخ الرابط:',APP_URL) } },
+appShareSys(){ try{ navigator.share({title:'كاشيرك الذكي',text:APP_SHARE_TXT,url:APP_URL}).catch(()=>{}) }catch(e){} },
 goStaff(){ A.go({tab:'staff'}) },
 scanPick(d){ const t=scan.target, id=+d.id; closeScan();
   if(t==='edit') A.editItem({id}); else if(t==='edInv'&&typeof EDV!=='undefined'&&EDV) A.edInvAdd({id}); else { if(tab!=='sell'){tab='sell'} addToCart(id) } },
