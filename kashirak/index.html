@@ -503,6 +503,16 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .lic-seal{flex:none;width:58px;height:58px;border-radius:16px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(251,191,36,.35)}.lic-seal .i3{width:48px;height:48px}
 .lic-foot>div{display:flex;flex-direction:column;gap:3px;min-width:0;position:relative}.lic-foot b{font-family:var(--display);font-size:16px;color:#34D399;display:flex;align-items:center;gap:6px}.lic-foot b:after{content:"✓";display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#10B981;color:#fff;font-size:11px}
 .lic-foot span{font-size:13.5px;line-height:1.6;color:#F1F5F9;font-weight:600}.lic-foot small{font-size:11px;color:#94A3B8;margin-top:3px}
+.qbadd{width:100%;padding:12px;border:2px dashed #A7F3D0;border-radius:16px;background:#ECFDF5;color:var(--gold-deep);font:inherit;font-weight:700;cursor:pointer}
+.qbc{gap:8px}.qbg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.qb{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;border:1px solid var(--line);border-radius:14px;background:#fff;font:inherit;color:var(--ink);cursor:pointer;min-width:0}.qb:active{transform:scale(.95);background:#ECFDF5}
+.qb img,.qb i{width:42px;height:42px;border-radius:10px;object-fit:cover}.qb i{display:grid;place-items:center;background:#ECFDF5;color:var(--gold-deep);font-style:normal;font-weight:700;font-size:18px;font-family:var(--display)}
+.qb b{font-size:13px;font-weight:600;line-height:1.3;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qb .num{font-size:12px;color:var(--gold-deep);font-weight:700}
+.qbchk{align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px}.qbchk input{margin-top:4px;width:20px;height:20px;flex:none}.qbchk span{display:flex;flex-direction:column;gap:2px}
+.camctl{position:absolute;top:8px;right:8px;display:flex;gap:6px;align-items:center;z-index:2}
+.camctl .cbtn{display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(7,18,29,.55);color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.camctl .cbtn[aria-pressed=true]{background:#FBBF24;color:#0B1B2B;border-color:#FBBF24}
+.czoom{display:flex;gap:2px;padding:3px;border-radius:999px;background:rgba(7,18,29,.55);border:1px solid rgba(255,255,255,.25)}.czoom button{border:0;background:none;color:#fff;font:inherit;font-size:13px;font-weight:700;padding:4px 9px;border-radius:999px;cursor:pointer}.czoom button[aria-pressed=true]{background:#fff;color:#0B1B2B}
+.scanwrap{position:relative;flex-shrink:0}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -531,6 +541,7 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
     <video id="liveVid" playsinline muted autoplay></video>
     <div class="aim" aria-hidden="true"><i></i></div>
     <div id="liveFlash" aria-live="polite"></div>
+    <div class="camctl" id="liveCtl" hidden></div>
     <div class="livebar"><span id="liveMsg">جارٍ تشغيل الكاميرا…</span><button class="btn sm" id="liveToggle" data-act="liveToggle">إيقاف الكاميرا</button></div>
   </div>
   <main id="view"></main>
@@ -1994,7 +2005,7 @@ sell(){
   ${isDesk()?scanOpts():(REM.role==='host'?`<div class="rempill" id="remPill">${remPill()}</div>`:'')}
   ${c.addTo?'':`<button class="btn block" data-act="findSale" style="min-height:42px">🔎 فاتورة سابقة: مرتجع أو إضافة أصناف</button>`}
   <div class="seg">${carts.map((x,k)=>`<button data-act="cart" data-k="${k}" aria-pressed="${k===ci}">سلة ${k+1}${x.lines.length?` (${x.lines.length})`:''}</button>`).join('')}</div>
-  <div class="scol"><div class="card">
+  <div class="scol">${qbCard()}<div class="card">
     <label for="q">إضافة صنف بالاسم
       <input id="q" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف أو رقمه" value="${esc(q)}"><small class="fh">💡 الصنف اللي ما إله باركود: اكتب أول حرفين من اسمه وبيطلعلك لحاله، اضغط عليه</small></label>
     <div id="results"></div>
@@ -2681,6 +2692,14 @@ async function camTune(st){ try{ const t=st.getVideoTracks()[0], c=t.getCapabili
   if(c.focusMode&&c.focusMode.includes('continuous')) adv.push({focusMode:'continuous'});
   if(c.zoom&&c.zoom.max>=1.5) adv.push({zoom:Math.min(c.zoom.max,Math.max(c.zoom.min||1,IOS?2:1.5))});
   if(adv.length) await t.applyConstraints({advanced:adv}) }catch(e){} }
+/* أزرار الفلاش والتكبير: بتطلع بس إذا الكاميرا بتدعمها (أغلب جوالات أندرويد) */
+const CAMS={};
+function camCtl(id,st){ const box=$('#'+id); if(!box) return; CAMS[id]=st; box.hidden=true; box.innerHTML='';
+  try{ const t=st.getVideoTracks()[0], c=t.getCapabilities?t.getCapabilities():{}, cur=t.getSettings?t.getSettings():{}; let h='';
+    if(c.torch) h+=`<button class="cbtn" data-act="camTorch" data-w="${id}" aria-pressed="${!!cur.torch}" aria-label="فلاش">⚡<span>فلاش</span></button>`;
+    if(c.zoom&&c.zoom.max>=2){ const zs=[1,2,3].filter(z=>z<=c.zoom.max+.01), z0=cur.zoom||1;
+      h+=`<span class="czoom">${zs.map(z=>`<button data-act="camZoom" data-w="${id}" data-z="${z}" aria-pressed="${Math.round(z0)===z}">×${z}</button>`).join('')}</span>` }
+    if(h){ box.innerHTML=h; box.hidden=false } }catch(e){} }
 async function vidStart(v,st){ v.setAttribute('playsinline',''); v.setAttribute('webkit-playsinline',''); v.muted=true; v.autoplay=true; v.srcObject=st; try{ await v.play() }catch(e){} }
 function camErrTxt(e){ const n=e&&e.name;
   if(INAPP) return 'الكاميرا ما بتشتغل من داخل واتساب أو فيسبوك أو إنستغرام. افتح الرابط بـ '+(IOS?'Safari':'Chrome')+': اضغط ⋯ أو زر المشاركة ← «فتح في المتصفح».';
@@ -2720,7 +2739,7 @@ async function startLive(){
     LIVE.eng=LIVE.eng||await scanEngine(); if(!LIVE.eng) throw {name:'NoDec'};
     const st=await openCam();
     if(tab!=='sell'||S.liveCam===false||document.hidden){st.getTracks().forEach(t=>t.stop());LIVE.starting=false;return}
-    LIVE.stream=st; const v=$('#liveVid'); await vidStart(v,st); camTune(st); LIVE.fails=0;
+    LIVE.stream=st; const v=$('#liveVid'); await vidStart(v,st); camTune(st).then(()=>camCtl('liveCtl',st)); LIVE.fails=0;
     liveMsg(IOS?'مرّر الباركود قدام الكاميرا · إذا ما قرأ بعّد الجوال شوي (15–20 سم)':'مرّر الباركود قدام الكاميرا'); clearInterval(LIVE.timer); LIVE.timer=setInterval(liveTick,LIVE.eng.det?160:220);
   }catch(e){ LIVE.err=1; liveMsg(camErrTxt(e)); const tg=$('#liveToggle'); if(tg){tg.textContent='📷 جرّب مرة ثانية'; tg.dataset.act='liveRetry'} }
   LIVE.starting=false;
@@ -2748,7 +2767,7 @@ function scanMsg(t){const m=$('#scanMsg'); if(m) m.textContent=t}
 async function openScan(target){
   scan.target=target; stopLive();
   $('#scanBox').innerHTML=`${sheetHead('مسح الباركود','scanClose')}
-    <video id="scanVid" playsinline webkit-playsinline muted autoplay hidden></video>
+    <div class="scanwrap"><video id="scanVid" playsinline webkit-playsinline muted autoplay hidden></video><div class="camctl" id="scanCtl" hidden></div></div>
     <button class="btn block" id="scanRetry" data-act="scanRetry" hidden>📷 جرّب مرة ثانية</button>
     <p class="muted" id="scanMsg" style="margin:0">جارٍ تشغيل الكاميرا…</p>
     <label class="btn primary block" for="scanFile">تصوير الباركود أو اختيار صورة</label>
@@ -2761,7 +2780,7 @@ async function scanCam(){ stopScan(); const rb=$('#scanRetry'); if(rb) rb.hidden
     if(INAPP) throw {name:'InApp'};
     const eng=await scanEngine(); if(!eng) throw {name:'NoDec'};
     scan.stream=await openCam(); if(!$('#scanSheet').classList.contains('open')){stopScan();return}
-    const v=$('#scanVid'); v.hidden=false; await vidStart(v,scan.stream); camTune(scan.stream);
+    const v=$('#scanVid'); v.hidden=false; await vidStart(v,scan.stream); camTune(scan.stream).then(()=>camCtl('scanCtl',scan.stream));
     scanMsg(IOS?'وجّه الكاميرا على الباركود · إذا ما قرأ بعّد الجوال شوي':'وجّه الكاميرا على الباركود');
     scan.timer=setInterval(async()=>{ if(scan.busy||!scan.stream) return; const v=$('#scanVid'); if(!v||v.readyState<2||!v.videoWidth) return; scan.busy=true;
       try{const c=await readFrame(eng,v); if(c) onScan(c)}catch(e){} scan.busy=false}, eng.det?250:220);
@@ -2975,6 +2994,12 @@ function usedQty(itemId){return cart().lines.filter(l=>l.itemId===itemId).reduce
 function wPrevTxt(on,cost,price){ cost=+cost||0; price=+price||0; if(!on||!(price>0)) return '';
   const g=x=>fx(price*x/1000);
   return `💡 بالغرام: 15 غ = <b class="num">${g(15)}</b> ₪ · 50 غ = <b class="num">${g(50)}</b> · 100 غ = <b class="num">${g(100)}</b> · 250 غ = <b class="num">${g(250)}</b>${cost>0?` · ربحك بالكيلو <b class="num">${fx(price-cost)}</b> ₪`:''}` }
+function qbCard(){ const L=S.items.filter(i=>i.qb);
+  if(!L.length) return isOwner()?`<button class="qbadd" data-act="qbPick">＋ أضف زر سريع لصنف بلا باركود</button>`:'';
+  return `<div class="card qbc"><div class="row"><h2>أزرار سريعة</h2>${isOwner()?'<button class="lnk" data-act="qbPick">تعديل</button>':''}</div><div class="qbg">${L.slice(0,30).map(i=>`<button class="qb" data-act="qbAdd" data-id="${i.id}">${i.img?`<img src="${i.img}" alt="" loading="lazy">`:`<i>${esc((i.name||'?').trim().charAt(0))}</i>`}<b>${esc(i.name)}</b><span class="num">${fx(i.price)} ₪</span></button>`).join('')}</div></div>` }
+let QBQ='';
+function qbList(){ const t=QBQ.trim(), L=S.items.filter(i=>!t||String(i.name).includes(t)).sort((a,b)=>(b.qb?1:0)-(a.qb?1:0)||(a.barcode?1:0)-(b.barcode?1:0)).slice(0,60);
+  return L.map(i=>`<button class="li" data-act="qbTog" data-id="${i.id}"><span><span class="t">${esc(i.name)}</span><br><span class="muted">${i.barcode?'إله باركود':'بلا باركود'} · ${fx(i.price)} ₪</span></span><span class="pill ${i.qb?'ok':''}">${i.qb?'✓ مضاف':'＋ إضافة'}</span></button>`).join('')||'<div class="empty">ما في أصناف بهالاسم</div>' }
 function addToCart(id){
   const it=itemById(id); if(!it) return;
   const step=it.byWeight?Math.min(0.1,it.qty):1;
@@ -3119,6 +3144,7 @@ editItem(d){
     <div class="grid2"><label for="fCs">حبات الكرتونة<input id="fCs" type="number" inputmode="numeric" value="${it.cartonSize||''}" placeholder="اختياري"><small class="fh">كم حبة بالكرتونة، عشان تبيع كرتونة كاملة بضغطة</small></label>
       <label for="fCp">سعر الكرتونة (₪)<input id="fCp" type="number" inputmode="decimal" value="${it.cartonPrice||''}" placeholder="اختياري"><small class="fh">سعر الكرتونة كاملة، غالباً أرخص من الحبة بالمفرق</small></label></div>
     <label for="fCat">القسم<select id="fCat"><option value="">بدون قسم</option>${Object.entries(CATL).filter(([k])=>k!=='other').map(([k,t])=>`<option value="${k}" ${icat(it)===k?'selected':''}>${t}</option>`).join('')}</select><small class="fh">بيساعدك ترتب الأصناف وتلاقيها بسرعة.</small></label>${pItemFields(it)}<label for="fExp" ${S.pharm&&it.id?'hidden':''}>${S.pharm?'تاريخ انتهاء الكمية الحالية':'تاريخ انتهاء الصلاحية'}<input id="fExp" type="date" value="${esc(it.exp)}"><small class="fh">اختياري. التطبيق بينبهك قبل ما ينتهي عشان تبيعه أو ترجعه</small></label>
+    <label class="chk qbchk" for="fQb"><input type="checkbox" id="fQb" ${it.qb?'checked':''}><span><b>زر سريع بشاشة البيع</b><small class="fh">للأصناف اللي بلا باركود (خبز، أكياس، فكة): بيطلعله زر بشاشة البيع تضغطه مرة وحدة</small></span></label>
     ${eanValid(it.barcode)?`<div class="label"><b>${esc(it.name)}</b> · ${fx(it.price)} ₪<br>${eanSvg(it.barcode)}</div>`:''}
     ${it.id?'<p class="fh" style="margin:0">«مقاس أو لون ثاني»: لنفس الصنف بأحجام أو ألوان مختلفة، كل واحد بباركود وسعر. «جرد»: تصحيح الكمية لما تعدّ البضاعة بإيدك. «سجل الحركة»: كل بيع وشراء صار على هالصنف.</p>':''}
     ${it.id?`<button class="btn block" data-act="variant" data-id="${it.id}">إضافة مقاس أو لون ثاني من هالصنف</button>`:''}
@@ -3139,7 +3165,7 @@ saveItem(){
   const data={name:v('fName'),barcode:bar,cost:n('fCost'),price:n('fPrice'),qty:Math.max(0,w?r3(qv):Math.round(qv)),wqty:S.wh?Math.max(0,parseFloat(v('fWQty'))||0):((it&&it.wqty)||0),min:n('fMin'),
     cartonSize:w?0:Math.round(n('fCs')),cartonPrice:w?0:n('fCp'),exp:v('fExp'),byWeight:w,priceW:n('fPw'),promoBuy:Math.round(n('fPb')),promoGet:Math.round(n('fPg')),unitName:usel==='box'?'كرتونة':'',
     packs:w?[]:[0,1,2].map(j=>({n:v('fPk'+j+'n').trim(),q:+v('fPk'+j+'q')||0,p:r2(+v('fPk'+j+'p')||0)})).filter(x=>x.n&&x.q>0&&x.p>0),img:ITEMIMG===''?'':(ITEMIMG||(it&&it.img)||'')};
-  pItemData(data,!it); if($('#fCat')) data.cat=$('#fCat').value||'';
+  pItemData(data,!it); if($('#fCat')) data.cat=$('#fCat').value||''; if($('#fQb')) data.qb=$('#fQb').checked?1:0;
   if((data.promoBuy>0)!==(data.promoGet>0)){toast('العرض بدّه رقمين: اشتري كم، ومجانًا كم');return}
   if(data.cartonSize>1&&!data.cartonPrice) data.cartonPrice=r2(data.price*data.cartonSize);
   if(it&&!isOwner()){ data.cost=it.cost; data.qty=it.qty; data.min=it.min }
@@ -3686,6 +3712,16 @@ findSale(){ openSheet(`${sheetHead('🔎 فاتورة سابقة')}<p class="mut
 addToSale(d){ const tg=S.sales.find(x=>x.id===+d.id); if(tg&&tg.op&&opPending(tg.op)){toast('استنى لحد ما توصل هالفاتورة للجهاز الأساسي، وبعدها ضيف عليها');return} const o=S.sales.find(x=>x.id===+d.id); if(!o) return; if(true){A.edInv({id:o.id});return} let k=carts.findIndex(x=>!x.lines.length); if(k<0){toast('كل السلال فيها أصناف. خلّص أو علّق وحدة منهم أول');return}
   const cu=o.custId?S.customers.find(x=>x.id===o.custId):null; carts[k]=Object.assign(newCart(),{addTo:o.id},cu?{custName:cu.name,custPhone:cu.phone||'',pay:payOf(o).debt>0?'debt':'cash'}:{});
   ci=k; tab='sell'; closeSheet(); render(); toast(`➕ ضيف الأصناف، وبتنحسب على فاتورة ${o.id}`)},
+camTorch(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0], b=$(`#${d.w} [data-act=camTorch]`), on=!(b&&b.getAttribute('aria-pressed')==='true');
+  t.applyConstraints({advanced:[{torch:on}]}).then(()=>{ if(b) b.setAttribute('aria-pressed',String(on)) }).catch(()=>toast('الفلاش مش مدعوم على هالجوال')) },
+camZoom(d){ const st=CAMS[d.w]; if(!st) return; const t=st.getVideoTracks()[0], c=t.getCapabilities?t.getCapabilities():{}; if(!c.zoom) return;
+  const z=Math.max(c.zoom.min||1,Math.min(c.zoom.max,+d.z));
+  t.applyConstraints({advanced:[{zoom:z}]}).then(()=>{ document.querySelectorAll(`#${d.w} [data-act=camZoom]`).forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.z===d.z))) }).catch(()=>{}) },
+qbAdd(d){ addToCart(+d.id) },
+qbPick(){ QBQ=''; openSheet(`${sheetHead('الأزرار السريعة')}<p class="fh" style="margin:0">اختار الأصناف اللي بدك إلها زر بشاشة البيع. الأصناف اللي بلا باركود بتطلع أول.</p><label for="qbQ">بحث<input id="qbQ" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف"></label><div class="list" id="qbL">${qbList()}</div><button class="btn primary block" data-act="qbDone">تم</button>`);
+  const f=$('#qbQ'); if(f) f.addEventListener('input',()=>{ QBQ=f.value; $('#qbL').innerHTML=qbList() }) },
+qbTog(d){ const it=itemById(+d.id); if(!it) return; it.qb=it.qb?0:1; save(); $('#qbL').innerHTML=qbList(); toast(it.qb?'✓ انضاف زر: '+it.name:'انشال الزر') },
+qbDone(){ closeSheet(); render() },
 addCancel(){ const c=cart(); delete c.addTo; render(); toast('رجعت السلة فاتورة جديدة عادية')},
 remHost(){remHost()},
 remScan(){closeSheet(); remScan()},
