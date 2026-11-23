@@ -564,6 +564,7 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 @keyframes tkm{from{transform:translateX(0)}to{transform:translateX(50%)}}
 header[hidden]+.tk{display:none}
 @media (prefers-reduced-motion: reduce){.tk-in{animation:none}}
+.sidex{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;border:0;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;font:inherit;cursor:pointer;text-align:start;box-shadow:0 8px 18px rgba(217,119,6,.28);flex-shrink:0}.sidex .sxi{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:22px;flex:none}.sidex .sxt{display:flex;flex-direction:column;gap:2px}.sidex b{font-family:var(--display);font-size:17px}.sidex small{font-size:12.5px;opacity:.95}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -1151,7 +1152,7 @@ function applyOp(op){ S._ops=S._ops||[]; if(S._ops.includes(op.id)) return null;
         if(it.price!==d.price) opAudit(op,`تغيير سعر ${it.name} من ${fx(it.price)} إلى ${fx(d.price)} ₪`);
         Object.assign(it,d); if(dq){ it.qty=r3(it.qty+dq); opAudit(op,`تعديل كمية ${it.name} (${dq>0?'+':''}${dq})`) } }
       else { S.items.push({id:S.nextId++,...d}); opAudit(op,`إضافة صنف ${d.name}`) } }
-    else if(op.k==='exp') S.expenses.push({id:S.nextId++,ts:op.ts,name:op.name,amt:op.amt,per:op.per||'day'});
+    else if(op.k==='exp') S.expenses.push({id:S.nextId++,ts:op.ts,name:op.name,amt:op.amt,per:op.per||'day',...(op.side?{side:1}:{})});
   }catch(e){}
   S._ops.push(op.id); if(S._ops.length>3000) S._ops.splice(0,S._ops.length-3000); return r}
 /* أي جهاز مش أساسي: المحل = آخر نسخة من السحابة + العمليات اللي لسا ما انضافت */
@@ -2287,7 +2288,7 @@ more(){
     <div class="card" style="gap:8px"><input id="dq" type="search" placeholder="🔎 ابحث باسم المورد" aria-label="بحث باسم المورد" autocomplete="off">
     <div class="list" id="dqList">${S.suppliers.map(c=>{const b=balance(c), fb=fxBals(c);return `<button class="li" data-act="party" data-kind="suppliers" data-id="${c.id}" data-n="${esc((c.name+' '+(c.phone||'')).toLowerCase())}" data-t="">
       <span class="t">${esc(c.name)}</span><span>${b>0?`${money(b)} <span class="pill warn">له</span>`:b<0?`${money(-b)} <span class="pill ok">إلك عنده</span>`:fb.length?'':'<span class="pill ok">خالص</span>'}${fb.map(([k,v])=>` ${moneyC(Math.abs(v),k)} <span class="pill ${v>0?'warn':'ok'}">${v>0?'له':'إلك'}</span>`).join('')}</span></button>`}).join('')}<div class="empty" id="dqNone" hidden>ما في نتيجة</div></div></div>`;
-  if(sub==='exp') return back('المصروفات')+`<button class="btn block" data-act="pdfGo" data-sel="exp">تحميل المصروفات PDF</button>`+`
+  if(sub==='exp') return back('المصروفات')+`<button class="sidex" data-act="sideExp"><span class="sxi">🚕</span><span class="sxt"><b>＋ مصروف جانبي</b><small>مواصلات، توصيل، أي مصروف طارئ · بينخصم من ربح اليوم</small></span></button><button class="btn block" data-act="pdfGo" data-sel="exp">تحميل المصروفات PDF</button>`+`
     <div class="card"><h2>مصروف جديد</h2>
       <div class="grid2"><label for="exName">البيان<input id="exName" placeholder="مثال: إيجار، كهرباء، رواتب"></label>
       <label for="exAmt">المبلغ (₪)<input id="exAmt" type="number" inputmode="decimal" min="0"></label></div>
@@ -3350,6 +3351,20 @@ debtList(){const list=S.customers.map(c=>[c.name,balance(c)]).filter(x=>x[1]>0).
   openSheet(`${sheetHead('كشف الديون')}<textarea id="dlTxt" rows="10" readonly>${esc(txt)}</textarea><button class="btn accent block" data-act="debtPdf">📄 سجل الديون PDF، ابعته واتساب</button><button class="btn primary block" data-act="copy" data-id="dlTxt">نسخ الكشف</button>`)},
 sub(d){if(d.s==='att'){tab='staff'; render(); $('#view').scrollTop=0; return} sub=d.s; render(); $('#view').scrollTop=0},
 period(d){period=d.p; render()},
+sideExp(){ const Q=['مواصلات','توصيل','أكل وشرب','صيانة','أكياس وتغليف','ضيافة'];
+  openSheet(`${sheetHead('مصروف جانبي')}<p class="fh" style="margin:0">مصروف طارئ مش يومي ولا شهري، مثل مواصلات أو توصيل. بينخصم كامل من ربح اليوم اللي بتختاره.</p>
+    <label for="sxAmt">المبلغ (₪)<input id="sxAmt" type="number" inputmode="decimal" min="0" placeholder="مثال: 10"></label>
+    <label for="sxName">على شو؟<input id="sxName" placeholder="مثال: مواصلات للسوق"></label>
+    <div class="row" style="flex-wrap:wrap;gap:6px;justify-content:flex-start">${Q.map(q=>`<button class="btn sm" data-act="sxQ" data-n="${q}">${q}</button>`).join('')}</div>
+    ${isSeller2()?'':`<label for="sxDay">اليوم اللي بينخصم من ربحه${bdInput('sxDay')}<small class="fh">اليوم تلقائيًا. إذا المصروف كان مبارح، اختار تاريخه.</small></label>`}
+    <button class="btn primary block big" data-act="sideExpGo">حفظ وخصم من الربح</button>`); setTimeout(()=>{const a=$('#sxAmt'); if(a) a.focus()},150) },
+sxQ(d){ const n=$('#sxName'); if(n) n.value=d.n },
+sideExpGo(){ const a=r2(parseFloat(($('#sxAmt')||{}).value)||0), n=(($('#sxName')||{}).value||'').trim()||'مصروف جانبي';
+  if(a<=0){ toast('اكتب المبلغ'); return }
+  if(isSeller2()){ opQueue({id:opId(),k:'exp',ts:Date.now(),who:opWho(),name:n,amt:a,per:'day',side:1}); closeSheet(); render(); toast('✓ تم حفظ المصروف وخصمه من ربح اليوم'); return }
+  const ets=bdTs(($('#sxDay')||{}).value); if(ets==null) return; const old=ets<sod();
+  S.expenses.push({id:S.nextId++,ts:ets,name:n,amt:a,per:'day',span:1,side:1,...(old?{late:Date.now()}:{})}); if(old) audit(`مصروف جانبي بتاريخ قديم ${fday(ets)}: ${n} ${fx(a)} ₪`);
+  save(); closeSheet(); render(); toast(`✓ تم خصم ${fx(a)} ₪ من ربح يوم ${new Date(ets).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}`) },
 addExp(){const n=$('#exName').value.trim(), a=r2(parseFloat($('#exAmt').value)||0);
   if(!n||a<=0){toast('اكتب البيان والمبلغ');return}
   if(isSeller2()){ opQueue({id:opId(),k:'exp',ts:Date.now(),who:opWho(),name:n,amt:a,per:EXP_PER}); render(); toast('تم حفظ المصروف'); return }
