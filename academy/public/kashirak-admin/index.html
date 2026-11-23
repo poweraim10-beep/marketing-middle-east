@@ -4,52 +4,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0B1F3A">
+<meta name="theme-color" content="#0B1B2B">
 <meta name="robots" content="noindex,nofollow">
 <title>كاشيرك · لوحة المالك</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--navy:#0B1F3A;--navy2:#132D52;--deep:#06111F;--gold:#C8A24A;--gl:#F0CF7A;--cream:#F7F4EC;--ink:#0B1F3A;--muted:#6B7689;--line:#E4DED0;--ok:#1F9A55;--bad:#D63B40;--warn:#C27C0E;--card:#fff}
+@font-face{font-family:"Alexandria";src:url("fonts/alexandria.woff") format("woff");font-weight:100 900;font-display:swap}
+:root{--navy:#0B1B2B;--navy2:#10263B;--deep:#07121D;--gold:#10B981;--gl:#34D399;--cream:#EEF2F5;--ink:#0B1B2B;--muted:#64748B;--line:#E2E8F0;--ok:#047857;--bad:#DC2626;--warn:#B45309;--card:#fff}
 *{box-sizing:border-box;margin:0}
-html,body{background:var(--cream);color:var(--ink);font-family:'IBM Plex Sans Arabic',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--cream);color:var(--ink);font-family:'Alexandria',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
 body{min-height:100dvh;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
 button,input,select,textarea{font:inherit;color:inherit}
 .num,.code{font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
 .code{font-family:ui-monospace,Menlo,Consolas,monospace;letter-spacing:.5px}
-header{position:sticky;top:0;z-index:20;background:linear-gradient(150deg,#18407a 0%,#0B1F3A 55%,#06111F 100%);color:#F7F1E1;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;border-bottom:2px solid var(--gold);box-shadow:0 6px 20px rgba(6,17,31,.25)}
+header{position:sticky;top:0;z-index:20;background:linear-gradient(150deg,#10263B 0%,#0B1B2B 55%,#07121D 100%);color:#F1F5F9;padding:calc(14px + env(safe-area-inset-top)) 16px 14px;border-bottom:2px solid var(--gold);box-shadow:0 6px 20px rgba(7,18,29,.25)}
 .hd{display:flex;align-items:center;gap:12px}
 .hd img{width:44px;height:44px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
-.hd b{font-family:'Readex Pro';font-size:19px;display:block;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hd small{font-size:12.5px;color:#C9D2E0}
+.hd b{font-family:'Alexandria';font-size:19px;display:block;color:#fff}.hd b i{font-style:normal;color:#34D399}
+.hd small{font-size:12.5px;color:#CBD5E1}
 .hd .sp{flex:1}
-.ib{width:40px;height:40px;border-radius:12px;border:1px solid rgba(240,207,122,.4);background:rgba(255,255,255,.06);color:var(--gl);display:grid;place-items:center;cursor:pointer}
+.ib{width:40px;height:40px;border-radius:12px;border:1px solid rgba(52,211,153,.4);background:rgba(255,255,255,.06);color:var(--gl);display:grid;place-items:center;cursor:pointer}
 main{padding:14px;max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-h2{font-family:'Readex Pro';font-size:17px;font-weight:700}
-.card{background:var(--card);border-radius:20px;padding:16px;box-shadow:0 2px 10px rgba(11,31,58,.06);border:1px solid #EEE8DA;display:flex;flex-direction:column;gap:12px}
+h2{font-family:'Alexandria';font-size:17px;font-weight:700}
+.card{background:var(--card);border-radius:20px;padding:16px;box-shadow:0 2px 10px rgba(15,23,42,.06);border:1px solid #E2E8F0;display:flex;flex-direction:column;gap:12px}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kpi{border-radius:18px;padding:14px;background:#fff;border:1px solid #EEE8DA;box-shadow:0 2px 10px rgba(11,31,58,.05);display:flex;flex-direction:column;gap:4px;cursor:pointer;text-align:start}
+.kpi{border-radius:18px;padding:14px;background:#fff;border:1px solid #E2E8F0;box-shadow:0 2px 10px rgba(15,23,42,.05);display:flex;flex-direction:column;gap:4px;cursor:pointer;text-align:start}
 .kpi .l{font-size:13px;color:var(--muted)}
-.kpi .v{font-family:'Readex Pro';font-weight:700;font-size:28px;line-height:1.1}
-.kpi.hero{grid-column:1/-1;background:linear-gradient(150deg,#18407a,#0B1F3A 60%);color:#fff;border:1px solid rgba(240,207,122,.5)}
-.kpi.hero .l{color:#C9D2E0}.kpi.hero .v{font-size:34px;background:linear-gradient(180deg,#FFF1C6,#F0CF7A 45%,#C7962F);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi .v{font-family:'Alexandria';font-weight:700;font-size:28px;line-height:1.1}
+.kpi.hero{grid-column:1/-1;background:linear-gradient(150deg,#10263B,#0B1B2B 60%);color:#fff;border:1px solid rgba(52,211,153,.5)}
+.kpi.hero .l{color:#CBD5E1}.kpi.hero .v{font-size:34px;background:linear-gradient(180deg,#ECFDF5,#34D399 45%,#047857);-webkit-background-clip:text;background-clip:text;color:transparent}
 .kpi.ok .v{color:var(--ok)}.kpi.warn .v{color:var(--warn)}.kpi.bad .v{color:var(--bad)}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .list{display:flex;flex-direction:column}
-.li{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid #F0EBDF;cursor:pointer}
+.li{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid #F1F5F9;cursor:pointer}
 .li:last-child{border-bottom:0}
-.av{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-family:'Readex Pro';font-weight:700;color:#fff;flex:none;background:linear-gradient(150deg,#18407a,#0B1F3A)}
+.av{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-family:'Alexandria';font-weight:700;color:#fff;flex:none;background:linear-gradient(150deg,#10263B,#0B1B2B)}
 .li .t{font-weight:700}.li .s{font-size:13px;color:var(--muted)}
 .grow{flex:1;min-width:0}.grow .t,.grow .s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .grow br{display:none}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
-.pill.ok{background:#E3F4EA;color:#17713F}.pill.trial{background:#E8F1FD;color:#1E5FA8}.pill.warn{background:#FDF1DC;color:#9A5F06}.pill.bad{background:#FBE7E8;color:#A8262B}.pill.gold{background:linear-gradient(180deg,#FFF1C6,#F0CF7A);color:#5A3E05}.pill.mute{background:#EFEDE7;color:#5F6675}
+.pill.ok{background:#D1FAE5;color:#065F46}.pill.trial{background:#E8F1FD;color:#1E5FA8}.pill.warn{background:#FDF1DC;color:#92400E}.pill.bad{background:#FBE7E8;color:#A8262B}.pill.gold{background:linear-gradient(180deg,#ECFDF5,#34D399);color:#064E3B}.pill.mute{background:#F1F5F9;color:#5F6675}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 16px;border-radius:14px;border:1px solid var(--line);background:#fff;font-weight:700;cursor:pointer;text-decoration:none;color:var(--ink)}
-.btn.primary{background:linear-gradient(150deg,#18407a,#0B1F3A);color:#fff;border-color:transparent}
-.btn.gold{background:linear-gradient(180deg,#FFE7A6,#D7A845);color:#2a1c04;border-color:transparent;box-shadow:0 6px 16px rgba(199,150,47,.35)}
+.btn.primary{background:linear-gradient(150deg,#10263B,#0B1B2B);color:#fff;border-color:transparent}
+.btn.gold{background:linear-gradient(180deg,#A7F3D0,#10B981);color:#022C22;border-color:transparent;box-shadow:0 6px 16px rgba(4,120,87,.35)}
 .btn.wa{background:#25D366;color:#fff;border-color:transparent}
 .btn.danger{color:var(--bad);border-color:#F2C9CB}
 .btn.sm{min-height:36px;padding:6px 12px;font-size:14px;border-radius:11px}
@@ -62,33 +61,33 @@ h2{font-family:'Readex Pro';font-size:17px;font-weight:700}
 .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .plan{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:10px 6px;text-align:center;cursor:pointer;font-weight:700}
 .plan small{display:block;font-weight:500;color:var(--muted);font-size:12px}
-.plan[aria-pressed=true]{border-color:var(--gold);background:linear-gradient(180deg,#FFF6DD,#FBE7B4);box-shadow:0 0 0 3px rgba(240,207,122,.35)}
+.plan[aria-pressed=true]{border-color:var(--gold);background:linear-gradient(180deg,#ECFDF5,#D1FAE5);box-shadow:0 0 0 3px rgba(52,211,153,.35)}
 label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:#3C4658}
-input,select,textarea{width:100%;min-height:46px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:#FFFDF8;font-size:16px}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(240,207,122,.3)}
+input,select,textarea{width:100%;min-height:46px;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:#FFFFFF;font-size:16px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(52,211,153,.3)}
 .search{position:relative}.search input{padding-inline-start:40px}.search svg{position:absolute;inset-inline-start:12px;top:50%;transform:translateY(-50%);color:var(--muted)}
-nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid #EEE8DA;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(11,31,58,.06)}
+nav{position:fixed;bottom:0;left:0;right:0;z-index:30;background:#fff;border-top:1px solid #E2E8F0;display:grid;grid-template-columns:repeat(5,1fr);padding:6px 6px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(15,23,42,.06)}
 nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;color:var(--muted);padding:6px 0;cursor:pointer;border-radius:12px}
 nav button[aria-current=page]{color:var(--navy)}
-nav button[aria-current=page] .ic{background:linear-gradient(180deg,#FFF1C6,#F0CF7A);color:#5A3E05}
+nav button[aria-current=page] .ic{background:linear-gradient(180deg,#ECFDF5,#34D399);color:#064E3B}
 nav .ic{width:44px;height:30px;border-radius:999px;display:grid;place-items:center}
-.sheet{position:fixed;inset:0;z-index:50;display:none;background:rgba(6,17,31,.5);backdrop-filter:blur(2px)}
+.sheet{position:fixed;inset:0;z-index:50;display:none;background:rgba(7,18,29,.5);backdrop-filter:blur(2px)}
 .sheet.show{display:flex;align-items:flex-end;justify-content:center}
 .sbox{background:var(--cream);width:100%;max-width:760px;max-height:92dvh;overflow:auto;border-radius:24px 24px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;animation:up .22s ease-out}
 @keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
 .shd{display:flex;align-items:center;justify-content:space-between}.shd h2{font-size:19px}
 .x{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:20px}
-.codebox{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;background:linear-gradient(150deg,#18407a,#0B1F3A);color:#fff;border:1px solid rgba(240,207,122,.5)}
+.codebox{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-radius:14px;background:linear-gradient(150deg,#10263B,#0B1B2B);color:#fff;border:1px solid rgba(52,211,153,.5)}
 .codebox .code{font-size:20px;font-weight:700;color:var(--gl)}
-.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed #E8E1D2;font-size:14.5px}.kv:last-child{border:0}.kv span:first-child{color:var(--muted)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px dashed #E2E8F0;font-size:14.5px}.kv:last-child{border:0}.kv span:first-child{color:var(--muted)}
 .empty{padding:26px 10px;text-align:center;color:var(--muted)}
 .toast{position:fixed;bottom:calc(96px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border:1px solid var(--gold);padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:80;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1}
-.bar{height:10px;border-radius:999px;background:#EFEAE0;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#C7962F,#F0CF7A);border-radius:999px}
-.login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(900px 700px at 50% 20%,#18407a 0%,#0B1F3A 50%,#06111F 100%)}
+.bar{height:10px;border-radius:999px;background:#F1F5F9;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#047857,#34D399);border-radius:999px}
+.login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(900px 700px at 50% 20%,#10263B 0%,#0B1B2B 50%,#07121D 100%)}
 .login .card{width:100%;max-width:420px;text-align:center}
 .login img{width:96px;height:96px;border-radius:24px;margin:0 auto;box-shadow:0 10px 24px rgba(0,0,0,.35)}
-.spin{width:34px;height:34px;border-radius:50%;border:4px solid #E4DED0;border-top-color:var(--gold);animation:sp .8s linear infinite;margin:40px auto}@keyframes sp{to{transform:rotate(360deg)}}
+.spin{width:34px;height:34px;border-radius:50%;border:4px solid #E2E8F0;border-top-color:var(--gold);animation:sp .8s linear infinite;margin:40px auto}@keyframes sp{to{transform:rotate(360deg)}}
 [hidden]{display:none!important}
 
 .ck{display:flex!important;flex-direction:row!important;align-items:center;gap:10px;font-weight:600;margin:4px 0}.ck input{width:22px!important;height:22px!important;flex:none;margin:0}
@@ -146,7 +145,7 @@ const shopById=id=>D.shops.find(x=>x.id===id&&x.kind==='shop');
 const initials=n=>esc(String(n||'؟').trim().slice(0,1));
 
 /* ---------- rendering ---------- */
-function shell(body){return `<header><div class="hd"><img src="icons/icon-192.png" alt=""><div><b>كاشيرك الذكي</b><small>لوحة المالك · أبو عمر الغزاوي</small></div><span class="sp"></span><span id="syncPill" style="font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.12)">${syncTxt()}</span>
+function shell(body){return `<header><div class="hd"><img src="icons/icon-192.png" alt=""><div><b>كاشيرك <i>الذكي</i></b><small>لوحة المالك</small></div><span class="sp"></span><span id="syncPill" style="font-size:12px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.12)">${syncTxt()}</span>
   <button class="ib" data-a="reload" aria-label="تحديث"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button></div></header>
   <main>${body}</main>
   <nav>${[['home','الرئيسية','<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],['shops','المشتركين','<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6 6 0 0 1 3.5 5.5"/>'],['codes','الأكواد','<rect x="3" y="7" width="18" height="11" rx="2"/><path d="M7 11h.01M11 11h6M7 14h10"/>'],['money','الدخل','<path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/>'],['ctl','التحكم','<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>']].map(([k,l,ic])=>`<button data-a="tab" data-t="${k}" ${tab===k?'aria-current="page"':''}><span class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ic}</svg></span>${l}</button>`).join('')}</nav>`}
@@ -173,14 +172,14 @@ home(){
     <button class="kpi" data-a="tab" data-t="codes"><span class="l">أكواد جاهزة للبيع</span><span class="v num">${ready}</span></button>
   </div>
   <div class="grid2"><button class="btn gold" data-a="newCode">＋ كود تفعيل جديد</button><button class="btn primary" data-a="tab" data-t="shops">المشتركين</button></div>
-  <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار لكل المحلات</button>
-  <button class="btn block" data-a="adSheet">📣 الإعلان داخل التطبيق</button>
-  <button class="btn block" data-a="tplSheet">🗂️ قوالب الأصناف حسب مجال العمل</button>
-  <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
-    <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
   <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
     <div class="list">${sh.filter(x=>['trial','tover','visit'].includes(x.st.k)).sort((a,b)=>(b.s.created||0)-(a.s.created||0)).slice(0,8).map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">لسا ما حدا جرّب. أول ما حدا يفتح التطبيق بيطلع هون</div>'}</div></div>
-  ${actCard()}`},
+  <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
+    <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
+  ${actCard()}
+  <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار لكل المحلات</button>
+  <button class="btn block" data-a="adSheet">📣 الإعلان داخل التطبيق</button>
+  <button class="btn block" data-a="tplSheet">🗂️ قوالب الأصناف حسب مجال العمل</button>`},
 shops(){
   let sh=D.shops.map(s=>({s,st:stateOf(s)}));
   sh=sh.filter(x=>inFilter(x.st));
@@ -201,7 +200,7 @@ codes(){
   <div class="chips">${F.map(([k,l])=>`<button class="chip" data-a="cfilter" data-f="${k}" aria-pressed="${codeFilter===k}">${l} <span class="num">${k==='all'?D.codes.filter(c=>c.kind==='code').length:D.codes.filter(c=>c.kind==='code'&&c.status===k).length}</span></button>`).join('')}</div>
   <div class="card"><div class="list">${cs.map(codeRow).join('')||'<div class="empty">ما في أكواد هون</div>'}</div></div>`},
 ctl(){ const c=D.cfg||{}, f=c.feat||{}, off=c.curOff||[], L=c.land||{};
-  return `<div class="card" style="gap:10px;border:2px solid var(--gold,#C8A24A)"><h2>🗂️ قوالب الأصناف</h2><p style="margin:0;font-size:13.5px;color:var(--muted)">منها بتنسخ أصناف ماركت الرائد لقالب السوبر ماركت (قراءة فقط)، وبتعبّي قالب الصيدلية، وبتشوف قالب الفواكه والخضار.</p><button class="btn gold block" data-a="tplSheet">افتح قوالب الأصناف ونسخ ماركت الرائد</button></div>
+  return `<div class="card" style="gap:10px;border:2px solid var(--gold,#10B981)"><h2>🗂️ قوالب الأصناف</h2><p style="margin:0;font-size:13.5px;color:var(--muted)">منها بتنسخ أصناف ماركت الرائد لقالب السوبر ماركت (قراءة فقط)، وبتعبّي قالب الصيدلية، وبتشوف قالب الفواكه والخضار.</p><button class="btn gold block" data-a="tplSheet">افتح قوالب الأصناف ونسخ ماركت الرائد</button></div>
   <div class="card" style="gap:8px"><h2>💱 العملات بتطبيق الكاشير</h2><p style="margin:0;font-size:13px;color:var(--muted)">الشيكل دايمًا شغّال. إيقاف عملة بيخفيها من العمليات الجديدة بس، وما بيمس أي عملية قديمة.</p>
    ${[['USD','الدولار $'],['JOD','الدينار د.أ']].map(([k,t])=>`<label class="ck"><input type="checkbox" data-cur="${k}" ${off.includes(k)?'':'checked'}> ${t}</label>`).join('')}</div>
   <div class="card" style="gap:8px"><h2>🧩 الميزات لكل المحلات</h2><p style="margin:0;font-size:13px;color:var(--muted)">إيقاف ميزة بيخفيها بس، وبياناتها بتضل محفوظة. وبتقدر تغيّرها لمحل معيّن من صفحة المحل.</p>
@@ -211,7 +210,7 @@ ctl(){ const c=D.cfg||{}, f=c.feat||{}, off=c.curOff||[], L=c.land||{};
    <label>رسالة بتظهر لكل المحلات بالرئيسية (فاضي = بدون)<textarea id="cfNotice" rows="2">${esc(c.notice||'')}</textarea></label>
    <label>عنوان صفحة التثبيت<input id="cfLt" value="${esc(L.title||'')}" placeholder="كاشيرك الذكي"></label>
    <label>وصف صفحة التثبيت<textarea id="cfLd" rows="3" placeholder="برنامج كاشير ومحاسبة عربي…">${esc(L.desc||'')}</textarea></label></div>
-  <div class="card" style="gap:8px;border:2px solid var(--gold,#C8A24A)"><h2>🎨 تخصيص التطبيق</h2><p style="margin:0;font-size:13.5px;color:var(--muted)">غيّر أي نص بالتطبيق، الألوان، الأيقونات، طرق التحويل وشعاراتها، أخفي أي قسم، وضيف بطاقات وروابط على الرئيسية، وأسعار الباقات. بيشتغل بدون نت وبينرفع لحاله.</p><button class="btn gold block" data-a="custSheet">افتح تخصيص التطبيق</button></div>
+  <div class="card" style="gap:8px;border:2px solid var(--gold,#10B981)"><h2>🎨 تخصيص التطبيق</h2><p style="margin:0;font-size:13.5px;color:var(--muted)">غيّر أي نص بالتطبيق، الألوان، الأيقونات، طرق التحويل وشعاراتها، أخفي أي قسم، وضيف بطاقات وروابط على الرئيسية، وأسعار الباقات. بيشتغل بدون نت وبينرفع لحاله.</p><button class="btn gold block" data-a="custSheet">افتح تخصيص التطبيق</button></div>
   <button class="btn gold block" data-a="cfgSave">حفظ الإعدادات</button>
   <p style="font-size:12.5px;color:var(--muted)">التعديلات بتوصل لكل المحلات أول ما يتصلوا بالنت (خلال دقيقة ونص تقريبًا)، وما بتلمس بيانات أي محل. إذا ما في نت هلأ، بتنحفظ هون وبتنرفع لحالها لما يرجع النت.</p>
   <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار للمحلات</button>
@@ -237,7 +236,7 @@ money(){
     <div class="list">${EX.map(e=>`<div class="li"><span class="grow"><span class="t">${esc(e.note||'مصروف')}</span><br><span class="s">${fday(e.ts)}</span></span><b class="num">${fmt(+e.amt)}</b> ₪ <button class="btn sm danger" data-a="delExp" data-id="${esc(e.id)}">حذف</button></div>`).join('')||'<div class="empty">ما في مصروفات مسجّلة</div>'}</div></div>
   <div class="card"><h2>بالشهر</h2>${keys.map(k=>{const [y,m]=k.split('-');const nm=new Date(+y,+m-1,1).toLocaleDateString('ar-u-nu-latn',{month:'long',year:'numeric'}), b=by[k];
     return `<div style="display:flex;flex-direction:column;gap:6px"><div class="row"><b>${nm}</b><span>صافي <b class="num">${fmt(b.inc-b.exp)}</b> ₪</span></div><div class="bar"><i style="width:${Math.round(b.inc/mx*100)}%"></i></div>
-      <div style="font-size:13px;color:var(--muted)">دخل <span class="num">${fmt(b.inc)}</span> ₪ (${b.n}) · مصروفات <span class="num">${fmt(b.exp)}</span> ₪</div></div>`}).join('<hr style="border:0;border-top:1px solid #F0EBDF">')||'<div class="empty">لسا ما في حركة</div>'}</div>
+      <div style="font-size:13px;color:var(--muted)">دخل <span class="num">${fmt(b.inc)}</span> ₪ (${b.n}) · مصروفات <span class="num">${fmt(b.exp)}</span> ₪</div></div>`}).join('<hr style="border:0;border-top:1px solid #F1F5F9">')||'<div class="empty">لسا ما في حركة</div>'}</div>
   <div class="card"><h2>أسعار الباقات الافتراضية</h2><p style="font-size:13px;color:var(--muted)">بتنكتب لحالها لما تعمل كود جديد، وبتقدر تغيّرها وقتها.</p>
     <div class="grid2">${PLAN_ORDER.map(p=>`<label>${PLAN_NAME[p]}<input class="pr num" data-p="${p}" inputmode="decimal" value="${P[p]}"></label>`).join('')}</div>
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
@@ -390,11 +389,11 @@ function cuImg(g,k){ if(CX[g]&&k in CX[g]) return CX[g][k]||''; return (CXV[g]||
 function cuRender(){ const c=CU, sec=(t,d,b)=>`<details class="card" style="display:block;margin:8px 0;padding:12px 14px"><summary style="font-weight:700;cursor:pointer;font-size:15.5px">${t}</summary><p style="margin:6px 0;font-size:13px;color:var(--muted)">${d}</p>${b}</details>`;
   const P=prices();
   $('#sbox').innerHTML=`${head('🎨 تخصيص التطبيق')}<p style="margin:0;font-size:13px;color:var(--muted)">كل اللي بتغيّره هون بيوصل لكل المحلات لحاله أول ما يتصلوا بالنت. ما بيلمس بيانات أي محل (أصناف، ديون، فواتير).</p>
-  ${sec('🎨 الألوان','فعّل اللون واختاره. اللي مش مفعّل بيضل على الأصلي.',[['gold','الذهبي (الأزرار والتمييز)','#C8A24A'],['navy','الكحلي (الشريط العلوي)','#0B1F3A'],['bg','لون الخلفية','#F4F2EC']].map(([k,t,d])=>`<label class="ck" style="justify-content:space-between"><span><input type="checkbox" onchange="const e=document.getElementById('cuC_${k}');e.dataset.on=this.checked?'1':'0'" ${c.col&&c.col[k]?'checked':''}> ${t}</span><input type="color" id="cuC_${k}" data-on="${c.col&&c.col[k]?1:0}" value="${(c.col&&c.col[k])||d}" style="width:60px;height:40px;padding:2px"></label>`).join(''))}
+  ${sec('🎨 الألوان','فعّل اللون واختاره. اللي مش مفعّل بيضل على الأصلي.',[['gold','الذهبي (الأزرار والتمييز)','#10B981'],['navy','الكحلي (الشريط العلوي)','#0B1B2B'],['bg','لون الخلفية','#F4F2EC']].map(([k,t,d])=>`<label class="ck" style="justify-content:space-between"><span><input type="checkbox" onchange="const e=document.getElementById('cuC_${k}');e.dataset.on=this.checked?'1':'0'" ${c.col&&c.col[k]?'checked':''}> ${t}</span><input type="color" id="cuC_${k}" data-on="${c.col&&c.col[k]?1:0}" value="${(c.col&&c.col[k])||d}" style="width:60px;height:40px;padding:2px"></label>`).join(''))}
   ${sec('✏️ النصوص','اكتب النص زي ما هو ظاهر بالتطبيق بالضبط، وجنبه النص الجديد. بيتغيّر وين ما ظهر (أزرار، عناوين، قوائم).',`<datalist id="cuTl">${CU_TXT.map(t=>`<option value="${esc(t)}">`).join('')}</datalist><div id="cuTx">${(c.tx.length?c.tx:[['','']]).map(([a,b])=>`<div data-txr class="grid2" style="margin-bottom:6px"><input class="ta" list="cuTl" placeholder="النص الحالي" value="${esc(a)}"><input class="tb" placeholder="النص الجديد" value="${esc(b)}"></div>`).join('')}</div><button class="btn sm" data-a="cuAdd" data-w="tx">+ نص ثاني</button>`)}
   ${sec('👁️ إظهار وإخفاء الأقسام','شيل الصح عن أي قسم بدك تخفيه من التطبيق عند كل المحلات. الإخفاء ما بيمسح بياناته.',`<div class="grid2">${[...CU_MENU,...CU_NAV].map(([k,t])=>`<label class="ck"><input type="checkbox" data-hd="${k}" ${c.hide.includes(k)?'':'checked'}> ${esc(t)}</label>`).join('')}</div>`)}
   ${sec('🏦 طرق التحويل وشعاراتها','الاسم واللون والشعار لكل جهة تحويل. بتقدر تضيف بنك أو محفظة جديدة.',`<div id="cuPy">${c.pay.map((x,i)=>{ const PL={'بنك فلسطين':'bop','PalPay':'palpay','جوال باي':'jawwal'}, im=cuImg('pay',x.n)||(PL[x.n]?APP_URL+'icons/pay/'+PL[x.n]+'.webp':''); return `<div data-pyr style="display:flex;gap:6px;align-items:center;margin-bottom:8px">${im?`<img src="${im}" style="width:40px;height:40px;border-radius:10px">`:`<span style="width:40px;height:40px;border-radius:10px;background:${x.c};flex:none"></span>`}<input class="pn" value="${esc(x.n)}" placeholder="اسم الجهة" style="flex:1"><input class="pc" type="color" value="${x.c}" style="width:46px;height:40px;padding:2px"><label class="btn sm" style="margin:0">شعار<input type="file" accept="image/*" hidden data-up="pay" data-i="${i}"></label><button class="btn sm" data-a="cuDel" data-w="pay" data-i="${i}">✕</button></div>` }).join('')}</div><button class="btn sm" data-a="cuAdd" data-w="pay">+ جهة تحويل</button> <button class="btn sm" data-a="cuReset" data-w="pay">رجّع الأصلي</button>`)}
-  ${sec('🖼️ الأيقونات','اضغط على أي أيقونة وارفع صورة بدالها (مربعة أحسن). «أصلي» بيرجّعها.',`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${CU_IC.map(([k,t])=>{ const im=cuImg('ic',k)||APP_URL+'icons/3d/'+k+'.webp'; return `<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;text-align:center;cursor:pointer"><img src="${im}" style="width:52px;height:52px;border-radius:12px;object-fit:contain;background:#0b1f3a10" onerror="this.style.opacity=.2">${esc(t)}<input type="file" accept="image/*" hidden data-up="ic" data-k="${k}">${cuImg('ic',k)?`<button class="btn sm" data-a="cuIcDel" data-k="${k}" style="min-height:26px;padding:0 6px">أصلي</button>`:''}</label>` }).join('')}</div>`)}
+  ${sec('🖼️ الأيقونات','اضغط على أي أيقونة وارفع صورة بدالها (مربعة أحسن). «أصلي» بيرجّعها.',`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">${CU_IC.map(([k,t])=>{ const im=cuImg('ic',k)||APP_URL+'icons/3d/'+k+'.webp'; return `<label style="display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;text-align:center;cursor:pointer"><img src="${im}" style="width:52px;height:52px;border-radius:12px;object-fit:contain;background:#0B1B2B10" onerror="this.style.opacity=.2">${esc(t)}<input type="file" accept="image/*" hidden data-up="ic" data-k="${k}">${cuImg('ic',k)?`<button class="btn sm" data-a="cuIcDel" data-k="${k}" style="min-height:26px;padding:0 6px">أصلي</button>`:''}</label>` }).join('')}</div>`)}
   ${sec('🧾 بطاقات وروابط على الرئيسية','بطاقة بتظهر فوق بالرئيسية عند كل المحلات: عرض، خبر، رابط. الرابط: https://… أو رقم واتساب.',`<div id="cuCd">${(c.cards.length?c.cards:[]).map(x=>`<div data-cdr class="card" style="gap:6px;margin-bottom:8px;padding:8px"><div style="display:flex;gap:6px"><input class="ci" value="${esc(x.ic||'')}" placeholder="🎁" style="width:56px;text-align:center"><input class="ct" value="${esc(x.t)}" placeholder="العنوان" style="flex:1"></div><input class="cd" value="${esc(x.d||'')}" placeholder="الوصف"><input class="cl" value="${esc(x.u||'')}" placeholder="رابط https://… أو رقم واتساب 970…" dir="ltr"><button class="btn sm" data-a="cuDelRow">حذف البطاقة</button></div>`).join('')}</div><button class="btn sm" data-a="cuAdd" data-w="card">+ بطاقة</button>`)}
   ${sec('💰 أسعار الباقات','بالشيكل. بتظهر لما تعمل كود اشتراك، وبتتزامن بين أجهزتك.',`<div class="grid2">${[['m1','شهر'],['m2','شهرين'],['m3','3 شهور'],['m6','6 شهور'],['y1','سنة'],['life','مفتوح']].map(([k,t])=>`<label>${t}<input type="number" min="0" data-pr="${k}" value="${(c.prices&&c.prices[k]!=null)?c.prices[k]:P[k]}"></label>`).join('')}</div>`)}
   <button class="btn gold block" data-a="cuSave" style="position:sticky;bottom:0">💾 حفظ ونشر للتطبيق</button>`;
