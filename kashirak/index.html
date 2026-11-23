@@ -582,6 +582,7 @@ body.rentm .salesOnly{display:none!important}
 .rsteps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.rst{border:1.5px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface)}.rst i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#E2E8F0;color:#475569;font-weight:800}.rst b{font-size:13px}.rst small{font-size:11px;color:var(--muted);line-height:1.5}.rst.ok{border-color:#6EE7B7;background:#ECFDF5}.rst.ok i{background:#10B981;color:#fff}.rst.now{border-color:#F59E0B;background:#FFFBEB}.rst.now i{background:#F59E0B;color:#fff}
 .ridin{background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:12px;padding:9px 12px;font-weight:700;font-size:14px}.ridin.ok{background:#ECFDF5;border-color:#6EE7B7;color:#047857}.chk.big{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}.chk.big input{width:22px;height:22px}.rcpt .rnote2{background:#F0FDF4;border-radius:10px;padding:8px;margin-top:8px;font-size:13px;line-height:1.7;color:#065F46}.rflow{background:#F8FAFC;border-radius:10px;padding:8px 10px;line-height:1.7}
 .rimg img{width:100%;border-radius:14px;box-shadow:0 6px 20px rgba(15,23,42,.12);display:block}
+.rdw{background:#FEF3C7;color:#92400E;border-radius:999px;padding:1px 10px;font-size:13px;font-weight:800;margin-inline-start:4px;white-space:nowrap}
 .rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
@@ -4240,6 +4241,8 @@ const RST={booked:['محجوز','warn'],out:['عند الزبونة','bad'],back
 const RPK={dep:'عربون',rent:'دفعة إيجار',ins:'تأمين مستلم',insback:'تأمين مرجّع',fee:'غرامة',refund:'إرجاع عربون'};
 let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null;
 const ymdT2=k=>{ const [y,m,d]=String(k||'').split('-').map(Number); return y?new Date(y,m-1,d).getTime():0 };
+const rWd=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar',{weekday:'long'}):'';
+const rWdUI=()=>document.querySelectorAll('.rdw').forEach(b=>{ const i=document.getElementById(b.dataset.w); if(i) b.textContent=rWd(i.value) });
 const rDay=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'}):'—';
 const rToday=()=>ymd(Date.now());
 const rSum=(r,ks)=>r2((r.pays||[]).filter(p=>ks.includes(p.k)).reduce((a,p)=>a+p.amt,0));
@@ -4320,8 +4323,8 @@ function rentForm(r,page){ const ds=S.dresses||[], g=r||{}, tm=ymd(Date.now()+DA
   return `${page?'':sheetHead(r?'تعديل الحجز #'+r.no:'حجز فستان جديد')}
   <div class="card pcard pay"><h2>👗 الفستان والمواعيد</h2>
     ${ds.length?`<label for="rfDress">الفستان<select id="rfDress">${ds.map(d=>`<option value="${d.id}" ${g.dressId===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select></label>`:'<p class="fh" style="margin:0">ما في فساتين مسجّلة. اكتب اسم الفستان هون وبينضاف لحاله.</p><input id="rfDname" placeholder="اسم الفستان (مثال: فستان سهرة كحلي)">'}
-    <label for="rfEvent">يوم المناسبة (العرس أو الحفلة)<input id="rfEvent" type="date" value="${ev}"></label>
-    <div class="grid2"><label for="rfPick">يوم الاستلام<input id="rfPick" type="date" value="${g.pick||ymd(ymdT2(ev)-DAY)}"></label><label for="rfRet">يوم الإرجاع<input id="rfRet" type="date" value="${g.ret||ymd(ymdT2(ev)+DAY)}"></label></div>
+    <label for="rfEvent"><span>يوم المناسبة (العرس أو الحفلة) <b class="rdw" data-w="rfEvent">${rWd(ev)}</b></span><input id="rfEvent" type="date" value="${ev}"></label>
+    <div class="grid2"><label for="rfPick"><span>يوم الاستلام <b class="rdw" data-w="rfPick">${rWd(g.pick||ymd(ymdT2(ev)-DAY))}</b></span><input id="rfPick" type="date" value="${g.pick||ymd(ymdT2(ev)-DAY)}"></label><label for="rfRet"><span>يوم الإرجاع <b class="rdw" data-w="rfRet">${rWd(g.ret||ymd(ymdT2(ev)+DAY))}</b></span><input id="rfRet" type="date" value="${g.ret||ymd(ymdT2(ev)+DAY)}"></label></div>
     <div id="rfAvail" class="fh"></div></div>
   <div class="card"><h2>👤 الزبونة</h2>
     <label for="rfName">الاسم الكامل<input id="rfName" value="${esc(g.cname||'')}" placeholder="الاسم الرباعي"></label>
@@ -4473,6 +4476,7 @@ dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName');
 });
 ['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
 document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
+  if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(rWdUI,0);
   if(['rfDress','rfPick','rfRet'].includes(t.id)){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfEvent'&&t.value){ const p=$('#rfPick'), rt=$('#rfRet'); if(p) p.value=ymd(ymdT2(t.value)-DAY); if(rt) rt.value=ymd(ymdT2(t.value)+DAY); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfPrice') t.dataset.t='1';
@@ -4481,7 +4485,7 @@ document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(t.id==='rfIdImg'&&t.files&&t.files[0]){ docImg(t.files[0]).then(x=>{ RIDIMG=x; const l=$('#rfIdLbl'); if(l) l.textContent='🪪 صورة الهوية ✓' }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='dfImg'&&t.files&&t.files[0]){ thumbImg(t.files[0],360).then(x=>{ RDIMG=x; const p=$('#dfImgPrev'); if(p) p.innerHTML=`<img src="${x}" alt="">` }) }
 });
-document.addEventListener('input',e=>{ if(e.target&&e.target.id==='rentQ'){ RENTQ=e.target.value; const L=$('#rentL'); if(!L) return; const keep=e.target.selectionStart; render(); const q=$('#rentQ'); if(q){ q.focus(); try{q.setSelectionRange(keep,keep)}catch(_){} } } });
+document.addEventListener('input',e=>{ if(e.target&&['rfEvent','rfPick','rfRet'].includes(e.target.id)) rWdUI(); if(e.target&&e.target.id==='rentQ'){ RENTQ=e.target.value; const L=$('#rentL'); if(!L) return; const keep=e.target.selectionStart; render(); const q=$('#rentQ'); if(q){ q.focus(); try{q.setSelectionRange(keep,keep)}catch(_){} } } });
 
 Object.assign(A,{
   payM(d){ PAYM=+d.k; render() },
