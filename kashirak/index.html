@@ -1132,7 +1132,7 @@ async function gunz(s){ if(s.startsWith('p:')) return s.slice(2);
 const idbKeys=()=>idb('readonly',st=>st.getAllKeys()).then(r=>r||[]);
 const upGet=()=>{try{return JSON.parse(localStorage.getItem(UPKEY)||'{}')}catch(e){return {}}};
 const upSet=o=>{try{localStorage.setItem(UPKEY,JSON.stringify(o))}catch(e){}};
-function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length}}
+function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length,biz:{r:S.rentOn?(S.rentSide?2:1):0,p:S.pharm?1:0,t:Object.keys(S.tplDone||{}).slice(0,20),d:(S.dresses||[]).length,b:(S.rentals||[]).length}}}
 /* ===== البيع من جوالين: صندوق العمليات =====
    الجوال الثاني ما بيرفع نسخة كاملة من المحل (لأنها بتمسح شغل الجهاز الأساسي). كل بيعة أو دفعة أو مصروف عليه بتصير «عملية»
    بتنحفظ عليه وبتنرفع لما يكون في نت، والجهاز الأساسي بيضيفها للمحل (بيخصم المخزون وبيسجّل الدين) وبيرفع النسخة.
