@@ -12,6 +12,7 @@
   "background_color": "#0B1B2B",
   "theme_color": "#0B1B2B",
   "categories": ["business", "finance", "productivity"],
+  "related_applications": [{"platform": "webapp", "url": "https://marketingmiddleeast.com/kashirak/manifest.webmanifest"}],
   "icons": [
     {"src": "icons/icon-192-v2.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "icons/icon-512-v2.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},

@@ -469,6 +469,7 @@ body.landing .sheet{z-index:170} body.landing .toast{z-index:180}
 #land .lstick button{flex:none;border:0;border-radius:14px;padding:12px 16px;background:linear-gradient(135deg,#34D399,#10B981);color:#05261B;font:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 6px 16px rgba(16,185,129,.45);animation:lstP 2.2s ease-in-out infinite}
 @keyframes lstIn{from{transform:translateY(120%);opacity:0}to{transform:none;opacity:1}}@keyframes lstP{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 #land .lwrap{padding-bottom:96px}
+#land .tk{margin:0 -18px;border-radius:0}#land #ltk{position:relative;z-index:3}
 #land .lwa svg{width:30px;height:30px;fill:#fff;color:#fff}
 
 @media (min-width:900px){.invset{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}}
@@ -586,7 +587,7 @@ header[hidden]+.tk{display:none}
     <button class="cloudbtn" id="cloudBtn" data-act="cloudSheet" hidden aria-label="حساب المحل على السحابة"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-8 6 6 0 0 0-11.6 1.5A3.3 3.3 0 0 0 7 18z"/></svg><i></i></button>
     <button class="modebtn" id="modeBtn" data-act="mode"></button>
   </header>
-  <div id="tk" class="tk" role="marquee" aria-label="نسخة أصلية ومعتمدة، احذروا البرامج المزيفة"><div class="tk-in"><div class="tk-g"><span>✅ كاشيرك الذكي: نسخة أصلية مرخّصة ومعتمدة من شركة ماركتنج الشرق الأوسط</span><i>✦</i><span>🌍 أحدث إصدار، وحساباته على أسس المحاسبة المعتمدة دوليًا</span><i>✦</i><span>⚠️ احذروا البرامج المزيفة وغير الموثوقة، وأي نسخة مش من عنا</span><i>✦</i><span>🔒 بياناتك محفوظة على جهازك، ونسخة منها على السحابة</span><i>✦</i><span>💬 لأي سؤال أو تأكيد، تواصل معنا من «رأيك يهمنا»</span><i>✦</i></div><div class="tk-g" aria-hidden="true"><span>✅ كاشيرك الذكي: نسخة أصلية مرخّصة ومعتمدة من شركة ماركتنج الشرق الأوسط</span><i>✦</i><span>🌍 أحدث إصدار، وحساباته على أسس المحاسبة المعتمدة دوليًا</span><i>✦</i><span>⚠️ احذروا البرامج المزيفة وغير الموثوقة، وأي نسخة مش من عنا</span><i>✦</i><span>🔒 بياناتك محفوظة على جهازك، ونسخة منها على السحابة</span><i>✦</i><span>💬 لأي سؤال أو تأكيد، تواصل معنا من «رأيك يهمنا»</span><i>✦</i></div></div></div>
+  <div id="tk" class="tk" role="marquee" aria-label="نسخة أصلية ومعتمدة، احذروا البرامج المزيفة"><div class="tk-in"><div class="tk-g"><span>✅ كاشيرك الذكي: نسخة أصلية مرخّصة ومعتمدة من شركة ماركتنج الشرق الأوسط</span><i>✦</i><span>🌍 برنامج محاسبي بمستوى عالمي، على أسس المحاسبة المعتمدة دوليًا</span><i>✦</i><span>⚠️ احذروا البرامج المزيفة وغير الموثوقة، وأي نسخة مش من عنا</span><i>✦</i><span>🔒 بياناتك محفوظة على جهازك، ونسخة منها على السحابة</span><i>✦</i><span>💬 لأي سؤال أو تأكيد، تواصل معنا من «رأيك يهمنا»</span><i>✦</i></div><div class="tk-g" aria-hidden="true"><span>✅ كاشيرك الذكي: نسخة أصلية مرخّصة ومعتمدة من شركة ماركتنج الشرق الأوسط</span><i>✦</i><span>🌍 برنامج محاسبي بمستوى عالمي، على أسس المحاسبة المعتمدة دوليًا</span><i>✦</i><span>⚠️ احذروا البرامج المزيفة وغير الموثوقة، وأي نسخة مش من عنا</span><i>✦</i><span>🔒 بياناتك محفوظة على جهازك، ونسخة منها على السحابة</span><i>✦</i><span>💬 لأي سؤال أو تأكيد، تواصل معنا من «رأيك يهمنا»</span><i>✦</i></div></div></div>
   <div id="cloudBar" hidden></div>
   <div id="live" hidden>
     <video id="liveVid" playsinline muted autoplay></video>
@@ -4250,12 +4251,13 @@ function landWanted(){ try{ return !S&&!standalone()&&!isDesk()&&!localStorage.g
 function showLand(){ if($('#land')) return; const d=document.createElement('div'); d.id='land';
   const F=[['🛒','البيع والكاشير','بيع سريع بالباركود أو بالاسم'],['🧾','فواتير مطبوعة باسم محلك','حراري 58 و80 ملم، وA4 وA5'],['📒','الديون','كشف حساب لكل زبون على واتساب'],['🚚','الموردين','فواتير شراء ودفعات وكشف حساب'],['💱','تعدد العملات','شيكل، دولار، دينار، كل عملة لحالها'],['📦','أصناف جاهزة حسب مجال العمل','سوبر ماركت، صيدلية، خضار وفواكه'],['🤖','إدخال الفواتير بالذكاء الاصطناعي','صوّر الفاتورة وبتنضاف لحالها (قريبًا)'],['📱','أكثر من جهاز بنفس الصلاحيات','كل الأجهزة أساسية'],['📶','يعمل بدون إنترنت','وبيتزامن لحاله لما يرجع النت']];
   d.innerHTML=`<div class="lwrap">
+   ${(document.getElementById('tk')||{}).outerHTML?document.getElementById('tk').outerHTML.replace('id="tk" ','id="ltk" '):''}
    <header class="lhd"><img src="icons/logo-3d-256.png" alt=""><b>كاشيرك الذكي</b><span class="sp"></span><button class="lmenu" data-act="landMenu" aria-label="القائمة">☰</button></header>
    <div class="lstick"><img src="icons/logo-3d-256.png" alt=""><span class="lst-t"><b>ثبّت كاشيرك</b><small>مجاني للتجربة</small></span><a class="lst-wa" href="https://wa.me/${LAND_WA}?text=${encodeURIComponent('مرحبًا، بدي أستفسر عن تطبيق كاشيرك الذكي')}" target="_blank" rel="noopener" aria-label="واتساب">💬</a><button data-act="landInstall">⬇️ ثبّت الآن</button></div>
    <div class="lban"><div class="lphone"><div class="lscr lshot"><img src="icons/land-shot.webp" alt="شاشة كاشيرك الذكي من جوّا التطبيق" width="600" height="1246" decoding="async"></div></div>
-     <p class="ltag">تطبيق الكاشير – أندرويد وآيفون</p></div>
+     <p class="ltag">برنامج محاسبي بمستوى عالمي · أندرويد وآيفون</p></div>
    <h1 class="lh1">${esc(RCFG.land&&RCFG.land.title||'كاشيرك الذكي')}</h1>
-   <p class="ldesc">${esc(RCFG.land&&RCFG.land.desc||'برنامج كاشير ومحاسبة عربي سهل الاستخدام للمحلات التجارية والسوبر ماركت والصيدليات ومحلات الخضار، يعمل بدون إنترنت.')}</p>
+   <p class="ldesc">${esc(RCFG.land&&RCFG.land.desc||'برنامج كاشير ومحاسبة بمستوى عالمي، سهل الاستخدام للمحلات التجارية والسوبر ماركت والصيدليات ومحلات الخضار، ويعمل بدون إنترنت.')}</p>
    <button class="btn accent big block" data-act="landInstall">⬇️ ثبّت التطبيق الآن</button>
    <button class="lskip" data-act="landSkip">أو كمّل من المتصفح</button>
    <h2 class="lh2">أهم الميزات</h2>
@@ -4266,13 +4268,18 @@ function showLand(){ if($('#land')) return; const d=document.createElement('div'
   document.body.appendChild(d); document.body.style.overflow='hidden'; document.body.classList.add('landing') }
 function closeLand(){ const d=$('#land'); if(d) d.remove(); document.body.style.overflow=''; document.body.classList.remove('landing'); try{localStorage.setItem('ksr-land','1')}catch(e){} }
 Object.assign(A,{
-  async landInstall(){ if(!INSTALL&&!isIOS()&&'serviceWorker' in navigator){ const b=[...document.querySelectorAll('#land [data-act=landInstall]')]; b.forEach(x=>{x.disabled=true; x.dataset.t=x.textContent; x.textContent='⏳ لحظة…'}); try{ await navigator.serviceWorker.ready }catch(_){} for(let i=0;i<30&&!INSTALL;i++) await new Promise(r=>setTimeout(r,100)); b.forEach(x=>{x.disabled=false; x.textContent=x.dataset.t}) }
+  async landInstall(){ const ua0=navigator.userAgent, inApp=/Android/i.test(ua0)&&!(/Chrome\//.test(ua0)&&!/wv\)|; wv|SamsungBrowser|FBAN|FBAV|FB_IAB|Instagram|OPR|EdgA|MiuiBrowser|HuaweiBrowser|UCBrowser/.test(ua0));
+    if(!INSTALL&&!isIOS()&&!inApp&&'serviceWorker' in navigator){ const b=[...document.querySelectorAll('#land [data-act=landInstall]')]; b.forEach(x=>{x.disabled=true; x.dataset.t=x.textContent; x.textContent='⏳ لحظة…'}); try{ await Promise.race([navigator.serviceWorker.ready,new Promise(r=>setTimeout(r,3000))]) }catch(_){} for(let i=0;i<30&&!INSTALL;i++) await new Promise(r=>setTimeout(r,100)); b.forEach(x=>{x.disabled=false; x.textContent=x.dataset.t}) }
     if(INSTALL){ INSTALL.prompt(); INSTALL.userChoice.then(r=>{ if(r&&r.outcome==='accepted'){ toast('جارٍ التثبيت… افتحه من أيقونته على الشاشة'); closeLand(); if(!S&&!localStorage.getItem('ksr-intro')) showIntro() } INSTALL=null }).catch(()=>{}); return }
     if(isIOS()) return openSheet(`${sheetHead('تثبيت على الآيفون')}<div class="list">
       <div class="li"><span><b>1.</b> اضغط زر المشاركة <b style="font-size:20px">⎋</b> (المربع اللي طالع منه سهم) تحت أو فوق بالمتصفح Safari</span></div>
       <div class="li"><span><b>2.</b> انزل واختار <b>«إضافة إلى الشاشة الرئيسية»</b> ➕</span></div>
       <div class="li"><span><b>3.</b> اضغط <b>«إضافة»</b>، وبتطلع أيقونة كاشيرك على شاشتك زي أي تطبيق</span></div></div>
       <p class="muted" style="margin:0">لازم تفتح الرابط من Safari. إذا فاتح من واتساب أو فيسبوك، اضغط «فتح في Safari» أول.</p><button class="btn primary block" data-act="close">فهمت</button>`);
+    try{ if(navigator.getInstalledRelatedApps){ const ia=await navigator.getInstalledRelatedApps(); if(ia&&ia.length) return openSheet(`${sheetHead('كاشيرك مثبّت عندك ✓')}<p style="margin:0;font-size:16px;line-height:1.8">التطبيق <b>مثبّت أصلًا على جوالك</b>. دوّر على أيقونة «كاشيرك» بشاشة الجوال وافتحه منها.</p><button class="btn primary block" data-act="landSkip">أو كمّل من هون</button>`) } }catch(_){}
+    const ua=navigator.userAgent, realChrome=/Chrome\//.test(ua)&&!/wv\)|; wv|SamsungBrowser|FBAN|FBAV|FB_IAB|Instagram|OPR|EdgA|MiuiBrowser|HuaweiBrowser|UCBrowser/.test(ua);
+    if(/Android/i.test(ua)&&!realChrome){ const u='intent://'+location.host+location.pathname+location.search+'#Intent;scheme=https;package=com.android.chrome;end';
+      return openSheet(`${sheetHead('ثبّت كاشيرك')}<p style="margin:0;font-size:15.5px;line-height:1.8">إنت فاتح الرابط من داخل تطبيق تاني (واتساب أو فيسبوك…)، والتثبيت بيشتغل من <b>Chrome</b>. اضغط الزر، وبينفتح كروم، وبعدين اضغط «ثبّت الآن» مرة تانية.</p><a class="btn accent big block" href="${u}">🌐 افتح في Chrome وثبّت</a><button class="btn block" data-act="close">لاحقًا</button>`) }
     openSheet(`${sheetHead('تثبيت التطبيق')}<div class="list">
       <div class="li"><span><b>1.</b> اضغط على النقاط الثلاث <b>⋮</b> فوق بالمتصفح Chrome</span></div>
       <div class="li"><span><b>2.</b> اختار <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b></span></div>
