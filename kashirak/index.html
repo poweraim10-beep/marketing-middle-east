@@ -4202,7 +4202,6 @@ function rentTiles(){ const c=rentCounts(), own=isOwner(), t=report(sod()), L=(S
     <button class="tile" data-act="rentGo" data-f="soon">${I3('h-debts','t3')}<div class="lbl">الديون</div><div class="val">${money(r2(rdebt+cdebt))}</div>${cdebt?`<div class="lbl">باقي إيجار <span class="num">${fx(rdebt)}</span></div>`:''}</button>
     ${own?(mOk()?`<div class="tile">${I3('h-profit','t3')}<div class="lbl">ربح اليوم</div><div class="val">${money(t.net)}</div></div>`:mLock('ربح اليوم')):''}
     <div class="tile">${I3('h-sales','t3')}<div class="lbl">دخل اليوم</div><div class="val">${money(rentIncome(sod()))}</div></div>
-    ${own?`<button class="tile" data-act="openSub" data-s="cash">${I3('cash','t3')}<div class="lbl">بالصندوق</div><div class="val">${money(drawer().expected)}</div></button>`:''}
     <div class="tile">${I3('chq','t3')}<div class="lbl">التأمينات</div><div class="val">${money(held)}</div></div>
   </div>` }
 function rentHomePage(ban){ const t=rToday(), up=(S.rentals||[]).filter(r=>r.st==='booked'&&r.pick>=t).sort((a,b)=>a.pick<b.pick?-1:1).slice(0,5), late=(S.rentals||[]).filter(r=>rLate(r)||(r.st==='booked'&&r.pick<t));
