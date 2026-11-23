@@ -566,6 +566,7 @@ header[hidden]+.tk{display:none}
 @media (prefers-reduced-motion: reduce){.tk-in{animation:none}}
 .sidex{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;border:0;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;font:inherit;cursor:pointer;text-align:start;box-shadow:0 8px 18px rgba(217,119,6,.28);flex-shrink:0}.sidex .sxi{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:22px;flex:none}.sidex .sxt{display:flex;flex-direction:column;gap:2px}.sidex b{font-family:var(--display);font-size:17px}.sidex small{font-size:12.5px;opacity:.95}
 .bdban{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:14px;background:#FFFBEB;border:2px solid #F59E0B;color:#92400E;font-size:14px;flex-shrink:0}.bdban button{border:0;border-radius:10px;padding:7px 10px;background:#F59E0B;color:#fff;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;flex:none}
+.dayrow.empty0{background:#FFFBEB}.dayrow.empty0 .t{color:#92400E}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
 @keyframes fglow{0%,100%{box-shadow:0 6px 16px rgba(109,40,217,.35),0 0 0 0 rgba(139,92,246,.5)}50%{box-shadow:0 6px 22px rgba(109,40,217,.55),0 0 0 9px rgba(139,92,246,0)}}
@@ -2249,8 +2250,7 @@ more(){
       <p class="muted" style="margin:0">${pdfSel.size?`الملف فيه ${pdfSel.size} ${pdfSel.size>2?'أقسام':'قسم'}.`:'اختار قسم واحد على الأقل.'}</p></div>`;
   }
   if(sub==='late') return back('سجل التواريخ القديمة')+lateView();
-  if(sub==='log') return back('سجل المبيعات')+(isOwner()&&!isSeller2()?`<div class="grid2"><button class="btn accent" data-act="lateNew">📅 مبيعات يوم فات</button><button class="btn" data-act="openSub" data-s="late">🕘 سجل التواريخ القديمة <span class="num">(${lateRows().length})</span></button></div>`:'')+(S.returns.length?`<div class="card"><h2>آخر المرتجعات</h2><div class="list">${[...S.returns].reverse().slice(0,10).map(x=>`<button class="li" data-act="sale" data-id="${x.saleId}"><span><span class="t">${x.lines.map(l=>esc(l.name)+'×'+l.count).join('، ')}</span><br><span class="muted">فاتورة ${x.saleId} · ${fdate(x.ts)} · ${x.method==='debt'?'من الدين':'نقدي'}</span></span>${money(-x.amount)}</button>`).join('')}</div></div>`:'')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+`<div class="card"><div class="list">${[...S.sales].sort((a,b)=>b.ts-a.ts).slice(0,40).map(s=>`<button class="li" data-act="sale" data-id="${s.id}">
-    <span><span class="t">فاتورة <span class="num">${s.id}</span></span><br><span class="muted">${fdate(s.ts)} · ${payLabel(s)}${s.confirmed===false?' · بانتظار التأكيد':''}</span></span>${money(s.total)}</button>`).join('')||'<div class="empty">لا فواتير</div>'}</div></div>`;
+  if(sub==='log') return back('سجل المبيعات')+(isOwner()&&!isSeller2()?`<div class="grid2"><button class="btn accent" data-act="lateNew">📅 مبيعات يوم فات</button><button class="btn" data-act="openSub" data-s="late">🕘 سجل التواريخ القديمة <span class="num">(${lateRows().length})</span></button></div>`:'')+(S.returns.length?`<div class="card"><h2>آخر المرتجعات</h2><div class="list">${[...S.returns].reverse().slice(0,10).map(x=>`<button class="li" data-act="sale" data-id="${x.saleId}"><span><span class="t">${x.lines.map(l=>esc(l.name)+'×'+l.count).join('، ')}</span><br><span class="muted">فاتورة ${x.saleId} · ${fdate(x.ts)} · ${x.method==='debt'?'من الدين':'نقدي'}</span></span>${money(-x.amount)}</button>`).join('')}</div></div>`:'')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+logBody();
   if(sub==='buy') return back(S.pharm?'المشتريات من المستودعات':'المشتريات')+(S.pharm?'<button class="btn block" data-act="pRetSup">↩️ مرتجع للمستودع</button>':'')+`<button class="btn block" data-act="pdfGo" data-sel="buys">تحميل المشتريات PDF</button>`+`
     ${hint('لما توصلك بضاعة من المورد، سجّلها هون عشان تزيد المخزون وتعرف كم كلّفتك. إذا دفعت كاش بينخصم من الصندوق، وإذا دفعت بالدين بينضاف على حساب المورد (لازم تختار المورد). وإذا تغيّر السعر، فعّل «السعر تغيّر؟».')}
     <div class="card"><h2>استلام بضاعة</h2>
@@ -3101,6 +3101,24 @@ function wPrevTxt(on,cost,price){ cost=+cost||0; price=+price||0; if(!on||!(pric
 /* خيار بالصنف بيتفعّل بصح: لما ينشال الصح بيختفي، وعند الحفظ قيمته بتصير صفر */
 const IMGPH='<i>📷</i><small>صورة</small>';
 /* سجل اللي انسجل بتاريخ قديم (مبيعات، مصروفات، سحوبات): للعرض، والتعديل من نفس الفاتورة أو صفحتها */
+/* سجل المبيعات بالأيام: كل يوم بفواتيره ووقتها، ومنه بتضيف فاتورة لنفس اليوم */
+let LOGD=null, LOGN=14;
+const ymdT=k=>{ const [y,m,d]=String(k).split('-').map(Number); return new Date(y,m-1,d).getTime() };
+function logBody(){ const dd=t=>new Date(t).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'});
+  const by={}; for(const x of S.sales){ const k=ymd(x.ts); (by[k]=by[k]||[]).push(x) }
+  const canAdd=isOwner()&&!isSeller2();
+  if(LOGD){ const L=(by[LOGD]||[]).slice().sort((a,b)=>b.ts-a.ts), t0=ymdT(LOGD), tot=L.reduce((a,x)=>a+(+x.total||0),0), inRange=t0!=null&&t0>=sod(bdMin());
+    return `<div class="card logday"><div class="row"><button class="btn sm" data-act="logAll">‹ كل الأيام</button><span class="pill ok num">${L.length} فاتورة</span></div>
+      <h2 style="margin:0">${dd(t0)}</h2><div class="muted">مجموع المبيعات: <b class="num" style="color:var(--gold-deep)">${fx(tot)} ₪</b></div>
+      ${canAdd?(inRange?`<button class="btn accent block" data-act="logAdd" data-d="${LOGD}">＋ إضافة فاتورة لهاليوم</button>`:'<p class="fh" style="margin:0">هاليوم أقدم من آخر إغلاق حسابات، فما بتنضاف عليه فواتير جديدة.</p>'):''}
+      <div class="list">${L.map(x=>`<button class="li" data-act="sale" data-id="${x.id}"><span><span class="t">فاتورة <span class="num">${x.id}</span>${x.late?' <span class="pill warn" style="font-size:11px">انضافت لاحقًا</span>':''}</span><br><span class="muted">🕒 ${new Date(x.ts).toLocaleTimeString('ar-u-nu-latn',{hour:'2-digit',minute:'2-digit'})} · ${payLabel(x)}${x.confirmed===false?' · بانتظار التأكيد':''}</span></span>${money(x.total)}</button>`).join('')||'<div class="empty">ما في فواتير بهاليوم. إذا نسيت تسجّلها، اضغط «إضافة فاتورة لهاليوم».</div>'}</div>
+      <p class="fh" style="margin:0">اضغط على أي فاتورة لتعدّلها، أو ترجّع منها، أو تضيف عليها أصناف.</p></div>` }
+  const first=S.sales.length?Math.min(...S.sales.map(x=>x.ts)):Date.now(), days=[]; let t=sod();
+  for(let i=0;i<LOGN&&t>=sod(first);i++,t=sod(t-DAY/2)) days.push(ymd(t));
+  const more=sod(first)<sod(Date.now()-(LOGN-1)*DAY);
+  return `<div class="card"><div class="row"><h2>الأيام</h2><span class="muted" style="font-size:12.5px">اضغط على اليوم لتشوف فواتيره</span></div><div class="list">${days.map(k=>{ const L=by[k]||[], tot=L.reduce((a,x)=>a+(+x.total||0),0), lt=L.filter(x=>x.late).length;
+    return `<button class="li dayrow${L.length?'':' empty0'}" data-act="logDay" data-d="${k}"><span><span class="t">${k===ymd(Date.now())?'اليوم · ':k===ymd(Date.now()-DAY)?'مبارح · ':''}${dd(ymdT(k))}</span><br><span class="muted">${L.length?`<span class="num">${L.length}</span> فاتورة`:'ما في مبيعات مسجّلة'}${lt?` · <span class="num">${lt}</span> انضافت لاحقًا`:''}</span></span><span class="num" style="font-weight:700">${L.length?fx(tot)+' ₪':'—'}</span></button>` }).join('')}</div>
+    ${more?'<button class="btn block" data-act="logMore">عرض أيام أقدم</button>':''}</div>` }
 function lateRows(){ const R=[];
   (S.sales||[]).forEach(x=>{ if(x.late) R.push({k:'sale',id:x.id,ts:x.ts,at:x.late,amt:x.total,t:'فاتورة #'+x.id+' · '+(x.lines||[]).length+' صنف'}) });
   (S.expenses||[]).forEach(x=>{ if(x.late) R.push({k:'exp',id:x.id,ts:x.ts,at:x.late,amt:x.amt,t:'مصروف: '+x.name}) });
@@ -3166,7 +3184,7 @@ const WORD={customers:{one:'زبون',note:'دفعة نقدية',bal:'الرصي
 
 const A={
 go(d){tab=d.tab; if(tab==='more') sub='menu'; try{history.replaceState(null,'','#'+tab)}catch(e){} render(); $('#view').scrollTop=0},
-openSub(d){tab='more'; sub=d.s; render(); $('#view').scrollTop=0},
+openSub(d){tab='more'; if(d.s==='log'&&sub!=='log') LOGD=null; sub=d.s; render(); $('#view').scrollTop=0},
 close(){closeSheet()},
 scan(d){openScan(d.target)},
 scanRetry(){scanCam()},
@@ -3376,6 +3394,10 @@ sideExp(){ const Q=['مواصلات','توصيل','أكل وشرب','صيانة'
 lateNew(){ const y=ymd(Date.now()-DAY);
   openSheet(`${sheetHead('مبيعات يوم فات')}<p style="margin:0;font-size:15px;line-height:1.8">نسيت تسجّل مبيعات يوم؟ اختار اليوم، وبعدين بيع الأصناف عادي. الفاتورة بتنحسب على يومها الأصلي، وبتطلع بـ«سجل التواريخ القديمة» وبتقدر تعدّلها.</p>
     <label for="lnDay">اليوم اللي نسيته${bdInput('lnDay')}</label><button class="btn primary block big" data-act="lateGo">ابدأ البيع بهاد التاريخ</button>`); const f=$('#lnDay'); if(f) f.value=y },
+logDay(d){ LOGD=d.d; render(); $('#view').scrollTop=0 },
+logAll(){ LOGD=null; render() },
+logMore(){ LOGN+=14; render() },
+logAdd(d){ cart().bd=d.d; tab='sell'; render(); toast('📅 البيع هلأ بتاريخ '+fday(bdTs(d.d))+'. ضيف الأصناف وادفع') },
 bdClear(){ cart().bd=''; render(); toast('رجع البيع لتاريخ اليوم') },
 lateGo(){ const v=($('#lnDay')||{}).value; if(!v||bdTs(v)==null) return; cart().bd=v; closeSheet(); tab='sell'; sub=null; render(); toast('📅 البيع هلأ بتاريخ '+fday(bdTs(v))+'. ضيف الأصناف وادفع') },
 sxQ(d){ const n=$('#sxName'); if(n) n.value=d.n },
