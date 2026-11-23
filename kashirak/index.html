@@ -601,6 +601,7 @@ body.rentm .salesOnly{display:none!important}
 .cqbox.big{background:#FFF7ED;border-color:#FB923C}.cqbox.big>b{color:#9A3412}
 .cqbox{margin-top:8px;background:#F0F9FF;border:1px dashed #38BDF8;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.cqbox>b{font-size:14px;color:#0369A1}
 .rdin{display:flex;align-items:flex-end;gap:8px;margin:0 0 10px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,#F0F9FF,#E0F2FE);border:1.5px solid #38BDF8}.rdin label{flex:1;margin:0;font-weight:700;color:#0369A1}.rdin input{margin-top:6px}
+.rfdq{margin-bottom:6px;position:relative}.rfdl{display:flex;flex-direction:column;gap:6px;margin-top:6px}.rfdi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1.5px solid #6EE7B7;background:#fff;font:inherit;color:inherit;text-align:start}.rfdi.no{border-color:#FCA5A5;opacity:.85}.rfdi img,.rfdi .rdi{width:42px;height:52px;border-radius:8px;object-fit:cover;flex:none;font-size:24px}.rfdi>span{flex:1;display:flex;flex-direction:column}.rfdi small{color:var(--muted);font-size:12px}.rfdi i{font-style:normal;font-weight:700;font-size:12px;white-space:nowrap}.rfdi.ok i{color:#047857}.rfdi.no i{color:#B91C1C}
 .hhint{display:flex;align-items:stretch;gap:6px;margin-bottom:10px;padding-inline-end:84px;animation:hhIn .4s ease}.hhgo{flex:1;display:flex;align-items:center;gap:10px;text-align:start;padding:10px 12px;border-radius:14px;border:1.5px solid #34D399;background:linear-gradient(135deg,#ECFDF5,#F0FDFA);font:inherit;color:inherit}.hhgo>span:first-child{font-size:26px}.hhgo b{display:block;font-size:14.5px;color:#065F46}.hhgo small{font-size:12px;color:#047857}.hhx{width:36px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:20px;color:var(--muted)}@keyframes hhIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
 .himgs{display:flex;flex-direction:column;gap:10px}.himgs img{width:100%;border-radius:16px;display:block;background:#0B1B2B;min-height:120px}
 .rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
@@ -4471,7 +4472,7 @@ function rentForm(r,page){ const pre=!r&&RPRE?RPRE:null; if(!r) RPRE=null; const
   RIDIMG=null;
   return `${page?'':sheetHead(r?'تعديل الحجز #'+r.no:'حجز فستان جديد')}
   <div class="card pcard pay"><h2>👗 الفستان والمواعيد</h2>
-    ${lock?`<div class="ridin">👗 الفستان عند الزبونة: بتقدر تمدد يوم الإرجاع وتعدّل بياناتها والسعر. الفستان ويوم الاستلام ما بيتغيروا.</div>`:''}${ds.length?`<label for="rfDress">الفستان<select id="rfDress" ${lock?'disabled':''}>${ds.map(d=>`<option value="${d.id}" ${selId===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select></label>`:'<p class="fh" style="margin:0">ما في فساتين مسجّلة. اكتب اسم الفستان هون وبينضاف لحاله.</p><input id="rfDname" placeholder="اسم الفستان (مثال: فستان سهرة كحلي)">'}
+    ${lock?`<div class="ridin">👗 الفستان عند الزبونة: بتقدر تمدد يوم الإرجاع وتعدّل بياناتها والسعر. الفستان ويوم الاستلام ما بيتغيروا.</div>`:''}${ds.length&&!lock?`<div class="rfdq"><input id="rfDq" placeholder="🔎 دوّر على الفستان بالاسم أو الرقم أو المقاس" autocomplete="off"><div id="rfDl" class="rfdl"></div></div>`:''}${ds.length?`<label for="rfDress">الفستان<select id="rfDress" ${lock?'disabled':''}>${ds.map(d=>`<option value="${d.id}" ${selId===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select></label>`:'<p class="fh" style="margin:0">ما في فساتين مسجّلة. اكتب اسم الفستان هون وبينضاف لحاله.</p><input id="rfDname" placeholder="اسم الفستان (مثال: فستان سهرة كحلي)">'}
     <label for="rfEvent"><span>يوم المناسبة (العرس أو الحفلة) <b class="rdw" data-w="rfEvent">${rWd(ev)}</b></span><input id="rfEvent" type="date" value="${ev}"></label>
     <div class="grid2"><label for="rfPick"><span>يوم الاستلام <b class="rdw" data-w="rfPick">${rWd(g.pick||ymd(ymdT2(ev)-DAY))}</b></span><input id="rfPick" type="date" value="${g.pick||ymd(ymdT2(ev)-DAY)}" ${lock?'disabled':''}></label><label for="rfRet"><span>يوم الإرجاع <b class="rdw" data-w="rfRet">${rWd(g.ret||ymd(ymdT2(ev)+DAY))}</b></span><input id="rfRet" type="date" value="${g.ret||ymd(ymdT2(ev)+DAY)}"></label></div>
     <div id="rfAvail" class="fh"></div></div>
@@ -4586,6 +4587,7 @@ rCalNav(d){ const now=new Date(), c=RCAL[d.d]||[now.getFullYear(),now.getMonth()
 rentDateGo(){ RENTV='date'; A.openSub({s:'rent'}) },
 rentBookOn(d){ RPRE={dressId:+d.d,event:d.k||null}; closeSheet(); if(rentMode()){ A.go({tab:'sell'}) } else { openSheet(rentForm(null)); setTimeout(()=>rentAvailUI(0),50) } },
 rdClr(){ RDATE2=''; render() },
+rfDpick(d){ const s=$('#rfDress'); if(!s) return; s.value=String(d.id); s.dispatchEvent(new Event('change',{bubbles:true})); const x=dressById(d.id), q=$('#rfDq'); if(q) q.value=''; const L=$('#rfDl'); if(L) L.innerHTML=''; toast(RT('✓ اخترت: '+(x?x.name:''))) },
 hhX(){ try{ localStorage.setItem('ksr-hh-'+helpKey(),JSON.stringify({t:Date.now(),n:9})); sessionStorage.removeItem('ksr-hh-'+helpKey()) }catch(e){} const h=$('.hhint'); if(h) h.remove() },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
 rentOnGo(d){ closeSheet(); S.rentKind=RKIND; S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
@@ -4674,7 +4676,7 @@ dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName');
 });
 ['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentKindSet','rentRevAsk','rentRevGo','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
 document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
-  if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(rWdUI,0);
+  if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(()=>{ rWdUI(); rfDqUI() },0);
   if(t.id==='rdDate'&&t.value){ RDATE=t.value; render() }
   if(t.id==='rdDate2'){ RDATE2=t.value||''; render() }
   if(['rfDress','rfPick','rfRet'].includes(t.id)){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
@@ -4693,7 +4695,11 @@ function cqSync(src){ const cs=+(($('#fCs')||{}).value)||0, bn=Math.round(+(($('
   else q.value=r3((bq?(+(B&&B.value)||0)*bq:0)+(+(C&&C.value)||0)*cs+(+(P&&P.value)||0));
   const t=+q.value||0, b2=bq?Math.floor(t/bq):0, rem=t-b2*bq, c2=Math.floor(rem/cs), p2=r3(rem%cs);
   if(h) h.textContent=`= ${t} حبة بالمخزون (${[b2?b2+' كرتونة كبيرة':'',c2?c2+' كرتونة':'',p2?p2+' حبة':''].filter(Boolean).join(' + ')||'0'})` }
-document.addEventListener('input',e=>{ const tg=e.target;
+function rfDqUI(){ const q=String(($('#rfDq')||{}).value||'').trim(), L=$('#rfDl'); if(!L) return; if(!q){ L.innerHTML=''; return }
+  const p=($('#rfPick')||{}).value, rt=($('#rfRet')||{}).value, sk=+((document.querySelector('[data-act=rentSave]')||{dataset:{}}).dataset.id||0);
+  const M=(S.dresses||[]).filter(d=>[d.name,d.code,d.size,d.color].some(x=>String(x||'').includes(q))).slice(0,8);
+  L.innerHTML=RT(M.map(d=>{ const c=p&&rt?rClash(d.id,p,rt,sk):null; return `<button type="button" class="rfdi ${c?'no':'ok'}" data-act="rfDpick" data-id="${d.id}">${d.img?`<img src="${d.img}" alt="">`:'<span class="rdi">👗</span>'}<span><b>${esc(d.name)}${d.code?' #'+esc(d.code):''}</b><small>${[d.size?'مقاس '+esc(d.size):'',d.color?esc(d.color):'',fx(d.price||0)+' ₪'].filter(Boolean).join(' · ')}</small></span><i>${c?'⛔ محجوز':'✓ متاح'}</i></button>` }).join('')||'<div class="fh">ما في فستان بهالاسم</div>') }
+document.addEventListener('input',e=>{ const tg=e.target; if(tg&&tg.id==='rfDq') rfDqUI();
   if(tg&&['fQB','fQC','fQP','fCs','fQty','fBigN'].includes(tg.id)) cqSync(tg.id);
   if(e.target&&['rfEvent','rfPick','rfRet'].includes(e.target.id)) rWdUI(); if(e.target&&e.target.id==='rentQ'){ RENTQ=e.target.value; const L=$('#rentL'); if(!L) return; const keep=e.target.selectionStart; render(); const q=$('#rentQ'); if(q){ q.focus(); try{q.setSelectionRange(keep,keep)}catch(_){} } } });
 
