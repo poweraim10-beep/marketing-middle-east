@@ -610,6 +610,7 @@ body.rentm .salesOnly{display:none!important}
 .cqbox.big{background:#FFF7ED;border-color:#FB923C}.cqbox.big>b{color:#9A3412}
 .cqbox{margin-top:8px;background:#F0F9FF;border:1px dashed #38BDF8;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.cqbox>b{font-size:14px;color:#0369A1}
 .rdin{display:flex;align-items:flex-end;gap:8px;margin:0 0 10px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,#F0F9FF,#E0F2FE);border:1.5px solid #38BDF8}.rdin label{flex:1;margin:0;font-weight:700;color:#0369A1}.rdin input{margin-top:6px}
+.rfxr{display:flex;gap:6px;align-items:center;margin-top:6px}.rfxr select{flex:1}
 .rfdq{margin-bottom:6px;position:relative}.rfdl{display:flex;flex-direction:column;gap:6px;margin-top:6px}.rfdi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1.5px solid #6EE7B7;background:#fff;font:inherit;color:inherit;text-align:start}.rfdi.no{border-color:#FCA5A5;opacity:.85}.rfdi img,.rfdi .rdi{width:42px;height:52px;border-radius:8px;object-fit:cover;flex:none;font-size:24px}.rfdi>span{flex:1;display:flex;flex-direction:column}.rfdi small{color:var(--muted);font-size:12px}.rfdi i{font-style:normal;font-weight:700;font-size:12px;white-space:nowrap}.rfdi.ok i{color:#047857}.rfdi.no i{color:#B91C1C}
 .hhint{display:flex;align-items:stretch;gap:6px;margin-bottom:10px;padding-inline-end:84px;animation:hhIn .4s ease}.hhgo{flex:1;display:flex;align-items:center;gap:10px;text-align:start;padding:10px 12px;border-radius:14px;border:1.5px solid #34D399;background:linear-gradient(135deg,#ECFDF5,#F0FDFA);font:inherit;color:inherit}.hhgo>span:first-child{font-size:26px}.hhgo b{display:block;font-size:14.5px;color:#065F46}.hhgo small{font-size:12px;color:#047857}.hhx{width:36px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-size:20px;color:var(--muted)}@keyframes hhIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1}}
 .himgs{display:flex;flex-direction:column;gap:10px}.himgs img{width:100%;border-radius:16px;display:block;background:#0B1B2B;min-height:120px}
@@ -4291,7 +4292,7 @@ function rentSellPage(){ const c=rentCounts();
 function rentItemsPage(){ return `<div class="rsTop"><h2>👗 الفساتين</h2><button class="btn sm" data-act="rentGo" data-f="soon">الحجوزات ‹</button></div>${dressList()}` }
 /* ===== سجل الفستان: كم مرة انلبس، كم شخص، الدخل، وتقويم بالأيام الفاضية والمحجوزة ===== */
 let RCAL={}, RDATE='', RDATE2='';
-const rDStats=d=>{ const L=(S.rentals||[]).filter(r=>r.dressId===d.id&&r.st!=='cancel'), worn=L.filter(r=>r.st==='out'||r.st==='back'), ppl=new Set(L.map(r=>String(r.cphone||'').replace(/\D/g,'').slice(-9)||r.cname)),
+const rDStats=d=>{ const L=(S.rentals||[]).filter(r=>rHas(r,d.id)&&r.st!=='cancel'), worn=L.filter(r=>r.st==='out'||r.st==='back'), ppl=new Set(L.map(r=>String(r.cphone||'').replace(/\D/g,'').slice(-9)||r.cname)),
   inc=r2((S.rentals||[]).filter(r=>r.dressId===d.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0)), up=L.filter(r=>r.st==='booked'&&r.ret>=rToday()).sort((a,b)=>a.pick<b.pick?-1:1);
   return {L,worn:worn.length,ppl:ppl.size,inc,up,last:worn.sort((a,b)=>b.ret<a.ret?-1:1)[0]} };
 function rDayState(did,k){ const b=rCfg().buffer; for(const r of (S.rentals||[])){ if(r.dressId!==did||r.st==='cancel') continue;
@@ -4430,9 +4431,13 @@ const rLate=r=>r.st==='out'&&r.ret&&r.ret<rToday();
 const rCfg=()=>Object.assign({buffer:1,terms:'الفستان بيرجع بنفس حالته بالموعد المتفق عليه. أي تلف أو تأخير بينخصم من التأمين.'},S.rentCfg||{});
 const dressById=id=>(S.dresses||[]).find(x=>x.id===+id);
 /* هل الفستان فاضي بين تاريخين؟ (مع أيام التنظيف بين حجز وحجز) */
+/* الحجز ممكن يكون فيه أكتر من فستان بنفس الوصل: الأساسي dressId والباقي بـ ex */
+function rHas(r,id){ id=+id; return r.dressId===id||(r.ex||[]).some(x=>x.id===id) }
+function rDnames(r){ return [r.dressId,...(r.ex||[]).map(x=>x.id)].map(i=>{ const d=dressById(i); return d?d.name:'' }).filter(Boolean).join(' + ') }
+function rfxRow(sel){ const ds=S.dresses||[]; return `<div class="rfxr"><select class="rfx" aria-label="فستان إضافي">${ds.map(d=>`<option value="${d.id}" ${sel===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select><button class="btn sm danger" data-act="rfxRm" aria-label="شيل">✕</button></div>` }
 function rClash(did,pick,ret,skip){ const b=rCfg().buffer*DAY, a1=ymdT2(pick), a2=ymdT2(ret)+b;
-  return (S.rentals||[]).find(r=>r.dressId===+did&&r.id!==skip&&r.st!=='cancel'&&r.st!=='back'&&ymdT2(r.pick)<=a2&&ymdT2(r.ret)+b>=a1) }
-function dressNow(d){ const t=rToday(); const L=(S.rentals||[]).filter(r=>r.dressId===d.id&&r.st!=='cancel'&&r.st!=='back');
+  return (S.rentals||[]).find(r=>rHas(r,did)&&r.id!==skip&&r.st!=='cancel'&&r.st!=='back'&&ymdT2(r.pick)<=a2&&ymdT2(r.ret)+b>=a1) }
+function dressNow(d){ const t=rToday(); const L=(S.rentals||[]).filter(r=>rHas(r,d.id)&&r.st!=='cancel'&&r.st!=='back');
   if(L.some(r=>r.st==='out')) return ['عند زبونة','bad']; if(L.some(r=>r.pick<=t&&r.ret>=t)) return ['محجوز اليوم','warn'];
   const nx=L.filter(r=>r.pick>t).sort((a,b)=>a.pick<b.pick?-1:1)[0]; return nx?['محجوز '+rDay(nx.pick),'warn']:['متاح','ok'] }
 function rentCounts(){ const t=rToday(), L=(S.rentals||[]).filter(r=>r.st!=='cancel');
@@ -4475,7 +4480,7 @@ function dressList(){ const DK=RDATE2, dst=d=>{ if(!DK) return dressNow(d); cons
   const L=[...(S.dresses||[])]; if(DK) L.sort((a,b)=>(dst(a)[1]==='ok'?0:1)-(dst(b)[1]==='ok'?0:1));
   return `<button class="addbig" data-act="dressEdit" data-id="0"><span>＋</span>إضافة فستان جديد</button>
     <div class="rdin"><label for="rdDate2"><span>📅 شو الفاضي يوم المناسبة؟ ${DK?`<b class="rdw">${rWd(DK)}</b>`:''}</span><input id="rdDate2" type="date" value="${DK||''}"></label>${DK?`<button class="btn sm" data-act="rdClr">✕ كل الفساتين</button>`:''}</div>
-    <div class="card"><div class="list">${L.map(d=>{ const [t,cl]=dst(d), n=(S.rentals||[]).filter(r=>r.dressId===d.id&&r.st!=='cancel').length, inc=r2((S.rentals||[]).filter(r=>r.dressId===d.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0));
+    <div class="card"><div class="list">${L.map(d=>{ const [t,cl]=dst(d), n=(S.rentals||[]).filter(r=>rHas(r,d.id)&&r.st!=='cancel').length, inc=r2((S.rentals||[]).filter(r=>r.dressId===d.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0));
       return `<button class="li" data-act="dressRec" data-id="${d.id}">${d.img?`<img src="${d.img}" alt="" style="width:52px;height:64px;border-radius:10px;object-fit:cover;flex:none">`:'<span class="rdi">👗</span>'}<span style="flex:1;min-width:0"><span class="t">${esc(d.name)}${d.code?` <span class="muted num">#${esc(d.code)}</span>`:''}</span><br><span class="muted">${[d.size?'مقاس '+esc(d.size):'',d.color?esc(d.color):''].filter(Boolean).join(' · ')}${d.size||d.color?' · ':''}إيجار <span class="num">${fx(d.price||0)}</span> ₪</span><br><span class="muted">انحجز <span class="num">${n}</span> مرة · دخله <span class="num">${fx(inc)}</span> ₪</span></span><span class="pill ${cl}">${t}</span></button>` }).join('')||'<div class="empty">لسا ما ضفت فساتين. ضيف أول فستان بصورته وسعر إيجاره.</div>'}</div></div>` }
 function rentViewRest(tabs,c){
   if(RENTV==='set'){ const g=rCfg(); return tabs+`<div class="card"><h2>إعدادات التأجير</h2>
@@ -4499,7 +4504,7 @@ function rentForm(r,page){ const pre=!r&&RPRE?RPRE:null; if(!r) RPRE=null; const
   RIDIMG=null;
   return `${page?'':sheetHead(r?'تعديل الحجز #'+r.no:'حجز فستان جديد')}
   <div class="card pcard pay"><h2>👗 الفستان والمواعيد</h2>
-    ${lock?`<div class="ridin">👗 الفستان عند الزبونة: بتقدر تمدد يوم الإرجاع وتعدّل بياناتها والسعر. الفستان ويوم الاستلام ما بيتغيروا.</div>`:''}${ds.length&&!lock?`<div class="rfdq"><input id="rfDq" placeholder="🔎 دوّر على الفستان بالاسم أو الرقم أو المقاس" autocomplete="off"><div id="rfDl" class="rfdl"></div></div>`:''}${ds.length?`<label for="rfDress">الفستان<select id="rfDress" ${lock?'disabled':''}>${ds.map(d=>`<option value="${d.id}" ${selId===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select></label>`:'<p class="fh" style="margin:0">ما في فساتين مسجّلة. اكتب اسم الفستان هون وبينضاف لحاله.</p><input id="rfDname" placeholder="اسم الفستان (مثال: فستان سهرة كحلي)">'}
+    ${lock?`<div class="ridin">👗 الفستان عند الزبونة: بتقدر تمدد يوم الإرجاع وتعدّل بياناتها والسعر. الفستان ويوم الاستلام ما بيتغيروا.</div>`:''}${ds.length&&!lock?`<div class="rfdq"><input id="rfDq" placeholder="🔎 دوّر على الفستان بالاسم أو الرقم أو المقاس" autocomplete="off"><div id="rfDl" class="rfdl"></div></div>`:''}${ds.length?`<label for="rfDress">الفستان<select id="rfDress" ${lock?'disabled':''}>${ds.map(d=>`<option value="${d.id}" ${selId===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select></label>`:'<p class="fh" style="margin:0">ما في فساتين مسجّلة. اكتب اسم الفستان هون وبينضاف لحاله.</p><input id="rfDname" placeholder="اسم الفستان (مثال: فستان سهرة كحلي)">'}${ds.length&&!lock?`<div id="rfxL">${(g.ex||[]).map(x=>rfxRow(x.id)).join('')}</div><button class="btn block" data-act="rfxAdd">＋ فستان تاني بنفس الوصل</button>`:lock&&(g.ex||[]).length?`<div class="ridin">ومعه: ${esc((g.ex||[]).map(x=>x.name).join(' + '))}</div>`:''}
     <label for="rfEvent"><span>يوم المناسبة (العرس أو الحفلة) <b class="rdw" data-w="rfEvent">${rWd(ev)}</b></span><input id="rfEvent" type="date" value="${ev}"></label>
     <div class="grid2"><label for="rfPick"><span>يوم الاستلام <b class="rdw" data-w="rfPick">${rWd(g.pick||ymd(ymdT2(ev)-DAY))}</b></span><input id="rfPick" type="date" value="${g.pick||ymd(ymdT2(ev)-DAY)}" ${lock?'disabled':''}></label><label for="rfRet"><span>يوم الإرجاع <b class="rdw" data-w="rfRet">${rWd(g.ret||ymd(ymdT2(ev)+DAY))}</b></span><input id="rfRet" type="date" value="${g.ret||ymd(ymdT2(ev)+DAY)}"></label></div>
     <div id="rfAvail" class="fh"></div></div>
@@ -4518,9 +4523,10 @@ function rentForm(r,page){ const pre=!r&&RPRE?RPRE:null; if(!r) RPRE=null; const
 function rentAvailUI(skip){ const d=$('#rfDress'), p=$('#rfPick'), rt=$('#rfRet'), o=$('#rfAvail'); if(!o||!p||!rt) return;
   if(d&&p.value&&rt.value&&!d.disabled) [...d.options].forEach(op=>{ const x=dressById(op.value); if(!x) return; const c=rClash(x.id,p.value,rt.value,skip); const base=`${x.name}${x.code?' #'+x.code:''}${x.size?' · '+x.size:''} · ${fx(x.price||0)} ₪`; op.textContent=(c?'⛔ محجوز · ':'✓ ')+base });
   if(p.value&&rt.value&&rt.value<p.value){ o.innerHTML='<b style="color:#B91C1C">⚠️ يوم الإرجاع قبل يوم الاستلام</b>'; return }
-  if(!d){ o.innerHTML=''; return } const c=rClash(d.value,p.value,rt.value,skip);
-  o.innerHTML=RT(c?`<b style="color:#B91C1C">⚠️ هالفستان محجوز لـ${esc(c.cname)} من ${rDay(c.pick)} لـ${rDay(c.ret)}. اختار فستان أو أيام تانية.</b>`:'<b style="color:#047857">✓ الفستان متاح بهالأيام</b>');
-  const pr=$('#rfPrice'), ins=$('#rfIns'), dr=dressById(d.value); if(dr&&pr&&!pr.dataset.t&&!skip){ pr.value=dr.price||''; if(ins&&!ins.value) ins.value=dr.ins||'' } }
+  if(!d){ o.innerHTML=''; return } const c=rClash(d.value,p.value,rt.value,skip), X=[...document.querySelectorAll('.rfx')].map(e=>e.value);
+  const xc=X.map(id=>{ const k=rClash(id,p.value,rt.value,skip), x=dressById(id); return k&&x?`<br><b style="color:#B91C1C">⚠️ ${esc(x.name)} محجوز لـ${esc(k.cname)} من ${rDay(k.pick)} لـ${rDay(k.ret)}</b>`:'' }).join('')+(new Set([d.value,...X]).size<X.length+1?'<br><b style="color:#B91C1C">⚠️ نفس الفستان مختار مرتين</b>':'');
+  o.innerHTML=RT((c?`<b style="color:#B91C1C">⚠️ هالفستان محجوز لـ${esc(c.cname)} من ${rDay(c.pick)} لـ${rDay(c.ret)}. اختار فستان أو أيام تانية.</b>`:`<b style="color:#047857">✓ ${X.length?'الفستان الأساسي':'الفستان'} متاح بهالأيام</b>`)+xc);
+  const pr=$('#rfPrice'), ins=$('#rfIns'), all=[d.value,...X].map(dressById).filter(Boolean); if(all.length&&pr&&!pr.dataset.t&&!skip){ pr.value=r2(all.reduce((a,x)=>a+(+x.price||0),0))||''; if(ins&&!ins.dataset.t) ins.value=r2(all.reduce((a,x)=>a+(+x.ins||0),0))||'' } }
 
 function rentMsg(r,kind){ return RT(rentMsg0(r,kind)) }
 function rentMsg0(r,kind){ const sh=S.shop||'المحل';
@@ -4614,6 +4620,9 @@ rCalNav(d){ const now=new Date(), c=RCAL[d.d]||[now.getFullYear(),now.getMonth()
 rentDateGo(){ RENTV='date'; A.openSub({s:'rent'}) },
 rentBookOn(d){ RPRE={dressId:+d.d,event:d.k||null}; closeSheet(); if(rentMode()){ A.go({tab:'sell'}) } else { openSheet(rentForm(null)); setTimeout(()=>rentAvailUI(0),50) } },
 rdClr(){ RDATE2=''; render() },
+rfxAdd(){ const L=$('#rfxL'); if(!L) return; const used=new Set([($('#rfDress')||{}).value,...[...document.querySelectorAll('.rfx')].map(e=>e.value)]); const pick=$('#rfPick'), rt=$('#rfRet'), free=(S.dresses||[]).find(d=>!used.has(String(d.id))&&!(pick&&rt&&rClash(d.id,pick.value,rt.value,0)))||(S.dresses||[]).find(d=>!used.has(String(d.id))); if(!free){ toast('ما في فساتين تانية مسجّلة'); return }
+  L.insertAdjacentHTML('beforeend',rfxRow(free.id)); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) },
+rfxRm(d,el){ const r=(el||document.activeElement).closest('.rfxr'); if(r) r.remove(); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) },
 rfDpick(d){ const s=$('#rfDress'); if(!s) return; s.value=String(d.id); s.dispatchEvent(new Event('change',{bubbles:true})); const x=dressById(d.id), q=$('#rfDq'); if(q) q.value=''; const L=$('#rfDl'); if(L) L.innerHTML=''; toast(RT('✓ اخترت: '+(x?x.name:''))) },
 hhX(){ try{ localStorage.setItem('ksr-hh-'+helpKey(),JSON.stringify({t:Date.now(),n:9})); sessionStorage.removeItem('ksr-hh-'+helpKey()) }catch(e){} const h=$('.hhint'); if(h) h.remove() },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
@@ -4635,12 +4644,13 @@ async rentSave(d){ const id=+d.id, old=id?(S.rentals||[]).find(x=>x.id===id):nul
   if(!name){ toast('اكتب اسم الزبونة'); return } if(!phone){ toast('اكتب رقم جوال الزبونة'); return } if(!pick||!ret){ toast('اختار يوم الاستلام والإرجاع'); return }
   if(ret<pick){ toast('يوم الإرجاع لازم يكون بعد الاستلام'); return } if(price<=0){ toast('اكتب سعر الإيجار'); return }
   const c=rClash(dr.id,pick,ret,id); if(c){ toast(`⚠️ الفستان محجوز لـ${c.cname} بهالأيام`); return }
+  const exIds=[...document.querySelectorAll('.rfx')].map(e=>+e.value), ex=[]; for(const xi of exIds){ const x=dressById(xi); if(!x) continue; if(xi===dr.id||ex.some(y=>y.id===xi)){ toast('نفس الفستان مختار مرتين'); return } const k=rClash(xi,pick,ret,id); if(k){ toast(`⚠️ ${x.name} محجوز لـ${k.cname} بهالأيام`); return } ex.push({id:x.id,name:x.name}) }
   let img=old?old.cidImg:''; if(RIDIMG){ try{ const k='rid'+Date.now(); await idb('readwrite',st=>st.put(RIDIMG,k)); img=k }catch(e){} }
-  const data={dressId:dr.id,dname:dr.name,cname:name.slice(0,80),cphone:phone.slice(0,20),cidNo:idNo.slice(0,20),cidImg:img,event:ev,pick,ret,price,ins,insDoc:v('rfInsDoc').slice(0,80),alt:v('rfAlt').slice(0,160),note:v('rfNote').slice(0,200)};
-  if(old){ if(old.st==='out'){ data.dressId=old.dressId; data.dname=old.dname; data.pick=old.pick }
+  const data={dressId:dr.id,ex,dname:[dr.name,...ex.map(x=>x.name)].join(' + '),cname:name.slice(0,80),cphone:phone.slice(0,20),cidNo:idNo.slice(0,20),cidImg:img,event:ev,pick,ret,price,ins,insDoc:v('rfInsDoc').slice(0,80),alt:v('rfAlt').slice(0,160),note:v('rfNote').slice(0,200)};
+  if(old){ if(old.st==='out'){ data.dressId=old.dressId; data.ex=old.ex||[]; data.dname=old.dname; data.pick=old.pick }
     if(old.st==='back'||old.st==='cancel'){ toast('الحجز مسكّر، ما بينعدّل'); return }
     if(data.ret<data.pick){ toast('يوم الإرجاع لازم يكون بعد الاستلام'); return }
-    if(old.st==='out'){ const c2=rClash(old.dressId,old.pick,data.ret,old.id); if(c2){ toast(`⚠️ ما بنقدر نمدد: الفستان محجوز لـ${c2.cname} من ${rDay(c2.pick)}`); return } }
+    if(old.st==='out'){ const c2=[old.dressId,...(old.ex||[]).map(x=>x.id)].map(i=>rClash(i,old.pick,data.ret,old.id)).find(Boolean); if(c2){ toast(`⚠️ ما بنقدر نمدد: الفستان محجوز لـ${c2.cname} من ${rDay(c2.pick)}`); return } }
     if(price<rPaid(old)-0.004){ toast(`السعر أقل من المدفوع (${fx(rPaid(old))} ₪). إذا بدك ترجّع فرق، سجّله بعد التعديل`); return }
     const L={dname:'الفستان',cname:'الاسم',cphone:'الجوال',cidNo:'رقم الهوية',event:'المناسبة',pick:'الاستلام',ret:'الإرجاع',price:'الإيجار',ins:'التأمين',insDoc:'الرهن',alt:'التعديلات',note:'الملاحظات'};
     const fmt=(k,v)=>['event','pick','ret'].includes(k)?rDay(v):['price','ins'].includes(k)?fx(v)+' ₪':(v||'—');
@@ -4693,12 +4703,12 @@ dressEdit(d){ const x=+d.id?dressById(d.id):null, g=x||{}; RDIMG=null;
     <div class="grid2"><label for="dfColor">اللون<input id="dfColor" value="${esc(g.color||'')}"></label><label for="dfPrice">سعر الإيجار (₪)<input id="dfPrice" type="number" inputmode="decimal" value="${g.price||''}"></label></div>
     <div class="grid2"><label for="dfIns">التأمين المعتاد (₪)<input id="dfIns" type="number" inputmode="decimal" value="${g.ins||''}"></label><label for="dfCost">تكلفة الفستان (اختياري)<input id="dfCost" type="number" inputmode="decimal" value="${g.cost||''}"></label></div>
     <label for="dfNote">ملاحظة<input id="dfNote" value="${esc(g.note||'')}"></label>
-    ${x?`<div class="card"><h2>حجوزاته</h2><div class="list">${(S.rentals||[]).filter(r=>r.dressId===x.id&&r.st!=='cancel').sort((a,b)=>a.pick<b.pick?1:-1).slice(0,12).map(rentRow).join('')||'<div class="empty">لسا ما انحجز</div>'}</div>${x.cost?`<p class="fh" style="margin:0">رجّع من تكلفته: <b class="num">${fx(r2((S.rentals||[]).filter(r=>r.dressId===x.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0)))}</b> من <b class="num">${fx(x.cost)}</b> ₪</p>`:''}</div>`:''}
+    ${x?`<div class="card"><h2>حجوزاته</h2><div class="list">${(S.rentals||[]).filter(r=>rHas(r,x.id)&&r.st!=='cancel').sort((a,b)=>a.pick<b.pick?1:-1).slice(0,12).map(rentRow).join('')||'<div class="empty">لسا ما انحجز</div>'}</div>${x.cost?`<p class="fh" style="margin:0">رجّع من تكلفته: <b class="num">${fx(r2((S.rentals||[]).filter(r=>r.dressId===x.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0)))}</b> من <b class="num">${fx(x.cost)}</b> ₪</p>`:''}</div>`:''}
     <button class="btn primary block big" data-act="dressSave" data-id="${x?x.id:0}">حفظ الفستان</button>`) },
 dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName'); if(!n){ toast('اكتب اسم الفستان'); return }
   const data={name:n.slice(0,60),code:v('dfCode').slice(0,20),size:v('dfSize').slice(0,20),color:v('dfColor').slice(0,30),price:r2(+v('dfPrice')||0),ins:r2(+v('dfIns')||0),cost:r2(+v('dfCost')||0),note:v('dfNote').slice(0,120)};
   if(RDIMG) data.img=RDIMG; S.dresses=S.dresses||[]; const x=+d.id?dressById(d.id):null;
-  if(x){ Object.assign(x,data); (S.rentals||[]).forEach(r=>{ if(r.dressId===x.id&&r.st==='booked') r.dname=x.name }) } else S.dresses.push({id:S.nextId++,img:'',...data});
+  if(x){ Object.assign(x,data); (S.rentals||[]).forEach(r=>{ if(rHas(r,x.id)&&r.st==='booked') r.dname=rDnames(r) }) } else S.dresses.push({id:S.nextId++,img:'',...data});
   S.rentOn=1; save(); closeSheet(); RENTV='dress'; render(); toast('✓ انحفظ الفستان') }
 });
 ['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentKindSet','rentRevAsk','rentRevGo','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
@@ -4706,9 +4716,9 @@ document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(()=>{ rWdUI(); rfDqUI() },0);
   if(t.id==='rdDate'&&t.value){ RDATE=t.value; render() }
   if(t.id==='rdDate2'){ RDATE2=t.value||''; render() }
-  if(['rfDress','rfPick','rfRet'].includes(t.id)){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
+  if(['rfDress','rfPick','rfRet'].includes(t.id)||t.classList.contains('rfx')){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfEvent'&&t.value){ const p=$('#rfPick'), rt=$('#rfRet'); if(p) p.value=ymd(ymdT2(t.value)-DAY); if(rt) rt.value=ymd(ymdT2(t.value)+DAY); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
-  if(t.id==='rfPrice') t.dataset.t='1';
+  if(t.id==='rfPrice'||t.id==='rfIns') t.dataset.t='1';
   if(t.classList.contains('rpFile')&&t.files&&t.files[0]){ const f=t.files[0], k=t.dataset.k; t.value=''; proofImg(f).then(async r=>{ const id='rp'+Date.now(); await idb('readwrite',st=>st.put(r.data,id)); if(RPS[k]) RPS[k].proof=id; const el=document.querySelector(`.rpay[data-k="${k}"]`), pv=el&&el.querySelector('.rpPrev'); if(pv) pv.innerHTML=`<img src="${r.data}" alt="الإشعار" style="max-height:120px;border-radius:10px;margin-top:6px"> <b style="color:#047857">✓ انحفظ الإشعار</b>` }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='roIdImg'&&t.files&&t.files[0]){ docImg(t.files[0]).then(x=>{ RIDIMG=x; const l=$('#roIdLbl'); if(l) l.textContent='📷 صورة الهوية ✓' }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='mgPick'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; f.text().then(tx=>{ let B=null; try{ B=JSON.parse(tx) }catch(e){} if(!B||!Array.isArray(B.items)||!Array.isArray(B.sales)){ toast('الملف مش نسخة كاشيرك صالحة'); return }
