@@ -600,6 +600,7 @@ body.rentm .salesOnly{display:none!important}
 .rdh{font-size:16px;margin:14px 2px 8px}.rdgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rdc{background:var(--surface);border:2px solid #6EE7B7;border-radius:16px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;cursor:pointer}.rdc.no{border-color:#FCA5A5;opacity:.85}.rdc img,.rdc .rdi{width:100%;height:130px;object-fit:cover;border-radius:12px}.rdc .rdi{display:grid;place-items:center;font-size:44px;width:100%}.rdc b{font-size:14px}.rdc small{font-size:12px;color:var(--muted)}.rdc .who{color:#B91C1C;font-weight:700}
 .cqbox.big{background:#FFF7ED;border-color:#FB923C}.cqbox.big>b{color:#9A3412}
 .cqbox{margin-top:8px;background:#F0F9FF;border:1px dashed #38BDF8;border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}.cqbox>b{font-size:14px;color:#0369A1}
+.himgs{display:flex;flex-direction:column;gap:10px}.himgs img{width:100%;border-radius:16px;display:block;background:#0B1B2B;min-height:120px}
 .rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
@@ -2544,6 +2545,9 @@ ann:{t:'التعميمات',why:'رسالة من المالك بتظهر على 
 cat:{t:'كتالوج واتساب',why:'رابط لمحلك فيه الأصناف والأسعار. الزبون بيختار وبيبعتلك الطلب جاهز على واتساب.',how:['شغّل الكتالوج واكتب رقم الواتساب ورسالة ترحيب.','اضغط «انشر الكتالوج»، وبيطلعلك الرابط ورمز QR.','شارك الرابط بالجروبات، أو اطبع الرمز وحطه على باب المحل.','لما تغيّر أسعار اضغط «حدّث الكتالوج».'],tips:['التكلفة والكميات ما بتظهر للزبون أبدًا.']},
 wh:{t:'المخازن',why:'لو عندك أكثر من مخزن، بتتابع البضاعة بكل واحد.',how:['أضف المخزن، وانقل البضاعة بينهم.'],tips:[]},
 };
+/* صور الشرح المرقّمة لكل صفحة (بتنحفظ على الجهاز أول مرة بتنفتح) */
+const HELPIMG={home:['home'],sell:['sell'],items:['items','item1','item2'],debts:['debts'],buy:['buy'],cash:['cash'],r_home:['r_home'],r_sell:['r_sell'],r_items:['r_items','r_dress'],r_rent:['r_rent','r_dress']};
+function helpImgs(k){ if(S&&S.pharm&&k==='items') return ['items','p_item','item1']; return HELPIMG[k]||[] }
 function helpKey(){ const k=tab==='more'?(sub||'menu'):tab; if(k==='rent') return 'r_rent'; return (typeof rentMode==='function'&&rentMode()&&HELP['r_'+k])?'r_'+k:k }
 /* «رأيك يهمنا»: تبويب صغير على جنب الشاشة بيبعت الرأي على واتساب الدعم */
 function helpUp(show){ let h=$('#helpBtn'); if(!h){ if(!show) return; h=document.createElement('button'); h.id='helpBtn'; h.className='helpbtn'; h.dataset.act='help'; h.setAttribute('aria-label','شرح الصفحة'); h.innerHTML='<span>؟</span>شرح'; document.body.appendChild(h) }
@@ -3581,9 +3585,10 @@ walSet(){ const W=WALS(); openSheet(`${sheetHead('أرقام محافظ الاس
   <button class="btn accent block" data-act="walSave">حفظ</button>`) },
 walSave(){ const W=WALS(), o={}; W.forEach((m,i)=>{ const v=String(($('#wn'+i)||{}).value||'').replace(/[^\d+]/g,'').slice(0,20); if(v) o[m]=v });
   S.walNo=o; audit('تعديل أرقام محافظ الاستلام'); save(); closeSheet(); render(); toast('✓ انحفظت أرقام المحافظ') },
-help(d){ const k=(d&&d.k)||helpKey(), h=HELP[k]||HELP.home;
+help(d){ const k=(d&&d.k)||helpKey(), h=HELP[k]||HELP.home, imgs=helpImgs(k);
   openSheet(`${sheetHead('شرح: '+h.t)}
     <div class="hwhy"><b>ⓘ ليش هالصفحة؟</b><p>${h.why}</p></div>
+    ${imgs.length?`<h3 class="hh">📸 الشرح بالصور</h3><div class="himgs">${imgs.map(x=>`<img src="help/${x}.webp" alt="شرح بالصور" loading="lazy" onerror="this.remove()">`).join('')}</div>`:''}
     ${h.how.length?`<h3 class="hh">✓ كيف أستعملها؟</h3><div class="hsteps">${h.how.map((x,i)=>`<div class="hstep"><span>${i+1}</span><p>${x}</p></div>`).join('')}</div>`:''}
     ${h.tips.length?`<div class="htips"><b>💡 نصائح</b><ul>${h.tips.map(x=>`<li>${x}</li>`).join('')}</ul></div>`:''}
     <div class="grid2"><button class="btn" data-act="tourStart">🧭 الجولة الكاملة</button><a class="btn wa" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، عندي سؤال عن صفحة «'+h.t+'» بتطبيق كاشيرك الذكي:\n')}" target="_blank" rel="noopener">💬 اسألنا واتساب</a></div>`) },
