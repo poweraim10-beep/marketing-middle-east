@@ -415,9 +415,10 @@ table.acct{width:100%;border-collapse:collapse;font-size:13.5px}table.acct th,ta
 
 .ccard{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:18px;background:var(--surface);border:1.5px solid color-mix(in srgb,var(--gold) 45%,transparent);box-shadow:var(--shadow);color:var(--ink);text-decoration:none}.ccard b{display:block;font-size:15.5px}.ccard small{display:block;color:var(--muted);font-size:13px;line-height:1.5}.ccard .ccic{width:44px;height:44px;border-radius:13px;flex:none;display:grid;place-items:center;font-size:24px;background:color-mix(in srgb,var(--gold) 16%,transparent)}.ccard .chev{font-size:22px;color:var(--muted)}
 
-.wals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.wal{position:relative;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 12px;border-radius:16px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;text-align:start;white-space:nowrap;transition:border-color .15s,box-shadow .15s,background .15s}
-.wal>span{overflow:hidden;text-overflow:ellipsis;min-width:0}.wal .wlogo{width:40px;height:40px;border-radius:11px;flex:none;box-shadow:0 2px 6px rgba(15,23,42,.18)}
+.wals{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.wal{position:relative;display:flex;align-items:center;gap:6px;min-height:42px;padding:5px 7px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-weight:700;font-size:12px;line-height:1.25;cursor:pointer;text-align:start;white-space:normal;transition:border-color .15s,box-shadow .15s,background .15s}
+.wal>span{overflow:hidden;min-width:0}.wal .wlogo{width:26px;height:26px;border-radius:8px;flex:none;box-shadow:0 2px 6px rgba(15,23,42,.18)}
+.wlogo.wini{display:grid;place-items:center;color:#fff;font-weight:800;font-size:12px;letter-spacing:-.5px}.wal .wlogo.wini{font-size:11px}.wlogo.wgen svg{width:16px;height:16px}
 .wlogo.wgen{display:grid;place-items:center;background:linear-gradient(160deg,#EEF2F5,#CBD5E1);color:#334155}.wlogo.wgen svg{width:22px;height:22px}
 .wal .wck{position:absolute;top:-7px;inset-inline-start:-7px;width:22px;height:22px;border-radius:50%;background:var(--wc);color:#fff;font-style:normal;font-size:13px;display:none;place-items:center;border:2px solid var(--surface)}
 .wal[aria-pressed="true"]{border-color:var(--wc);background:color-mix(in srgb,var(--wc) 9%,var(--surface));box-shadow:0 0 0 3px color-mix(in srgb,var(--wc) 22%,transparent)}
@@ -665,10 +666,10 @@ const bdInput=(id,extra='')=>`<input id="${id}" type="date" ${extra} max="${ymd(
 const fdate=t=>new Date(t).toLocaleString('ar-u-nu-latn',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
 const KEY='kashirak-v1', DEVKEY='kashirak-dev';
 const PAY={cash:'نقدي',app:'تطبيق أو محفظة',debt:'دين'};
-const APPM0=['بنك فلسطين','PalPay','جوال باي','بنك آخر']; let APPM=[...APPM0];
-const APPC0={'بنك فلسطين':'#9E1B4F','PalPay':'#7B2FF7','جوال باي':'#6FAE2E','بنك آخر':'#64748B'}; let APPC={...APPC0};
+const APPM0=['بنك فلسطين','PalPay','جوال باي','البنك العربي','بنك القاهرة عمان','بنك القدس','البنك الإسلامي الفلسطيني','البنك الوطني','بنك آخر']; let APPM=[...APPM0];
+const APPC0={'بنك فلسطين':'#9E1B4F','PalPay':'#7B2FF7','جوال باي':'#6FAE2E','البنك العربي':'#0A5FA8','بنك القاهرة عمان':'#C8102E','بنك القدس':'#00843D','البنك الإسلامي الفلسطيني':'#007A5E','البنك الوطني':'#1D3F8C','بنك آخر':'#64748B'}; let APPC={...APPC0};
 const APPL={'بنك فلسطين':'bop','PalPay':'palpay','جوال باي':'jawwal'};
-const appLogo=m=>(RX.pay&&RX.pay[m])?`<img class="wlogo" src="${RX.pay[m]}" alt="">`:APPL[m]?`<img class="wlogo" src="icons/pay/${APPL[m]}.webp" alt="" decoding="async">`:`<span class="wlogo wgen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18L12 4 3 10zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span>`;
+const appLogo=m=>(RX.pay&&RX.pay[m])?`<img class="wlogo" src="${RX.pay[m]}" alt="">`:APPL[m]?`<img class="wlogo" src="icons/pay/${APPL[m]}.webp" alt="" decoding="async">`:(APPC[m]&&m!=='بنك آخر')?`<span class="wlogo wini" style="background:${APPC[m]}">${String(m).replace(/^(ال)?(بنك )?(ال)?/,'').trim().split(/\s+/).map(w=>w.replace(/^ال/,'')[0]).slice(0,2).join('')}</span>`:`<span class="wlogo wgen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18L12 4 3 10zM5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/></svg></span>`;
 const PROOF={};
 const refDup=c=>{const r=String(c.ref||'').trim(); return r.length>=3?S.sales.find(x=>x.ref===r&&x.appMethod===c.appMethod):null};
 /* بصمة صورة للإشعار (dHash 32×32) لكشف إعادة استعمال نفس الصورة */
