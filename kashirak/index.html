@@ -2573,8 +2573,8 @@ function startCard(){ try{ if(!isOwner()||localStorage.getItem('ksr-start-x')) r
     ${st.map(([ok,tl,d,a],i)=>`<button class="sstep${ok?' ok':''}" ${a}><span class="sn">${ok?'✓':i+1}</span><span class="st"><b>${tl}</b><small>${d}</small></span><span class="chev">‹</span></button>`).join('')}</div>` }
 function quickGrid(){ const own=isOwner();
   const Q=[['n-sell','بيع','data-act="go" data-tab="sell"',1,1],['n-debts','الديون','data-act="go" data-tab="debts"',1,1],['n-items','الأصناف','data-act="go" data-tab="items"',1,1],
-    ['buy','المشتريات','data-act="openSub" data-s="buy"',0],['sup','الموردين','data-act="openSub" data-s="sup"',0],['exp','المصروفات','data-act="openSub" data-s="exp"',0],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['log','الفواتير','data-act="openSub" data-s="log"',1],
-    ['n-rep','التقارير','data-act="openSub" data-s="rep"',0]];
+    ['exp','المصروفات','data-act="openSub" data-s="exp"',0],['log','سجل المبيعات','data-act="openSub" data-s="log"',1],['buy','المشتريات','data-act="openSub" data-s="buy"',0],
+    ['sup','الموردين','data-act="openSub" data-s="sup"',0],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['n-rep','التقارير','data-act="openSub" data-s="rep"',0]];
   const subOf=a=>(a.match(/data-s="(\w+)"/)||[])[1];
   const L=Q.filter(([k,,a,all])=>(own||all)&&(!subOf(a)||featOn(subOf(a))));
   return L.length?`<div class="qgrid" aria-label="اختصارات">${L.map(([k,tl,a,,key])=>`<button class="qk${key?' key':''}" ${a}>${I3(k)}<b>${tl}</b></button>`).join('')}</div>`:'' }
