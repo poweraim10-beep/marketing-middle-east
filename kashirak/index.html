@@ -587,6 +587,7 @@ body.rentm .salesOnly{display:none!important}
 .rbiz{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:16px;border:2px solid #F472B6;background:linear-gradient(135deg,#FDF2F8,#FCE7F3);font:inherit;color:inherit;text-align:start;box-shadow:0 4px 14px rgba(236,72,153,.18)}.rbiz .rbi{font-size:34px}.rbiz .rbt{flex:1;display:flex;flex-direction:column}.rbiz .rbt b{font-size:17px}.rbiz .rbt small{color:#9D174D;font-size:12.5px}.rbiz .rbg{background:#DB2777;color:#fff;border-radius:999px;padding:6px 14px;font-weight:800;font-size:14px;white-space:nowrap}
 .rpt0{display:flex;align-items:center;gap:10px;align-self:stretch;text-align:start}.rpt0>span{font-size:38px}.rpt0 b{font-size:19px;display:block}.rpt0 small{color:var(--muted);font-size:13px}
 .rpgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-self:stretch}.rpgrid div{display:flex;align-items:center;gap:6px;background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:8px;font-size:13.5px;font-weight:600}.rpgrid span{font-size:18px}.rpgo{margin-top:4px}
+.rkind{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:stretch}.rkind button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:2px solid var(--line);background:var(--surface);font:inherit;color:inherit}.rkind button span{font-size:30px}.rkind button b{font-size:15px}.rkind button small{font-size:11.5px;color:var(--muted)}.rkind button[aria-pressed=true]{border-color:#10B981;background:#ECFDF5;box-shadow:0 0 0 3px rgba(16,185,129,.18)}
 .rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
@@ -1132,7 +1133,7 @@ async function gunz(s){ if(s.startsWith('p:')) return s.slice(2);
 const idbKeys=()=>idb('readonly',st=>st.getAllKeys()).then(r=>r||[]);
 const upGet=()=>{try{return JSON.parse(localStorage.getItem(UPKEY)||'{}')}catch(e){return {}}};
 const upSet=o=>{try{localStorage.setItem(UPKEY,JSON.stringify(o))}catch(e){}};
-function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length,biz:{r:S.rentOn?(S.rentSide?2:1):0,p:S.pharm?1:0,t:Object.keys(S.tplDone||{}).slice(0,20),d:(S.dresses||[]).length,b:(S.rentals||[]).length}}}
+function cloudMeta(){const st=status();return {shop:S.shop,lic:S.licExp!=null?dayTs(S.licExp+1):null,trialEnds:st.end,paid:st.paid,sales:S.sales.length,items:S.items.length,biz:{r:S.rentOn?(S.rentSide?2:1):0,k:S.rentKind==='suit'?'s':'d',p:S.pharm?1:0,t:Object.keys(S.tplDone||{}).slice(0,20),d:(S.dresses||[]).length,b:(S.rentals||[]).length}}}
 /* ===== البيع من جوالين: صندوق العمليات =====
    الجوال الثاني ما بيرفع نسخة كاملة من المحل (لأنها بتمسح شغل الجهاز الأساسي). كل بيعة أو دفعة أو مصروف عليه بتصير «عملية»
    بتنحفظ عليه وبتنرفع لما يكون في نت، والجهاز الأساسي بيضيفها للمحل (بيخصم المخزون وبيسجّل الدين) وبيرفع النسخة.
@@ -2064,8 +2065,14 @@ function receive(it,qty,cost){ /* weighted average cost */
 /* ---------- ui state ---------- */
 let iq='', tab='home', carts=[0,1,2].map(()=>newCart()), ci=0, period='today', sub='menu', q='';
 const cart=()=>carts[ci];
-function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400)}
-function openSheet(html){const bx=$('#sheetBox'); delete bx.dataset.sub; bx.innerHTML=html;$('#sheet').classList.add('open'); if(typeof fbTabUp==='function') fbTabUp()}
+/* تأجير البدل الشبابية: نفس نظام الفساتين، بس الكلام بيتحوّل للبدلة والزبون */
+const RTW=[['فساتين نسائية','بدل شبابية'],['👗','🤵'],['تأجير الفساتين','تأجير البدل'],['الفساتين','البدل'],['فساتين','بدل'],['فستانها','بدلته'],['الفستان','البدلة'],['فستان','بدلة'],
+ ['الزبونات','الزبائن'],['زبونات','زبائن'],['زبونتك','زبونك'],['الزبونة','الزبون'],['زبونة','زبون'],['السيدة','السيد'],['هويتها','هويته'],['جوالها','جواله'],['حجوزاتها','حجوزاته'],['بياناتها','بياناته'],['حقها','حقه'],['لصاحبتها','لصاحبها'],
+ ['لا تنسي تجيبي','لا تنسى تجيب'],['تكوني انبسطتي','تكون انبسطت'],['عليها غرامات','عليه غرامات'],['مين بتستلم','مين بيستلم'],['مين بترجّع','مين بيرجّع'],['بتستلم','بيستلم'],['بترجّعه','بيرجّعه'],['بتدفع','بيدفع'],['بتترك','بيترك'],['وبتاخد','وبياخد'],['بترجعلها','بترجعله'],['بترجعلك','بترجعلك'],['انبسطتي','انبسطت'],['بالمناسبة','بالمناسبة'],['أفراح · سهرة · خطوبة','أعراس · تخرّج · مناسبات']];
+const rSuit=()=>!!(typeof S!=='undefined'&&S&&S.rentOn&&S.rentKind==='suit');
+function RT(x){ if(typeof x!=='string'||!rSuit()) return x; for(const [a,b] of RTW) x=x.split(a).join(b); return x }
+function toast(m){m=RT(m);const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400)}
+function openSheet(html){html=RT(html);const bx=$('#sheetBox'); delete bx.dataset.sub; bx.innerHTML=html;$('#sheet').classList.add('open'); if(typeof fbTabUp==='function') fbTabUp()}
 function closeSheet(){$('#sheet').classList.remove('open'); if(typeof fbTabUp==='function') setTimeout(fbTabUp,0); if(typeof CAM!=='undefined'&&CAM.stream){camStop(); setTimeout(syncLive,50)} if(typeof SELF!=='undefined'&&SELF.stream){stopSelf(); setTimeout(syncLive,50)} if(typeof LIVE!=='undefined'){LIVE.lastSeen=Date.now()+1500}}
 const sheetHead=(t,act='close')=>`<div class="row"><h2>${esc(t)}</h2><button class="btn sm" data-act="${act}">إغلاق</button></div>`;
 const stat=(l,v)=>`<div class="li"><span>${l}</span>${v}</div>`;
@@ -2741,7 +2748,7 @@ function tourShow(){ const st=TS()[TOUR.i]; if(!st){tourEnd(true);return}
     setTimeout(()=>tourPlace(el,st),180) },st.pre?260:60) }
 function tourPlace(el,st){ let ov=$('#tourOv'); if(!ov){ ov=document.createElement('div'); ov.id='tourOv'; ov.className='tourOv'; ov.innerHTML='<div class="tourHole"></div><div class="tourTip" role="dialog" aria-live="polite"></div>'; document.body.appendChild(ov) }
   const h=ov.querySelector('.tourHole'), tip=ov.querySelector('.tourTip'), n=TS().length, last=TOUR.i===n-1;
-  tip.innerHTML=`<div class="tourBar"><i style="width:${Math.round((TOUR.i+1)/n*100)}%"></i></div><div class="tn">الخطوة ${TOUR.i+1} من ${n}</div><h3>${st.t}</h3><p>${st.x()}</p>
+  tip.innerHTML=`<div class="tourBar"><i style="width:${Math.round((TOUR.i+1)/n*100)}%"></i></div><div class="tn">الخطوة ${TOUR.i+1} من ${n}</div><h3>${RT(st.t)}</h3><p>${RT(st.x())}</p>
     <div class="tb">${TOUR.i>0?'<button class="btn" data-act="tourPrev">السابق</button>':''}<button class="btn primary" data-act="${last?'tourDone':'tourNext'}">${last?'يلا نبلّش 🚀':'التالي ←'}</button>${last?'':'<button class="skip" data-act="tourDone">إنهاء</button>'}</div>`;
   const vh=innerHeight;
   if(el){ const r=el.getBoundingClientRect(), pad=6; h.classList.remove('none'); Object.assign(h.style,{left:(r.left-pad)+'px',top:(r.top-pad)+'px',width:(r.width+pad*2)+'px',height:(r.height+pad*2)+'px'});
@@ -2811,12 +2818,12 @@ function render(){
   $('#view').dataset.v=tab==='more'?'more-'+sub:tab;
   if(tab==='sell'&&mOk()) mSet(false);
   const RM=typeof rentMode==='function'&&rentMode();
-  $('#view').innerHTML=(tab==='more'&&(sub==='rep'||sub==='acc')&&!mOk())?mGateView():RM&&tab==='sell'?rentSellPage():RM&&tab==='items'?rentItemsPage():V[tab]();
+  $('#view').innerHTML=RT((tab==='more'&&(sub==='rep'||sub==='acc')&&!mOk())?mGateView():RM&&tab==='sell'?rentSellPage():RM&&tab==='items'?rentItemsPage():V[tab]());
   const navBuy=isOwner()&&featOn('buy');
   $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||(k==='staff'&&navBuy)||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':(k==='staff'&&navBuy)?`<button data-act="openSub" data-s="buy" ${tab==='more'&&sub==='buy'?'aria-current="page"':''}><span class="ic">${I3('buy')}</span>مشتريات</button>`:`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&(sub==='rep'||(navBuy&&sub==='buy'))))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
     +`<button class="fab" data-act="go" data-tab="sell" aria-label="${RM?'حجز':'بيع'}" ${tab==='sell'?'aria-current="page"':''}>${I3('n-sell','fab3')}<span>${RM?'حجز':'بيع'}</span></button>`;
   document.body.classList.toggle('rentm',!!RM);
-  if(RM){ const n=$('#nav'); n.innerHTML=n.innerHTML.replace('>الأصناف<','>الفساتين<').replace('data-act="openSub" data-s="buy"','data-act="rentGo" data-f="soon"').replace('>مشتريات<','>الحجوزات<'); if(tab==='sell') setTimeout(()=>rentAvailUI(0),0) }
+  if(RM){ const n=$('#nav'); n.innerHTML=RT(n.innerHTML.replace('>الأصناف<','>الفساتين<').replace('data-act="openSub" data-s="buy"','data-act="rentGo" data-f="soon"').replace('>مشتريات<','>الحجوزات<')); if(tab==='sell') setTimeout(()=>rentAvailUI(0),0) }
   else if(tab==='sell') renderResults();
   syncLive();
 }
@@ -4159,7 +4166,7 @@ function bizOnboard(){ try{ if(!S||!linked()||!isOwner()||isSeller2()||$('#sheet
   localStorage.setItem('ksr-biz-ob','1'); localStorage.setItem('ksr-biz-ob2','1'); localStorage.removeItem('ksr-biz-force'); clearInterval(bizOnboard.t); const on=S.tplDone||{};
   const ks=Object.keys(TPLN).filter(k=>k!=='pharm');
   openSheet(`${sheetHead('👋 أهلًا فيك! شو مجال شغلك؟')}<p style="margin:0">اختار مجال محلك، وبننزّلك أصنافه جاهزة بالأسماء والصور، وإنت بس بتحط الكمية والسعر. وبتقدر تضيف أو تلغي أي مجال بعدين من «المزيد ← مجال العمل».</p>
-    <button class="rbiz" data-act="rentPitch"><span class="rbi">👗</span><span class="rbt"><b>تأجير فساتين</b><small>أفراح · سهرة · خطوبة</small></span><span class="rbg">تفعيل ‹</span></button>
+    <button class="rbiz" data-act="rentPitch"><span class="rbi">👗🤵</span><span class="rbt"><b>تأجير فساتين أو بدل</b><small>فساتين نسائية · بدل شبابية</small></span><span class="rbg">تفعيل ‹</span></button>
     <p class="muted" style="margin:0">✅ أو اختار مجال محلك (بتقدر تختار أكثر من مجال)، بعدين اضغط «تفعيل».</p>
     <div class="bizgrid">${ks.map(k=>on[k]?`<div class="bizc bzon"><span class="bzi">${bizIc(k)}</span><span>${TPLN[k]}</span><small>✓ مفعّل عندك</small></div>`:`<button class="bizc" data-act="bizTog" data-k="${k}" aria-pressed="false"><span class="bzi">${bizIc(k)}</span><span>${TPLN[k]}</span><i class="bzk">✓</i></button>`).join('')}<button class="bizc" data-act="bizTog" data-k="pharm" aria-pressed="false"><span class="bzi">${bizIc('pharm')}</span><span>صيدلية</span><i class="bzk">✓</i></button></div>
     <button class="btn primary block" data-act="bizGo" id="bizGoBtn" disabled>اختار مجالك أول</button>
@@ -4191,7 +4198,9 @@ function pBizView(){ const on=!!S.pharm;
    البيانات بمصفوفتين جداد (S.dresses و S.rentals) بالإضافة بس، وما بتلمس أي بيانات تانية */
 const rentMode=()=>!!(S&&S.rentOn&&!S.rentSide);
 const RPITCH=[['🪪','حجز بالاسم والهوية'],['💰','العربون والباقي'],['🧾','سند قبض على واتساب'],['🚫','ما في حجز مكرر'],['📅','الاستلام والإرجاع'],['📊','الدخل والأرباح']];
-const rentPitchBody=()=>`<div class="rpt0"><span>👗</span><div><b>محل تأجير فساتين</b><small>التطبيق كله بيتشكّل على التأجير بضغطة</small></div></div>
+let RKIND='dress';
+const rentPitchBody=()=>`<div class="rpt0"><span>👗🤵</span><div><b>محل تأجير</b><small>اختار شو بتأجّر، والتطبيق كله بيتشكّل عليه بضغطة</small></div></div>
+  <div class="rkind" role="radiogroup"><button type="button" data-act="rKind" data-k="dress" aria-pressed="${RKIND==='dress'}"><span>👗</span><b>فساتين نسائية</b><small>أعراس · سهرة · خطوبة</small></button><button type="button" data-act="rKind" data-k="suit" aria-pressed="${RKIND==='suit'}"><span>🤵</span><b>بدل شبابية</b><small>أعراس · تخرّج · مناسبات</small></button></div>
   <div class="rpgrid">${RPITCH.map(([i,t])=>`<div><span>${i}</span>${t}</div>`).join('')}</div>
   <button class="addbig rpgo" data-act="rentOnGo" data-m="full"><span>✓</span>تفعيل</button>
   <button class="btn block sm" data-act="rentOnGo" data-m="side">محلي ببيع وبأجّر مع بعض</button>
@@ -4230,7 +4239,8 @@ function rentItemsPage(){ return `<div class="rsTop"><h2>👗 الفساتين</
 const rPM=p=>p.m==='app'?(p.am||'تحويل'):p.m==='none'?'من التأمين':'نقدي';
 const rPayGroup=(r,ts)=>(r.pays||[]).filter(p=>p.ts===+ts);
 function rRcptNo(r,ts){ const T=[...new Set((r.pays||[]).map(p=>p.ts))].sort((a,b)=>a-b); return `${r.no}-${T.indexOf(+ts)+1}` }
-function rRcptTxt(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts);
+function rRcptTxt(r,ts){ return RT(rRcptTxt0(r,ts)) }
+function rRcptTxt0(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts);
   return `🧾 سند قبض · ${c.name||S.shop}${c.phone?`\n📞 ${c.phone}`:''}${c.addr?`\n📍 ${c.addr}`:''}\n────────────\nرقم السند: ${rRcptNo(r,ts)}\nالتاريخ: ${d.toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})} · ${d.toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})}\nاستلمنا من السيدة: ${r.cname}${r.cphone?' · '+r.cphone:''}\nالفستان: ${r.dname}\nرقم الحجز: ${r.no}\nالمناسبة: ${rDay(r.event)}\nالاستلام: ${rDay(r.pick)} · الإرجاع: ${rDay(r.ret)}\n────────────\n${g.map(p=>`${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k}: ${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪ (${rPM(p)})`).join('\n')}\n────────────\nالإيجار: ${fx(r.price)} ₪\nالمدفوع لهلأ: ${fx(rPaid(r))} ₪\nالباقي: ${fx(rLeft(r))} ₪${r.ins?`\nالتأمين: ${fx(r.ins)} ₪${rInsHeld(r)?` (محفوظ ${fx(rInsHeld(r))} ₪)`:''}`:''}\n\n${rRcptNote(r)}\n\nشكرًا لاختيارك ${c.name||S.shop} 🌸` }
 function rRcptNote(r){ return r.st==='booked'?`✅ الفستان محجوز باسمك ليوم المناسبة ${rDay(r.event)}، وهالسند بيثبت حقك بالحجز.\n📌 وقت الاستلام (${rDay(r.pick)}): الباقي ${fx(rLeft(r))} ₪ + ${rDoc(r)} رهن.`:rIdIn(r)?`🪪 ${rDoc(r)} محفوظة عنا، وبترجعلك وقت إرجاع الفستان يوم ${rDay(r.ret)}.`:r.st==='back'?`✓ الفستان رجع${r.idBack?` و${rDoc(r)} رجعت لصاحبتها`:''}. شكرًا إلك.`:'' }
 function rRcptHTML(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts), e=esc, row=(a,b,cl='')=>`<div class="rr ${cl}"><span>${a}</span><b>${b}</b></div>`;
@@ -4246,7 +4256,7 @@ async function rRcptCanvas(r,ts){ try{ await document.fonts.load('700 30px Alexa
   const c=invCfg(), g=rPayGroup(r,ts), d=new Date(+ts), W=1080, P=56, F='Alexandria, Tahoma, sans-serif', logo=await ldImg(c.logo), name=c.name||S.shop;
   const total=r2(g.reduce((a,p)=>a+p.amt,0)), note=rRcptNote(r);
   const cv=document.createElement('canvas'), x=cv.getContext('2d'); cv.width=W; cv.height=2600; x.direction='rtl'; x.textBaseline='middle';
-  const T=(t,X,Y,sz,w=400,col='#0F172A',al='right')=>{ x.font=`${w} ${sz}px ${F}`; x.fillStyle=col; x.textAlign=al; x.fillText(String(t),X,Y) };
+  const T=(t,X,Y,sz,w=400,col='#0F172A',al='right')=>{ x.font=`${w} ${sz}px ${F}`; x.fillStyle=col; x.textAlign=al; x.fillText(RT(String(t)),X,Y) };
   const wrap=(t,maxW,sz,w=400)=>{ x.font=`${w} ${sz}px ${F}`; const out=[]; String(t).split('\n').forEach(par=>{ let ln=''; par.split(' ').forEach(wd=>{ const tt=ln?ln+' '+wd:wd; if(x.measureText(tt).width>maxW&&ln){ out.push(ln); ln=wd } else ln=tt }); out.push(ln) }); return out };
   const rr=(X,Y,w,h,rad,fill,stroke)=>{ x.beginPath(); if(x.roundRect) x.roundRect(X,Y,w,h,rad); else x.rect(X,Y,w,h); if(fill){ x.fillStyle=fill; x.fill() } if(stroke){ x.strokeStyle=stroke; x.lineWidth=3; x.stroke() } };
   x.fillStyle='#fff'; x.fillRect(0,0,W,cv.height);
@@ -4268,7 +4278,7 @@ async function rRcptCanvas(r,ts){ try{ await document.fonts.load('700 30px Alexa
   rr(P,y,W-2*P,r.ins?250:200,20,null,'#E2E8F0'); let ty=y+45;
   [['الإيجار',fx(r.price)+' ₪','#0F172A'],['المدفوع لهلأ',fx(rPaid(r))+' ₪','#047857'],['الباقي',fx(rLeft(r))+' ₪',rLeft(r)>0?'#B91C1C':'#047857'],...(r.ins?[['التأمين النقدي',fx(r.ins)+' ₪','#0F172A']]:[])].forEach(([a,b,cl])=>{ T(a,W-P-28,ty,30,600); T(b,P+28,ty,32,800,cl,'left'); ty+=52 }); y=ty+30;
   /* الملاحظة */
-  if(note){ const L=wrap(note,W-2*P-60,27); rr(P,y,W-2*P,L.length*44+40,18,'#FFFBEB','#F59E0B'); L.forEach((l,i)=>T(l,W-P-30,y+42+i*44,27,500,'#78350F')); y+=L.length*44+70 }
+  if(note){ const L=wrap(RT(note),W-2*P-60,27); rr(P,y,W-2*P,L.length*44+40,18,'#FFFBEB','#F59E0B'); L.forEach((l,i)=>T(l,W-P-30,y+42+i*44,27,500,'#78350F')); y+=L.length*44+70 }
   /* التوقيع */
   y+=40; x.strokeStyle='#94A3B8'; x.lineWidth=2; x.beginPath(); x.moveTo(P,y); x.lineTo(P+330,y); x.stroke(); T('توقيع وختم المحل',P+165,y+32,24,400,'#64748B','center');
   T('شكرًا لاختيارك '+name+' 🌸',W-P,y,28,600,'#0F172A'); y+=110;
@@ -4380,6 +4390,7 @@ function rentViewRest(tabs,c){
     <label for="rsTerms">شروط الإيجار (بتنكتب على وصل الحجز)<textarea id="rsTerms" rows="3">${esc(g.terms)}</textarea></label>
     <button class="btn primary block" data-act="rentCfgSave">حفظ</button></div>
     <div class="card"><h2>دخل التأجير</h2><div class="row"><span>اليوم</span><b class="num">${fx(rentIncome(sod()))} ₪</b></div><div class="row"><span>هالشهر</span><b class="num">${fx(rentIncome(new Date(new Date().getFullYear(),new Date().getMonth(),1).getTime()))} ₪</b></div><div class="row"><span>تأمينات محفوظة عندك هلأ</span><b class="num">${fx(r2((S.rentals||[]).reduce((a,r)=>a+rInsHeld(r),0)))} ₪</b></div><p class="fh" style="margin:0">التأمين مش دخل: هو أمانة بترجعها للزبونة وقت الإرجاع.</p></div>
+    <div class="card"><h2>شو بتأجّر؟</h2><div class="seg"><button aria-pressed="${S.rentKind!=='suit'}" data-act="rentKindSet" data-k="dress">👗 فساتين نسائية</button><button aria-pressed="${S.rentKind==='suit'}" data-act="rentKindSet" data-k="suit">🤵 بدل شبابية</button></div><p class="fh" style="margin:0">بيغيّر الكلام بالتطبيق والرسائل والسند (فستان/بدلة، الزبونة/الزبون). الحجوزات نفسها ما بتتغيّر.</p></div>
     <div class="card"><h2>شكل التطبيق</h2><div class="seg"><button aria-pressed="${!S.rentSide}" data-act="rentModeSet" data-v="full">👗 محل تأجير</button><button aria-pressed="${!!S.rentSide}" data-act="rentModeSet" data-v="side">🛒 بيع + تأجير</button></div><p class="fh" style="margin:0">«محل تأجير»: زر البيع بيصير حجز، والأصناف بتصير الفساتين. «بيع + تأجير»: بيرجع البيع العادي والتأجير بيضل قسم بالمزيد.</p></div>
 ` }
   const t=rToday(), q=RENTQ.trim();
@@ -4415,10 +4426,11 @@ function rentAvailUI(skip){ const d=$('#rfDress'), p=$('#rfPick'), rt=$('#rfRet'
   if(d&&p.value&&rt.value&&!d.disabled) [...d.options].forEach(op=>{ const x=dressById(op.value); if(!x) return; const c=rClash(x.id,p.value,rt.value,skip); const base=`${x.name}${x.code?' #'+x.code:''}${x.size?' · '+x.size:''} · ${fx(x.price||0)} ₪`; op.textContent=(c?'⛔ محجوز · ':'✓ ')+base });
   if(p.value&&rt.value&&rt.value<p.value){ o.innerHTML='<b style="color:#B91C1C">⚠️ يوم الإرجاع قبل يوم الاستلام</b>'; return }
   if(!d){ o.innerHTML=''; return } const c=rClash(d.value,p.value,rt.value,skip);
-  o.innerHTML=c?`<b style="color:#B91C1C">⚠️ هالفستان محجوز لـ${esc(c.cname)} من ${rDay(c.pick)} لـ${rDay(c.ret)}. اختار فستان أو أيام تانية.</b>`:'<b style="color:#047857">✓ الفستان متاح بهالأيام</b>';
+  o.innerHTML=RT(c?`<b style="color:#B91C1C">⚠️ هالفستان محجوز لـ${esc(c.cname)} من ${rDay(c.pick)} لـ${rDay(c.ret)}. اختار فستان أو أيام تانية.</b>`:'<b style="color:#047857">✓ الفستان متاح بهالأيام</b>');
   const pr=$('#rfPrice'), ins=$('#rfIns'), dr=dressById(d.value); if(dr&&pr&&!pr.dataset.t&&!skip){ pr.value=dr.price||''; if(ins&&!ins.value) ins.value=dr.ins||'' } }
 
-function rentMsg(r,kind){ const sh=S.shop||'المحل';
+function rentMsg(r,kind){ return RT(rentMsg0(r,kind)) }
+function rentMsg0(r,kind){ const sh=S.shop||'المحل';
   if(kind==='pick') return `مرحبًا ${r.cname} 🌸\nتذكير من ${sh}: موعد استلام الفستان (${r.dname}) يوم ${rDay(r.pick)}.\nالباقي من الإيجار: ${fx(rLeft(r))} ₪${r.ins?`، وتأمين ${fx(r.ins)} ₪`:''}.\n🪪 لا تنسي تجيبي معك ${rDoc(r)}، بتضل عنا رهن وبترجعلك وقت إرجاع الفستان يوم ${rDay(r.ret)}.\nرقم الحجز: ${r.no}`;
   if(kind==='ret') return `مرحبًا ${r.cname} 🌸\nمبروك، ونتمنى تكوني انبسطتي بالمناسبة 💐\nتذكير من ${sh}: موعد إرجاع الفستان (${r.dname}) يوم ${rDay(r.ret)}، و${rDoc(r)} بترجعلك وقتها.\nرقم الحجز: ${r.no}`;
   return `وصل حجز فستان · ${sh}\nرقم الحجز: ${r.no}\nالزبونة: ${r.cname}${r.cidNo?' · هوية '+r.cidNo:''}\nالفستان: ${r.dname}\nالمناسبة: ${rDay(r.event)}\nالاستلام: ${rDay(r.pick)} · الإرجاع: ${rDay(r.ret)}\nالإيجار: ${fx(r.price)} ₪ · المدفوع: ${fx(rPaid(r))} ₪ · الباقي: ${fx(rLeft(r))} ₪${r.ins?`\nالتأمين: ${fx(r.ins)} ₪`:''}${r.insDoc?`\nالرهن: ${r.insDoc}`:''}${r.alt?`\nالتعديلات: ${r.alt}`:''}\n\n${rCfg().terms}`
@@ -4502,9 +4514,11 @@ async mgGo(){ if(!MG||!isOwner()||isSeller2()) return; const P=MG; MG=null;
   S.merges=S.merges||[]; S.merges.push({ts,shop:B.shop||'',items:P.newItems.length,sales:P.sales.length,cust:P.newCust.length});
   audit(`${tag}: ${P.newItems.length} صنف، ${P.sales.length} فاتورة، ${P.newCust.length} زبون`); save(); closeSheet(); render();
   toast(`✓ انضاف ${P.newItems.length} صنف و${P.sales.length} فاتورة و${P.newCust.length} زبون`) },
-rentPitch(){ openSheet(`${sheetHead('تأجير فساتين')}<div class="rhero">${rentPitchBody()}</div>`) },
+rKind(d){ RKIND=d.k==='suit'?'suit':'dress'; document.querySelectorAll('[data-act=rKind]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===RKIND)) },
+rentPitch(){ openSheet(`${sheetHead('تأجير فساتين أو بدل')}<div class="rhero">${rentPitchBody()}</div>`) },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
-rentOnGo(d){ closeSheet(); S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
+rentOnGo(d){ closeSheet(); S.rentKind=RKIND; S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
+rentKindSet(d){ S.rentKind=d.k==='suit'?'suit':'dress'; save(); render(); toast('✓ انحفظ') },
 rentModeSet(d){ S.rentSide=d.v==='side'?1:0; save(); render(); toast(S.rentSide?'✓ رجع زر البيع، والتأجير صار قسم جانبي':'✓ صار التطبيق كله على التأجير') },
 rentOffAsk(){ openSheet(`${sheetHead('إلغاء تفعيل قسم الفساتين')}<p style="margin:0;line-height:1.8">التطبيق بيرجع لشكله العادي: زر «بيع» والأصناف والرئيسية العادية.</p><p class="fh" style="margin:0">ما بينمسح ولا فستان ولا حجز. كلهم بيضلوا محفوظين، وإذا فعّلته مرة تانية بيرجعوا زي ما هم.</p><button class="btn danger block big" data-act="rentOff">تأكيد إلغاء التفعيل</button><button class="btn block" data-act="close">رجوع</button>`) },
 rentOff(){ closeSheet(); S.rentOn=0; sub='menu'; if(tab==='sell'||tab==='items'){ tab='home' } save(); render(); toast('✓ انلغى تفعيل قسم الفساتين. بياناته محفوظة، وبترجع تفعّله من المزيد ← تأجير الفساتين') },
@@ -4587,7 +4601,7 @@ dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName');
   if(x){ Object.assign(x,data); (S.rentals||[]).forEach(r=>{ if(r.dressId===x.id&&r.st==='booked') r.dname=x.name }) } else S.dresses.push({id:S.nextId++,img:'',...data});
   S.rentOn=1; save(); closeSheet(); RENTV='dress'; render(); toast('✓ انحفظ الفستان') }
 });
-['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentRevAsk','rentRevGo','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
+['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentKindSet','rentRevAsk','rentRevGo','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
 document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(rWdUI,0);
   if(['rfDress','rfPick','rfRet'].includes(t.id)){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
