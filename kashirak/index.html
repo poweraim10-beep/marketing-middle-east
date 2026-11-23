@@ -2393,6 +2393,7 @@ more(){
   ${setSec('💾','النسخ الاحتياطي','تنزيل نسخة من بياناتك أو استرجاعها',`<div class="sin"><p class="muted" style="margin:0">البيانات محفوظة على هذا الجهاز. نزّل نسخة كل أسبوع واحفظها على واتساب أو الدرايف، لأنه لو ضاع الجوال بتضيع البيانات.</p>
       <div class="grid2"><button class="btn primary" data-act="bkFile">تنزيل ملف نسخة</button><label class="btn" for="bkPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center;align-items:center">استرجاع من ملف</label></div>
       <input id="bkPick" type="file" accept=".json,application/json,text/plain" hidden>
+      ${isOwner()&&!isSeller2()?`<label class="btn" for="mgPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center;align-items:center">🔗 دمج نسخة من حساب تاني لنفس المحل</label><input id="mgPick" type="file" accept=".json,application/json,text/plain" hidden><small class="fh">بيضيف الأصناف الجديدة والمبيعات والزبائن من ملف نسخة حساب تاني، بدون ما يمسح أو يغيّر إشي من بيانات هالمحل. وقبل الدمج بتنزل نسخة احتياطية تلقائيًا.</small>`:''}
       <details><summary class="muted">بدون ملفات: نسخ النص ولصقه</summary><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
       <textarea id="bk" rows="4" placeholder="الصق هنا نص نسخة سابقة"></textarea>
       <div class="grid2"><button class="btn" data-act="bkOut">نسخ النص</button><button class="btn" data-act="bkIn">استرجاع من النص</button></div></div></details></div>`)}
@@ -4268,6 +4269,36 @@ function rentRcpt(r,ts,title){ title=title||'سند القبض'; const m=rRcptTx
   rRcptCanvas(r,ts).then(cv=>{ const b=$('#rImg'); if(b) b.innerHTML=`<img src="${cv.toDataURL('image/png')}" alt="سند القبض">` }).catch(()=>{ const b=$('#rImg'); if(b) b.innerHTML=rRcptHTML(r,ts) }) }
 const RST={booked:['محجوز','warn'],out:['عند الزبونة','bad'],back:['رجع','ok'],cancel:['ملغي','mute']};
 const RPK={dep:'عربون',rent:'دفعة إيجار',ins:'تأمين مستلم',insback:'تأمين مرجّع',fee:'غرامة',refund:'إرجاع عربون'};
+
+/* ===== دمج نسخة من حساب تاني لنفس المحل (بالإضافة فقط) =====
+   الأصناف: اللي إلها نفس الباركود أو نفس الاسم بتعتبر نفس الصنف وما بتنضاف مرتين، والباقي بينضاف بكميته.
+   المبيعات: بتنضاف كفواتير جديدة (اللي نفس وقتها ومبلغها موجودة بنتجاهلها)، والأصناف المشتركة بينقص مخزونها بقدر اللي انباع من الحساب التاني.
+   الزبائن: بنطابق بالجوال أو الاسم، وبنضيف حركات الدين. ما في أي حذف أو استبدال. */
+let MG=null;
+const mgPh=x=>String(x||'').replace(/\D/g,'').slice(-9);
+function mgPlan(B){ const iMap={}, newItems=[], same=[], qtyDec={}; const key=x=>String(x||'').trim();
+  for(const it of (B.items||[])){ const m=(it.barcode&&S.items.find(x=>x.barcode&&x.barcode===it.barcode))||S.items.find(x=>key(x.name)===key(it.name));
+    if(m){ iMap[it.id]=m.id; same.push(it.name) } else newItems.push(it) }
+  const have=new Set(S.sales.map(x=>x.ts+'|'+x.total)), sales=(B.sales||[]).filter(x=>!have.has(x.ts+'|'+x.total)), dup=(B.sales||[]).length-sales.length;
+  sales.forEach(x=>(x.lines||[]).forEach(l=>{ if(iMap[l.itemId]!=null) qtyDec[iMap[l.itemId]]=r3((qtyDec[iMap[l.itemId]]||0)+(+l.baseQty||+l.qty||0)) }));
+  const cMap={}, newCust=[]; for(const c of (B.customers||[])){ const m=(mgPh(c.phone)&&S.customers.find(x=>mgPh(x.phone)===mgPh(c.phone)))||S.customers.find(x=>key(x.name)===key(c.name)); if(m) cMap[c.id]=m.id; else newCust.push(c) }
+  const other=[['المصروفات',(B.expenses||[]).length],['المشتريات',(B.buys||B.purchases||[]).length],['المرتجعات',(B.returns||[]).length]].filter(x=>x[1]);
+  return {B,iMap,newItems,same,sales,dup,qtyDec,cMap,newCust,other,total:r2(sales.reduce((a,x)=>a+(+x.total||0),0))} }
+function mgSheet(P,fname){ const B=P.B;
+  openSheet(`${sheetHead('🔗 دمج نسخة من حساب تاني')}
+  <div class="card"><div class="row"><span>الملف</span><b>${esc(fname)}</b></div><div class="row"><span>المحل بالملف</span><b>${esc(B.shop||'—')}</b></div></div>
+  <div class="card pcard pay"><h2>اللي رح ينضاف لمحلك</h2>
+    <div class="row"><span>أصناف جديدة</span><b class="num">${P.newItems.length}</b></div>
+    <div class="row"><span>مبيعات (فواتير جديدة)</span><b class="num">${P.sales.length} · ${fx(P.total)} ₪</b></div>
+    <div class="row"><span>زبائن جداد</span><b class="num">${P.newCust.length}</b></div></div>
+  <div class="card"><h2>اللي ما رح ينضاف مرتين</h2>
+    <div class="row"><span>أصناف موجودة عندك (نفس الباركود أو الاسم)</span><b class="num">${P.same.length}</b></div>
+    ${P.dup?`<div class="row"><span>فواتير موجودة عندك قبل</span><b class="num">${P.dup}</b></div>`:''}
+    ${Object.keys(P.qtyDec).length?`<p class="fh" style="margin:0">الأصناف المشتركة اللي انباعت من الحساب التاني (${Object.keys(P.qtyDec).length} صنف) بينقص مخزونها عندك بنفس الكمية.</p>`:''}
+    ${P.other.length?`<p class="fh" style="margin:0">ما بينتقل: ${P.other.map(x=>x[0]+' ('+x[1]+')').join('، ')}. بتسجّلهم يدوي إذا بدك.</p>`:''}</div>
+  ${P.same.length?`<details><summary class="muted">شوف الأصناف المكررة</summary><p class="fh">${P.same.slice(0,200).map(esc).join('، ')}</p></details>`:''}
+  <p class="fh" style="margin:0">قبل الدمج بتنزل نسخة احتياطية من محلك تلقائيًا. الدمج ما بيمسح ولا فاتورة ولا صنف، والتغيير الوحيد على الموجود هو نقص مخزون الأصناف المشتركة اللي انباعت.</p>
+  <button class="btn primary block big" data-act="mgGo" ${P.newItems.length+P.sales.length+P.newCust.length?'':'disabled'}>✓ تأكيد الدمج</button><button class="btn block" data-act="close">إلغاء</button>`) }
 let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null;
 const ymdT2=k=>{ const [y,m,d]=String(k||'').split('-').map(Number); return y?new Date(y,m-1,d).getTime():0 };
 const rWd=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar',{weekday:'long'}):'';
@@ -4443,6 +4474,21 @@ async rentPrint(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return
   if(img){ $('#printArea').innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important} #printArea img{width:100%!important}}</style><img src="${img}" alt="">`; setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا')}},250); return }
   $('#printArea').innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important}} #printArea .rcpt{box-shadow:none;border:0;color:#000;font-size:13px} #printArea .rcpt img{width:auto!important;max-height:60px;margin:auto}</style>${rRcptHTML(r,d.ts)}`;
   setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا')}},200) },
+async mgGo(){ if(!MG||!isOwner()||isSeller2()) return; const P=MG; MG=null;
+  try{ await idb('readwrite',st=>st.put(JSON.stringify(S),'pre-merge-'+Date.now())) }catch(e){}
+  try{ A.bkFile() }catch(e){}
+  const B=P.B, ts=Date.now(), tag='دمج من «'+(B.shop||'حساب تاني')+'»';
+  for(const it of P.newItems){ const n={...it,id:S.nextId++}; delete n._t; P.iMap[it.id]=n.id; S.items.push(n) }
+  for(const [id,q] of Object.entries(P.qtyDec)){ const it=itemById(+id); if(it) it.qty=r3((+it.qty||0)-q) }
+  const cNew={}; for(const c of P.newCust){ const n={...c,id:S.nextId++,ledger:[]}; cNew[c.id]=n; P.cMap[c.id]=n.id; S.customers.push(n) }
+  const sMap={};
+  for(const x of [...P.sales].sort((a,b)=>a.ts-b.ts)){ const n=JSON.parse(JSON.stringify(x)); n.id=S.nextInv++; sMap[x.id]=n.id; n.merged=tag; delete n.proof; delete n.adds; delete n.addTo;
+    (n.lines||[]).forEach(l=>{ if(P.iMap[l.itemId]!=null) l.itemId=P.iMap[l.itemId] }); if(n.custId!=null&&P.cMap[n.custId]!=null) n.custId=P.cMap[n.custId]; S.sales.push(n) }
+  for(const c of (B.customers||[])){ const tid=P.cMap[c.id], t=S.customers.find(x=>x.id===tid); if(!t) continue; const have=new Set((t.ledger||[]).map(e=>e.ts+'|'+e.amt)); t.ledger=t.ledger||[];
+    for(const e of (c.ledger||[])){ if(have.has(e.ts+'|'+e.amt)) continue; t.ledger.push({...e,...(e.sid!=null&&sMap[e.sid]?{sid:sMap[e.sid]}:{}),note:(e.note?e.note+' · ':'')+tag}) } }
+  S.merges=S.merges||[]; S.merges.push({ts,shop:B.shop||'',items:P.newItems.length,sales:P.sales.length,cust:P.newCust.length});
+  audit(`${tag}: ${P.newItems.length} صنف، ${P.sales.length} فاتورة، ${P.newCust.length} زبون`); save(); closeSheet(); render();
+  toast(`✓ انضاف ${P.newItems.length} صنف و${P.sales.length} فاتورة و${P.newCust.length} زبون`) },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
 rentOnGo(d){ S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
 rentModeSet(d){ S.rentSide=d.v==='side'?1:0; save(); render(); toast(S.rentSide?'✓ رجع زر البيع، والتأجير صار قسم جانبي':'✓ صار التطبيق كله على التأجير') },
@@ -4535,6 +4581,8 @@ document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(t.id==='rfPrice') t.dataset.t='1';
   if(t.classList.contains('rpFile')&&t.files&&t.files[0]){ const f=t.files[0], k=t.dataset.k; t.value=''; proofImg(f).then(async r=>{ const id='rp'+Date.now(); await idb('readwrite',st=>st.put(r.data,id)); if(RPS[k]) RPS[k].proof=id; const el=document.querySelector(`.rpay[data-k="${k}"]`), pv=el&&el.querySelector('.rpPrev'); if(pv) pv.innerHTML=`<img src="${r.data}" alt="الإشعار" style="max-height:120px;border-radius:10px;margin-top:6px"> <b style="color:#047857">✓ انحفظ الإشعار</b>` }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='roIdImg'&&t.files&&t.files[0]){ docImg(t.files[0]).then(x=>{ RIDIMG=x; const l=$('#roIdLbl'); if(l) l.textContent='📷 صورة الهوية ✓' }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
+  if(t.id==='mgPick'&&t.files&&t.files[0]){ const f=t.files[0]; t.value=''; f.text().then(tx=>{ let B=null; try{ B=JSON.parse(tx) }catch(e){} if(!B||!Array.isArray(B.items)||!Array.isArray(B.sales)){ toast('الملف مش نسخة كاشيرك صالحة'); return }
+    MG=mgPlan(B); mgSheet(MG,f.name) }).catch(()=>toast('ما قدرنا نقرأ الملف')) }
   if(t.id==='rfIdImg'&&t.files&&t.files[0]){ docImg(t.files[0]).then(x=>{ RIDIMG=x; const l=$('#rfIdLbl'); if(l) l.textContent='🪪 صورة الهوية ✓' }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='dfImg'&&t.files&&t.files[0]){ thumbImg(t.files[0],360).then(x=>{ RDIMG=x; const p=$('#dfImgPrev'); if(p) p.innerHTML=`<img src="${x}" alt="">` }) }
 });
