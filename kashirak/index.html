@@ -576,6 +576,10 @@ header[hidden]+.tk{display:none}
 .rsTop{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:2px 0 10px;padding-inline-end:78px}.rsTop>.btn{align-self:flex-start}.rsTop h2{margin:0;font-size:19px}.rsBtns{display:flex;gap:6px}.rsBtns .btn{flex:1}.rlate{display:block;width:100%;text-align:start;background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5;border-radius:12px;padding:10px 12px;font:inherit;margin-bottom:10px}.rnote{font-size:13.5px;line-height:1.8}.lnk{background:none;border:0;color:#047857;font:inherit;font-weight:700;padding:0;text-decoration:underline}
 .roff{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;text-align:center}.rtiles{margin-top:10px}.rtiles .tile{text-align:start;font:inherit;color:inherit}
 body.rentm .salesOnly{display:none!important}
+.rcpt{background:#fff;color:#0F172A;border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 6px 20px rgba(15,23,42,.08);display:flex;flex-direction:column;gap:2px;font-size:14px}.rcpt .rh{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center;border-bottom:2px dashed #CBD5E1;padding-bottom:8px;margin-bottom:6px}.rcpt .rh img{max-height:56px;max-width:60%;object-fit:contain}.rcpt .rs{font-size:19px}.rcpt .rt{background:#ECFDF5;color:#047857;border-radius:999px;padding:2px 10px;font-weight:700;font-size:12.5px;margin-top:4px}
+.rcpt .rr{display:flex;justify-content:space-between;gap:10px;padding:3px 0}.rcpt .rr span{color:#475569}.rcpt .rr.big b{font-size:17px;color:#047857}.rcpt .rr.due b{color:#B91C1C}.rcpt .rsep{border-top:1px dashed #CBD5E1;margin:5px 0}.rcpt .rf{text-align:center;color:#64748B;font-size:12.5px;margin-top:8px}
+.rpc .row h2{margin:0}.rpc{display:flex;flex-direction:column;gap:8px}
+.rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
@@ -1644,7 +1648,7 @@ function accJournal(){ if(ACCJ&&ACCJ.v===S._t&&ACCJ.n===S.sales.length) return A
   plug('1105',r2(S.items.reduce((a,i)=>a+Math.max(0,(+i.qty||0)+(+i.wqty||0))*(+i.cost||0),0)),'رصيد افتتاحي للمخزون (حسب الكميات والتكلفة الحالية)','3101');
   plug('1103',r2(S.customers.reduce((a,c)=>a+balance(c),0)),'فرق تسوية ذمم الزبائن','3102');
   plug('2101',-r2(S.suppliers.reduce((a,c)=>a+balance(c),0)),'فرق تسوية ذمم الموردين','3102');
-  for(const r of (S.rentals||[])) for(const x of (r.pays||[])){ const a=r2(Math.abs(+x.amt||0)), doc='حجز فستان #'+r.no, acc=x.m==='cash'?'1101':x.m==='app'?bank('تأجير'):'2104';
+  for(const r of (S.rentals||[])) for(const x of (r.pays||[])){ const a=r2(Math.abs(+x.amt||0)), doc='حجز فستان #'+r.no, acc=x.m==='cash'?'1101':x.m==='app'?bank(x.am||'تأجير'):'2104';
     if(x.k==='insback'&&x.m==='none') continue;
     if(x.k==='ins') E(x.ts,doc,'rent',[[acc,a,0],['2104',0,a]]);
     else if(x.k==='insback') E(x.ts,doc,'rent',[['2104',a,0],[acc,0,a]]);
@@ -3694,7 +3698,7 @@ priceWa(){const lines=S.items.slice().sort((a,b)=>a.name.localeCompare(b.name,'a
   const txt=`🛒 قائمة أسعار ${S.shop}\n\n${lines.join('\n')}\n\nللطلب ابعتلنا رسالة هون.`;
   openSheet(`${sheetHead('قائمة الأسعار')}<textarea id="plTxt" rows="10" readonly>${esc(txt)}</textarea><div class="grid2"><button class="btn" data-act="copy" data-id="plTxt">نسخ</button><a class="btn primary" href="https://wa.me/?text=${encodeURIComponent(txt.slice(0,3500))}" target="_blank" rel="noopener">إرسال واتساب</a></div>`)},
 photoClear(){PHOTO.data='';PHOTO.id=''; render()},
-async viewPhoto(d){const data=await idb('readonly',st=>st.get(d.id)); openSheet(`${sheetHead('صورة فاتورة المورد')}${data?`<img src="${data}" alt="صورة الفاتورة" style="max-width:100%;border-radius:12px">`:'<p>الصورة مش موجودة على هذا الجهاز.</p>'}`)},
+async viewPhoto(d){const data=await idb('readonly',st=>st.get(d.id)); openSheet(`${sheetHead(d.t||'صورة فاتورة المورد')}${data?`<img src="${data}" alt="صورة الفاتورة" style="max-width:100%;border-radius:12px">`:'<p>الصورة مش موجودة على هذا الجهاز.</p>'}`)},
 chqDir(d){CHQ.dir=d.d; render()},
 addChq(){const amt=r2(parseFloat($('#qAmt').value)||0), due=$('#qDue').value, no=$('#qNo').value.trim(), bank=$('#qBank').value.trim(), pid=$('#qParty').value;
   if(!(amt>0)||!due){toast('اكتب المبلغ وتاريخ الاستحقاق');return}
@@ -4144,6 +4148,16 @@ function pBizView(){ const on=!!S.pharm;
 /* ===== تأجير الفساتين: فساتين، حجوزات بالهوية والعربون والتأمين، تسليم وإرجاع، ومنع الحجز المزدوج =====
    البيانات بمصفوفتين جداد (S.dresses و S.rentals) بالإضافة بس، وما بتلمس أي بيانات تانية */
 const rentMode=()=>!!(S&&S.rentOn&&!S.rentSide);
+/* طريقة الدفع بالتأجير: نقدي، أو تحويل (بنك فلسطين، جوال باي، بال باي...) مع صورة الإشعار */
+let RPS={}, RPN=0;
+const RP=()=>{ const e=document.querySelector('#sheet.open .rpay')||document.querySelector('#view .rpay'); return (e&&RPS[e.dataset.k])||{m:'cash',am:'',proof:null} };
+function rPayUI(title){ const k=++RPN; RPS[k]={m:'cash',am:'',proof:null};
+  return `<div class="rpay" data-k="${k}"><span class="rpt">${title}</span><div class="seg"><button type="button" data-act="rpM" data-k="${k}" data-m="cash" aria-pressed="true">💵 نقدي</button><button type="button" data-act="rpM" data-k="${k}" data-m="app" aria-pressed="false">📱 تحويل أو محفظة</button></div>
+  <div class="rpApp" hidden><div class="wals" role="group" aria-label="جهة التحويل">${APPM.map(m=>`<button type="button" class="wal" data-act="rpAm" data-k="${k}" data-m="${esc(m)}" aria-pressed="false" style="--wc:${APPC[m]||'var(--gold)'}">${appLogo(m)}<span>${esc(m)}</span><i class="wck">✓</i></button>`).join('')}</div>
+  <div class="grid2"><label class="btn" for="rpCam${k}">📷 صوّر الإشعار</label><label class="btn" for="rpGal${k}">🖼️ من المعرض</label></div><input id="rpCam${k}" class="rpFile" data-k="${k}" type="file" accept="image/*" capture="environment" hidden><input id="rpGal${k}" class="rpFile" data-k="${k}" type="file" accept="image/*" hidden><div class="rpPrev"></div></div></div>` }
+const rpX=m=>{ const r=RP(); return m==='app'?{...(r.am?{am:r.am}:{}),...(r.proof?{proof:r.proof}:{})}:{} };
+function rpOk(out){ const r=RP(); if(r.m!=='app') return true; if(!r.am){ toast(out?'اختار من وين بترجّع (بنك فلسطين، جوال باي، بال باي...)':'اختار جهة التحويل: بنك فلسطين، جوال باي، بال باي...'); return false }
+  if(!out&&S.proofReq&&!r.proof){ toast('صوّر إشعار التحويل أول'); return false } return true }
 /* بوضع محل التأجير بنخفي من المزيد الأقسام الخاصة ببيع الأصناف (البيانات ما بتنمس، بترجع لما يرجع البيع) */
 const RHIDE=['rent','log','buy','inv','lab','pexp','wh','offers','cat','tools','biz','loy'];
 function rentDebtsCard(){ const L=(S.rentals||[]).filter(r=>(r.st==='booked'||r.st==='out')&&rLeft(r)>0).sort((a,b)=>a.pick<b.pick?-1:1), tot=r2(L.reduce((a,r)=>a+rLeft(r),0));
@@ -4163,6 +4177,23 @@ function rentSellPage(){ const c=rentCounts();
   ${(S.dresses||[]).length?'':`<div class="card rnote">ما ضفت فساتين لسا. بتقدر تكتب اسم الفستان هون وبينضاف لحاله، أو <button class="lnk" data-act="go" data-tab="items">ضيف فساتينك بصورها وأسعارها ‹</button></div>`}
   ${rentForm(null,true)}` }
 function rentItemsPage(){ return `<div class="rsTop"><h2>👗 الفساتين</h2><button class="btn sm" data-act="rentGo" data-f="soon">الحجوزات ‹</button></div>${dressList()}` }
+
+/* ===== وصل الدفع للزبونة: كل دفعة (أو كل عملية بنفس اللحظة) إلها وصل بيتبعت واتساب أو SMS أو بينطبع ===== */
+const rPM=p=>p.m==='app'?(p.am||'تحويل'):p.m==='none'?'من التأمين':'نقدي';
+const rPayGroup=(r,ts)=>(r.pays||[]).filter(p=>p.ts===+ts);
+function rRcptNo(r,ts){ const T=[...new Set((r.pays||[]).map(p=>p.ts))].sort((a,b)=>a-b); return `${r.no}-${T.indexOf(+ts)+1}` }
+function rRcptTxt(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts);
+  return `🧾 وصل دفع · ${c.name||S.shop}${c.phone?`\n📞 ${c.phone}`:''}${c.addr?`\n📍 ${c.addr}`:''}\n────────────\nرقم الوصل: ${rRcptNo(r,ts)}\nالتاريخ: ${d.toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})} · ${d.toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'})}\nالزبونة: ${r.cname}${r.cphone?' · '+r.cphone:''}\nالفستان: ${r.dname}\nرقم الحجز: ${r.no}\nالاستلام: ${rDay(r.pick)} · الإرجاع: ${rDay(r.ret)}\n────────────\n${g.map(p=>`${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k}: ${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪ (${rPM(p)})`).join('\n')}\n────────────\nالإيجار: ${fx(r.price)} ₪\nالمدفوع لهلأ: ${fx(rPaid(r))} ₪\nالباقي: ${fx(rLeft(r))} ₪${r.ins?`\nالتأمين: ${fx(r.ins)} ₪${rInsHeld(r)?` (محفوظ ${fx(rInsHeld(r))} ₪)`:''}`:''}\n\nشكرًا لاختيارك ${c.name||S.shop} 🌸` }
+function rRcptHTML(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts), e=esc, row=(a,b,cl='')=>`<div class="rr ${cl}"><span>${a}</span><b>${b}</b></div>`;
+  return `<div class="rcpt"><div class="rh">${c.logo?`<img src="${c.logo}" alt="">`:''}<b class="rs">${e(c.name||S.shop)}</b>${c.phone?`<span dir="ltr">${e(c.phone)}</span>`:''}${c.addr?`<span>${e(c.addr)}</span>`:''}<span class="rt">وصل دفع · حجز فستان</span></div>
+  ${row('رقم الوصل',rRcptNo(r,ts))}${row('التاريخ',fdate(+ts))}${row('الزبونة',e(r.cname))}${r.cphone?row('الجوال',`<span dir="ltr">${e(r.cphone)}</span>`):''}${row('الفستان',e(r.dname))}${row('رقم الحجز',r.no)}${row('الاستلام',rDay(r.pick))}${row('الإرجاع',rDay(r.ret))}
+  <div class="rsep"></div>${g.map(p=>row(`${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k} · ${e(rPM(p))}`,`${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪`,'big')).join('')}
+  <div class="rsep"></div>${row('الإيجار',fx(r.price)+' ₪')}${row('المدفوع لهلأ',fx(rPaid(r))+' ₪')}${row('الباقي',fx(rLeft(r))+' ₪',rLeft(r)>0?'due':'')}${r.ins?row('التأمين',fx(r.ins)+' ₪'):''}
+  <div class="rf">شكرًا لاختيارك ${e(c.name||S.shop)} 🌸</div></div>` }
+function rentRcpt(r,ts,title){ const m=rRcptTxt(r,ts);
+  openSheet(`${sheetHead(title||'وصل الدفع')}${rRcptHTML(r,ts)}
+  <div class="g3"><a class="btn wa big" href="https://wa.me/${waNum(r.cphone)}?text=${encodeURIComponent(m)}" target="_blank" rel="noopener">💬 واتساب</a><button class="btn sms big" data-act="smsGo" data-p="${esc(r.cphone||'')}" data-t="${esc(m)}">✉️ SMS</button><button class="btn big" data-act="rentPrint" data-id="${r.id}" data-ts="${ts}">🖨️ طباعة</button></div>
+  <div class="grid2"><button class="btn" data-act="copyTxt" data-t="${esc(m)}">📋 نسخ</button><button class="btn" data-act="rentView" data-id="${r.id}">رجوع للحجز</button></div>`) }
 const RST={booked:['محجوز','warn'],out:['عند الزبونة','bad'],back:['رجع','ok'],cancel:['ملغي','mute']};
 const RPK={dep:'عربون',rent:'دفعة إيجار',ins:'تأمين مستلم',insback:'تأمين مرجّع',fee:'غرامة',refund:'إرجاع عربون'};
 let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null;
@@ -4256,7 +4287,7 @@ function rentForm(r,page){ const ds=S.dresses||[], g=r||{}, tm=ymd(Date.now()+DA
     <label class="btn" for="rfIdImg" id="rfIdLbl">🪪 ${g.cidImg?'تغيير صورة الهوية ✓':'صورة الهوية (صوّرها)'}</label><input id="rfIdImg" type="file" accept="image/*" capture="environment" hidden></div>
   <div class="card pcard debt"><h2>💰 المبلغ</h2>
     <div class="grid2"><label for="rfPrice">سعر الإيجار (₪)<input id="rfPrice" type="number" inputmode="decimal" value="${g.price!=null?g.price:''}"></label><label for="rfIns">التأمين (₪)<input id="rfIns" type="number" inputmode="decimal" value="${g.ins!=null?g.ins:''}" placeholder="بيرجع وقت الإرجاع"></label></div>
-    ${r?'':`<div class="grid2"><label for="rfDep">العربون المدفوع هلأ (₪)<input id="rfDep" type="number" inputmode="decimal" placeholder="0"></label><label for="rfDepM">طريقة الدفع<select id="rfDepM"><option value="cash">نقدي</option><option value="app">تطبيق أو محفظة</option></select></label></div>`}
+    ${r?'':`<label for="rfDep">العربون المدفوع هلأ (₪)<input id="rfDep" type="number" inputmode="decimal" placeholder="0"></label>${rPayUI('طريقة دفع العربون')}`}
     <label for="rfInsDoc">أو رهن بدل التأمين (اختياري)<input id="rfInsDoc" value="${esc(g.insDoc||'')}" placeholder="مثال: الهوية الأصلية، شيك، ذهب"></label></div>
   <label for="rfAlt">قياسات وتعديلات (اختياري)<input id="rfAlt" value="${esc(g.alt||'')}" placeholder="مثال: تقصير 3 سم، توسيع الخصر"></label>
   <label for="rfNote">ملاحظات (اختياري)<input id="rfNote" value="${esc(g.note||'')}"></label>
@@ -4279,24 +4310,34 @@ function rentDetail(r){ const [stt,cls]=RST[r.st], late=rLate(r), d=dressById(r.
   ${d&&d.img?`<img src="${d.img}" alt="" style="width:100%;max-height:220px;object-fit:contain;border-radius:14px;background:#fff">`:''}
   <div class="card"><h2>👤 ${esc(r.cname)}</h2><div class="row"><span>الجوال</span><a class="num" href="tel:${esc(r.cphone)}">${esc(r.cphone||'—')}</a></div><div class="row"><span>رقم الهوية</span><b class="num">${esc(r.cidNo||'—')}</b></div>${r.cidImg?`<button class="btn" data-act="viewPhoto" data-id="${r.cidImg}">🪪 عرض صورة الهوية</button>`:''}<div class="row"><span>المناسبة</span><b>${rDay(r.event)}</b></div>${r.alt?`<div class="row"><span>التعديلات</span><b>${esc(r.alt)}</b></div>`:''}${r.note?`<div class="row"><span>ملاحظات</span><b>${esc(r.note)}</b></div>`:''}</div>
   <div class="card"><h2>💰 الحساب</h2><div class="row"><span>الإيجار</span><b class="num">${fx(r.price)} ₪</b></div><div class="row"><span>المدفوع</span><b class="num" style="color:#047857">${fx(rPaid(r))} ₪</b></div><div class="row"><span>الباقي</span><b class="num" style="color:${rLeft(r)>0?'#B91C1C':'#047857'}">${fx(rLeft(r))} ₪</b></div>${rFees(r)?`<div class="row"><span>غرامات</span><b class="num">${fx(rFees(r))} ₪</b></div>`:''}<div class="row"><span>التأمين ${r.st==='back'?'(رجع)':'المطلوب'}</span><b class="num">${fx(r.ins||0)} ₪</b></div>${rInsHeld(r)?`<div class="row"><span>التأمين المحفوظ عندك</span><b class="num">${fx(rInsHeld(r))} ₪</b></div>`:''}${r.insDoc?`<div class="row"><span>الرهن</span><b>${esc(r.insDoc)}</b></div>`:''}
-    <div class="list" style="margin-top:4px">${(r.pays||[]).map(p=>`<div class="li"><span><span class="t">${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k}${p.det?' ('+esc(p.det)+')':''}</span><br><span class="muted">${fdate(p.ts)} ${p.m==='none'?'':' · '+(p.m==='app'?'تطبيق':'نقدي')}</span></span><span class="num" style="font-weight:700;color:${p.amt<0?'#B91C1C':'#047857'}">${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪</span></div>`).join('')}</div></div>
+    <div class="list" style="margin-top:4px">${(r.pays||[]).map(p=>`<button class="li" data-act="rentRcptGo" data-id="${r.id}" data-ts="${p.ts}"><span><span class="t">${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k}${p.det?' ('+esc(p.det)+')':''}</span><br><span class="muted">${fdate(p.ts)} ${p.m==='none'?'':' · '+(p.m==='app'?(p.am?esc(p.am):'تطبيق'):'نقدي')}${p.proof?` · <button class="lnk" data-act="viewPhoto" data-id="${p.proof}" data-t="إشعار التحويل">📎 الإشعار</button>`:''}</span></span><span class="num" style="font-weight:700;color:${p.amt<0?'#B91C1C':'#047857'}">${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪ 🧾</span></button>`).join('')}</div>${(r.pays||[]).length?'<p class="fh" style="margin:0">اضغط على أي دفعة عشان تطلع وصلها.</p>':''}</div>
   ${r.st==='booked'?`<button class="addbig" data-act="rentOut" data-id="${r.id}"><span>👗</span>تسليم الفستان للزبونة</button>
-    <div class="grid2"><button class="btn" data-act="rentPay" data-id="${r.id}">💵 دفعة على الإيجار</button><button class="btn" data-act="rentEdit" data-id="${r.id}">✏️ تعديل الحجز</button></div>
+    ${rentPayCard(r)}<button class="btn block" data-act="rentEdit" data-id="${r.id}">✏️ تعديل الحجز</button>
     <div class="msgbar"><span>📩 ذكّرها بموعد الاستلام:</span>${msgBtns(rentMsg(r,'pick'))}</div>
     <button class="btn danger block" data-act="rentCancel" data-id="${r.id}">إلغاء الحجز</button>`:''}
   ${r.st==='out'?`<button class="addbig" data-act="rentBack" data-id="${r.id}"><span>↩️</span>استلام الفستان (إرجاع)</button>
-    ${rLeft(r)>0?`<button class="btn block" data-act="rentPay" data-id="${r.id}">💵 دفعة على الإيجار</button>`:''}
+    ${rentPayCard(r)}
     <div class="msgbar"><span>📩 ذكّرها بموعد الإرجاع:</span>${msgBtns(rentMsg(r,'ret'))}</div>`:''}
   <div class="msgbar"><span>🧾 وصل الحجز:</span>${msgBtns(rentMsg(r,'rcpt'))}</div>` }
 
+function rentPayCard(r){ const l=rLeft(r), lt=(r.pays||[]).length?r.pays[r.pays.length-1].ts:0;
+  return `<div class="card pcard pay rpc"><div class="row"><h2>💵 تسجيل دفعة</h2><span>الباقي <b class="num" style="color:${l>0?'#B91C1C':'#047857'}">${fx(l)} ₪</b></span></div>
+  ${l>0?`<button class="btn pbtn block big" data-act="rentPay" data-id="${r.id}">＋ إضافة دفعة على الإيجار</button>`:'<p style="margin:0;color:#047857;font-weight:700">✓ الإيجار مدفوع كامل</p>'}
+  ${lt?`<button class="btn block" data-act="rentRcptGo" data-id="${r.id}" data-ts="${lt}">🧾 وصل آخر دفعة (واتساب، SMS، طباعة)</button>`:''}</div>` }
 function rentPaySheet(r,mode){ const left=rLeft(r);
   const T={out:['تسليم الفستان','الباقي من الإيجار (₪)',left,true],pay:['دفعة على الإيجار','المبلغ (₪)',left,false]}[mode];
   return `${sheetHead(T[0]+' · #'+r.no)}<div class="card pcard pay"><label for="rpAmt">${T[1]}<input id="rpAmt" type="number" inputmode="decimal" value="${T[2]||''}"></label>
     ${T[3]&&r.ins?`<label for="rpIns">التأمين اللي استلمته هلأ (₪)<input id="rpIns" type="number" inputmode="decimal" value="${r.ins}"></label>`:''}
-    <label for="rpM">طريقة الدفع<select id="rpM"><option value="cash">نقدي</option><option value="app">تطبيق أو محفظة</option></select></label></div>
+    ${rPayUI('طريقة الدفع')}</div>
     <button class="btn primary block big" data-act="rentPayGo" data-id="${r.id}" data-m="${mode}">✓ ${mode==='out'?'تم التسليم':'تسجيل الدفعة'}</button>` }
 
 Object.assign(A,{
+rpM(d){ const r=RPS[d.k], el=document.querySelector(`.rpay[data-k="${d.k}"]`); if(!r||!el) return; r.m=d.m; el.querySelectorAll('[data-act=rpM]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===d.m)); el.querySelector('.rpApp').hidden=d.m!=='app' },
+rpAm(d){ const r=RPS[d.k], el=document.querySelector(`.rpay[data-k="${d.k}"]`); if(!r||!el) return; r.am=d.m; el.querySelectorAll('[data-act=rpAm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===d.m)) },
+rentRcptGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(r) rentRcpt(r,d.ts) },
+rentPrint(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const c=invCfg(), P=INV_PAPER[c.paper]||INV_PAPER['80'];
+  $('#printArea').innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important}} #printArea .rcpt{box-shadow:none;border:0;color:#000;font-size:13px} #printArea .rcpt img{width:auto!important;max-height:60px;margin:auto}</style>${rRcptHTML(r,d.ts)}`;
+  setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا')}},200) },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
 rentOnGo(d){ S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
 rentModeSet(d){ S.rentSide=d.v==='side'?1:0; save(); render(); toast(S.rentSide?'✓ رجع زر البيع، والتأجير صار قسم جانبي':'✓ صار التطبيق كله على التأجير') },
@@ -4318,39 +4359,39 @@ async rentSave(d){ const id=+d.id, old=id?(S.rentals||[]).find(x=>x.id===id):nul
   let img=old?old.cidImg:''; if(RIDIMG){ try{ const k='rid'+Date.now(); await idb('readwrite',st=>st.put(RIDIMG,k)); img=k }catch(e){} }
   const data={dressId:dr.id,dname:dr.name,cname:name.slice(0,80),cphone:phone.slice(0,20),cidNo:idNo.slice(0,20),cidImg:img,event:ev,pick,ret,price,ins,insDoc:v('rfInsDoc').slice(0,80),alt:v('rfAlt').slice(0,160),note:v('rfNote').slice(0,200)};
   if(old){ Object.assign(old,data); audit(`تعديل حجز فستان #${old.no}`); save(); closeSheet(); render(); A.rentView({id:old.id}); toast('✓ انحفظ التعديل'); return }
-  const no=1+Math.max(0,...(S.rentals||[]).map(x=>x.no||0)), dep=r2(+v('rfDep')||0), m=v('rfDepM')||'cash';
+  const no=1+Math.max(0,...(S.rentals||[]).map(x=>x.no||0)), dep=r2(+v('rfDep')||0), m=RP().m; if(dep>0&&!rpOk()) return;
   if(dep>price){ toast('العربون أكبر من سعر الإيجار'); return }
-  const r={id:S.nextId++,no,...data,st:'booked',created:Date.now(),pays:dep>0?[{ts:Date.now(),amt:dep,m,k:'dep'}]:[]};
-  S.rentals.push(r); audit(`حجز فستان #${no}: ${dr.name} لـ${name}`); save(); closeSheet(); RENTV='book'; render(); A.rentView({id:r.id}); toast(`✓ انحجز الفستان · رقم الحجز ${no}`) },
+  const r={id:S.nextId++,no,...data,st:'booked',created:Date.now(),pays:dep>0?[{ts:Date.now(),amt:dep,m,...rpX(m),k:'dep'}]:[]};
+  S.rentals.push(r); audit(`حجز فستان #${no}: ${dr.name} لـ${name}`); save(); closeSheet(); RENTV='book'; render(); if(r.pays.length) rentRcpt(r,r.pays[0].ts,'✓ انحجز الفستان · وصل العربون'); else A.rentView({id:r.id}); toast(`✓ انحجز الفستان · رقم الحجز ${no}`) },
 rentView(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(r) openSheet(rentDetail(r)) },
 rentPay(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(r) openSheet(rentPaySheet(r,'pay')) },
 rentOut(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(r) openSheet(rentPaySheet(r,'out')) },
-rentPayGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const a=r2(+(($('#rpAmt')||{}).value)||0), ins=r2(+(($('#rpIns')||{}).value)||0), m=(($('#rpM')||{}).value)||'cash';
+rentPayGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const a=r2(+(($('#rpAmt')||{}).value)||0), ins=r2(+(($('#rpIns')||{}).value)||0), m=RP().m; if((a>0||ins>0)&&!rpOk()) return;
   if(a<0||ins<0) return; if(a>rLeft(r)+0.001){ toast(`المبلغ أكبر من الباقي (${fx(rLeft(r))} ₪)`); return }
   if(d.m==='pay'&&a<=0){ toast('اكتب المبلغ'); return }
-  r.pays=r.pays||[]; if(a>0) r.pays.push({ts:Date.now(),amt:a,m,k:'rent'}); if(d.m==='out'){ if(ins>0) r.pays.push({ts:Date.now(),amt:ins,m,k:'ins'}); r.st='out'; r.outAt=Date.now(); audit(`تسليم فستان #${r.no} لـ${r.cname}`) }
-  save(); closeSheet(); render(); A.rentView({id:r.id}); toast(d.m==='out'?'✓ انسلّم الفستان':'✓ انسجلت الدفعة') },
+  r.pays=r.pays||[]; if(a>0) r.pays.push({ts:Date.now(),amt:a,m,...rpX(m),k:'rent'}); if(d.m==='out'){ if(ins>0) r.pays.push({ts:Date.now(),amt:ins,m,...rpX(m),k:'ins'}); r.st='out'; r.outAt=Date.now(); audit(`تسليم فستان #${r.no} لـ${r.cname}`) }
+  save(); closeSheet(); render(); const lt=(r.pays||[]).length?r.pays[r.pays.length-1].ts:0; if(lt&&(a>0||ins>0)) rentRcpt(r,lt,d.m==='out'?'✓ انسلّم الفستان · الوصل':'✓ انسجلت الدفعة · الوصل'); else A.rentView({id:r.id}); toast(d.m==='out'?'✓ انسلّم الفستان':'✓ انسجلت الدفعة') },
 rentBack(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const held=rInsHeld(r), late=Math.max(0,Math.round((ymdT2(rToday())-ymdT2(r.ret))/DAY));
   openSheet(`${sheetHead('استلام الفستان · #'+r.no)}<p style="margin:0">${late?`⚠️ الفستان متأخر <b class="num">${late}</b> يوم عن موعده.`:'✓ الفستان راجع بموعده.'}</p>
     <div class="card pcard debt"><h2>غرامات (إذا في)</h2><div class="grid2"><label for="rbLate">غرامة تأخير (₪)<input id="rbLate" type="number" inputmode="decimal" placeholder="0"></label><label for="rbDmg">تلف أو تنظيف زيادة (₪)<input id="rbDmg" type="number" inputmode="decimal" placeholder="0"></label></div><input id="rbNote" placeholder="وصف التلف (اختياري)"></div>
     ${held>0?`<div class="card pcard pay"><h2>التأمين</h2><p style="margin:0">محفوظ عندك <b class="num">${fx(held)}</b> ₪. الغرامات وباقي الإيجار (${fx(rLeft(r))} ₪) بينخصموا منه، والباقي بيرجع للزبونة.</p></div>`:rLeft(r)>0?`<p class="fh" style="margin:0">باقي إيجار <b class="num">${fx(rLeft(r))}</b> ₪. سجّله من «دفعة على الإيجار».</p>`:''}
-    <label for="rbM">التأمين بيرجع<select id="rbM"><option value="cash">نقدي</option><option value="app">تطبيق أو محفظة</option></select></label>
+    ${rPayUI('التأمين بيرجع')}
     <button class="btn primary block big" data-act="rentBackGo" data-id="${r.id}">✓ رجع الفستان</button>`) },
-rentBackGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const lf=r2(+(($('#rbLate')||{}).value)||0), dm=r2(+(($('#rbDmg')||{}).value)||0), m=(($('#rbM')||{}).value)||'cash', note=String(($('#rbNote')||{}).value||'').trim().slice(0,120);
+rentBackGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const lf=r2(+(($('#rbLate')||{}).value)||0), dm=r2(+(($('#rbDmg')||{}).value)||0), m=RP().m, note=String(($('#rbNote')||{}).value||'').trim().slice(0,120); if(!rpOk(1)) return;
   if(lf<0||dm<0) return; const fee=r2(lf+dm); let held=rInsHeld(r); const now=Date.now(); r.pays=r.pays||[];
   /* من التأمين: أول الغرامات، بعدين باقي الإيجار، والباقي بيرجع للزبونة. اللي بينخصم من التأمين مش كاش جديد (m:'none') */
   const fromIns=Math.min(held,fee); if(fromIns>0){ r.pays.push({ts:now,amt:fromIns,m:'none',k:'fee',...(note?{det:note}:{})}); held=r2(held-fromIns) }
-  if(fee-fromIns>0.004) r.pays.push({ts:now,amt:r2(fee-fromIns),m,k:'fee',...(note?{det:note}:{})});
+  if(fee-fromIns>0.004) r.pays.push({ts:now,amt:r2(fee-fromIns),m,...rpX(m),k:'fee',...(note?{det:note}:{})});
   const lr=Math.min(held,rLeft(r)); if(lr>0){ r.pays.push({ts:now,amt:lr,m:'none',k:'rent'}); held=r2(held-lr) }
-  const used=r2(fromIns+lr); if(used>0) r.pays.push({ts:now,amt:-used,m:'none',k:'insback'}); if(held>0) r.pays.push({ts:now,amt:-held,m,k:'insback'});
-  r.st='back'; r.backAt=now; if(note) r.dmg=note; audit(`إرجاع فستان #${r.no}${fee?` · غرامات ${fx(fee)} ₪`:''}`); save(); closeSheet(); render(); A.rentView({id:r.id}); toast('✓ رجع الفستان'+(held>0?` · رجّع للزبونة ${fx(held)} ₪`:'')) },
+  const used=r2(fromIns+lr); if(used>0) r.pays.push({ts:now,amt:-used,m:'none',k:'insback'}); if(held>0) r.pays.push({ts:now,amt:-held,m,...rpX(m),k:'insback'});
+  r.st='back'; r.backAt=now; if(note) r.dmg=note; audit(`إرجاع فستان #${r.no}${fee?` · غرامات ${fx(fee)} ₪`:''}`); save(); closeSheet(); render(); if(r.pays.some(p=>p.ts===now)) rentRcpt(r,now,'✓ رجع الفستان · الوصل'); else A.rentView({id:r.id}); toast('✓ رجع الفستان'+(held>0?` · رجّع للزبونة ${fx(held)} ₪`:'')) },
 rentCancel(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const p=rPaid(r);
   openSheet(`${sheetHead('إلغاء الحجز #'+r.no)}<p style="margin:0">الحجز بيتلغى والفستان بيرجع متاح بهالأيام. الحجز بيضل بالسجل كـ«ملغي».</p>
-    ${p>0?`<label for="rcRef">كم بترجّع من العربون؟ (المدفوع ${fx(p)} ₪)<input id="rcRef" type="number" inputmode="decimal" value="0"></label><label for="rcM">طريقة الإرجاع<select id="rcM"><option value="cash">نقدي</option><option value="app">تطبيق أو محفظة</option></select></label>`:''}
+    ${p>0?`<label for="rcRef">كم بترجّع من العربون؟ (المدفوع ${fx(p)} ₪)<input id="rcRef" type="number" inputmode="decimal" value="0"></label>${rPayUI('طريقة الإرجاع')}`:''}
     <button class="btn danger block big" data-act="rentCancelGo" data-id="${r.id}">تأكيد الإلغاء</button>`) },
-rentCancelGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const ref=r2(+(($('#rcRef')||{}).value)||0), m=(($('#rcM')||{}).value)||'cash';
-  if(ref<0||ref>rPaid(r)+0.001){ toast('المبلغ أكبر من المدفوع'); return } r.pays=r.pays||[]; if(ref>0) r.pays.push({ts:Date.now(),amt:-ref,m,k:'refund'});
-  const held=rInsHeld(r); if(held>0) r.pays.push({ts:Date.now(),amt:-held,m,k:'insback'});
+rentCancelGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const ref=r2(+(($('#rcRef')||{}).value)||0), m=RP().m; if(ref>0&&!rpOk(1)) return;
+  if(ref<0||ref>rPaid(r)+0.001){ toast('المبلغ أكبر من المدفوع'); return } r.pays=r.pays||[]; if(ref>0) r.pays.push({ts:Date.now(),amt:-ref,m,...rpX(m),k:'refund'});
+  const held=rInsHeld(r); if(held>0) r.pays.push({ts:Date.now(),amt:-held,m,...rpX(m),k:'insback'});
   r.st='cancel'; r.cancelAt=Date.now(); audit(`إلغاء حجز فستان #${r.no}`); save(); closeSheet(); render(); toast('✓ انلغى الحجز') },
 dressEdit(d){ const x=+d.id?dressById(d.id):null, g=x||{}; RDIMG=null;
   openSheet(`${sheetHead(x?'تعديل الفستان':'فستان جديد')}
@@ -4372,6 +4413,7 @@ document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(['rfDress','rfPick','rfRet'].includes(t.id)){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfEvent'&&t.value){ const p=$('#rfPick'), rt=$('#rfRet'); if(p) p.value=ymd(ymdT2(t.value)-DAY); if(rt) rt.value=ymd(ymdT2(t.value)+DAY); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfPrice') t.dataset.t='1';
+  if(t.classList.contains('rpFile')&&t.files&&t.files[0]){ const f=t.files[0], k=t.dataset.k; t.value=''; proofImg(f).then(async r=>{ const id='rp'+Date.now(); await idb('readwrite',st=>st.put(r.data,id)); if(RPS[k]) RPS[k].proof=id; const el=document.querySelector(`.rpay[data-k="${k}"]`), pv=el&&el.querySelector('.rpPrev'); if(pv) pv.innerHTML=`<img src="${r.data}" alt="الإشعار" style="max-height:120px;border-radius:10px;margin-top:6px"> <b style="color:#047857">✓ انحفظ الإشعار</b>` }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='rfIdImg'&&t.files&&t.files[0]){ docImg(t.files[0]).then(x=>{ RIDIMG=x; const l=$('#rfIdLbl'); if(l) l.textContent='🪪 صورة الهوية ✓' }).catch(()=>toast('ما قدرنا نقرأ الصورة')) }
   if(t.id==='dfImg'&&t.files&&t.files[0]){ thumbImg(t.files[0],360).then(x=>{ RDIMG=x; const p=$('#dfImgPrev'); if(p) p.innerHTML=`<img src="${x}" alt="">` }) }
 });
