@@ -575,6 +575,7 @@ header[hidden]+.tk{display:none}
 .rhome .row h2{margin:0;font-size:16px}.rkpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.rkpi button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;color:inherit}.rkpi b{font-size:20px}.rkpi span{font-size:11px;color:var(--muted)}.rkpi button.bad{border-color:#FCA5A5;background:#FEF2F2}.rkpi button.bad b{color:#B91C1C}
 .rsTop{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:2px 0 10px;padding-inline-end:78px}.rsTop>.btn{align-self:flex-start}.rsTop h2{margin:0;font-size:19px}.rsBtns{display:flex;gap:6px}.rsBtns .btn{flex:1}.rlate{display:block;width:100%;text-align:start;background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5;border-radius:12px;padding:10px 12px;font:inherit;margin-bottom:10px}.rnote{font-size:13.5px;line-height:1.8}.lnk{background:none;border:0;color:#047857;font:inherit;font-weight:700;padding:0;text-decoration:underline}
 .roff{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;text-align:center}.rtiles{margin-top:10px}.rtiles .tile{text-align:start;font:inherit;color:inherit}
+body.rentm .salesOnly{display:none!important}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
@@ -1596,14 +1597,14 @@ function report(from,to=Infinity){
   const rets=(S.returns||[]).filter(x=>x.ts>=from&&x.ts<to), ret=r2(rets.reduce((a,x)=>a+x.amount,0)), retCost=r2(rets.reduce((a,x)=>a+x.cost,0));
   rets.forEach(x=>{const k=x.method==='debt'?'debt':'cash'; by[k]=r2(by[k]-x.amount)});
   const rv=r2(rev-ret), cg=r2(cogs-retCost), rent=(S.rentals&&S.rentals.length&&typeof rentIncome==='function')?rentIncome(from,to):0;
-  return {count:sales.length,rev:rv,gross_rev:rev,ret,cogs:cg,gross:r2(rv-cg+rent),ex,net:r2(rv-cg-ex+rent),rent,by,
+  return {count:sales.length,rev:rv,gross_rev:rev,ret,cogs:cg,gross:r2(rv-cg),ex,net:r2(rv-cg-ex+rent),rent,by,
           top:Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,5)};
 }
 /* ===== المحاسبة: قيود مزدوجة مستخرجة تلقائيًا من عمليات المحل (قراءة فقط، ما بتكتب ولا بتغيّر أي بيانات) ===== */
 const ACC=[['1','الأصول',''],['11','الأصول المتداولة','1'],['1101','الصندوق (النقدية)','11'],['1102','البنوك والمحافظ الإلكترونية','11'],['1103','ذمم الزبائن (الديون)','11'],['1104','شيكات برسم التحصيل','11'],['1105','المخزون','11'],['1106','سُلف العمال','11'],['12','الأصول الثابتة','1'],['1201','الأصول الثابتة (بسعر الشراء)','12'],['1202','مجمع الإهلاك','12'],
- ['2','الخصوم',''],['21','الخصوم المتداولة','2'],['2101','ذمم الموردين','21'],['2102','شيكات صادرة مستحقة الدفع','21'],
+ ['2','الخصوم',''],['21','الخصوم المتداولة','2'],['2101','ذمم الموردين','21'],['2102','شيكات صادرة مستحقة الدفع','21'],['2104','تأمينات الزبائن (أمانات التأجير)','21'],
  ['3','حقوق الملكية',''],['3101','رأس المال والأرصدة الافتتاحية','3'],['3102','فروقات تسوية الأرصدة','3'],['3103','جاري المالك (مسحوبات وفروقات الصندوق)','3'],['3199','الأرباح المحتجزة (صافي الربح)','3'],
- ['4','الإيرادات',''],['4101','المبيعات','4'],['4102','مردودات المبيعات','4'],['4103','زيادة الصندوق','4'],
+ ['4','الإيرادات',''],['4101','المبيعات','4'],['4102','مردودات المبيعات','4'],['4103','زيادة الصندوق','4'],['4104','إيرادات تأجير الفساتين','4'],
  ['5','المصروفات',''],['5101','تكلفة البضاعة المباعة','5'],['52','المصروفات التشغيلية','5'],['5301','عجز الصندوق','5'],['5302','فروقات الجرد والتالف','5'],['5303','نقاط الولاء والخصومات','5']];
 const ACCN=Object.fromEntries(ACC.map(a=>[a[0],a[1]]));
 const accRoot=c=>String(c)[0], accDrN=c=>['1','5'].includes(accRoot(c)); /* الأصول والمصروفات طبيعتها مدينة */
@@ -1643,21 +1644,27 @@ function accJournal(){ if(ACCJ&&ACCJ.v===S._t&&ACCJ.n===S.sales.length) return A
   plug('1105',r2(S.items.reduce((a,i)=>a+Math.max(0,(+i.qty||0)+(+i.wqty||0))*(+i.cost||0),0)),'رصيد افتتاحي للمخزون (حسب الكميات والتكلفة الحالية)','3101');
   plug('1103',r2(S.customers.reduce((a,c)=>a+balance(c),0)),'فرق تسوية ذمم الزبائن','3102');
   plug('2101',-r2(S.suppliers.reduce((a,c)=>a+balance(c),0)),'فرق تسوية ذمم الموردين','3102');
+  for(const r of (S.rentals||[])) for(const x of (r.pays||[])){ const a=r2(Math.abs(+x.amt||0)), doc='حجز فستان #'+r.no, acc=x.m==='cash'?'1101':x.m==='app'?bank('تأجير'):'2104';
+    if(x.k==='insback'&&x.m==='none') continue;
+    if(x.k==='ins') E(x.ts,doc,'rent',[[acc,a,0],['2104',0,a]]);
+    else if(x.k==='insback') E(x.ts,doc,'rent',[['2104',a,0],[acc,0,a]]);
+    else if(x.k==='refund') E(x.ts,doc,'rent',[['4104',a,0],[acc,0,a]]);
+    else E(x.ts,doc,'rent',[[acc,a,0],['4104',0,a]]) }
   J.sort((a,b)=>a.ts-b.ts); ACCJ={v:S._t,n:S.sales.length,j:J}; return J }
 function accBal(from=-Infinity,to=Infinity){ const B={}; for(const j of accJournal()){ if(j.ts<from||j.ts>=to) continue; for(const [c,dr,cr] of j.lines){ const b=B[c]||(B[c]={dr:0,cr:0}); b.dr=r2(b.dr+(dr||0)); b.cr=r2(b.cr+(cr||0)) } } return B }
 const accNet=(b,c)=>{ const x=b[c]; if(!x) return 0; return accDrN(c)?r2(x.dr-x.cr):r2(x.cr-x.dr) };
 const accSum=(b,pre)=>r2(Object.keys(b).filter(c=>c===pre||c.startsWith(pre)).reduce((a,c)=>a+accNet(b,c),0));
 function accPL(from,to){ const b=accBal(from,to), sales=accSum(b,'4101'), ret=r2(-accNet(b,'4102')), net_s=r2(sales-ret), cogs=accSum(b,'5101'), gross=r2(net_s-cogs);
   const ex=Object.keys(b).filter(c=>c.startsWith('52:')).map(c=>[accName(c),accNet(b,c)]).filter(x=>x[1]).sort((a,c)=>c[1]-a[1]);
-  const other=[['زيادة الصندوق',accNet(b,'4103')],['عجز الصندوق',-accNet(b,'5301')],['فروقات الجرد والتالف',-accNet(b,'5302')],['نقاط الولاء والخصومات',-accNet(b,'5303')]].filter(x=>x[1]);
+  const other=[['إيرادات تأجير الفساتين',accNet(b,'4104')],['زيادة الصندوق',accNet(b,'4103')],['عجز الصندوق',-accNet(b,'5301')],['فروقات الجرد والتالف',-accNet(b,'5302')],['نقاط الولاء والخصومات',-accNet(b,'5303')]].filter(x=>x[1]);
   const exT=r2(ex.reduce((a,x)=>a+x[1],0)), oT=r2(other.reduce((a,x)=>a+x[1],0)); return {sales,ret,net_s,cogs,gross,ex,exT,other,oT,net:r2(gross-exT+oT)} }
 function accBS(to){ const b=accBal(-Infinity,to), sub=pre=>Object.keys(b).filter(c=>c===pre||c.startsWith(pre+':')).map(c=>[accName(c),accNet(b,c)]).filter(x=>Math.abs(x[1])>0.004);
   const assets=[['الصندوق (النقدية)',accNet(b,'1101')],...sub('1102').map(([n,v])=>['🏦 '+n,v]),['ذمم الزبائن (الديون)',accNet(b,'1103')],['شيكات برسم التحصيل',accNet(b,'1104')],['المخزون',accNet(b,'1105')],['سُلف العمال',accNet(b,'1106')],['الأصول الثابتة',accNet(b,'1201')],['ناقص: مجمع الإهلاك',accNet(b,'1202')]].filter(x=>Math.abs(x[1])>0.004);
-  const liab=[['ذمم الموردين',accNet(b,'2101')],['شيكات صادرة مستحقة',accNet(b,'2102')]].filter(x=>Math.abs(x[1])>0.004);
+  const liab=[['ذمم الموردين',accNet(b,'2101')],['شيكات صادرة مستحقة',accNet(b,'2102')],['تأمينات الزبائن (أمانات التأجير)',accNet(b,'2104')]].filter(x=>Math.abs(x[1])>0.004);
   const pl=accPL(-Infinity,to).net, eq=[['رأس المال والأرصدة الافتتاحية',accNet(b,'3101')],['فروقات تسوية الأرصدة',accNet(b,'3102')],['جاري المالك (مسحوبات وفروقات الصندوق)',accNet(b,'3103')],['الأرباح المحتجزة (صافي الربح)',pl]].filter(x=>Math.abs(x[1])>0.004);
   const T=l=>r2(l.reduce((a,x)=>a+x[1],0)); return {assets,liab,eq,A:T(assets),L:T(liab),Q:T(eq)} }
 function accCF(from,to){ const isC=c=>c==='1101'||c.startsWith('1102'), G={}, add=(k,v)=>G[k]=r2((G[k]||0)+v); let open=0;
-  const LBL={sale:'مقبوضات المبيعات',col:'تحصيل ديون الزبائن',ret:'مردودات للزبائن',buy:'مشتريات نقدية',pay:'دفعات للموردين',exp:'المصروفات',close:'فروقات إقفال الصندوق',draw:'مسحوبات وإيداعات المالك',adv:'سُلف العمال',sal:'رواتب العمال',asset:'شراء أصول ثابتة',chq:'شيكات منصرفة',debt:'حركات ديون أخرى',sdebt:'حركات موردين أخرى',plug:'تسويات'};
+  const LBL={rent:'مقبوضات تأجير الفساتين',sale:'مقبوضات المبيعات',col:'تحصيل ديون الزبائن',ret:'مردودات للزبائن',buy:'مشتريات نقدية',pay:'دفعات للموردين',exp:'المصروفات',close:'فروقات إقفال الصندوق',draw:'مسحوبات وإيداعات المالك',adv:'سُلف العمال',sal:'رواتب العمال',asset:'شراء أصول ثابتة',chq:'شيكات منصرفة',debt:'حركات ديون أخرى',sdebt:'حركات موردين أخرى',plug:'تسويات'};
   for(const j of accJournal()){ const v=r2(j.lines.reduce((a,[c,dr,cr])=>isC(c)?a+(dr||0)-(cr||0):a,0)); if(!v) continue; if(j.ts<from) open=r2(open+v); else if(j.ts<to) add(j.kind,v) }
   const rows=Object.entries(G).map(([k,v])=>[LBL[k]||k,v]).sort((a,b)=>b[1]-a[1]), net=r2(rows.reduce((a,x)=>a+x[1],0)); return {open,rows,net,close:r2(open+net)} }
 function accTB(to){ const b=accBal(-Infinity,to), pl=null; return Object.keys(b).sort().map(c=>{ const x=b[c], n=r2(x.dr-x.cr); return {c,name:(c.includes(':')?accName(accParent(c))+' / ':'')+accName(c),dr:x.dr,cr:x.cr,bd:n>0?n:0,bc:n<0?-n:0} }) }
@@ -2188,7 +2195,7 @@ staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
 },
 debts(){
   const total=r2(S.customers.reduce((a,c)=>a+balance(c),0));
-  return `
+  return `${S.rentOn?rentDebtsCard():''}
   <div class="tile hl debt"><div class="lbl">مجموع الديون على الزبائن</div><div class="val">${money(total)}</div></div>
   <div class="row"><h2>الزبائن</h2><div class="row" style="gap:6px"><button class="btn sm" data-act="debtList">كشف الديون</button><button class="btn sm accent" data-act="debtPdf">📄 PDF</button></div></div>
   <div class="dacts${isOwner()?'':' one'}">${isOwner()?`<button class="dact urg" data-act="debtNew"><span class="dic">⚡</span><span class="dtx"><b>دين مستعجل</b><small>المبلغ والسبب بسرعة</small></span></button>`:''}<button class="dact cus" data-act="addParty" data-kind="customers"><span class="dic">👤</span><span class="dtx"><b>إضافة زبون</b><small>فتح سجل جديد</small></span></button></div>
@@ -2209,10 +2216,10 @@ more(){
   if(sub==='menu'){
     const svg=ic=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${MIC[ic]}</svg>`;
     const row=([k,t,d,ic,act])=>`<button class="mrow" ${act?`data-act="${act}"`:`data-act="sub" data-s="${k}"`}><span class="mic${HAS3.has(k)||K3[k]||(RX.ic&&RX.ic[k])?' m3':''}">${HAS3.has(k)||(RX.ic&&RX.ic[k])?I3(k):K3[k]?I3(K3[k]):svg(ic)}</span><span class="mt"><b>${t}</b><small>${d}</small></span><span class="chev" aria-hidden="true">‹</span></button>`;
-    const grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||['log','help','ann','fb','offers','rent'].includes(k))&&featOn(k));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
+    const RMm=rentMode(), grp=(title,list)=>{const l=list.filter(([k])=>(isOwner()||['log','help','ann','fb','offers','rent','rentM'].includes(k))&&featOn(k)&&!(RMm&&RHIDE.includes(k)));return l.length?`<div class="mgroup"><h3>${title}</h3><div class="mlist">${l.map(row).join('')}</div></div>`:''};
     const st=status(), plan=st.paid?(planName(S.licPlan)||'مشترك'):st.why==='trial'?'تجربة مجانية':'غير مفعّل';
     return `<button class="mprof" data-act="openSub" data-s="acct"><span class="gav">${avHTML()}</span><span class="mt"><b>${esc(S.shop)}</b><small>${esc(ownerName()||'صاحب المحل')} · <span class="pill ${st.active?'ok':'bad'}" style="font-size:11.5px;padding:1px 8px">${plan}</span></small></span><span class="chev" aria-hidden="true">‹</span></button>
-    ${grp('شغلك اليومي',[['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet']])}
+    ${grp('شغلك اليومي',[...(RMm?[['rentM','الحجوزات والفساتين','كل الحجوزات، التسليم والإرجاع، والفساتين وإعدادات التأجير','tag','rentGo']]:[]),['cash','الصندوق','النقد المتوقع وإقفال اليوم','cash'],['log','سجل المبيعات','كل الفواتير والمرتجعات','list'],['buy','المشتريات','استلام بضاعة من مورد','truck'],['sup','الموردين','أرصدتهم ودفعاتهم','users'],['exp','المصروفات','إيجار وكهرباء ورواتب وغيرها','wallet']])}
     ${grp('التقارير والملفات',[['rep','التقارير','الأرباح والخسائر وتفاصيل الأصناف','chart'],['acc','المحاسبة','الميزانية، ميزان المراجعة، دفتر الأستاذ، التدفقات النقدية','chart'],['pdf','مركز ملفات PDF','الأرباح، المبيعات، الديون، المخزون','pdf']])}
     ${grp('تجهيز المحل',[['assets','الأصول الثابتة','الثلاجات والمولّد والرفوف وإهلاكها الشهري','box'],['biz','مجال العمل',(S.pharm?'💊 صيدلية مفعّلة · ':'')+'أصناف جاهزة: سوبر ماركت، صيدلية، خضار، لحوم، ألبان، مخبوزات…','gear'],['inv','تعديل الفاتورة','الاسم والشعار والملاحظة وحجم الورق','list'],['lab','ملصقات الباركود','طباعة ملصقات للأصناف','tag'],...(S.pharm?[['pexp','⏳ تقرير الصلاحية','المنتهي، اللي قرّب، وخسارة المنتهي','list']]:[]),...(S.wh?[['wh','📦 المخزن','بضاعة منفصلة، وإضافة لها ونقلها للمحل','truck']]:[])])}
     ${grp('إضافات',[['rent','تأجير الفساتين','حجز الفستان بالاسم والهوية، العربون والتأمين، ومواعيد الاستلام والإرجاع','tag'],['offers','العروض والخصومات','خصم بنسبة لقسم أو صنف لفترة، واشتري وخذ مجانًا','tag'],['cat','كتالوج واتساب','رابط فيه أصنافك وأسعارك، والزبون بيطلب على واتساب','cash'],['tools','أدوات','استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، النسخ الاحتياطية','gear'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
@@ -2324,7 +2331,7 @@ more(){
   if(sub==='cash'){const d=drawer();return back('الصندوق')+`
     <div class="tile hl"><div class="lbl">المتوقع في الصندوق الآن</div><div class="val">${money(d.expected)}</div><div class="lbl">منذ آخر إقفال ${d.from?fdate(d.from):''}</div></div>
     <div class="card"><div class="list">
-      ${stat('رصيد الافتتاح',money(d.open))}${stat('مبيعات نقدية',money(d.cashSales))}${stat('دفعات ديون من الزبائن',money(d.debtIn))}
+      ${stat('رصيد الافتتاح',money(d.open))}${stat('مبيعات نقدية',money(d.cashSales))}${d.rentC?stat('تأجير الفساتين (عربون وإيجار وتأمين)',money(d.rentC)):''}${stat('دفعات ديون من الزبائن',money(d.debtIn))}
       ${stat('مصروفات',money(-d.exp))}${stat('مشتريات نقدية',money(-d.buys))}${stat('دفعات للموردين',money(-d.supOut))}${d.refunds?stat('مرتجعات نقدية',money(-d.refunds)):''}${d.wages?stat('رواتب وسُلف وأصول',money(-d.wages)):''}${d.dOut?stat('مسحوبات المالك',money(-d.dOut)):''}${d.dIn?stat('إيداعات المالك',money(d.dIn)):''}</div></div>
     <div class="card"><h2>مسحوبات المالك والشركاء</h2><p class="muted" style="margin:0">إذا أخدت مصاري من الدرج لإلك، أو حطيت مصاري من جيبك، سجّلها هون. وإذا إنتو شركاء، اختار اسم الشريك وكل سحبة بتنحفظ باسمه. هيك الصندوق والمحاسبة بيطلعوا مظبوطين، وما بتنحسب عليكم عجز.</p>
       ${partnersBox()}
@@ -2394,19 +2401,20 @@ more(){
   const ib=itemBreakdown(from);
   return back('التقارير')+`
   <div class="seg">${[['today','اليوم'],['week','آخر 7 أيام'],['month','آخر 30 يوم']].map(([k,v])=>`<button data-act="period" data-p="${k}" aria-pressed="${period===k}">${v}</button>`).join('')}</div>
+  ${S.rentOn?rentRepCard(from):''}
   <div class="grid2"><button class="btn accent" data-act="pdfGo" data-sel="summary,pay" data-per="${period}">الأرباح والخسائر PDF</button><button class="btn" data-act="pdfGo" data-sel="${Object.keys(PDFSEC).join(',')}" data-per="${period}">التقرير الكامل PDF</button></div>
   ${(()=>{const ss=S.sales.filter(s=>s.ts>=from), n=ss.length, items=ss.reduce((a,s)=>a+s.lines.reduce((b,l)=>b+l.count,0),0), days={}; ss.forEach(s=>{const k=sod(s.ts); days[k]=(days[k]||0)+s.total});
     const best=Object.entries(days).sort((a,b)=>b[1]-a[1])[0];
-    return `<div class="tiles"><div class="tile"><div class="lbl">عدد السلات</div><div class="val">${n}</div></div><div class="tile"><div class="lbl">متوسط السلة</div><div class="val">${money(n?r.rev/n:0)}</div></div>
+    return `<div class="tiles salesOnly"><div class="tile"><div class="lbl">عدد السلات</div><div class="val">${n}</div></div><div class="tile"><div class="lbl">متوسط السلة</div><div class="val">${money(n?r.rev/n:0)}</div></div>
       <div class="tile"><div class="lbl">قطع مباعة</div><div class="val num">${r3(items)}</div></div><div class="tile"><div class="lbl">أفضل يوم</div><div class="val" style="font-size:15px">${best?new Date(+best[0]).toLocaleDateString('ar',{weekday:'long'})+' · '+money(best[1]):'—'}</div></div></div>`})()}
-  <button class="btn primary block" data-act="pdfGo" data-sel="summary,daily" data-per="${period}">تقرير مفصّل: كل يوم وكل سلة PDF</button>
+  <button class="btn primary block salesOnly" data-act="pdfGo" data-sel="summary,daily" data-per="${period}">تقرير مفصّل: كل يوم وكل سلة PDF</button>
   <div class="card"><h2>الأرباح والخسائر</h2><div class="list">
     ${stat(`المبيعات (${r.count} فاتورة)`,money(r.gross_rev))}${r.ret?stat('المرتجعات',money(-r.ret)):''}${stat('تكلفة البضاعة المباعة',money(-r.cogs))}${stat('هامش الربح',money(r.gross))}${stat('المصروفات',money(-r.ex))}
-    <div class="li"><span class="t">صافي الربح</span><span class="total" style="color:var(--${r.net>=0?'good':'bad'})">${money(r.net)}</span></div></div></div>
+    ${r.rent?stat('دخل تأجير الفساتين',money(r.rent)):''}<div class="li"><span class="t">صافي الربح</span><span class="total" style="color:var(--${r.net>=0?'good':'bad'})">${money(r.net)}</span></div></div></div>
   <div class="card"><h2>طريقة الدفع</h2><div class="list">${Object.entries(PAY).map(([k,v])=>stat(v,money(r.by[k]))).join('')}</div></div>
-  <div class="card"><h2>قيمة المخزون</h2><div class="list">${stat('بسعر التكلفة',money(S.items.reduce((a,i)=>a+Math.max(i.qty,0)*i.cost,0)))}${stat('بسعر البيع',money(S.items.reduce((a,i)=>a+Math.max(i.qty,0)*i.price,0)))}</div></div>
-  <div class="card"><h2>تفاصيل الأصناف المباعة</h2><div class="list">${ib.map(e=>`<div class="li"><span><span class="t">${esc(e.name)}</span><br><span class="muted">الكمية <span class="num">${e.qty}</span> ${e.unit} · ربح <span class="num">${fx(e.profit)}</span> ₪</span></span>${money(e.rev)}</div>`).join('')||'<div class="empty">لا مبيعات في هذه الفترة</div>'}</div></div>
-  <div class="card"><h2>أكثر الأصناف مبيعًا</h2>${r.top.map(([n,v])=>`<div><div class="row"><span>${esc(n)}</span>${money(v)}</div><div class="hbar"><i style="width:${Math.round(v/mx*100)}%"></i></div></div>`).join('')||'<div class="empty">لا مبيعات في هذه الفترة</div>'}</div>`;
+  <div class="card salesOnly"><h2>قيمة المخزون</h2><div class="list">${stat('بسعر التكلفة',money(S.items.reduce((a,i)=>a+Math.max(i.qty,0)*i.cost,0)))}${stat('بسعر البيع',money(S.items.reduce((a,i)=>a+Math.max(i.qty,0)*i.price,0)))}</div></div>
+  <div class="card salesOnly"><h2>تفاصيل الأصناف المباعة</h2><div class="list">${ib.map(e=>`<div class="li"><span><span class="t">${esc(e.name)}</span><br><span class="muted">الكمية <span class="num">${e.qty}</span> ${e.unit} · ربح <span class="num">${fx(e.profit)}</span> ₪</span></span>${money(e.rev)}</div>`).join('')||'<div class="empty">لا مبيعات في هذه الفترة</div>'}</div></div>
+  <div class="card salesOnly"><h2>أكثر الأصناف مبيعًا</h2>${r.top.map(([n,v])=>`<div><div class="row"><span>${esc(n)}</span>${money(v)}</div><div class="hbar"><i style="width:${Math.round(v/mx*100)}%"></i></div></div>`).join('')||'<div class="empty">لا مبيعات في هذه الفترة</div>'}</div>`;
 }};
 
 function renderResults(){
@@ -2769,7 +2777,8 @@ function render(){
   const navBuy=isOwner()&&featOn('buy');
   $('#nav').innerHTML=TABS.filter(([k])=>k==='sell'||k==='home'||k==='more'||k==='items'||(k==='staff'&&navBuy)||featOn(k)).map(([k,v])=>k==='sell'?'<span aria-hidden="true"></span>':(k==='staff'&&navBuy)?`<button data-act="openSub" data-s="buy" ${tab==='more'&&sub==='buy'?'aria-current="page"':''}><span class="ic">${I3('buy')}</span>مشتريات</button>`:`<button ${k==='rep'?'data-act="openSub" data-s="rep"':`data-act="go" data-tab="${k}"`} ${(k==='rep'?tab==='more'&&sub==='rep':k===tab&&!(k==='more'&&(sub==='rep'||(navBuy&&sub==='buy'))))?'aria-current="page"':''}><span class="ic">${I3('n-'+k)}</span>${v}</button>`).join('')
     +`<button class="fab" data-act="go" data-tab="sell" aria-label="${RM?'حجز':'بيع'}" ${tab==='sell'?'aria-current="page"':''}>${I3('n-sell','fab3')}<span>${RM?'حجز':'بيع'}</span></button>`;
-  if(RM){ const n=$('#nav'); n.innerHTML=n.innerHTML.replace('>الأصناف<','>الفساتين<'); if(tab==='sell') setTimeout(()=>rentAvailUI(0),0) }
+  document.body.classList.toggle('rentm',!!RM);
+  if(RM){ const n=$('#nav'); n.innerHTML=n.innerHTML.replace('>الأصناف<','>الفساتين<').replace('data-act="openSub" data-s="buy"','data-act="rentGo" data-f="soon"').replace('>مشتريات<','>الحجوزات<'); if(tab==='sell') setTimeout(()=>rentAvailUI(0),0) }
   else if(tab==='sell') renderResults();
   syncLive();
 }
@@ -4135,6 +4144,19 @@ function pBizView(){ const on=!!S.pharm;
 /* ===== تأجير الفساتين: فساتين، حجوزات بالهوية والعربون والتأمين، تسليم وإرجاع، ومنع الحجز المزدوج =====
    البيانات بمصفوفتين جداد (S.dresses و S.rentals) بالإضافة بس، وما بتلمس أي بيانات تانية */
 const rentMode=()=>!!(S&&S.rentOn&&!S.rentSide);
+/* بوضع محل التأجير بنخفي من المزيد الأقسام الخاصة ببيع الأصناف (البيانات ما بتنمس، بترجع لما يرجع البيع) */
+const RHIDE=['rent','log','buy','inv','lab','pexp','wh','offers','cat','tools','biz','loy'];
+function rentDebtsCard(){ const L=(S.rentals||[]).filter(r=>(r.st==='booked'||r.st==='out')&&rLeft(r)>0).sort((a,b)=>a.pick<b.pick?-1:1), tot=r2(L.reduce((a,r)=>a+rLeft(r),0));
+  return `<div class="card pcard debt"><div class="row"><h2>👗 باقي الإيجارات على الزبونات</h2><b class="num" style="color:#B91C1C">${fx(tot)} ₪</b></div>
+  <p class="fh" style="margin:0">هاي مبالغ باقية من حجوزات الفساتين. بتنقبض وقت التسليم أو من «دفعة على الإيجار» بالحجز.</p>
+  <div class="list">${L.slice(0,30).map(rentRow).join('')||'<div class="empty">كل الإيجارات مدفوعة ✓</div>'}</div></div>${rentMode()?'<h2 style="margin:14px 2px 6px;font-size:16px">ديون الزبائن الأخرى</h2>':''}` }
+function rentRepCard(from){ const L=(S.rentals||[]).filter(r=>r.created>=from&&r.st!=='cancel'), inc=rentIncome(from), held=r2((S.rentals||[]).reduce((a,r)=>a+rInsHeld(r),0));
+  const out=(S.rentals||[]).filter(r=>r.outAt>=from).length, back=(S.rentals||[]).filter(r=>r.backAt>=from).length, can=(S.rentals||[]).filter(r=>r.cancelAt>=from).length;
+  const fees=r2((S.rentals||[]).reduce((a,r)=>a+(r.pays||[]).filter(p=>p.k==='fee'&&p.ts>=from).reduce((b,p)=>b+p.amt,0),0));
+  const by={}; (S.rentals||[]).forEach(r=>(r.pays||[]).forEach(p=>{ if(p.ts>=from&&['dep','rent','fee','refund'].includes(p.k)) by[r.dname]=r2((by[r.dname]||0)+p.amt) }));
+  const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,5), mx=Math.max(1,...top.map(t=>t[1]));
+  return `<div class="card"><h2>👗 تأجير الفساتين</h2><div class="list">${stat('حجوزات جديدة',L.length)}${stat('تسليمات',out)}${stat('إرجاعات',back)}${can?stat('ملغية',can):''}${stat('دخل التأجير (عربون وإيجار وغرامات)',money(inc))}${fees?stat('منها غرامات',money(fees)):''}${stat('تأمينات محفوظة عندك هلأ',money(held))}</div>
+  ${top.length?`<h2 style="margin-top:8px;font-size:15px">أكثر الفساتين دخلًا</h2>${top.map(([n,v])=>`<div><div class="row"><span>${esc(n)}</span>${money(v)}</div><div class="hbar"><i style="width:${Math.round(v/mx*100)}%"></i></div></div>`).join('')}`:''}</div>` }
 function rentSellPage(){ const c=rentCounts();
   return `<div class="rsTop"><h2>👗 حجز فستان جديد</h2><div class="rsBtns"><button class="btn sm" data-act="rentGo" data-f="today">اليوم <span class="num">${c.pick+c.ret}</span></button><button class="btn sm" data-act="rentGo" data-f="soon">الحجوزات <span class="num">${c.soon}</span></button></div></div>
   ${c.late+c.lateBook?`<button class="banner rlate" data-act="rentGo" data-f="late">⚠️ في <b class="num">${c.late+c.lateBook}</b> حجز متأخر · افتحهم ‹</button>`:''}
@@ -4317,10 +4339,11 @@ rentBack(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const
     <button class="btn primary block big" data-act="rentBackGo" data-id="${r.id}">✓ رجع الفستان</button>`) },
 rentBackGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const lf=r2(+(($('#rbLate')||{}).value)||0), dm=r2(+(($('#rbDmg')||{}).value)||0), m=(($('#rbM')||{}).value)||'cash', note=String(($('#rbNote')||{}).value||'').trim().slice(0,120);
   if(lf<0||dm<0) return; const fee=r2(lf+dm); let held=rInsHeld(r); const now=Date.now(); r.pays=r.pays||[];
-  if(fee>0){ r.pays.push({ts:now,amt:fee,m,k:'fee',...(note?{det:note}:{})}); }
-  /* من التأمين: أول الغرامات، بعدين باقي الإيجار، والباقي بيرجع */
-  if(held>0){ let use=Math.min(held,fee); held=r2(held-use); const lr=Math.min(held,rLeft(r)); if(lr>0){ r.pays.push({ts:now,amt:lr,m,k:'rent'}); held=r2(held-lr); use=r2(use+lr) }
-    if(use>0) r.pays.push({ts:now,amt:-use,m:'none',k:'insback'}); if(held>0) r.pays.push({ts:now,amt:-held,m,k:'insback'}) }
+  /* من التأمين: أول الغرامات، بعدين باقي الإيجار، والباقي بيرجع للزبونة. اللي بينخصم من التأمين مش كاش جديد (m:'none') */
+  const fromIns=Math.min(held,fee); if(fromIns>0){ r.pays.push({ts:now,amt:fromIns,m:'none',k:'fee',...(note?{det:note}:{})}); held=r2(held-fromIns) }
+  if(fee-fromIns>0.004) r.pays.push({ts:now,amt:r2(fee-fromIns),m,k:'fee',...(note?{det:note}:{})});
+  const lr=Math.min(held,rLeft(r)); if(lr>0){ r.pays.push({ts:now,amt:lr,m:'none',k:'rent'}); held=r2(held-lr) }
+  const used=r2(fromIns+lr); if(used>0) r.pays.push({ts:now,amt:-used,m:'none',k:'insback'}); if(held>0) r.pays.push({ts:now,amt:-held,m,k:'insback'});
   r.st='back'; r.backAt=now; if(note) r.dmg=note; audit(`إرجاع فستان #${r.no}${fee?` · غرامات ${fx(fee)} ₪`:''}`); save(); closeSheet(); render(); A.rentView({id:r.id}); toast('✓ رجع الفستان'+(held>0?` · رجّع للزبونة ${fx(held)} ₪`:'')) },
 rentCancel(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const p=rPaid(r);
   openSheet(`${sheetHead('إلغاء الحجز #'+r.no)}<p style="margin:0">الحجز بيتلغى والفستان بيرجع متاح بهالأيام. الحجز بيضل بالسجل كـ«ملغي».</p>
