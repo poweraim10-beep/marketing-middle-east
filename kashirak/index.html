@@ -581,6 +581,7 @@ body.rentm .salesOnly{display:none!important}
 .rpc .row h2{margin:0}.rpc{display:flex;flex-direction:column;gap:8px}
 .rsteps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.rst{border:1.5px solid var(--line);border-radius:12px;padding:8px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface)}.rst i{font-style:normal;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#E2E8F0;color:#475569;font-weight:800}.rst b{font-size:13px}.rst small{font-size:11px;color:var(--muted);line-height:1.5}.rst.ok{border-color:#6EE7B7;background:#ECFDF5}.rst.ok i{background:#10B981;color:#fff}.rst.now{border-color:#F59E0B;background:#FFFBEB}.rst.now i{background:#F59E0B;color:#fff}
 .ridin{background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:12px;padding:9px 12px;font-weight:700;font-size:14px}.ridin.ok{background:#ECFDF5;border-color:#6EE7B7;color:#047857}.chk.big{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}.chk.big input{width:22px;height:22px}.rcpt .rnote2{background:#F0FDF4;border-radius:10px;padding:8px;margin-top:8px;font-size:13px;line-height:1.7;color:#065F46}.rflow{background:#F8FAFC;border-radius:10px;padding:8px 10px;line-height:1.7}
+.rimg img{width:100%;border-radius:14px;box-shadow:0 6px 20px rgba(15,23,42,.12);display:block}
 .rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
@@ -4193,10 +4194,48 @@ function rRcptHTML(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts), 
   <div class="rsep"></div>${g.map(p=>row(`${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k} · ${e(rPM(p))}`,`${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪`,'big')).join('')}
   <div class="rsep"></div>${row('الإيجار',fx(r.price)+' ₪')}${row('المدفوع لهلأ',fx(rPaid(r))+' ₪')}${row('الباقي',fx(rLeft(r))+' ₪',rLeft(r)>0?'due':'')}${r.ins?row('التأمين',fx(r.ins)+' ₪'):''}
   ${rRcptNote(r)?`<div class="rnote2">${e(rRcptNote(r)).replace(/\n/g,'<br>')}</div>`:''}<div class="rf">شكرًا لاختيارك ${e(c.name||S.shop)} 🌸</div></div>` }
+
+/* سند القبض كصورة رسمية (PNG) بنرسمها على canvas: بتنبعت كصورة على واتساب وبتنطبع */
+const ldImg=src=>new Promise(res=>{ if(!src) return res(null); const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src=src });
+async function rRcptCanvas(r,ts){ try{ await document.fonts.load('700 30px Alexandria'); await document.fonts.load('400 30px Alexandria') }catch(e){}
+  const c=invCfg(), g=rPayGroup(r,ts), d=new Date(+ts), W=1080, P=56, F='Alexandria, Tahoma, sans-serif', logo=await ldImg(c.logo), name=c.name||S.shop;
+  const total=r2(g.reduce((a,p)=>a+p.amt,0)), note=rRcptNote(r);
+  const cv=document.createElement('canvas'), x=cv.getContext('2d'); cv.width=W; cv.height=2600; x.direction='rtl'; x.textBaseline='middle';
+  const T=(t,X,Y,sz,w=400,col='#0F172A',al='right')=>{ x.font=`${w} ${sz}px ${F}`; x.fillStyle=col; x.textAlign=al; x.fillText(String(t),X,Y) };
+  const wrap=(t,maxW,sz,w=400)=>{ x.font=`${w} ${sz}px ${F}`; const out=[]; String(t).split('\n').forEach(par=>{ let ln=''; par.split(' ').forEach(wd=>{ const tt=ln?ln+' '+wd:wd; if(x.measureText(tt).width>maxW&&ln){ out.push(ln); ln=wd } else ln=tt }); out.push(ln) }); return out };
+  const rr=(X,Y,w,h,rad,fill,stroke)=>{ x.beginPath(); if(x.roundRect) x.roundRect(X,Y,w,h,rad); else x.rect(X,Y,w,h); if(fill){ x.fillStyle=fill; x.fill() } if(stroke){ x.strokeStyle=stroke; x.lineWidth=3; x.stroke() } };
+  x.fillStyle='#fff'; x.fillRect(0,0,W,cv.height);
+  /* الترويسة */
+  const hg=x.createLinearGradient(0,0,W,0); hg.addColorStop(0,'#0B1B3A'); hg.addColorStop(1,'#064E3B'); x.fillStyle=hg; x.fillRect(0,0,W,250);
+  if(logo){ const k=Math.min(150/logo.width,150/logo.height); rr(P-8,42,166,166,24,'#fff'); x.drawImage(logo,P+75-logo.width*k/2,125-logo.height*k/2,logo.width*k,logo.height*k) }
+  T(name,W-P,85,52,800,'#fff'); let hy=145; [c.phone?'📞 \u2066'+c.phone+'\u2069':'',c.addr?'📍 '+c.addr:''].filter(Boolean).forEach(t=>{ T(t,W-P,hy,28,400,'#CBD5E1'); hy+=42 });
+  let y=300; T('سند قبض',W/2,y,62,800,'#0B1B3A','center'); y+=58; T('حجز فستان',W/2,y,30,600,'#047857','center'); y+=50;
+  rr(P,y,W-2*P,70,16,'#F1F5F9'); T('رقم السند: '+rRcptNo(r,ts),W-P-24,y+35,28,700,'#0F172A'); T(d.toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'long',year:'numeric'})+' · '+d.toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'}),P+24,y+35,26,400,'#475569','left'); y+=110;
+  /* المبلغ */
+  T('استلمنا من السيدة:',W-P,y,30,400,'#475569'); x.font=`400 30px ${F}`; const lw=x.measureText('استلمنا من السيدة:').width; T(r.cname,W-P-lw-16,y,34,800); y+=70;
+  rr(P,y,W-2*P,150,22,'#ECFDF5','#10B981'); T('مبلغ وقدره',W-P-30,y+45,28,400,'#065F46'); T(`${total<0?'−':''}${fx(Math.abs(total))} ₪`,W/2,y+95,64,800,'#047857','center'); y+=180;
+  g.forEach(p=>{ T(`${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k}`,W-P,y,30,600); T(`${p.amt<0?'−':''}${fx(Math.abs(p.amt))} ₪ · ${rPM(p)}`,P,y,30,700,'#0F172A','left'); y+=52 });
+  y+=10; x.strokeStyle='#CBD5E1'; x.setLineDash([12,10]); x.lineWidth=3; x.beginPath(); x.moveTo(P,y); x.lineTo(W-P,y); x.stroke(); x.setLineDash([]); y+=45;
+  /* تفاصيل الحجز */
+  const rows=[['الفستان',r.dname],['رقم الحجز',String(r.no)],['المناسبة',rDay(r.event)],['الاستلام',rDay(r.pick)],['الإرجاع',rDay(r.ret)],...(r.cphone?[['جوال الزبونة','\u2066'+r.cphone+'\u2069']]:[]),...(r.insDoc?[['الرهن',r.insDoc]]:[])];
+  rows.forEach(([a,b],i)=>{ if(i%2===0) rr(P,y-26,W-2*P,52,10,'#F8FAFC'); T(a,W-P-16,y,28,400,'#475569'); T(b,P+16,y,28,700,'#0F172A','left'); y+=56 }); y+=20;
+  /* الحساب */
+  rr(P,y,W-2*P,r.ins?250:200,20,null,'#E2E8F0'); let ty=y+45;
+  [['الإيجار',fx(r.price)+' ₪','#0F172A'],['المدفوع لهلأ',fx(rPaid(r))+' ₪','#047857'],['الباقي',fx(rLeft(r))+' ₪',rLeft(r)>0?'#B91C1C':'#047857'],...(r.ins?[['التأمين النقدي',fx(r.ins)+' ₪','#0F172A']]:[])].forEach(([a,b,cl])=>{ T(a,W-P-28,ty,30,600); T(b,P+28,ty,32,800,cl,'left'); ty+=52 }); y=ty+30;
+  /* الملاحظة */
+  if(note){ const L=wrap(note,W-2*P-60,27); rr(P,y,W-2*P,L.length*44+40,18,'#FFFBEB','#F59E0B'); L.forEach((l,i)=>T(l,W-P-30,y+42+i*44,27,500,'#78350F')); y+=L.length*44+70 }
+  /* التوقيع */
+  y+=40; x.strokeStyle='#94A3B8'; x.lineWidth=2; x.beginPath(); x.moveTo(P,y); x.lineTo(P+330,y); x.stroke(); T('توقيع وختم المحل',P+165,y+32,24,400,'#64748B','center');
+  T('شكرًا لاختيارك '+name+' 🌸',W-P,y,28,600,'#0F172A'); y+=110;
+  x.fillStyle='#0B1B3A'; x.fillRect(0,y-20,W,70); T('صادر عبر «كاشيرك الذكي»',W/2,y+15,22,400,'#CBD5E1','center'); y+=50;
+  const out=document.createElement('canvas'); out.width=W; out.height=y; out.getContext('2d').drawImage(cv,0,0); return out }
+async function rRcptBlob(r,ts){ const cv=await rRcptCanvas(r,ts); return new Promise(res=>cv.toBlob(b=>res(b),'image/png')) }
 function rentRcpt(r,ts,title){ title=title||'سند القبض'; const m=rRcptTxt(r,ts);
-  openSheet(`${sheetHead(title||'وصل الدفع')}${rRcptHTML(r,ts)}
-  <div class="g3"><a class="btn wa big" href="https://wa.me/${waNum(r.cphone)}?text=${encodeURIComponent(m)}" target="_blank" rel="noopener">💬 واتساب</a><button class="btn sms big" data-act="smsGo" data-p="${esc(r.cphone||'')}" data-t="${esc(m)}">✉️ SMS</button><button class="btn big" data-act="rentPrint" data-id="${r.id}" data-ts="${ts}">🖨️ طباعة</button></div>
-  <div class="grid2"><button class="btn" data-act="copyTxt" data-t="${esc(m)}">📋 نسخ</button><button class="btn" data-act="rentView" data-id="${r.id}">رجوع للحجز</button></div>`) }
+  openSheet(`${sheetHead(title)}<div class="rimg" id="rImg"><div class="empty">⏳ بنجهّز سند القبض…</div></div>
+  <div class="g3"><button class="btn wa big" data-act="rentWa" data-id="${r.id}" data-ts="${ts}">💬 واتساب</button><button class="btn sms big" data-act="smsGo" data-p="${esc(r.cphone||'')}" data-t="${esc(m)}">✉️ SMS</button><button class="btn big" data-act="rentPrint" data-id="${r.id}" data-ts="${ts}">🖨️ طباعة</button></div>
+  <p class="fh" style="margin:0">واتساب: بيبعت السند كصورة. SMS: بينسخ نص السند وبيفتح الرسائل، الصق واعمل إرسال.</p>
+  <div class="grid2"><button class="btn" data-act="rentSave2" data-id="${r.id}" data-ts="${ts}">⬇️ حفظ الصورة</button><button class="btn" data-act="rentView" data-id="${r.id}">رجوع للحجز</button></div>`);
+  rRcptCanvas(r,ts).then(cv=>{ const b=$('#rImg'); if(b) b.innerHTML=`<img src="${cv.toDataURL('image/png')}" alt="سند القبض">` }).catch(()=>{ const b=$('#rImg'); if(b) b.innerHTML=rRcptHTML(r,ts) }) }
 const RST={booked:['محجوز','warn'],out:['عند الزبونة','bad'],back:['رجع','ok'],cancel:['ملغي','mute']};
 const RPK={dep:'عربون',rent:'دفعة إيجار',ins:'تأمين مستلم',insback:'تأمين مرجّع',fee:'غرامة',refund:'إرجاع عربون'};
 let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null;
@@ -4348,7 +4387,15 @@ Object.assign(A,{
 rpM(d){ const r=RPS[d.k], el=document.querySelector(`.rpay[data-k="${d.k}"]`); if(!r||!el) return; r.m=d.m; el.querySelectorAll('[data-act=rpM]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===d.m)); el.querySelector('.rpApp').hidden=d.m!=='app' },
 rpAm(d){ const r=RPS[d.k], el=document.querySelector(`.rpay[data-k="${d.k}"]`); if(!r||!el) return; r.am=d.m; el.querySelectorAll('[data-act=rpAm]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===d.m)) },
 rentRcptGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(r) rentRcpt(r,d.ts) },
-rentPrint(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const c=invCfg(), P=INV_PAPER[c.paper]||INV_PAPER['80'];
+async rentWa(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b){ toast('تعذّر تجهيز الصورة'); return }
+  const f=new File([b],fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.png',{type:'image/png'});
+  try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ navigator.clipboard&&navigator.clipboard.writeText(r.cphone||'') }catch(_){} await navigator.share({files:[f]}); return } }catch(e){ if(e&&e.name==='AbortError') return }
+  try{ const a=document.createElement('a'); a.href=URL.createObjectURL(f); a.download=f.name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000) }catch(e){}
+  toast('✓ نزلت صورة السند، ارفقها بمحادثة الزبونة'); window.open(`https://wa.me/${waNum(r.cphone)}`,'_blank','noopener') },
+async rentSave2(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b) return; const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.png'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000); toast('✓ انحفظت الصورة') },
+async rentPrint(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const c=invCfg(), P=INV_PAPER[c.paper]||INV_PAPER['80'];
+  let img=''; try{ img=(await rRcptCanvas(r,d.ts)).toDataURL('image/png') }catch(e){}
+  if(img){ $('#printArea').innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important} #printArea img{width:100%!important}}</style><img src="${img}" alt="">`; setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا')}},250); return }
   $('#printArea').innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important}} #printArea .rcpt{box-shadow:none;border:0;color:#000;font-size:13px} #printArea .rcpt img{width:auto!important;max-height:60px;margin:auto}</style>${rRcptHTML(r,d.ts)}`;
   setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا')}},200) },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
