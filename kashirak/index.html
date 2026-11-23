@@ -584,6 +584,9 @@ body.rentm .salesOnly{display:none!important}
 .rimg img{width:100%;border-radius:14px;box-shadow:0 6px 20px rgba(15,23,42,.12);display:block}
 .rdw{background:#FEF3C7;color:#92400E;border-radius:999px;padding:1px 10px;font-size:13px;font-weight:800;margin-inline-start:4px;white-space:nowrap}
 .redit{border:2px solid #F59E0B!important;color:#92400E!important;background:#FFFBEB!important;font-weight:800}
+.rbiz{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:16px;border:2px solid #F472B6;background:linear-gradient(135deg,#FDF2F8,#FCE7F3);font:inherit;color:inherit;text-align:start;box-shadow:0 4px 14px rgba(236,72,153,.18)}.rbiz .rbi{font-size:34px}.rbiz .rbt{flex:1;display:flex;flex-direction:column}.rbiz .rbt b{font-size:17px}.rbiz .rbt small{color:#9D174D;font-size:12.5px}.rbiz .rbg{background:#DB2777;color:#fff;border-radius:999px;padding:6px 14px;font-weight:800;font-size:14px;white-space:nowrap}
+.rpt0{display:flex;align-items:center;gap:10px;align-self:stretch;text-align:start}.rpt0>span{font-size:38px}.rpt0 b{font-size:19px;display:block}.rpt0 small{color:var(--muted);font-size:13px}
+.rpgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-self:stretch}.rpgrid div{display:flex;align-items:center;gap:6px;background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:8px;font-size:13.5px;font-weight:600}.rpgrid span{font-size:18px}.rpgo{margin-top:4px}
 .rpay{display:flex;flex-direction:column;gap:8px}.rpt{font-weight:600;font-size:14px}.rpay .wals{margin-bottom:6px}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
@@ -4156,7 +4159,8 @@ function bizOnboard(){ try{ if(!S||!linked()||!isOwner()||isSeller2()||$('#sheet
   localStorage.setItem('ksr-biz-ob','1'); localStorage.setItem('ksr-biz-ob2','1'); localStorage.removeItem('ksr-biz-force'); clearInterval(bizOnboard.t); const on=S.tplDone||{};
   const ks=Object.keys(TPLN).filter(k=>k!=='pharm');
   openSheet(`${sheetHead('👋 أهلًا فيك! شو مجال شغلك؟')}<p style="margin:0">اختار مجال محلك، وبننزّلك أصنافه جاهزة بالأسماء والصور، وإنت بس بتحط الكمية والسعر. وبتقدر تضيف أو تلغي أي مجال بعدين من «المزيد ← مجال العمل».</p>
-    <p class="muted" style="margin:0">✅ بتقدر تختار أكثر من مجال مع بعض، بعدين اضغط «تفعيل».</p>
+    <button class="rbiz" data-act="rentPitch"><span class="rbi">👗</span><span class="rbt"><b>تأجير فساتين</b><small>أفراح · سهرة · خطوبة</small></span><span class="rbg">تفعيل ‹</span></button>
+    <p class="muted" style="margin:0">✅ أو اختار مجال محلك (بتقدر تختار أكثر من مجال)، بعدين اضغط «تفعيل».</p>
     <div class="bizgrid">${ks.map(k=>on[k]?`<div class="bizc bzon"><span class="bzi">${bizIc(k)}</span><span>${TPLN[k]}</span><small>✓ مفعّل عندك</small></div>`:`<button class="bizc" data-act="bizTog" data-k="${k}" aria-pressed="false"><span class="bzi">${bizIc(k)}</span><span>${TPLN[k]}</span><i class="bzk">✓</i></button>`).join('')}<button class="bizc" data-act="bizTog" data-k="pharm" aria-pressed="false"><span class="bzi">${bizIc('pharm')}</span><span>صيدلية</span><i class="bzk">✓</i></button></div>
     <button class="btn primary block" data-act="bizGo" id="bizGoBtn" disabled>اختار مجالك أول</button>
     <button class="btn block" data-act="close">بعدين، بدي أضيف أصنافي بإيدي</button>`) }catch(_){} }
@@ -4186,6 +4190,12 @@ function pBizView(){ const on=!!S.pharm;
 /* ===== تأجير الفساتين: فساتين، حجوزات بالهوية والعربون والتأمين، تسليم وإرجاع، ومنع الحجز المزدوج =====
    البيانات بمصفوفتين جداد (S.dresses و S.rentals) بالإضافة بس، وما بتلمس أي بيانات تانية */
 const rentMode=()=>!!(S&&S.rentOn&&!S.rentSide);
+const RPITCH=[['🪪','حجز بالاسم والهوية'],['💰','العربون والباقي'],['🧾','سند قبض على واتساب'],['🚫','ما في حجز مكرر'],['📅','الاستلام والإرجاع'],['📊','الدخل والأرباح']];
+const rentPitchBody=()=>`<div class="rpt0"><span>👗</span><div><b>محل تأجير فساتين</b><small>التطبيق كله بيتشكّل على التأجير بضغطة</small></div></div>
+  <div class="rpgrid">${RPITCH.map(([i,t])=>`<div><span>${i}</span>${t}</div>`).join('')}</div>
+  <button class="addbig rpgo" data-act="rentOnGo" data-m="full"><span>✓</span>تفعيل</button>
+  <button class="btn block sm" data-act="rentOnGo" data-m="side">محلي ببيع وبأجّر مع بعض</button>
+  <small class="fh" style="text-align:center">ما بيمسح ولا بيغيّر أي إشي، وبتلغيه وقت ما بدك.</small>`;
 /* طريقة الدفع بالتأجير: نقدي، أو تحويل (بنك فلسطين، جوال باي، بال باي...) مع صورة الإشعار */
 let RPS={}, RPN=0;
 const RP=()=>{ const e=document.querySelector('#sheet.open .rpay')||document.querySelector('#view .rpay'); return (e&&RPS[e.dataset.k])||{m:'cash',am:'',proof:null} };
@@ -4356,11 +4366,7 @@ function rentHomePage(ban){ const t=rToday(), up=(S.rentals||[]).filter(r=>r.st=
 function rentRow(r){ const [stt,cls]=RST[r.st]||['','mute'], late=rLate(r);
   return `<button class="li" data-act="rentView" data-id="${r.id}"><span style="min-width:0"><span class="t">${rIdIn(r)?'🪪 ':''}${esc(r.cname)} · ${esc(r.dname)}</span><br><span class="muted">📅 ${rDay(r.pick)} ← ${rDay(r.ret)}${r.event?' · المناسبة '+rDay(r.event):''}</span><br><span class="muted">حجز <span class="num">#${r.no}</span>${rLeft(r)>0?` · باقي <b class="num" style="color:#B91C1C">${fx(rLeft(r))} ₪</b>`:' · الإيجار مدفوع ✓'}</span></span><span class="pill ${late?'bad':cls}">${late?'متأخرة':stt}</span></button>` }
 
-function rentView(){ if(!S.rentOn) return `<div class="card rhero"><span style="font-size:42px">👗</span><h2 style="margin:0">قسم تأجير الفساتين</h2>
-    <p style="margin:0;line-height:1.8">لمحلات تأجير فساتين الأفراح والسهرة والخطوبة: حجز الفستان باسم الزبونة ورقم هويتها وصورة الهوية، العربون والتأمين، موعد الاستلام والإرجاع، والتطبيق بيمنع إنه نفس الفستان ينحجز مرتين بنفس الأيام.</p>
-    <ul class="rul"><li>حجز بالاسم والجوال ورقم الهوية وصورتها</li><li>عربون، باقي الإيجار، وتأمين بيرجع وقت الإرجاع</li><li>تسليم اليوم، إرجاع اليوم، والمتأخرات على الرئيسية</li><li>تذكير الزبونة على واتساب أو SMS</li><li>دخل كل فستان، والحجوزات القادمة لكل واحد</li></ul>
-    <button class="addbig" data-act="rentOnGo" data-m="full"><span>👗</span>محلي محل تأجير فساتين</button><p class="fh" style="margin:-4px 0 4px">التطبيق كله بيتشكّل على التأجير: زر «بيع» بيصير «حجز»، و«الأصناف» بتصير «الفساتين».</p>
-    <button class="btn block" data-act="rentOnGo" data-m="side">قسم إضافي جنب البيع العادي</button><p class="fh" style="margin:0">بتضل تبيع أصناف عادي، والتأجير بيكون قسم لحاله. وبالحالتين ما بيتغيّر ولا بينمسح أي إشي بمحلك.</p></div>`;
+function rentView(){ if(!S.rentOn) return `<div class="card rhero">${rentPitchBody()}</div>`;
   const c=rentCounts(), tabs=`<div class="seg rtabs"><button aria-pressed="${RENTV==='book'}" data-act="rentTab" data-v="book">📋 الحجوزات</button><button aria-pressed="${RENTV==='dress'}" data-act="rentTab" data-v="dress">👗 الفساتين <span class="num">(${(S.dresses||[]).length})</span></button><button aria-pressed="${RENTV==='set'}" data-act="rentTab" data-v="set">⚙️</button></div>`;
   if(RENTV==='dress') return tabs+dressList()+rentOffBtn();
   return rentViewRest(tabs,c)+rentOffBtn() }
@@ -4496,8 +4502,9 @@ async mgGo(){ if(!MG||!isOwner()||isSeller2()) return; const P=MG; MG=null;
   S.merges=S.merges||[]; S.merges.push({ts,shop:B.shop||'',items:P.newItems.length,sales:P.sales.length,cust:P.newCust.length});
   audit(`${tag}: ${P.newItems.length} صنف، ${P.sales.length} فاتورة، ${P.newCust.length} زبون`); save(); closeSheet(); render();
   toast(`✓ انضاف ${P.newItems.length} صنف و${P.sales.length} فاتورة و${P.newCust.length} زبون`) },
+rentPitch(){ openSheet(`${sheetHead('تأجير فساتين')}<div class="rhero">${rentPitchBody()}</div>`) },
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
-rentOnGo(d){ S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
+rentOnGo(d){ closeSheet(); S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
 rentModeSet(d){ S.rentSide=d.v==='side'?1:0; save(); render(); toast(S.rentSide?'✓ رجع زر البيع، والتأجير صار قسم جانبي':'✓ صار التطبيق كله على التأجير') },
 rentOffAsk(){ openSheet(`${sheetHead('إلغاء تفعيل قسم الفساتين')}<p style="margin:0;line-height:1.8">التطبيق بيرجع لشكله العادي: زر «بيع» والأصناف والرئيسية العادية.</p><p class="fh" style="margin:0">ما بينمسح ولا فستان ولا حجز. كلهم بيضلوا محفوظين، وإذا فعّلته مرة تانية بيرجعوا زي ما هم.</p><button class="btn danger block big" data-act="rentOff">تأكيد إلغاء التفعيل</button><button class="btn block" data-act="close">رجوع</button>`) },
 rentOff(){ closeSheet(); S.rentOn=0; sub='menu'; if(tab==='sell'||tab==='items'){ tab='home' } save(); render(); toast('✓ انلغى تفعيل قسم الفساتين. بياناته محفوظة، وبترجع تفعّله من المزيد ← تأجير الفساتين') },
