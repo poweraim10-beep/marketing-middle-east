@@ -936,7 +936,7 @@ async function admin(env, request, b) {
     const shops = (shopsR.results || []).map((s) => {
       let d = {}, meta = {}; try { d = JSON.parse(s.devices || '{}'); } catch {} try { meta = JSON.parse(s.meta || '{}'); } catch {}
       const L = lic['shop:' + s.id];
-      const lastSeen = Math.max(0, ...Object.values(d).map((x) => x.last || 0));
+      const lastSeen = Math.max(0, ...Object.entries(d).map(([k, x]) => Math.max(x.last || 0, (devs[k] && devs[k].last) || 0))); // آخر ظهور: من المزامنة أو من نبضة الجهاز، الأحدث
       return { kind: 'shop', id: s.id, stopped: s.stopped || 0, acct: s.acct, owner: s.owner || '', wa: s.wa || '', haspass: !!s.haspass, fp: s.fp || '', phone: s.phone, name: s.name || meta.shop || '', created: s.created, updated: s.updated, lastSeen, devices: Object.entries(d).map(([k, v]) => ({ id: k, label: v.label, last: v.last, main: k === s.main })), sales: meta.sales || 0, items: meta.items || 0, trialEnds: s.trial_end || meta.trialEnds || null, legacyExp: null, lic: L ? { exp: L.exp, plan: L.plan, updated: L.updated } : null, size: s.size, note: L && L.note || '' };
     });
     // same phone/browser fingerprint behind several accounts = probably the same person repeating the free trial

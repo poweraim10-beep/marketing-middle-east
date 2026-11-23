@@ -105,7 +105,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>(Math.round(n*100)/100).toLocaleString('en-US',{maximumFractionDigits:2});
 const DAY=864e5;
-let AD_IMG='', D=null, tab='home', shopFilter='all', shopQ='', codeFilter='new', codeQ='';
+let actF='day', AD_IMG='', D=null, tab='home', shopFilter='all', shopQ='', codeFilter='new', codeQ='';
 const PLAN_ORDER=['m1','m2','m3','m6','y1','life'];
 const PLAN_NAME={m1:'شهر',m2:'شهرين',m3:'3 شهور',m6:'6 شهور',y1:'سنة',life:'مفتوح'};
 const DEF_PRICE={m1:39,m2:75,m3:99,m6:189,y1:349,life:999};
@@ -179,7 +179,8 @@ home(){
   <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
     <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
   <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
-    <div class="list">${sh.filter(x=>['trial','tover','visit'].includes(x.st.k)).sort((a,b)=>(b.s.created||0)-(a.s.created||0)).slice(0,8).map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">لسا ما حدا جرّب. أول ما حدا يفتح التطبيق بيطلع هون</div>'}</div></div>`},
+    <div class="list">${sh.filter(x=>['trial','tover','visit'].includes(x.st.k)).sort((a,b)=>(b.s.created||0)-(a.s.created||0)).slice(0,8).map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">لسا ما حدا جرّب. أول ما حدا يفتح التطبيق بيطلع هون</div>'}</div></div>
+  ${actCard()}`},
 shops(){
   let sh=D.shops.map(s=>({s,st:stateOf(s)}));
   sh=sh.filter(x=>inFilter(x.st));
@@ -242,6 +243,16 @@ money(){
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
   <div class="card"><h2>الحساب</h2><a class="btn" href="/" target="_blank" rel="noopener">فتح الأكاديمية</a><button class="btn danger" data-a="logout">تسجيل خروج</button></div>`}
 };
+/* مين شغّال؟ نشاط المحلات حسب آخر ظهور (قراءة بس) */
+const ACTF=[['now','شغّالين هلأ',3600e3],['day','آخر 24 ساعة',86400e3],['d3','آخر 3 أيام',3*86400e3],['week','آخر أسبوع',7*86400e3],['off','متوقفين (+7 أيام)',-1]];
+function actIn(s,f){ const L=s.lastSeen||0, age=Date.now()-L, x=ACTF.find(a=>a[0]===f); if(!x) return true; if(x[2]<0) return !L||age>=7*86400e3; return L&&age<x[2] }
+function actDot(s){ const L=s.lastSeen||0, age=Date.now()-L; return !L?'#94A3B8':age<3600e3?'#10B981':age<86400e3?'#34D399':age<3*86400e3?'#F59E0B':age<7*86400e3?'#FB923C':'#EF4444' }
+function actCard(){ const pool=D.shops.filter(s=>s.kind==='shop'||(s.items||s.sales));
+  const L=pool.filter(s=>actIn(s,actF)).sort((a,b)=>(b.lastSeen||0)-(a.lastSeen||0));
+  return `<div class="card" id="actCard"><div class="row"><h2>🟢 مين شغّال على التطبيق؟</h2><span class="pill mute">${L.length}</span></div>
+  <p style="margin:0;font-size:12.5px;color:var(--muted)">مرتّبين حسب آخر مرة فتحوا التطبيق. الأخضر شغّال، والأحمر متوقف عن الشغل.</p>
+  <div class="chips">${ACTF.map(([k,l])=>`<button class="chip" data-a="actF" data-f="${k}" aria-pressed="${actF===k}">${l} <span class="num">${pool.filter(s=>actIn(s,k)).length}</span></button>`).join('')}</div>
+  <div class="list">${L.slice(0,80).map(s=>{ const st=stateOf(s); return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av" style="position:relative">${initials(s.name)}<i style="position:absolute;bottom:-2px;left:-2px;width:12px;height:12px;border-radius:50%;background:${actDot(s)};border:2px solid #fff"></i></span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}</span><br><span class="s" style="white-space:normal;display:block;line-height:1.6"><b style="color:${actDot(s)}">● ${ago(s.lastSeen)}</b>${s.acct?` · <span class="num">${s.acct}</span>`:''}${s.owner?' · '+esc(s.owner):''}<br>📦 <span class="num">${s.items||0}</span> صنف · 🧾 <span class="num">${s.sales||0}</span> بيعة</span></span>${s.stopped?'<span class="pill bad">⛔ موقوف</span>':pillOf(st)}</div>` }).join('')||'<div class="empty">ما في حدا بهالفترة</div>'}${L.length>80?`<div class="empty">وفي كمان <span class="num">${L.length-80}</span>… استعمل البحث بالمشتركين</div>`:''}</div></div>` }
 function shopRow(s,st){return `<div class="li" data-a="shop" data-id="${esc(s.id)}" data-k="${s.kind}"><span class="av">${initials(s.name)}</span><span class="grow"><span class="t">${esc(s.name||'بدون اسم')}${s.dup&&s.dup.length?' ⚠️':''}${(s.devices||[]).some(d=>d.main&&/لابتوب|ماك/.test(d.label||''))?' 💻':''}</span><br><span class="s">${s.acct?`حساب <span class="num">${s.acct}</span> · `:''}${s.owner?esc(s.owner)+' · ':''}${s.phone&&!s.owner?`<span class="num">${esc(s.phone)}</span> · `:''}${['trial','tover','visit'].includes(st.k)&&s.created?'بدأ '+new Date(s.created).toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'short'})+' · ':''}${ago(s.lastSeen)}</span></span>${(s.stopped?'<span class="pill bad">⛔ موقوف</span>':pillOf(st))}</div>`}
 function codeRow(c){const st={new:'<span class="pill ok">جاهز</span>',used:'<span class="pill mute">مستعمل</span>',void:'<span class="pill bad">ملغي</span>'}[c.status];
   return `<div class="li" data-a="code" data-c="${esc(c.code)}"><span class="grow"><span class="t code">${esc(c.code)}</span><br><span class="s">${planLabel(c.plan)} · <span class="num">${fmt(+c.price||0)}</span> ₪${c.acct?' · حساب <span class="num">'+c.acct+'</span>':''}${c.owner?' · '+esc(c.owner):(c.note?' · '+esc(c.note):'')}${c.status==='used'?' · فعّله '+esc(c.used_label||'محل')+' '+fday(c.used_at):''}</span></span>${st}</div>`}
@@ -395,6 +406,7 @@ function cuApplyPrices(p){ if(!p) return; try{ const cur=JSON.parse(localStorage
 const A={
   tab(d){tab=d.t; render(); scrollTo(0,0)},
   filter(d){shopFilter=d.f; tab='shops'; render()},
+  actF(d){ actF=d.f; const c=$('#actCard'); if(c) c.outerHTML=actCard(); else render() },
   cfilter(d){codeFilter=d.f; render()},
   reload(){$('#app').innerHTML='<div class="spin"></div>'; load()},
   close, newCode(){newCodeSheet()},
