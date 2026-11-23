@@ -1531,8 +1531,11 @@ function adCard(){ if(!AD||!AD.on) return ''; try{ if(localStorage.getItem('ksr-
     <button class="btn sm" data-act="adX" aria-label="إخفاء" style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,.45);color:#fff;border:0">✕</button>
     ${AD.title||AD.text||AD.link?`<div style="padding:12px 14px;display:flex;flex-direction:column;gap:6px">${AD.title?`<b style="font-size:16px">${esc(AD.title)}</b>`:''}${AD.text?`<p style="margin:0;font-size:14px;line-height:1.7">${esc(AD.text)}</p>`:''}${AD.link?`<a class="btn primary block" href="${esc(AD.link)}" target="_blank" rel="noopener">${esc(AD.btn||'اعرف أكثر')}</a>`:''}</div>`:''}</div>` }
 async function thumbImg(f,max){ const u=URL.createObjectURL(f); try{ const im=new Image(); im.src=u; await im.decode(); const k=Math.min(1,max/Math.max(im.naturalWidth,im.naturalHeight)), c=document.createElement('canvas'); c.width=Math.round(im.naturalWidth*k); c.height=Math.round(im.naturalHeight*k); c.getContext('2d').drawImage(im,0,0,c.width,c.height); return c.toDataURL('image/jpeg',.72) } finally{URL.revokeObjectURL(u)} }
-let ITEMIMG=null;
-const ithumb=i=>i&&i.img?`<img src="${i.img}" alt="" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex:0 0 auto">`:'';
+let ITEMIMG=null, ITEMIU_DEL=0;
+/* صورة الصنف: الصورة الخاصة (اللي صوّرها صاحب المحل) أو رابط صورة القالب، اللي بتنحفظ مرة وحدة على الجوال */
+const iuUrl=u=>!u?'':u.startsWith('tpl:')?TPLIMG(u.slice(4)):u;
+const imgOf=i=>i?(i.img||iuUrl(i.iu)):'';
+const ithumb=i=>imgOf(i)?`<img src="${imgOf(i)}" alt="" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex:0 0 auto">`:'';
 function appFeeOf(total,c){return c.pay==='app'&&S.appFee>0?r2(total*S.appFee/100):0}
 function splitPays(total,c){
   if(c.pay==='split'){const cash=Math.min(Math.max(r2(+c.splitCash||0),0),total), app=Math.min(Math.max(r2(+c.splitApp||0),0),r2(total-cash));return {cash,app,debt:r2(total-cash-app)}}
@@ -2147,7 +2150,7 @@ items(){
   <div class="grid2"><button class="btn sm" data-act="scan" data-target="edit">📷 تعديل بالباركود</button><button class="btn sm" data-act="cardsTog">${itemCards()?'☰ عرض القائمة':'▦ عرض البطاقات'}</button></div><small class="fh" style="margin-top:-6px">«تعديل بالباركود»: صوّر الصنف وبينفتح على طول تعدّل كميته وسعره.</small>`:''}
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
   ${catChips()}
-  ${itemCards()?`<div class="icards" id="itemList">${iFilter().map(i=>`<button class="icard" data-act="editItem" data-id="${i.id}"><span class="ici">${i.img?`<img src="${i.img}" alt="" loading="lazy">`:`<span>${esc((i.name.trim()[0])||'؟')}</span>`}</span><b>${esc(i.name)}</b><span class="pill ${i.qty<=0?'bad':i.qty<=i.min?'warn':'ok'}">${qtyTxt(i)}</span></button>`).join('')||'<div class="empty">ما في أصناف</div>'}</div>`:`
+  ${itemCards()?`<div class="icards" id="itemList">${iFilter().map(i=>`<button class="icard" data-act="editItem" data-id="${i.id}"><span class="ici">${imgOf(i)?`<img src="${imgOf(i)}" alt="" loading="lazy">`:`<span>${esc((i.name.trim()[0])||'؟')}</span>`}</span><b>${esc(i.name)}</b><span class="pill ${i.qty<=0?'bad':i.qty<=i.min?'warn':'ok'}">${qtyTxt(i)}</span></button>`).join('')||'<div class="empty">ما في أصناف</div>'}</div>`:`
   <div class="card"><div class="list" id="itemList">${iFilter().map(i=>{
     const st=i.ns?['ok','بيتحضّر']:i.qty<=0?['bad','خلص']:i.qty<=i.min?['warn','قليل']:['ok','متوفر'];
     return `<button class="li" data-act="editItem" data-id="${i.id}">
@@ -3134,7 +3137,7 @@ function bdBanner(){ const c=cart(); if(!c||!c.bd||c.bd===ymd(Date.now())) retur
   return `<div class="bdban"><span>📅 عم تبيع بتاريخ <b>${new Date(t).toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long'})}</b></span><button data-act="bdClear">رجّعه لليوم</button></div>` }
 function qbCard(){ const L=S.items.filter(i=>i.qb);
   if(!L.length) return isOwner()?`<button class="qbadd" data-act="qbPick">＋ أضف زر سريع لصنف بلا باركود</button>`:'';
-  return `<div class="card qbc"><div class="row"><h2>أزرار سريعة</h2>${isOwner()?'<button class="lnk" data-act="qbPick">تعديل</button>':''}</div><div class="qbg">${L.slice(0,30).map(i=>`<button class="qb" data-act="qbAdd" data-id="${i.id}">${i.img?`<img src="${i.img}" alt="" loading="lazy">`:`<i>${esc((i.name||'?').trim().charAt(0))}</i>`}<b>${esc(i.name)}</b><span class="num">${fx(i.price)} ₪</span></button>`).join('')}</div></div>` }
+  return `<div class="card qbc"><div class="row"><h2>أزرار سريعة</h2>${isOwner()?'<button class="lnk" data-act="qbPick">تعديل</button>':''}</div><div class="qbg">${L.slice(0,30).map(i=>`<button class="qb" data-act="qbAdd" data-id="${i.id}">${imgOf(i)?`<img src="${imgOf(i)}" alt="" loading="lazy">`:`<i>${esc((i.name||'?').trim().charAt(0))}</i>`}<b>${esc(i.name)}</b><span class="num">${fx(i.price)} ₪</span></button>`).join('')}</div></div>` }
 let QBQ='';
 function qbList(){ const t=QBQ.trim(), L=S.items.filter(i=>!t||String(i.name).includes(t)).sort((a,b)=>(b.qb?1:0)-(a.qb?1:0)||(a.barcode?1:0)-(b.barcode?1:0)).slice(0,60);
   return L.map(i=>`<button class="li" data-act="qbTog" data-id="${i.id}"><span><span class="t">${esc(i.name)}</span><br><span class="muted">${i.barcode?'إله باركود':'بلا باركود'} · ${fx(i.price)} ₪</span></span><span class="pill ${i.qb?'ok':''}">${i.qb?'✓ مضاف':'＋ إضافة'}</span></button>`).join('')||'<div class="empty">ما في أصناف بهالاسم</div>' }
@@ -3221,7 +3224,7 @@ lpSave(d){const l=cart().lines[+d.k], v=r2(parseFloat($('#lpV').value)||0); if(!
 lpReset(d){const l=cart().lines[+d.k]; delete l.p; closeSheet(); render()},
 wmon(d){const l=cart().lines[+d.k], it=itemById(l.itemId), pk=lineOf(it,l.unit,1,l.p).price; if(!(pk>0)) return; let kg=Math.max(0.001,Math.round(+d.m/pk*1000)/1000);
   if(kg-l.count>it.qty-usedQty(it.id)+1e-9){toast(`المتوفر ${qtyTxt(it)} بس`);return} l.count=kg; render(); toast(`${d.m} ₪ = ${wtTxt(kg)}`)},
-imgDel(){ITEMIMG=''; const p=$('#fImgPrev'); if(p) p.innerHTML=IMGPH; toast('بتنحذف الصورة لما تحفظ')},
+imgDel(){ITEMIMG=''; ITEMIU_DEL=1; const p=$('#fImgPrev'); if(p) p.innerHTML=IMGPH; toast('بتنحذف الصورة لما تحفظ')},
 unit(d){const l=cart().lines[+d.k], it=itemById(l.itemId), old=l.unit; l.unit=d.u;
   if(usedQty(it.id)>it.qty){l.unit=old; toast(`الكمية المتوفرة ${it.qty} لا تكفي`)} render()},
 pay(d){cart().pay=d.p; render()},
@@ -3254,14 +3257,14 @@ refund(d){
 },
 copy(d){copyBox(d.id)},
 editItem(d){
-  const wh=!!(d.wh&&S.wh); ITEMIMG=null;
+  const wh=!!(d.wh&&S.wh); ITEMIMG=null; ITEMIU_DEL=0;
   const it=itemById(d.id)||{id:0,name:'',barcode:d.bar||'',cost:'',price:'',qty:wh?0:'',min:5,cartonSize:'',cartonPrice:'',exp:'',byWeight:false};
   const whq=`<label for="fWQty">${wh?'📦 الكمية اللي بتنحط بالمخزن':'كمية المخزن'}<input id="fWQty" type="number" inputmode="decimal" value="${(it&&it.wqty)||(wh&&!it.id?'':0)}"${wh?' style="border:2px solid var(--gold,#059669)"':''}><small class="fh">البضاعة اللي بالمخزن بعيد عن الرف. ما بتنباع إلا لما تنقلها للمحل</small></label>`;
   openSheet(`${sheetHead(wh?(it.id?'صنف بالمخزن':'صنف جديد للمخزن'):(it.id?'تعديل صنف':'صنف جديد'))}
     ${wh?'<p class="muted" style="margin:0;font-size:13px">نفس تفاصيل الصنف كاملة. الكمية بتنحط بالمخزن، والمحل ما بيتأثر إلا لما تنقل.</p>':''}
     <input type="hidden" id="fId" value="${it.id}">
-    <div class="namerow"><label class="imgbox" for="fImg" aria-label="صورة الصنف"><span id="fImgPrev">${it.img?`<img src="${it.img}" alt="">`:IMGPH}</span></label><input id="fImg" type="file" accept="image/*" hidden><label for="fName">اسم الصنف<input id="fName" value="${esc(it.name)}" placeholder="مثال: حليب نيدو 900غ"></label></div>
-    <small class="fh" style="margin-top:-6px">اضغط المربع لتضيف صورة للصنف (اختياري)${it.img?' · <button class="lnk" data-act="imgDel" style="font-size:12px">حذف الصورة</button>':''}</small>
+    <div class="namerow"><label class="imgbox" for="fImg" aria-label="صورة الصنف"><span id="fImgPrev">${imgOf(it)?`<img src="${imgOf(it)}" alt="">`:IMGPH}</span></label><input id="fImg" type="file" accept="image/*" hidden><label for="fName">اسم الصنف<input id="fName" value="${esc(it.name)}" placeholder="مثال: حليب نيدو 900غ"></label></div>
+    <small class="fh" style="margin-top:-6px">اضغط المربع لتضيف صورة للصنف (اختياري)${imgOf(it)?' · <button class="lnk" data-act="imgDel" style="font-size:12px">حذف الصورة</button>':''}</small>
     <div class="barrow"><label for="fBar">الباركود<input id="fBar" inputmode="numeric" value="${esc(it.barcode)}" placeholder="امسح أو اكتب الرقم"></label><button class="bbtn scanb" data-act="scan" data-target="field" aria-label="مسح بالكاميرا"><span>📷</span>مسح</button><button class="bbtn" data-act="genCode" aria-label="باركود جديد"><span>＋</span>جديد</button></div>
     <small class="fh" style="margin-top:-6px">«مسح»: صوّر باركود العلبة. «جديد»: للصنف اللي ما إله باركود، بيعمله باركود لحاله.</small>
     <label for="fUnitSel">وحدة البيع<select id="fUnitSel"><option value="piece" ${!it.byWeight&&it.unitName!=='كرتونة'?'selected':''}>بالقطعة (حبة)</option>${S.pharm?'':'<option value="kg" '+(it.byWeight?'selected':'')+'>بالكيلو (بالوزن)</option>'}<option value="box" ${it.unitName==='كرتونة'?'selected':''}>بالكرتونة</option></select><small class="fh">كيف بتبيع الصنف: بالحبة، أو بالكيلو للبهارات والخضرة (والبيع بالغرام أو بالمبلغ)، أو كرتونة كاملة.</small></label>
@@ -3303,7 +3306,7 @@ saveItem(){
   const qv=parseFloat(v('fQty'))||0;
   const data={name:v('fName'),barcode:bar,cost:n('fCost'),price:n('fPrice'),qty:Math.max(0,w?r3(qv):Math.round(qv)),wqty:S.wh?Math.max(0,parseFloat(v('fWQty'))||0):((it&&it.wqty)||0),min:n('fMin'),
     cartonSize:w?0:Math.round(n('fCs')),cartonPrice:w?0:n('fCp'),exp:v('fExp'),byWeight:w,priceW:n('fPw'),promoBuy:Math.round(n('fPb')),promoGet:Math.round(n('fPg')),unitName:usel==='box'?'كرتونة':'',
-    packs:w?[]:[0,1,2].map(j=>({n:v('fPk'+j+'n').trim(),q:+v('fPk'+j+'q')||0,p:r2(+v('fPk'+j+'p')||0)})).filter(x=>x.n&&x.q>0&&x.p>0),img:ITEMIMG===''?'':(ITEMIMG||(it&&it.img)||'')};
+    packs:w?[]:[0,1,2].map(j=>({n:v('fPk'+j+'n').trim(),q:+v('fPk'+j+'q')||0,p:r2(+v('fPk'+j+'p')||0)})).filter(x=>x.n&&x.q>0&&x.p>0),img:ITEMIMG===''?'':(ITEMIMG||(it&&it.img)||''),...(ITEMIU_DEL?{iu:''}:{})};
   const offT=id=>$('#'+id)&&!$('#'+id).checked; if(offT('fTgW')) data.priceW=0; if(offT('fTgC')){ data.cartonSize=0; data.cartonPrice=0 } if(offT('fTgP')){ data.promoBuy=0; data.promoGet=0 }
   pItemData(data,!it); if($('#fCat')) data.cat=$('#fCat').value||''; if($('#fQb')) data.qb=$('#fQb').checked?1:0;
   if((data.promoBuy>0)!==(data.promoGet>0)){toast('العرض بدّه رقمين: اشتري كم، ومجانًا كم');return}
@@ -4039,12 +4042,13 @@ function pExpView(){
 const IMGQ=[]; let TPLR=null;
 async function imgData(u){ try{ const r=await fetch(u+(u.includes('?')?'&':'?')+'v=1',{cache:'no-store'}); if(!r.ok) return ''; const b=await r.blob(); if(!/^image\//.test(b.type)) return ''; return await new Promise((ok,no)=>{const f=new FileReader(); f.onload=()=>ok(f.result); f.onerror=no; f.readAsDataURL(b)}) }catch(_){ return '' } }
 /* الصور بتيجي جوّا القالب نفسه، فما بتعتمد على ملفات الموقع */
-const badImg=i=>!i.img||!/^data:image\//.test(i.img);
+const badImg=i=>!(i.img&&/^data:image\//.test(i.img))&&!i.iu;
 /* أصناف الخضار اللي نزلت بدون صورة: بنجيب صورتها بس (ما بنلمس أي إشي ثاني بالصنف) */
 async function vegFix(){ if(vegFix.b||!S||!navigator.onLine||!linked()) return; const L=S.items.filter(i=>(PICS.includes(i.tpl)||i.tpl==='market'||FOODT.includes(i.tpl)||i.tpl==='nylon')&&badImg(i)); if(!L.length||isSeller2()) return mkFix(); vegFix.b=1;
-  try{ const map={}, imap={}; for(const c of [...new Set(L.map(i=>i.tpl))]){ const r=await api('/tpl?k='+c); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; else if(x.f) map[k]=TPLIMG(x.f); if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img }) }
-    let n=0; for(const it of L){ const k=it.name.trim(); let d=imap[k]||''; const u=it.iu||map[k]; if(!d&&u&&(/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)||u.startsWith(TPLIMG('')))) d=await imgData(u); const cur=itemById(it.id); if(d&&cur&&badImg(cur)){ cur.img=d; n++ } }
-    if(n){ save(); render() } }catch(_){} vegFix.b=0; mkFix() }
+  try{ const map={}, imap={}; for(const c of [...new Set(L.map(i=>i.tpl))]){ const r=await api('/tpl?k='+c); (r.items||[]).forEach(x=>{ const k=String(x.n).trim(); if(x.iu) map[k]=x.iu; else if(x.f) map[k]='tpl:'+x.f; if(typeof x.img==='string'&&/^data:image\//.test(x.img)) imap[k]=x.img }) }
+    let n=0; for(const it of L){ const k=it.name.trim(); const u=map[k]||'', cur=itemById(it.id); if(!cur||!badImg(cur)) continue;
+      if(u&&(/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(u)||/^tpl:[a-z]+\/[a-z0-9-]+\.jpg$/.test(u))){ cur.iu=u; n++ } else if(imap[k]){ cur.img=imap[k]; n++ } }
+    if(n){ save(); render(); setTimeout(imgWarm,1500) } }catch(_){} vegFix.b=0; mkFix() }
 /* صور منتجات السوبر ماركت بالباركود: بنحط الصورة بس للصنف اللي ما إله صورة. ما بنغيّر أي إشي ثاني */
 const shrinkImg=(d,px=160)=>new Promise(ok=>{ const im=new Image(); im.onload=()=>{ try{ const r=Math.min(1,px/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*r); c.height=Math.round(im.height*r); const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height); ok(c.toDataURL('image/jpeg',.78)) }catch(_){ ok('') } }; im.onerror=()=>ok(''); im.src=d });
 async function mkFix(){ if(mkFix.b||!S||!navigator.onLine||!linked()||isSeller2()) return; let miss={}; try{ miss=JSON.parse(localStorage.getItem('ksr-pimg')||'{}') }catch(_){}
@@ -4053,6 +4057,14 @@ async function mkFix(){ if(mkFix.b||!S||!navigator.onLine||!linked()||isSeller2(
       for(const it of part){ const d=m[it.barcode]; if(!d){ miss[it.barcode]=now; continue } const sm=await shrinkImg(d); const cur=itemById(it.id); if(sm&&cur&&badImg(cur)){ cur.img=sm; n++ } } }
     try{ localStorage.setItem('ksr-pimg',JSON.stringify(miss)) }catch(_){} if(n){ save(); render() } }catch(_){} mkFix.b=0 }
 setTimeout(vegFix,4000); window.addEventListener('online',()=>setTimeout(vegFix,2000));
+/* تجهيز صور الأصناف على الجوال: بتنزل مرة وحدة بالخلفية وبتضل محفوظة. ما بتلمس بيانات المحل أبدًا */
+async function imgWarm(){ if(imgWarm.b||!S||!('caches' in window)) return; const U=[...new Set(S.items.filter(i=>!i.img&&i.iu).map(i=>iuUrl(i.iu)).filter(Boolean))]; if(!U.length) return;
+  imgWarm.b=1; try{ const c=await caches.open('ksr-img-v1'), key=x=>{ const u=new URL(x,location.href); return u.origin+u.pathname };
+    const miss=[]; for(const u of U) if(!(await c.match(key(u)))) miss.push(u);
+    if(miss.length&&!navigator.onLine){ if(!imgWarm.told){ imgWarm.told=1; toast('📶 اشبك النت لمدة دقيقة عشان تنزل صور الأصناف الجديدة') } return }
+    let k=0; const run=async()=>{ while(k<miss.length&&navigator.onLine){ const u=miss[k++]; try{ const r=await fetch(key(u),{mode:'cors'}); if(r.ok&&/^image\//.test(r.headers.get('content-type')||'')) await c.put(key(u),r) }catch(_){} } };
+    await Promise.all([run(),run(),run(),run()]) }catch(_){} finally{ imgWarm.b=0 } }
+setTimeout(imgWarm,9000); window.addEventListener('online',()=>setTimeout(imgWarm,4000));
 /* تحديث تلقائي للقوالب: أي صنف جديد بينضاف لقالب مفعّل عندك بينزل لحاله (بكمية صفر). ما بيتغيّر ولا بيتكرر أي صنف موجود */
 async function tplSync(){ if(tplSync.b||!S||!navigator.onLine||!linked()||isSeller2()) return; const done=S.tplDone||{}, ks=Object.keys(done).filter(k=>TPLN[k]); if(!ks.length) return;
   try{ const last=+localStorage.getItem('ksr-tplsync')||0; if(Date.now()-last<3*3600e3) return }catch(_){} tplSync.b=1;
@@ -4180,7 +4192,7 @@ Object.assign(A,{
     list.forEach(x=>{ const nm=String(x.n||'').trim(), bc=String(x.b||'').trim(); if(!nm) return; if((bc&&bars.has(bc))||names.has(nm)){skip++;return}
       const kg=!S.pharm&&/كيلو|كغ|kg/i.test(x.u||''); const it={id:S.nextId++,name:nm,barcode:bc,cost:0,price:r2(+x.p||0),qty:0,min:5,cartonSize:0,cartonPrice:0,exp:'',byWeight:kg,...(x.u&&!kg?{unitName:String(x.u).slice(0,20)}:{}),...(k==='pharm'&&S.pharm?{kind:'med'}:{}),...(FOODT.includes(k)&&!x.s?{ns:1}:{}),tpl:k,cat:x.c||k};
       S.items.push(it); if(bc) bars.add(bc); names.add(nm); add++;
-      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.f==='string'&&/^[a-z]+\/[a-z0-9-]+\.jpg$/.test(x.f)) IMGQ.push([it,TPLIMG(x.f)]); else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) IMGQ.push([it,x.iu]) });
+      if(typeof x.img==='string'&&x.img.startsWith('data:image/')) it.img=x.img; else if(typeof x.f==='string'&&/^[a-z]+\/[a-z0-9-]+\.jpg$/.test(x.f)) it.iu='tpl:'+x.f; else if(typeof x.iu==='string'&&/^icons\/veg\/[a-z0-9-]+\.jpg$/.test(x.iu)) it.iu=x.iu });
     for(const [it,u] of IMGQ.splice(0)){ const d=await imgData(u); if(d) it.img=d }
     if(PICS.includes(k)||FOODT.includes(k)||k==='nylon'){ try{ localStorage.setItem('ksr-cards','1') }catch(_){} }
     S.tplDone=Object.assign({},S.tplDone,{[k]:r.t||Date.now()}); audit(`تنزيل أصناف ${n}: ${add} صنف جديد`); save(); closeSheet(); render(); if(PICS.includes(k)||k==='market'||FOODT.includes(k)||k==='nylon') setTimeout(vegFix,600);
