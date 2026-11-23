@@ -448,6 +448,7 @@ body.landing .sheet{z-index:170} body.landing .toast{z-index:180}
 #land .lmenu{background:rgba(255,255,255,.08);border:1px solid rgba(52,211,153,.4);color:#F1F5F9;border-radius:12px;width:44px;height:44px;font-size:20px}
 #land .lban{text-align:center;padding:14px 0 4px}
 #land .lphone{width:210px;height:400px;margin:0 auto;border-radius:34px;padding:10px;background:linear-gradient(145deg,#2b2f38,#0d0f13);box-shadow:0 24px 60px rgba(0,0,0,.55),inset 0 0 0 2px #444,0 0 0 1px #C8A24A55;transform:rotate(-4deg)}
+#land .lphone:has(.lshot){width:232px;height:auto;padding:9px}#land .lscr.lshot{padding:0;height:auto;display:block;border-radius:25px}#land .lscr.lshot img{display:block;width:100%;height:auto}
 #land .lscr{height:100%;border-radius:26px;background:#F1F5F9;color:#0B1B2B;overflow:hidden;padding:10px;display:flex;flex-direction:column;gap:7px;text-align:right}
 #land .lbar{display:flex;align-items:center;gap:6px;background:#0B1B2B;color:#34D399;border-radius:12px;padding:6px 8px;font-weight:700;font-size:12px}#land .lbar img{width:22px;height:22px}
 #land .ltl{display:grid;grid-template-columns:1fr 1fr;gap:6px}#land .ltl div{background:#fff;border-radius:10px;padding:6px;box-shadow:0 2px 6px rgba(0,0,0,.08)}#land .ltl small{display:block;font-size:9.5px;color:#667}#land .ltl b{font-size:14px}
@@ -4251,10 +4252,7 @@ function showLand(){ if($('#land')) return; const d=document.createElement('div'
   d.innerHTML=`<div class="lwrap">
    <header class="lhd"><img src="icons/logo-3d-256.png" alt=""><b>كاشيرك الذكي</b><span class="sp"></span><button class="lmenu" data-act="landMenu" aria-label="القائمة">☰</button></header>
    <div class="lstick"><img src="icons/logo-3d-256.png" alt=""><span class="lst-t"><b>ثبّت كاشيرك</b><small>مجاني للتجربة</small></span><a class="lst-wa" href="https://wa.me/${LAND_WA}?text=${encodeURIComponent('مرحبًا، بدي أستفسر عن تطبيق كاشيرك الذكي')}" target="_blank" rel="noopener" aria-label="واتساب">💬</a><button data-act="landInstall">⬇️ ثبّت الآن</button></div>
-   <div class="lban"><div class="lphone"><div class="lscr"><div class="lbar"><img src="icons/logo-3d-256.png" alt=""><span>كاشيرك الذكي</span></div>
-     <div class="ltl"><div><small>مبيعات اليوم</small><b>1,240 ₪</b></div><div><small>الربح</small><b>312 ₪</b></div></div>
-     <div class="lrow"><span>أرز 1 كغ × 2</span><b>14.00</b></div><div class="lrow"><span>حليب بودرة</span><b>12.00</b></div><div class="lrow"><span>تونة معلبة × 3</span><b>13.50</b></div>
-     <div class="lpay">إتمام البيع · 39.50 ₪</div></div></div>
+   <div class="lban"><div class="lphone"><div class="lscr lshot"><img src="icons/land-shot.webp" alt="شاشة كاشيرك الذكي من جوّا التطبيق" width="600" height="1246" decoding="async"></div></div>
      <p class="ltag">تطبيق الكاشير – أندرويد وآيفون</p></div>
    <h1 class="lh1">${esc(RCFG.land&&RCFG.land.title||'كاشيرك الذكي')}</h1>
    <p class="ldesc">${esc(RCFG.land&&RCFG.land.desc||'برنامج كاشير ومحاسبة عربي سهل الاستخدام للمحلات التجارية والسوبر ماركت والصيدليات ومحلات الخضار، يعمل بدون إنترنت.')}</p>
