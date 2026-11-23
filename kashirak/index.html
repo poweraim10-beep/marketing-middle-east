@@ -1324,7 +1324,7 @@ function cloudCard(){
     <div class="grid2">${main?'<button class="btn primary" data-act="cloudNow">ارفع الآن</button>':'<button class="btn primary" data-act="cloudTake">خلّي هذا الجهاز أساسي</button>'}<button class="btn" data-act="cloudNow2">حدّث من السحابة</button></div>
     ${CL.nopass&&main?'<button class="btn accent" data-act="cloudNew">حدّد كلمة سر للحساب (عشان تفتحه من أجهزة ثانية)</button>':''}
     <button class="btn" data-act="devHelp">💻 بدي أبيع من اللابتوب أو جهاز ثاني</button>
-    ${main?'':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
+    ${main?'<button class="btn sm" data-act="switchAcct" style="align-self:flex-start">🔁 الدخول لحساب محل تاني</button>':'<button class="btn sm" data-act="cloudOut" style="align-self:flex-start">تسجيل خروج من الحساب</button>'}</div>`}
 /* ===== ماكينة قارئ الباركود (USB أو لاسلكية) =====
    الماكينة بتشتغل زي الكيبورد: بتكتب أرقام الباركود بسرعة كبيرة وبتضغط Enter.
    الربط بينحفظ على هذا الجهاز بشكل دائم لحد ما صاحب المحل يفصله.
@@ -3672,6 +3672,13 @@ async cloudTakeGo(){const pw=$('#clPass').value, btn=$('[data-act=cloudTakeGo]')
   }catch(e){toast(e.message); btn.disabled=false}},
 async cloudNow(){await cloudPush(); render(); clLiveUp(); toast(CLS.state==='ok'?'✓ انرفع':CLS.err||'ما انرفع')},
 async cloudNow2(){await cloudPull(isViewer()); render(); toast(CLS.state==='ok'?'✓ محدّث':CLS.err||'ما في اتصال')},
+switchAcct(){ openSheet(`${sheetHead('الدخول لحساب محل تاني')}<p style="margin:0;line-height:1.8">هاد لما يكون في حساب تاني للمحل وبدك هالجوال يشتغل عليه (مثلًا الجوال التاني يصير على حساب الجوال الأساسي).</p>
+  <p class="fh" style="margin:0">قبل ما نطلع، بنرفع آخر نسخة من الحساب الحالي على السحابة، فما بيضيع منه إشي وبتقدر ترجعله وقت ما بدك برقمه وكلمة السر.</p>
+  <button class="btn primary block big" data-act="switchGo">رفع النسخة والدخول للحساب التاني</button><button class="btn block" data-act="close">رجوع</button>`) },
+async switchGo(){ const b=$('[data-act=switchGo]'); if(b){ b.disabled=true; b.textContent='جاري رفع النسخة…' }
+  try{ await cloudPush() }catch(e){}
+  if(CLS.state!=='ok'){ if(b){ b.disabled=false; b.textContent='رفع النسخة والدخول للحساب التاني' } toast('ما انرفعت النسخة. شغّل النت وجرّب كمان مرة'); return }
+  OPQ=[]; opqSave(); SRVOPS=[]; BASE=null; CL=null; clSave(); upSet({}); CLSNAP=null; closeSheet(); render(); A.cloudLogin() },
 cloudOut(){openSheet(`${sheetHead('تسجيل خروج من حساب المحل')}<p style="margin:0">بيانات المحل بتضل على هذا الجهاز، بس ما رح تنرفع نسخ جديدة للسحابة.</p><button class="btn danger block" data-act="cloudOutGo">تسجيل خروج</button>`)},
 async multiLoad(){ try{const r=await api('/devices'); MDEV=r.devices; CL.multi=r.multi; clSave(); render(); clLiveUp()}catch(e){toast(e.message)} },
 async multiSet(d){ const on=!!d.on;
@@ -4020,13 +4027,13 @@ doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
 
 };
 
-const VIEW_OK=new Set(['go','wedgeLink','wedgeCancel','wedgeDone','wedgeOffAsk','wedgeOff','remHost','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
+const VIEW_OK=new Set(['go','wedgeLink','wedgeCancel','wedgeDone','wedgeOffAsk','wedgeOff','remHost','tourStart','tourNext','tourPrev','tourDone','tourLater','pushOn','pushLater','pushOffGo','findSale','remScan','remStop','debtPdf','devHelp','introShow','introClose','celebOk','openSub','sub','sale','proofView','proofShare','viewPhoto','staffView','faceRej','party','debtList','itemLog','period','pdfAll','pdfGo','pdfMake','pdfPer','invPdf','stmtPdf','printSale','btPrint','priceWa','copy','csv','license','activate','install','mode','unlock','pinGo','testBeep','camCancel','liveToggle','bkFile','bkOut','scan','scanTyped','cart','cloudSheet','cloudTake','cloudTakeGo','cloudNow2','cloudOut','cloudOutGo','switchAcct','switchGo','cloudUnsynced','cloudLogin','cloudLoginGo','refRetry','sellerSet','multiLoad','loginReplace']);
 const EXP_OK=new Set([...VIEW_OK].filter(a=>!['cart','scan','scanTyped','liveToggle','cloudTakeGo'].includes(a)).concat(['celebOk','close','joinGo','subRetry','cloudLogin','cloudLoginGo','cloudTake','cloudTakeGo','cloudSheet']));
 const SELLER_NO=new Set(['edInv','edInvQ','edInvRm','edInvAdd','edInvSave','imgDel','supItemAdd','supItemDel','editSaleAsk','editSale','delSaleAsk','delSale','whSave','whAsk','xfer','xferAsk','addOldDebt','debtNew','debtNewGo','delParty','refund','delItem','addParty','saveParty','addBuy','savePin','confirmPay','savePhone','closeDay','saveSet','bkIn','bkFile','staffTap','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRejClear','punchDel','punchUndo','addStaff','setLoc','delStaff','photoClear','addChq','chqSet','saveLoy','redeem','makePlan','dropPlan','topUp','retAsk','retAll','doReturn','adjAsk','doAdj','wipeAsk','wipe','acctSave','avDel','importItems','doImport','delExp','cloudNow','setupGo']);
 function cloudViewOnly(){openSheet(`${sheetHead('هذا الجهاز للمتابعة')}<p style="margin:0">البيع والتعديل بيصير من الجهاز الأساسي للمحل. هذا الجهاز بيعرض كل شي ويتحدّث لحاله.</p><button class="btn primary block" data-act="cloudTake">خلّي هذا الجهاز هو الأساسي</button>`)}
 const CASH_ITEM=new Set(['editItem','saveItem','genCode','variant']);
 const canItems=()=>isOwner()||!!S.cashItems;
-const OWNER_ONLY=new Set(['edInv','edInvSave','editSaleAsk','editSale','delSaleAsk','delSale','multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
+const OWNER_ONLY=new Set(['edInv','edInvSave','editSaleAsk','editSale','delSaleAsk','delSale','multiSet','devDrop','delExp','cloudNew','cloudNewGo','cloudOut','cloudOutGo','switchAcct','switchGo','cloudTake','cloudTakeGo','cloudLogin','adjAsk','doAdj','itemLog','doReturn','editItem','saveItem','delItem','genCode','refund','openSub','wipeAsk','wipe','bkIn','bkOut','bkFile','closeDay','addBuy','confirmPay','fpEnroll','fpRemove','attMode','staffNew','staffRef','staffPhoto','faceAdd','faceRej','faceRejClear','punchDel','staffView','addStaff','setLoc','delStaff','chqSet','addChq','saveLoy','redeem','makePlan','dropPlan','csv','variant','photoClear','retAsk','retAll','topUp','dropHeld','saveSet','savePin','addExp','importItems','doImport','pdfGo','pdfMake','pdfAll','pdfPer']);
 /* ===================== نظام الصيدلية =====================
    بيتفعّل من المزيد ← مجال العمل. المحلات اللي ما فعّلت ما بيتغيّر عندها إشي.
    المخزون بينحسب بأصغر وحدة (الحبة). كل كمية إلها تشغيلة: {q, exp, lot}.
