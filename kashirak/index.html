@@ -462,7 +462,12 @@ body.landing .sheet{z-index:170} body.landing .toast{z-index:180}
 #land .lfeat div{background:rgba(255,255,255,.06);border:1px solid rgba(52,211,153,.25);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:3px}
 #land .lfeat span{font-size:24px}#land .lfeat b{font-size:14px}#land .lfeat small{font-size:12px;color:#CBD5E1;line-height:1.5}
 #land .lfoot{text-align:center;color:#34D399;margin-top:12px}
-#land .lwa{position:fixed;bottom:22px;left:18px;width:58px;height:58px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:3}
+#land .lwa{display:none!important;position:fixed;bottom:100px;left:18px;width:58px;height:58px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:3}
+#land .lstick{position:fixed;left:10px;right:10px;bottom:max(12px,env(safe-area-inset-bottom));z-index:4;display:flex;align-items:center;gap:10px;padding:10px 10px 10px 12px;border-radius:20px;background:linear-gradient(135deg,#10263B,#0B1B2B);border:1.5px solid #34D399;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 0 4px rgba(16,185,129,.12);max-width:560px;margin:0 auto;animation:lstIn .5s ease-out}
+#land .lst-wa{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:#25D366;font-size:20px;text-decoration:none}#land .lstick img{width:44px;height:44px;flex:none;border-radius:12px}#land .lst-t{flex:1;min-width:0;display:flex;flex-direction:column}#land .lst-t b{font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#land .lst-t small{font-size:12px;color:#A7F3D0}
+#land .lstick button{flex:none;border:0;border-radius:14px;padding:12px 16px;background:linear-gradient(135deg,#34D399,#10B981);color:#05261B;font:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 6px 16px rgba(16,185,129,.45);animation:lstP 2.2s ease-in-out infinite}
+@keyframes lstIn{from{transform:translateY(120%);opacity:0}to{transform:none;opacity:1}}@keyframes lstP{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+#land .lwrap{padding-bottom:96px}
 #land .lwa svg{width:30px;height:30px;fill:#fff;color:#fff}
 
 @media (min-width:900px){.invset{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}}
@@ -4245,6 +4250,7 @@ function showLand(){ if($('#land')) return; const d=document.createElement('div'
   const F=[['🛒','البيع والكاشير','بيع سريع بالباركود أو بالاسم'],['🧾','فواتير مطبوعة باسم محلك','حراري 58 و80 ملم، وA4 وA5'],['📒','الديون','كشف حساب لكل زبون على واتساب'],['🚚','الموردين','فواتير شراء ودفعات وكشف حساب'],['💱','تعدد العملات','شيكل، دولار، دينار، كل عملة لحالها'],['📦','أصناف جاهزة حسب مجال العمل','سوبر ماركت، صيدلية، خضار وفواكه'],['🤖','إدخال الفواتير بالذكاء الاصطناعي','صوّر الفاتورة وبتنضاف لحالها (قريبًا)'],['📱','أكثر من جهاز بنفس الصلاحيات','كل الأجهزة أساسية'],['📶','يعمل بدون إنترنت','وبيتزامن لحاله لما يرجع النت']];
   d.innerHTML=`<div class="lwrap">
    <header class="lhd"><img src="icons/logo-3d-256.png" alt=""><b>كاشيرك الذكي</b><span class="sp"></span><button class="lmenu" data-act="landMenu" aria-label="القائمة">☰</button></header>
+   <div class="lstick"><img src="icons/logo-3d-256.png" alt=""><span class="lst-t"><b>ثبّت كاشيرك</b><small>مجاني للتجربة</small></span><a class="lst-wa" href="https://wa.me/${LAND_WA}?text=${encodeURIComponent('مرحبًا، بدي أستفسر عن تطبيق كاشيرك الذكي')}" target="_blank" rel="noopener" aria-label="واتساب">💬</a><button data-act="landInstall">⬇️ ثبّت الآن</button></div>
    <div class="lban"><div class="lphone"><div class="lscr"><div class="lbar"><img src="icons/logo-3d-256.png" alt=""><span>كاشيرك الذكي</span></div>
      <div class="ltl"><div><small>مبيعات اليوم</small><b>1,240 ₪</b></div><div><small>الربح</small><b>312 ₪</b></div></div>
      <div class="lrow"><span>أرز 1 كغ × 2</span><b>14.00</b></div><div class="lrow"><span>حليب بودرة</span><b>12.00</b></div><div class="lrow"><span>تونة معلبة × 3</span><b>13.50</b></div>
