@@ -574,6 +574,7 @@ header[hidden]+.tk{display:none}
 .msgbar{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:14px;background:#F8FAFC;border:1px solid var(--line);flex-shrink:0}.msgbar>span{font-weight:700;font-size:14px}.msgbar small{font-size:12px;line-height:1.5}
 .rhome .row h2{margin:0;font-size:16px}.rkpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}.rkpi button{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:2px;font:inherit;color:inherit}.rkpi b{font-size:20px}.rkpi span{font-size:11px;color:var(--muted)}.rkpi button.bad{border-color:#FCA5A5;background:#FEF2F2}.rkpi button.bad b{color:#B91C1C}
 .rsTop{display:flex;flex-direction:column;align-items:stretch;gap:8px;margin:2px 0 10px;padding-inline-end:78px}.rsTop>.btn{align-self:flex-start}.rsTop h2{margin:0;font-size:19px}.rsBtns{display:flex;gap:6px}.rsBtns .btn{flex:1}.rlate{display:block;width:100%;text-align:start;background:#FEF2F2;color:#991B1B;border:1px solid #FCA5A5;border-radius:12px;padding:10px 12px;font:inherit;margin-bottom:10px}.rnote{font-size:13.5px;line-height:1.8}.lnk{background:none;border:0;color:#047857;font:inherit;font-weight:700;padding:0;text-decoration:underline}
+.roff{margin-top:22px;padding-top:14px;border-top:1px dashed var(--line);display:flex;flex-direction:column;gap:6px;text-align:center}.rtiles{margin-top:10px}.rtiles .tile{text-align:start;font:inherit;color:inherit}
 .rhero{text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}.rul{text-align:start;margin:0;padding-inline-start:20px;line-height:1.9;font-size:14px;align-self:stretch}.rtabs{margin-bottom:8px}.rchips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 4px;flex-wrap:nowrap}.rchips .chip{flex:none}.rdi{width:52px;height:64px;border-radius:10px;background:#FDF2F8;display:grid;place-items:center;font-size:28px;flex:none}
 #fbTab{position:fixed;left:0;top:58%;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 5px 9px 4px;border:0;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#8B5CF6,#6D28D9);color:#fff;font:inherit;font-family:var(--display);font-size:11px;font-weight:700;cursor:pointer;animation:fglow 2.8s ease-in-out infinite}
 #fbTab b{writing-mode:vertical-rl;letter-spacing:.5px}#fbTab span{font-size:14px}#fbTab[hidden]{display:none}
@@ -2061,9 +2062,10 @@ home(){
   const days=[...Array(7)].map((_,k)=>{const from=sod(Date.now()-(6-k)*DAY);return {from,rev:report(from,from+DAY).rev}});
   const mx=Math.max(1,...days.map(d=>d.rev));
   const st=status();
-  const ban=!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
+  const ban=(!st.active&&!isViewer()?`<div class="banner over"><span><b>${st.why==='reg'?'سجّل محلك عشان تكمل':st.paid?'انتهى اشتراكك':'انتهت فترة التجربة المجانية'}</b><br><span class="muted">${st.why==='reg'?'التسجيل مرة وحدة وبدّه نت.':'خلص وقتك. البيع والإضافة متوقفين، وبياناتك محفوظة.'}</span></span><button class="btn sm primary" data-act="license">${st.why==='reg'?'تسجيل':'اشترك الآن'}</button></div>`
     :!st.paid&&st.daysLeft<=TRIAL_DAYS?`<div class="banner trial"><span><b>تجربة مجانية</b> · باقي <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تفعيل الاشتراك</button></div>`
-    :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'';
+    :st.daysLeft<=7?`<div class="banner trial"><span>الاشتراك بينتهي بعد <span class="num">${st.daysLeft}</span> يوم</span><button class="btn sm" data-act="license">تجديد</button></div>`:'');
+  if(typeof rentMode==='function'&&rentMode()) return rentHomePage(ban);
   return `${RCFG.notice?`<div class="banner" style="background:#FFFBEB;border:1px solid #F59E0B"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${(Array.isArray(RCFG.cards)?RCFG.cards:[]).map(x=>{ const u=/^\d{9,15}$/.test(x.u||'')?'https://wa.me/'+x.u:(/^https:\/\//.test(x.u||'')?x.u:''); const inner=`<span class="ccic">${esc(x.ic||'⭐')}</span><span style="flex:1;min-width:0"><b>${esc(x.t)}</b>${x.d?`<small>${esc(x.d)}</small>`:''}</span>${u?'<span class="chev">‹</span>':''}`; return u?`<a class="ccard" href="${esc(u)}" target="_blank" rel="noopener">${inner}</a>`:`<div class="ccard">${inner}</div>` }).join('')}${greetCard()}${annBanner()}${startCard()}${quickGrid()}${rentHome()}${adCard()}${pushCard()}${installCard()}${ban}${!st.paid&&!isViewer()?repCard('wide'):''}
   ${S.staff.length?`<button class="pdfhero" data-act="go" data-tab="staff"><span class="mic big m3">${I3('att')}</span><span hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6M17 3l2 2 3-3"/></svg></span><span style="flex:1;text-align:start"><b>بصمة العمال</b><br><span>اضغط على صورتك وخلّي الكاميرا تصوّرك</span></span><span class="chev">‹</span></button>`:''}
   <div class="tiles">
@@ -2587,7 +2589,7 @@ function quickGrid(){ const own=isOwner();
   if(typeof rentMode==='function'&&rentMode()){ const c=rentCounts(), R=[['n-sell','حجز جديد','data-act="go" data-tab="sell"',1,1],['log','الحجوزات','data-act="rentGo" data-f="soon"',1,1],['n-items','الفساتين','data-act="go" data-tab="items"',1,1],
     ['buy','مواعيد اليوم'+(c.pick+c.ret?' ('+(c.pick+c.ret)+')':''),'data-act="rentGo" data-f="today"',1],['n-debts','عند الزبونات'+(c.out?' ('+c.out+')':''),'data-act="rentGo" data-f="out"',1],['exp','المصروفات','data-act="openSub" data-s="exp"',0],
     ['sup','المتأخرة'+(c.late+c.lateBook?' ('+(c.late+c.lateBook)+')':''),'data-act="rentGo" data-f="late"',1],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['n-rep','التقارير','data-act="openSub" data-s="rep"',0]];
-    return `<div class="qgrid" aria-label="اختصارات">${R.filter(x=>own||x[3]).map(([k,tl,a,,key])=>`<button class="qk${key?' key':''}" ${a}>${I3(k)}<b>${tl}</b></button>`).join('')}</div>` }
+    return `<div class="qgrid" aria-label="اختصارات">${R.slice(0,3).map(([k,tl,a,,key])=>`<button class="qk${key?' key':''}" ${a}>${I3(k)}<b>${tl}</b></button>`).join('')}</div>` }
   const Q=[['n-sell','بيع','data-act="go" data-tab="sell"',1,1],['n-debts','الديون','data-act="go" data-tab="debts"',1,1],['n-items','الأصناف','data-act="go" data-tab="items"',1,1],
     ['exp','المصروفات','data-act="openSub" data-s="exp"',0],['log','سجل المبيعات','data-act="openSub" data-s="log"',1],['buy','المشتريات','data-act="openSub" data-s="buy"',0],
     ['sup','الموردين','data-act="openSub" data-s="sup"',0],['cash','الصندوق','data-act="openSub" data-s="cash"',0],['n-rep','التقارير','data-act="openSub" data-s="rep"',0]];
@@ -4167,10 +4169,25 @@ function rentCounts(){ const t=rToday(), L=(S.rentals||[]).filter(r=>r.st!=='can
 function rentIncome(from,to=Infinity){ let v=0; for(const r of (S.rentals||[])) for(const p of (r.pays||[])) if(p.ts>=from&&p.ts<to&&['dep','rent','fee','refund'].includes(p.k)) v+=p.amt; return r2(v) }
 function rentCash(from){ let v=0; for(const r of (S.rentals||[])) for(const p of (r.pays||[])) if(p.ts>from&&p.m==='cash') v+=p.amt; return r2(v) }
 
-function rentHome(){ if(!S||!S.rentOn) return ''; const c=rentCounts();
+function rentHome(full){ if(!S||!S.rentOn) return ''; const c=rentCounts();
   return `<div class="card rhome"><div class="row"><h2>👗 تأجير الفساتين اليوم</h2><button class="btn sm" data-act="openSub" data-s="rent">الكل ‹</button></div>
   <div class="rkpi"><button data-act="rentGo" data-f="today"><b class="num">${c.pick}</b><span>تسليم اليوم</span></button><button data-act="rentGo" data-f="today"><b class="num">${c.ret}</b><span>إرجاع اليوم</span></button><button class="${c.late?'bad':''}" data-act="rentGo" data-f="late"><b class="num">${c.late}</b><span>متأخرة</span></button><button data-act="rentGo" data-f="soon"><b class="num">${c.soon}</b><span>حجوزات جاية</span></button></div>
-  <button class="addbig" data-act="rentNew"><span>＋</span>حجز فستان جديد</button></div>` }
+  ${full?rentTiles():'<button class="addbig" data-act="rentNew"><span>＋</span>حجز فستان جديد</button>'}</div>` }
+function rentTiles(){ const c=rentCounts(), own=isOwner(), t=report(sod()), L=(S.rentals||[]).filter(r=>r.st==='booked'||r.st==='out');
+  const rdebt=r2(L.reduce((a,r)=>a+rLeft(r),0)), cdebt=r2(S.customers.reduce((a,x)=>a+Math.max(0,balance(x)),0)), held=r2((S.rentals||[]).reduce((a,r)=>a+rInsHeld(r),0));
+  return `<div class="tiles rtiles">
+    <button class="tile hl" data-act="rentGo" data-f="out">${I3('n-items','t3')}<div class="lbl">مؤجّرة هلأ</div><div class="val num">${c.out}</div><div class="lbl">من <span class="num">${(S.dresses||[]).length}</span> فستان</div></button>
+    <button class="tile" data-act="rentGo" data-f="soon">${I3('h-debts','t3')}<div class="lbl">الديون</div><div class="val">${money(r2(rdebt+cdebt))}</div>${cdebt?`<div class="lbl">باقي إيجار <span class="num">${fx(rdebt)}</span></div>`:''}</button>
+    ${own?(mOk()?`<div class="tile">${I3('h-profit','t3')}<div class="lbl">ربح اليوم</div><div class="val">${money(t.net)}</div></div>`:mLock('ربح اليوم')):''}
+    <div class="tile">${I3('h-sales','t3')}<div class="lbl">دخل اليوم</div><div class="val">${money(rentIncome(sod()))}</div></div>
+    ${own?`<button class="tile" data-act="openSub" data-s="cash">${I3('cash','t3')}<div class="lbl">بالصندوق</div><div class="val">${money(drawer().expected)}</div></button>`:''}
+    <div class="tile">${I3('chq','t3')}<div class="lbl">التأمينات</div><div class="val">${money(held)}</div></div>
+  </div>` }
+function rentHomePage(ban){ const t=rToday(), up=(S.rentals||[]).filter(r=>r.st==='booked'&&r.pick>=t).sort((a,b)=>a.pick<b.pick?-1:1).slice(0,5), late=(S.rentals||[]).filter(r=>rLate(r)||(r.st==='booked'&&r.pick<t));
+  return `${ban}${RCFG.notice?`<div class="banner" style="background:#FFFBEB;border:1px solid #F59E0B"><span>📢 ${esc(RCFG.notice)}</span></div>`:''}${greetCard()}${annBanner()}${quickGrid()}${rentHome(1)}
+  ${late.length?`<div class="card"><div class="row"><h2>⚠️ متأخرة</h2><span class="pill bad">${late.length}</span></div><div class="list">${late.slice(0,5).map(rentRow).join('')}</div></div>`:''}
+  <div class="card"><div class="row"><h2>الحجوزات الجاية</h2><button class="btn sm" data-act="rentGo" data-f="soon">الكل ‹</button></div><div class="list">${up.map(rentRow).join('')||'<div class="empty">ما في حجوزات جاية. احجز من زر «حجز» تحت.</div>'}</div></div>
+  ${adCard()}${pushCard()}` }
 
 function rentRow(r){ const [stt,cls]=RST[r.st]||['','mute'], late=rLate(r);
   return `<button class="li" data-act="rentView" data-id="${r.id}"><span style="min-width:0"><span class="t">${esc(r.cname)} · ${esc(r.dname)}</span><br><span class="muted">📅 ${rDay(r.pick)} ← ${rDay(r.ret)}${r.event?' · المناسبة '+rDay(r.event):''}</span><br><span class="muted">حجز <span class="num">#${r.no}</span>${rLeft(r)>0?` · باقي <b class="num" style="color:#B91C1C">${fx(rLeft(r))} ₪</b>`:' · الإيجار مدفوع ✓'}</span></span><span class="pill ${late?'bad':cls}">${late?'متأخرة':stt}</span></button>` }
@@ -4181,8 +4198,9 @@ function rentView(){ if(!S.rentOn) return `<div class="card rhero"><span style="
     <button class="addbig" data-act="rentOnGo" data-m="full"><span>👗</span>محلي محل تأجير فساتين</button><p class="fh" style="margin:-4px 0 4px">التطبيق كله بيتشكّل على التأجير: زر «بيع» بيصير «حجز»، و«الأصناف» بتصير «الفساتين».</p>
     <button class="btn block" data-act="rentOnGo" data-m="side">قسم إضافي جنب البيع العادي</button><p class="fh" style="margin:0">بتضل تبيع أصناف عادي، والتأجير بيكون قسم لحاله. وبالحالتين ما بيتغيّر ولا بينمسح أي إشي بمحلك.</p></div>`;
   const c=rentCounts(), tabs=`<div class="seg rtabs"><button aria-pressed="${RENTV==='book'}" data-act="rentTab" data-v="book">📋 الحجوزات</button><button aria-pressed="${RENTV==='dress'}" data-act="rentTab" data-v="dress">👗 الفساتين <span class="num">(${(S.dresses||[]).length})</span></button><button aria-pressed="${RENTV==='set'}" data-act="rentTab" data-v="set">⚙️</button></div>`;
-  if(RENTV==='dress') return tabs+dressList();
-  return rentViewRest(tabs,c) }
+  if(RENTV==='dress') return tabs+dressList()+rentOffBtn();
+  return rentViewRest(tabs,c)+rentOffBtn() }
+const rentOffBtn=()=>isOwner()?`<div class="roff"><button class="btn danger block" data-act="rentOffAsk">إلغاء تفعيل قسم الفساتين</button><small class="fh">الفساتين والحجوزات بيضلوا محفوظين، وبترجع تفعّله وقت ما بدك.</small></div>`:'';
 function dressList(){ return `<button class="addbig" data-act="dressEdit" data-id="0"><span>＋</span>إضافة فستان جديد</button>
     <div class="card"><div class="list">${(S.dresses||[]).map(d=>{ const [t,cl]=dressNow(d), n=(S.rentals||[]).filter(r=>r.dressId===d.id&&r.st!=='cancel').length, inc=r2((S.rentals||[]).filter(r=>r.dressId===d.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0));
       return `<button class="li" data-act="dressEdit" data-id="${d.id}">${d.img?`<img src="${d.img}" alt="" style="width:52px;height:64px;border-radius:10px;object-fit:cover;flex:none">`:'<span class="rdi">👗</span>'}<span style="flex:1;min-width:0"><span class="t">${esc(d.name)}${d.code?` <span class="muted num">#${esc(d.code)}</span>`:''}</span><br><span class="muted">${[d.size?'مقاس '+esc(d.size):'',d.color?esc(d.color):''].filter(Boolean).join(' · ')}${d.size||d.color?' · ':''}إيجار <span class="num">${fx(d.price||0)}</span> ₪</span><br><span class="muted">انحجز <span class="num">${n}</span> مرة · دخله <span class="num">${fx(inc)}</span> ₪</span></span><span class="pill ${cl}">${t}</span></button>` }).join('')||'<div class="empty">لسا ما ضفت فساتين. ضيف أول فستان بصورته وسعر إيجاره.</div>'}</div></div>` }
@@ -4193,7 +4211,7 @@ function rentViewRest(tabs,c){
     <button class="btn primary block" data-act="rentCfgSave">حفظ</button></div>
     <div class="card"><h2>دخل التأجير</h2><div class="row"><span>اليوم</span><b class="num">${fx(rentIncome(sod()))} ₪</b></div><div class="row"><span>هالشهر</span><b class="num">${fx(rentIncome(new Date(new Date().getFullYear(),new Date().getMonth(),1).getTime()))} ₪</b></div><div class="row"><span>تأمينات محفوظة عندك هلأ</span><b class="num">${fx(r2((S.rentals||[]).reduce((a,r)=>a+rInsHeld(r),0)))} ₪</b></div><p class="fh" style="margin:0">التأمين مش دخل: هو أمانة بترجعها للزبونة وقت الإرجاع.</p></div>
     <div class="card"><h2>شكل التطبيق</h2><div class="seg"><button aria-pressed="${!S.rentSide}" data-act="rentModeSet" data-v="full">👗 محل تأجير</button><button aria-pressed="${!!S.rentSide}" data-act="rentModeSet" data-v="side">🛒 بيع + تأجير</button></div><p class="fh" style="margin:0">«محل تأجير»: زر البيع بيصير حجز، والأصناف بتصير الفساتين. «بيع + تأجير»: بيرجع البيع العادي والتأجير بيضل قسم بالمزيد.</p></div>
-    <button class="btn block" data-act="rentOff">إخفاء قسم التأجير</button>` }
+` }
   const t=rToday(), q=RENTQ.trim();
   const F={today:r=>(r.st==='booked'&&r.pick===t)||(r.st==='out'&&r.ret===t),soon:r=>r.st==='booked'&&r.pick>=t,out:r=>r.st==='out',late:r=>rLate(r)||(r.st==='booked'&&r.pick<t),back:r=>r.st==='back',cancel:r=>r.st==='cancel',all:()=>true};
   const L=(S.rentals||[]).filter(F[RENTF]||F.all).filter(r=>!q||[r.cname,r.cphone,r.cidNo,r.dname,String(r.no)].some(x=>String(x||'').includes(q))).sort((a,b)=>RENTF==='back'||RENTF==='cancel'||RENTF==='all'?b.id-a.id:(a.pick<b.pick?-1:a.pick>b.pick?1:0));
@@ -4261,7 +4279,8 @@ Object.assign(A,{
 rentGo(d){ RENTV='book'; RENTF=d.f||'today'; A.openSub({s:'rent'}) },
 rentOnGo(d){ S.rentOn=1; S.rentSide=d&&d.m==='side'?1:0; S.dresses=S.dresses||[]; S.rentals=S.rentals||[]; save(); RENTV='book'; RENTF='today'; if(!S.rentSide){ tab='home'; sub='menu' } render(); toast(S.rentSide?'✓ انفعّل قسم تأجير الفساتين، وصار على الرئيسية':'✓ صار التطبيق جاهز لتأجير الفساتين. ابدأ بإضافة فساتينك') },
 rentModeSet(d){ S.rentSide=d.v==='side'?1:0; save(); render(); toast(S.rentSide?'✓ رجع زر البيع، والتأجير صار قسم جانبي':'✓ صار التطبيق كله على التأجير') },
-rentOff(){ S.rentOn=0; if(tab==='sell'||tab==='items'){ tab='home' } save(); render(); toast('انخفى القسم. حجوزاتك محفوظة، وبترجع تفعّله من المزيد') },
+rentOffAsk(){ openSheet(`${sheetHead('إلغاء تفعيل قسم الفساتين')}<p style="margin:0;line-height:1.8">التطبيق بيرجع لشكله العادي: زر «بيع» والأصناف والرئيسية العادية.</p><p class="fh" style="margin:0">ما بينمسح ولا فستان ولا حجز. كلهم بيضلوا محفوظين، وإذا فعّلته مرة تانية بيرجعوا زي ما هم.</p><button class="btn danger block big" data-act="rentOff">تأكيد إلغاء التفعيل</button><button class="btn block" data-act="close">رجوع</button>`) },
+rentOff(){ closeSheet(); S.rentOn=0; sub='menu'; if(tab==='sell'||tab==='items'){ tab='home' } save(); render(); toast('✓ انلغى تفعيل قسم الفساتين. بياناته محفوظة، وبترجع تفعّله من المزيد ← تأجير الفساتين') },
 rentTab(d){ RENTV=d.v; render() },
 rentF(d){ RENTF=d.f; render() },
 rentCfgSave(){ S.rentCfg={buffer:Math.max(0,Math.min(7,parseInt(($('#rsBuf')||{}).value)||0)),terms:String(($('#rsTerms')||{}).value||'').trim().slice(0,400)}; save(); toast('✓ انحفظت الإعدادات') },
@@ -4326,7 +4345,7 @@ dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName');
   if(x){ Object.assign(x,data); (S.rentals||[]).forEach(r=>{ if(r.dressId===x.id&&r.st==='booked') r.dname=x.name }) } else S.dresses.push({id:S.nextId++,img:'',...data});
   S.rentOn=1; save(); closeSheet(); RENTV='dress'; render(); toast('✓ انحفظ الفستان') }
 });
-['rentOnGo','rentOff','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
+['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
 document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(['rfDress','rfPick','rfRet'].includes(t.id)){ const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfEvent'&&t.value){ const p=$('#rfPick'), rt=$('#rfRet'); if(p) p.value=ymd(ymdT2(t.value)-DAY); if(rt) rt.value=ymd(ymdT2(t.value)+DAY); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
