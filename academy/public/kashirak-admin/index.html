@@ -173,11 +173,11 @@ home(){
     <button class="kpi" data-a="tab" data-t="codes"><span class="l">أكواد جاهزة للبيع</span><span class="v num">${ready}</span></button>
   </div>
   <div class="grid2"><button class="btn gold" data-a="newCode">＋ كود تفعيل جديد</button><button class="btn primary" data-a="tab" data-t="shops">المشتركين</button></div>
+  ${actCard()}
   <div class="card"><div class="row"><h2>آخر اللي جرّبوا التطبيق</h2><button class="btn sm" data-a="filter" data-f="tryall">الكل</button></div>
     <div class="list">${sh.filter(x=>['trial','tover','visit'].includes(x.st.k)).sort((a,b)=>(b.s.created||0)-(a.s.created||0)).slice(0,8).map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">لسا ما حدا جرّب. أول ما حدا يفتح التطبيق بيطلع هون</div>'}</div></div>
   <div class="card"><div class="row"><h2>بحاجة متابعة</h2><span class="pill mute">${follow.length}</span></div>
     <div class="list">${follow.map(({s,st})=>shopRow(s,st)).join('')||'<div class="empty">كل شي تمام. ما في حدا بحاجة تجديد هلأ ✓</div>'}</div></div>
-  ${actCard()}
   <button class="btn block" data-a="pushSheet">🔔 إرسال إشعار لكل المحلات</button>
   <button class="btn block" data-a="adSheet">📣 الإعلان داخل التطبيق</button>
   <button class="btn block" data-a="tplSheet">🗂️ قوالب الأصناف حسب مجال العمل</button>`},
@@ -257,7 +257,7 @@ const TPLN={market:'سوبر ماركت',pharm:'صيدلية',veg:'فواكه و
 /* مجال شغل المحل: من اللي اختاره بالتطبيق، ومع تنبيه إذا اسم المحل بيدل على مجال تاني */
 const NAMEHINT=[[/بدل|بدلة|تأجير|تاجير|فسات|عرائس|عروس|سهرة|الأناقة|اناقة/,'r','تأجير (فساتين أو بدل)'],[/صيدل|فارم/,'p','صيدلية'],[/فاشون|fashion|ملابس|ألبسة|البسة|أحذية|احذية|بوتيك/i,'clothes','ملابس وأحذية'],[/جوال|موبايل|mobile/i,'mobile','جوالات'],[/مكتبة|قرطاس/,'stat','مكتبة'],[/حلاق|صالون|كوافير/,'salon','صالون']];
 function bizTag(s){ const b=s.biz, nm=s.name||'', guess=NAMEHINT.find(([re])=>re.test(nm));
-  if(!b) return `<span class="bz q">❔ المجال لسا مش معروف (لما يفتح التطبيق بيظهر)</span>${guess?`<span class="bz g">💡 الاسم بيدل على: ${guess[2]}</span>`:''}`;
+  if(!b) return `<span class="bz q">❔ المجال لسا مش معروف</span>${guess?`<span class="bz g">💡 الاسم بيدل على: ${guess[2]}</span>`:''}`;
   const L=[]; if(b.r){ const su=b.k==='s', w=su?'بدل':'فساتين', ic=su?'🤵':'👗'; L.push(b.r===2?`${ic} بيع + تأجير ${w}`:`${ic} تأجير ${w}`+(b.d||b.b?` (${b.d||0} ${su?'بدلة':'فستان'} · ${b.b||0} حجز)`:'')) } if(b.p) L.push('💊 صيدلية'); (b.t||[]).filter(k=>k!=='pharm'||!b.p).forEach(k=>L.push(TPLN[k]||k));
   const has=k=>k==='r'?!!b.r:k==='p'?!!b.p:(b.t||[]).includes(k), wrong=guess&&!has(guess[1]);
   return `${L.length?`<span class="bz ok">${L.map(esc).join(' · ')}</span>`:'<span class="bz q">❔ ما اختار مجال، بيضيف أصنافه بإيده</span>'}${wrong?`<span class="bz w">⚠️ اسمه بيدل على «${guess[2]}» وهو مش مفعّله</span>`:''}` }
