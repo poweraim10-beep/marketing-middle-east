@@ -854,7 +854,16 @@ async function admin(env, request, b) {
     const left = items.filter((x) => !have.has(x.b)).length, ok = items.filter((x) => have.get(x.b) === 'd').length;
     return json({ ok: true, total: items.length, done: items.length - left, found: ok, now: found, left, miss: left ? [] : items.filter((x) => have.get(x.b) === '-').map((x) => x.n) });
   }
-  if (b === 'tplfromshop' && m === 'POST') { // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
+  if (b === 'stockval' && m === 'GET') { // قيمة المخزون لمحل: قراءة فقط، ما بتكتب ولا بتعدّل إشي
+    const id = clean(new URL(request.url).searchParams.get('id'), 40); if (!id) return err('محل غير معروف');
+    const sh = await env.DB.prepare('SELECT id, name, updated FROM ksr_shops WHERE id = ?').bind(id).first(); if (!sh) return err('ما في محل', 404);
+    let st = {}; try { st = JSON.parse(await stateText(await readState(env, sh.id))); } catch { return err('ما قدرنا نقرأ بيانات المحل'); }
+    const r2 = (n) => Math.round(n * 100) / 100, it = Array.isArray(st.items) ? st.items : [];
+    let cost = 0, price = 0, units = 0, inStock = 0, noCost = 0, neg = 0;
+    for (const i of it) { const q = +i.qty || 0; if (q < 0) neg++; if (q <= 0) continue; inStock++; units += q; cost += q * (+i.cost || 0); price += q * (+i.price || 0); if (!(+i.cost > 0)) noCost++; }
+    return json({ ok: true, name: sh.name, updated: sh.updated, items: it.length, inStock, units: r2(units), cost: r2(cost), price: r2(price), noCost, neg });
+  }
+ // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
     const k = clean(q.k, 20) || 'market'; if (!TPL_KEYS[k]) return err('مجال غير معروف');
     const ph = phoneOf(q.phone); if (!ph) return err('اكتب رقم جوال المحل');
     const snap = async () => {
