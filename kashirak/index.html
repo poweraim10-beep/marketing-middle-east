@@ -387,6 +387,21 @@ main{padding-bottom:44px}
   /* شاشة البيع: البحث والسلة يمين، والدفع وإتمام البيع يسار وثابت قدامك */
   main#view[data-v=sell]{grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr)}
   main#view[data-v=sell]>.scol{grid-column:1}
+  /* اللابتوب: الفاتورة (السلة) واضحة وكبيرة، والأزرار السريعة وخيارات المسح صغيرة */
+  main#view[data-v=sell] .scol>.cartc{order:1;border:2px solid color-mix(in srgb,var(--gold) 55%,var(--line));box-shadow:0 10px 30px -14px rgba(16,185,129,.45)}
+  main#view[data-v=sell] .scol>.qbc,main#view[data-v=sell] .scol>.qbadd{order:2}
+  main#view[data-v=sell] .cartc h2{font-size:20px}
+  main#view[data-v=sell] .cartc .cartline{padding:12px 0}
+  main#view[data-v=sell] .cartc .cartline>.row:first-child .t{font-size:18px;font-weight:700!important}
+  main#view[data-v=sell] .cartc .cartline>.row:first-child .money,main#view[data-v=sell] .cartc .cartline>.row:first-child>:last-child{font-size:18px;font-weight:800}
+  main#view[data-v=sell] .qbc{padding:10px 12px;gap:6px}main#view[data-v=sell] .qbc h2{font-size:14px}
+  main#view[data-v=sell] .qbg{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+  main#view[data-v=sell] .qb{flex-direction:row;justify-content:flex-start;padding:5px 8px;gap:6px;border-radius:10px}
+  main#view[data-v=sell] .qb i,main#view[data-v=sell] .qb img{width:26px!important;height:26px!important;font-size:13px!important;border-radius:7px;flex:none}
+  main#view[data-v=sell] .qb b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  main#view[data-v=sell] .qb .num{font-size:11.5px;margin-inline-start:auto}
+  main#view[data-v=sell] .scanopts{padding:6px 8px!important}main#view[data-v=sell] .sopt{min-height:40px;padding:4px 10px;gap:8px}
+  main#view[data-v=sell] .sopt .soi{width:28px;height:28px;font-size:16px;border-radius:9px}main#view[data-v=sell] .sopt small{display:none}main#view[data-v=sell] .sopt b{font-size:13.5px}
   main#view[data-v=sell]>.spay{grid-column:2;position:sticky;top:0;max-height:calc(100vh - 120px);overflow-y:auto}
   main#view[data-v=sell]>.card:not(.spay){grid-column:1/-1}
   .app>header .modebtn{min-width:96px}
@@ -527,7 +542,8 @@ label.tgl{display:flex!important;flex-direction:row!important;align-items:center
 .mnote{margin-top:6px;text-align:start;background:#FFFBEB;border:2px solid #F59E0B;border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
 .mnote b{font-family:var(--display);font-size:19px;color:#B45309}.mnote p{margin:0;font-size:16.5px;line-height:1.75;font-weight:700;color:#0F172A}.mnote .mn2{font-size:14.5px;color:#92400E;font-weight:600}
 .sname{background:#fff;border:2px solid #A7F3D0;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}.sname label{font-weight:700;color:var(--gold-deep)}.sname small{font-weight:500;color:var(--muted)}
-.seg.payseg{display:grid;grid-template-columns:1fr 1fr;gap:4px}.seg.payseg button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;white-space:nowrap}
+.seg.payseg{display:grid;grid-template-columns:1fr 1fr;gap:4px}.seg.payseg button{display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;white-space:nowrap;padding:6px 4px!important;min-height:36px;font-size:13.5px}
+.payseg .sm3{width:18px!important;height:18px!important;margin-inline-end:2px}
 .lic-foot em{font-style:normal;font-size:12.5px;color:#FBBF24;font-weight:700;margin-top:2px}
 .orig{display:flex;flex-direction:column;gap:12px}.orig-top{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:linear-gradient(135deg,#0B1B2B,#10263B);border:1px solid rgba(16,185,129,.4)}.orig-top .i3{width:60px;height:60px;flex:none}
 .orig-top b{display:block;font-family:var(--display);font-size:20px;color:#34D399}.orig-top span{font-size:12.5px;color:#94A3B8}
@@ -2142,7 +2158,7 @@ sell(){
     <div id="results"></div>
   </div>
   ${S.held.length?`<div class="card" style="gap:6px"><h2>فواتير معلّقة (${S.held.length})</h2><div class="list">${S.held.map(hd=>`<div class="li"><span><span class="t">${esc(hd.name)}</span><br><span class="muted">${hd.cart.lines.length} صنف · ${fdate(hd.ts)}</span></span><span class="row" style="gap:6px"><button class="btn sm primary" data-act="resume" data-id="${hd.id}">استرجاع</button><button class="btn sm danger" data-act="dropHeld" data-id="${hd.id}">حذف</button></span></div>`).join('')}</div></div>`:''}
-  <div class="card"><div class="row"><h2>السلة</h2><span class="row" style="gap:6px">${S.items.some(i=>i.priceW>0)?`<button class="chip" data-act="wholesale" aria-pressed="${!!c.wholesale}">سعر جملة</button>`:''}${c.lines.length?'<button class="btn sm" data-act="hold">تعليق كمسودة</button>':''}</span></div>
+  <div class="card cartc"><div class="row"><h2>السلة</h2><span class="row" style="gap:6px">${S.items.some(i=>i.priceW>0)?`<button class="chip" data-act="wholesale" aria-pressed="${!!c.wholesale}">سعر جملة</button>`:''}${c.lines.length?'<button class="btn sm" data-act="hold">تعليق كمسودة</button>':''}</span></div>
     ${c.lines.map((l,k)=>{const it=itemById(l.itemId), ln=lineOf(it,l.unit,l.count,l.p);return `
       <div class="cartline">
         <div class="row"><span class="t" style="font-weight:600">${esc(it.name)}</span>${money(ln.price*ln.count)}</div>
