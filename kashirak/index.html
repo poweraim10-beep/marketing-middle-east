@@ -401,6 +401,7 @@ main{padding-bottom:44px}
   /* شاشة البيع: البحث والسلة يمين، والدفع وإتمام البيع يسار وثابت قدامك */
   main#view[data-v=sell]{grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr)}
   main#view[data-v=sell]>.scol{grid-column:1}
+  .rdgrid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}.rdc img,.rdc .rdi{height:96px}.rdc .rdi{font-size:30px}
   /* اللابتوب: الفاتورة (السلة) واضحة وكبيرة، والأزرار السريعة وخيارات المسح صغيرة */
   main#view[data-v=sell] .scol>.cartc{order:1;border:2px solid color-mix(in srgb,var(--gold) 55%,var(--line));box-shadow:0 10px 30px -14px rgba(16,185,129,.45)}
   main#view[data-v=sell] .scol>.qbc,main#view[data-v=sell] .scol>.qbadd{order:2}
@@ -416,6 +417,8 @@ main{padding-bottom:44px}
   main#view[data-v=sell]>.spay{grid-column:2;position:sticky;top:0;max-height:calc(100vh - 120px);overflow-y:auto}
   main#view[data-v=sell]>.card:not(.spay){grid-column:1/-1}
   .app>header .modebtn{min-width:96px}
+  main#view[data-v=home]>.qgrid{grid-column:1/-1;max-width:none;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  main#view[data-v=home]{align-items:start}
   main#view:not([data-v=home]):not([data-v=sell]):not([data-v=more-acct])>*{grid-column:1/-1}
   main#view[data-v=items] .list,main#view[data-v=debts] .list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px}
   main#view>.row,main#view>.mprof,main#view>.greet,main#view>.banner,main#view>.pdfhero,main#view>.acchero,main#view>.nagbar,main#view>.seg,main#view>.rempill,main#view>.btn.block,main#view>.rejbar,main#view>p,main#view>.mgroup,main#view>.grid2,main#view>.tiles,main#view>.wide{grid-column:1/-1}
@@ -635,6 +638,13 @@ body.rentm .salesOnly{display:none!important}
 .stg.pk{background:#DBEAFE;color:#1E40AF}.stg.out{background:#EDE9FE;color:#5B21B6}.stg.ev{background:#FCE7F3;color:#9D174D}.stg.rt{background:#FFEDD5;color:#9A3412}.stg.wa{background:#E2E8F0;color:#334155}.stg.free{background:#DCFCE7;color:#166534}
 .dseg{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4px;margin:44px 0 12px}.dseg button{font-size:13px;padding:8px 4px;line-height:1.3;white-space:normal;min-width:0}.dseg b{display:inline-block;min-width:20px;padding:0 6px;margin-inline-start:4px;border-radius:999px;background:rgba(0,0,0,.1);font-size:12px}
 .dnq{font-size:14.5px;background:#FFF7ED;border-color:#FDBA74;color:#9A3412}
+.dq{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}.dqb{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;line-height:1.25}.dqb small{font-size:11px;font-weight:500;color:var(--muted)}.dqb[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}.dqb[aria-pressed=true] small{color:#cbd5e1}
+input[type=date]{direction:ltr;text-align:right}
+.lic-lnk{display:inline-block;margin:6px 0 2px;font-weight:800;font-size:14px;color:#34D399;text-decoration:none;direction:ltr}.lic-rep{display:flex!important;flex-direction:column;margin:6px 0;padding:8px 10px;border-radius:12px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.45);color:#fff!important;font-weight:800;font-size:13.5px}.lic-rep i{font-style:normal;font-size:12px;color:#FCD34D;font-weight:700}
+.pfl{display:flex;flex-direction:column;gap:4px;margin-top:-4px}.pfi{display:flex;align-items:center;gap:8px;text-align:start;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font:inherit;cursor:pointer}.pfi b{flex:1;font-size:14.5px}.pfi small{font-size:12px;color:var(--muted)}.pfi i{font-style:normal;font-weight:800;color:var(--gold-deep,#047857);font-size:18px}
+.ppick{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-radius:12px;background:#ECFDF5;border:1.5px solid #6EE7B7;font-size:14px}
+.pbl{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border-radius:12px;background:#F8FAFC;border:1px dashed var(--line);font-size:13.5px}
+.fcw{display:flex;flex-direction:column;gap:4px;min-width:0}.chk.nocost{font-size:12.5px;color:var(--muted);font-weight:500;gap:6px}label.need input{border-color:#F59E0B!important;box-shadow:0 0 0 3px rgba(245,158,11,.25)}
 .rol{align-items:flex-start;gap:8px}.rol>span{cursor:pointer}.rotag{display:inline-block;margin:6px 0 0 4px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#F1F5F9;color:#334155}.rotag.ok{background:#DCFCE7;color:#166534}.rotag.bad{background:#FEE2E2;color:#B91C1C}.rotag.warn{background:#FEF3C7;color:#92400E}
 .rfxr{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:10px;border:1px dashed color-mix(in srgb,var(--gold) 50%,var(--line));border-radius:14px;background:#fff}.rfxh{display:flex;justify-content:space-between;align-items:center}
 .rfdq{margin-bottom:6px;position:relative}.rfdl{display:flex;flex-direction:column;gap:6px;margin-top:6px}.rfdi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1.5px solid #6EE7B7;background:#fff;font:inherit;color:inherit;text-align:start}.rfdi.no{border-color:#FCA5A5;opacity:.85}.rfdi img,.rfdi .rdi{width:42px;height:52px;border-radius:8px;object-fit:cover;flex:none;font-size:24px}.rfdi>span{flex:1;display:flex;flex-direction:column}.rfdi small{color:var(--muted);font-size:12px}.rfdi i{font-style:normal;font-weight:700;font-size:12px;white-space:nowrap}.rfdi.ok i{color:#047857}.rfdi.no i{color:#B91C1C}
@@ -1229,6 +1239,13 @@ function applyOp(op){ S._ops=S._ops||[]; if(S._ops.includes(op.id)) return null;
         if(it.price!==d.price) opAudit(op,`تغيير سعر ${it.name} من ${fx(it.price)} إلى ${fx(d.price)} ₪`);
         Object.assign(it,d); if(dq){ it.qty=r3(it.qty+dq); opAudit(op,`تعديل كمية ${it.name} (${dq>0?'+':''}${dq})`) } }
       else { S.items.push({id:S.nextId++,...d}); opAudit(op,`إضافة صنف ${d.name}`) } }
+    else if(op.k==='rent'){ /* تأجير من أي جهاز: الحجوزات والفساتين اللي تغيّرت بتوصل كاملة وبتنحط مكانها (أو بتنضاف) */
+      S.rentals=S.rentals||[]; S.dresses=S.dresses||[]; const dmap={};
+      (op.dresses||[]).forEach(x0=>{ const x=Object.assign({},x0), was=x._on; delete x._on; const i=S.dresses.findIndex(y=>y.id===x.id);
+        if(i>=0&&was!=null) S.dresses[i]=x; else { if(i>=0){ const nid=S.nextId++; dmap[x.id]=nid; x.id=nid } S.dresses.push(x) } if(x.id>=S.nextId) S.nextId=x.id+1 });
+      (op.rentals||[]).forEach(r0=>{ const r=JSON.parse(JSON.stringify(r0)); if(dmap[r.dressId]) r.dressId=dmap[r.dressId]; (r.ex||[]).forEach(e=>{ if(dmap[e.id]) e.id=dmap[e.id] });
+        const i=S.rentals.findIndex(y=>y.id===r.id); if(i>=0&&S.rentals[i].created===r.created) S.rentals[i]=r; else { if(i>=0) r.id=S.nextId++; S.rentals.push(r) } if(r.id>=S.nextId) S.nextId=r.id+1 });
+      if(op.flags) Object.assign(S,op.flags); opAudit(op,'تأجير من جهاز ثاني') }
     else if(op.k==='exp') S.expenses.push({id:S.nextId++,ts:op.ts,name:op.name,amt:op.amt,per:op.per||'day',...(op.side?{side:1}:{})});
   }catch(e){}
   S._ops.push(op.id); if(S._ops.length>3000) S._ops.splice(0,S._ops.length-3000); return r}
@@ -2082,8 +2099,12 @@ function drawer(){
 /* شراء نفس الصنف بسعر تكلفة جديد: بنعرض الأسعار الحالية، وبنفتح خيار تحديث سعر البيع والجملة */
 function pInfoTxt(it){ if(!it) return ''; const u=it.byWeight?'للكيلو':'للحبة';
   return `الحالي ${u}: تكلفة <b class="num">${fx(it.cost)}</b> ₪ · بيع <b class="num">${fx(it.price)}</b> ₪${it.priceW?` · جملة <b class="num">${fx(it.priceW)}</b> ₪`:''} · بالمخزون <b class="num">${it.byWeight?wtTxt(it.qty):it.qty}</b>`}
-function pFindUI(q){ q=String(q||'').trim(); const sel=$('#pItem'); if(!sel||!q) return; const o=[...sel.options].find(o=>{const it=itemById(o.value); return it&&(it.barcode===q||iHas(it,q))});
-  if(o){ sel.value=o.value; sel.dispatchEvent(new Event('change',{bubbles:true})); const i=$('#pInfo'); if(i&&!i.innerHTML) pItemUI() } }
+function pFindUI(q){ q=String(q||'').trim(); const sel=$('#pItem'), L=$('#pFindL'); if(!sel) return; if(!q){ if(L) L.innerHTML=''; return }
+  const ex=S.items.find(it=>it.barcode&&it.barcode===q); if(ex){ A.pPickIt({id:ex.id}); return }
+  const R=[...sel.options].map(o=>itemById(o.value)).filter(it=>it&&iHas(it,q)).slice(0,8);
+  if(L) L.innerHTML=R.length?R.map(it=>`<button type="button" class="pfi" data-act="pPickIt" data-id="${it.id}"><b>${esc(it.name)}</b><small>بالمخزون <span class="num">${fx(it.qty||0)}</span>${it.cost>0?` · تكلفة <span class="num">${fx(it.cost)}</span> ₪`:''}</small><i>＋</i></button>`).join(''):'<div class="muted" style="padding:6px 4px;font-size:13px">ما لقينا صنف بهالاسم. أضفه أول من الأصناف.</div>' }
+function pPickUI(){ const sel=$('#pItem'), b=$('#pPick'); if(!sel||!b) return; const it=itemById(sel.value); if(!it||!A._pPicked){ b.hidden=true; return } b.hidden=false;
+  b.innerHTML=`<span>✓ الصنف المختار: <b>${esc(it.name)}</b></span><button type="button" class="cl-ib del" data-act="pPickClr" aria-label="إلغاء الاختيار">✕</button>` }
 function pFactor(){ const u=($('#pUnit')||{}).value||'piece'; if(u==='kg') return 1; if(u==='sack') return Math.max(0.001,parseFloat(($('#pSack')||{}).value)||0)||1; const cs=Math.max(1,parseFloat(($('#pCs')||{}).value)||1), bg=Math.max(1,parseFloat(($('#pBig')||{}).value)||1); return u==='piece'?1:u==='carton'?cs:cs*bg }
 function pUnitUI(){ const u=($('#pUnit')||{}).value||'piece', b=$('#pUnitBox'); if(!b) return; b.hidden=!['carton','big'].includes(u); const sb=$('#pSackBox'); if(sb) sb.hidden=u!=='sack'; const it=itemById($('#pItem').value);
   if(u!=='piece'&&it&&!$('#pCs').value&&it.cartonSize) $('#pCs').value=it.cartonSize; $('#pBig').closest('label').hidden=u!=='big';
@@ -2310,7 +2331,7 @@ more(){
     ${grp('إضافات',[['rent',S.rentOn?'تأجير الفساتين':'تأجير فساتين أو بدل رجالية',S.rentOn?'حجز الفستان بالاسم والهوية، العربون والتأمين، ومواعيد الاستلام والإرجاع':'اختار: فساتين نسائية أو بدل رجالية، وفعّل بضغطة','tag'],['offers','العروض والخصومات','خصم بنسبة لقسم أو صنف لفترة، واشتري وخذ مجانًا','tag'],['cat','كتالوج واتساب','رابط فيه أصنافك وأسعارك، والزبون بيطلب على واتساب','cash'],['tools','أدوات','استيراد وتصدير الأصناف، تحديث الأسعار، الملصقات، النسخ الاحتياطية','gear'],['chq','الشيكات','الواردة والصادرة ومواعيدها','list'],['loy','نقاط الولاء','نقاط للزبائن على مشترياتهم','tag']])}
     ${grp('العمال',[...(featOn('staff')?[['staffT','العمال','قائمة العمال وصلاحياتهم ودوامهم','users','goStaff']]:[]),['ann','التعميمات','رسالة بتظهر على كل أجهزة المحل','users'],['att','بصمة العمال','الدوام والساعات وصور البصمة','users'],['payroll','الرواتب والسُلف','راتب كل عامل، السُلف، المكافآت والخصومات، والصرف','users'],['audit','سجل عمليات التحويلات الإلكترونية','مين عمل شو وإمتى','list']])}
     ${grp('الحساب والمساعدة',[['help','المساعدة','شرح كل صفحة والأسئلة الشائعة','list'],['acct','حسابي','صورتك، بيانات المحل، والاشتراك','users'],['set','الإعدادات','السحابة، الأسعار، وضع المالك، والنسخ الاحتياطي','gear'],['share','مشاركة التطبيق','ابعت رابط التطبيق الأصلي على واتساب أو انسخه','list','appShare'],['fb','رأيك يهمنا','بلّغ عن مشكلة أو اطلب ميزة على واتساب','list','fbOpen'],['walq','محافظ الاستلام (QR)','أرقام جوال باي وبال باي اللي بيطلعوا للزبون كرمز QR','wallet','walSet'],['tour','الجولة التعليمية','تعلّم التطبيق خطوة بخطوة','list','tourStart']])}
-    <div class="lic-foot"><span class="lic-seal">${I3('h-shield')}</span><div><b>نسخة مرخّصة ومعتمدة</b><span>لدى شركة ماركتنج الشرق الأوسط<br>Marketing Middle East</span><em>✓ النسخة الأصلية · احذر البرامج المزيفة والتقليد</em><em class="g">🌍 أحدث إصدار · على أسس المحاسبة المعتمدة دوليًا</em><small>الإصدار ${APPVER} · © ${new Date().getFullYear()} جميع الحقوق محفوظة</small></div></div>`;
+    <div class="lic-foot"><span class="lic-seal">${I3('h-shield')}</span><div><b>نسخة مرخّصة ومعتمدة</b><span>لدى شركة ماركتنج الشرق الأوسط<br>Marketing Middle East</span><em>✓ النسخة الأصلية · احذر البرامج المزيفة والتقليد</em><em class="g">🌍 أحدث إصدار · على أسس المحاسبة المعتمدة دوليًا</em><a class="lic-lnk" href="https://marketingmiddleeast.com/" target="_blank" rel="noopener">🌐 marketingmiddleeast.com ↗</a><span class="lic-rep"><i>🇵🇸 الوكيل المعتمد في فلسطين</i>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</span><small>الإصدار ${APPVER} · © ${new Date().getFullYear()} جميع الحقوق محفوظة</small></div></div>`;
   }
   if(sub==='chq'){const st={pending:['warn','برسم التحصيل'],cleared:['ok','انصرف'],bounced:['bad','راجع']}, now=Date.now();
     return back('الشيكات')+hint('الشيك وعد بالدفع بتاريخ معيّن. «وارد» يعني شيك جالك من زبون، و«صادر» يعني شيك طلعته لمورد. إذا ربطته بحساب، المبلغ بيتحسب تلقائياً على رصيده، وإذا رجع الشيك بيرجع المبلغ على حسابه.')+`<div class="card"><h2>شيك جديد</h2>
@@ -2362,7 +2383,7 @@ more(){
     <div class="card"><h2>استلام بضاعة</h2>
       <p class="fh" style="margin:0">💡 فاتورة فيها أكثر من صنف؟ سجّل الصنف الأول واضغط حفظ، المورد والصورة بيضلّوا، وكمّل الصنف الثاني من نفس الفاتورة.</p>
       <label for="pSup">المورد<select id="pSup">${S.suppliers.length?'':'<option value="">بدون مورد</option>'}${S.suppliers.map(x=>`<option value="${x.id}" ${+BUYSUP===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><button class="lnk" data-act="addParty" data-kind="suppliers" data-from="buy" style="align-self:flex-start;margin-top:4px">＋ إضافة مورد جديد</button><small class="fh">اختار المورد، وأصنافه المسجّلة بتطلع أول القائمة بسعرها</small></label>
-      <label for="pFind">بحث عن الصنف<input id="pFind" placeholder="اكتب اسم الصنف أو امسح الباركود" autocomplete="off"><small class="fh">اكتب أول حرفين وبيختارلك الصنف لحاله.</small></label>
+      <label for="pFind">🔎 بحث عن الصنف<input id="pFind" placeholder="اكتب اسم الصنف أو امسح الباركود" autocomplete="off"><small class="fh">اكتب أول حرفين، واضغط على الصنف من القائمة.</small></label><div id="pFindL" class="pfl"></div><div id="pPick" class="ppick" hidden></div>
       ${(()=>{const sp=S.suppliers.find(x=>x.id===+BUYSUP)||S.suppliers[0], my=(sp&&sp.items||[]).filter(x=>itemById(x.itemId)), ids=new Set(my.map(x=>x.itemId));
         return `<label for="pItem">الصنف<select id="pItem">${my.length?`<optgroup label="⭐ أصناف ${esc(sp.name)}">${my.map(x=>`<option value="${x.itemId}" data-pc="${x.price||''}">${esc(itemById(x.itemId).name)}${x.price?' · '+fx(x.price)+' ₪':''}</option>`).join('')}</optgroup><optgroup label="كل الأصناف">`:''}${S.items.filter(x=>!ids.has(x.id)).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join('')}${my.length?'</optgroup>':''}</select></label>`})()}
       <label for="pUnit">بتشتري بالـ<select id="pUnit"><option value="piece">حبة</option><option value="carton">كرتونة</option><option value="big">كرتونة كبيرة (فيها كراتين)</option>${S.pharm?'':'<option value="kg">بالوزن (كيلو)</option><option value="sack">شوال أو كيس بالوزن (مثلاً 20 أو 50 كيلو)</option>'}</select><small class="fh">مثال: كرتونة كبيرة فيها 10 كراتين، وكل كرتونة 24 حبة</small></label>
@@ -2387,6 +2408,7 @@ more(){
       <input id="pPhoto" type="file" accept="image/*" capture="environment" hidden>
       ${PHOTO.data?`<img src="${PHOTO.data}" alt="صورة فاتورة المورد" style="max-width:100%;border-radius:12px;border:1px solid var(--line)"><p class="muted" style="margin:0">الصورة بتنربط بكل صنف بتسجّله من هالفاتورة لحد ما تضغط «فاتورة جديدة».</p><button class="btn sm" data-act="photoClear">فاتورة جديدة</button>`:''}
       <button class="btn primary" data-act="addBuy">حفظ وإضافة للمخزون</button>
+      ${BUYLN.length?`<div class="pbl"><div class="row"><b>🧾 أصناف هالفاتورة (${BUYLN.length})</b><span class="num"><b>${fx(BUYLN.reduce((a,x)=>a+x.c,0))}</b> ₪</span></div>${BUYLN.map(x=>`<div class="row"><span>${esc(x.n)} <span class="muted">× <span class="num">${fx(x.q)}</span></span></span><span class="num">${fx(x.c)} ₪</span></div>`).join('')}<button class="btn sm" data-act="buyLnClr">✓ خلصت الفاتورة</button></div>`:''}
       <p class="muted" style="margin:0">إذا التكلفة اختلفت، بتنحسب متوسط بين البضاعة القديمة والجديدة، إلا إذا اخترت «اعتمد التكلفة الجديدة».</p></div>
     <div class="card"><h2>المشتريات</h2><p class="muted" style="margin:0;font-size:13px">اضغط على أي صنف بتشوف كل مرة اشتريته بكم.</p><div class="list">${[...S.purchases].sort((a,b)=>b.ts-a.ts).map(p=>{const pv=S.purchases.filter(x=>x.itemId===p.itemId&&x.ts<p.ts).sort((a,b)=>b.ts-a.ts)[0], d=pv?r2(p.cost-pv.cost):0;
       return `<div class="li"><span><button class="lnk" data-act="itemLog" data-id="${p.itemId}"><span class="t">${esc(p.name)} × ${p.qty}</span></button><br><span class="muted">${fdate(p.ts)}${p.supId?' · '+esc((S.suppliers.find(x=>x.id===p.supId)||{}).name||''):''} · ${p.paid==='cash'?'نقدًا':p.paid==='wallet'?'📱 '+esc(p.wallet||'محفظة'):'على الحساب'}${p.unitTxt?' · '+esc(p.unitTxt):''}${p.photo?` · <button class="lnk" data-act="viewPhoto" data-id="${p.photo}">📎 الفاتورة</button>`:''}</span><br><span class="muted">تكلفة الوحدة <b class="num" style="color:var(--ink)">${fx(p.cost)}</b> ₪${d?` <span class="num" style="color:var(--${d>0?'bad':'good'})">${d>0?'▲':'▼'} ${fx(Math.abs(d))} عن المرة اللي قبلها</span>`:''}</span>${p.photo?`<br><button class="btn sm" data-act="viewPhoto" data-id="${p.photo}" style="margin-top:4px">صورة الفاتورة</button>`:''}</span>${money(p.total)}</div>`}).join('')||'<div class="empty">لا مشتريات</div>'}</div></div>`;
@@ -3432,7 +3454,7 @@ editItem(d){ setTimeout(()=>{ try{ cqSync('init') }catch(e){} },120);
     <div id="wPrev" class="muted" style="font-size:13.5px;margin-top:-4px">${wPrevTxt(it.byWeight,it.cost,it.price)}</div>
     ${wh?whq:''}
     ${!isOwner()&&it.id?`<input type="hidden" id="fCost" value="${it.cost}"><input type="hidden" id="fQty" value="${it.qty}"><input type="hidden" id="fMin" value="${it.min}">`:''}
-    <div class="grid2">${!isOwner()&&it.id?'':`<label for="fCost">سعر التكلفة (₪)<input id="fCost" type="number" inputmode="decimal" value="${it.cost}"><small class="fh">بقديش اشتريت الحبة. منه بينحسب ربحك، والزبون ما بيشوفه</small></label>`}
+    <div class="grid2">${!isOwner()&&it.id?'':`<div class="fcw"><label for="fCost">سعر التكلفة (₪)<input id="fCost" type="number" inputmode="decimal" value="${it.cost}"><small class="fh">بقديش اشتريت الحبة. منه بينحسب ربحك، والزبون ما بيشوفه</small></label><label class="chk nocost" for="fNoCost"><input type="checkbox" id="fNoCost" ${it.noCost&&!(it.cost>0)?'checked':''}>ما بدي أحط سعر التكلفة</label></div>`}
       <label for="fPrice">سعر البيع (₪)<input id="fPrice" type="number" inputmode="decimal" value="${it.price}"><small class="fh">السعر اللي بتبيع فيه الحبة للزبون</small></label></div>
     ${!isOwner()&&it.id?'':`<div class="grid2"><label for="fQty">${wh?'كمية المحل':'الكمية (حبة أو كغ)'}<input id="fQty" type="number" inputmode="decimal" value="${it.qty}"><small class="fh">قديش عندك منه هلأ بالمحل. بتنقص لحالها مع كل بيعة</small></label>
       <label for="fMin">نبّهني عند<input id="fMin" type="number" inputmode="decimal" value="${it.min}"><small class="fh">لما الكمية توصل لهالرقم بيطلعلك تنبيه إنه قرّب يخلص</small></label></div>`}
@@ -3458,6 +3480,7 @@ saveItem(){
   const v=id=>$('#'+id).value.trim(), n=id=>r2(parseFloat(v(id))||0);
   if(!v('fName')){toast('اكتب اسم الصنف');return}
   if(n('fPrice')<=0){toast('اكتب سعر البيع');return}
+  const fc=$('#fCost'), nc=$('#fNoCost'); if(fc&&fc.type!=='hidden'&&n('fCost')<=0&&!(nc&&nc.checked)){ toast('اكتب سعر التكلفة، أو علّم «ما بدي أحط سعر التكلفة»'); fc.focus(); fc.closest('label')&&fc.closest('label').classList.add('need'); return }
   const it=itemById(v('fId')), bar=v('fBar'), usel=($('#fUnitSel')||{}).value||'piece', w=usel==='kg';
   if(!it&&!needActive()) return;
   if(bar&&S.items.some(i=>i.barcode===bar&&i!==it)){toast('هذا الباركود مسجّل لصنف آخر');return}
@@ -3467,6 +3490,7 @@ saveItem(){
     cartonSize:w?0:Math.round(n('fCs')),cartonPrice:w?0:n('fCp'),exp:v('fExp'),byWeight:w,priceW:n('fPw'),promoBuy:Math.round(n('fPb')),promoGet:Math.round(n('fPg')),unitName:usel==='box'?'كرتونة':'',
     packs:w?[]:[0,1,2].map(j=>({n:v('fPk'+j+'n').trim(),q:+v('fPk'+j+'q')||0,p:r2(+v('fPk'+j+'p')||0)})).filter(x=>x.n&&x.q>0&&x.p>0).concat((()=>{ const bn=Math.round(+v('fBigN')||0), cs=Math.round(n('fCs')); if(!(bn>1&&cs>1)) return []; const q=bn*cs; return [{n:'كرتونة كبيرة',q,p:r2(+v('fBigP')||r2((n('fCp')||n('fPrice')*cs)*bn)),big:1}] })()),img:ITEMIMG===''?'':(ITEMIMG||(it&&it.img)||''),...(ITEMIU_DEL?{iu:''}:{})};
   const offT=id=>$('#'+id)&&!$('#'+id).checked; if(offT('fTgW')) data.priceW=0; if(offT('fTgC')){ data.cartonSize=0; data.cartonPrice=0; data.packs=(data.packs||[]).filter(x=>!x.big) } if(offT('fTgP')){ data.promoBuy=0; data.promoGet=0 }
+  { const nc2=$('#fNoCost'); if(nc2) data.noCost=nc2.checked&&!(data.cost>0)?1:0 }
   pItemData(data,!it); if($('#fCat')) data.cat=$('#fCat').value||''; if($('#fQb')) data.qb=$('#fQb').checked?1:0;
   if((data.promoBuy>0)!==(data.promoGet>0)){toast('العرض بدّه رقمين: اشتري كم، ومجانًا كم');return}
   if(data.cartonSize>1&&!data.cartonPrice) data.cartonPrice=r2(data.price*data.cartonSize);
@@ -3516,6 +3540,9 @@ async payParty(d){const c=S[d.kind].find(x=>x.id===+d.id), a=r2(parseFloat($('#p
     opQueue({id:opId(),k:'pay',ts:Date.now(),who:opWho(),cid:c.id,cname:c.name,amt:a,...(det?{det}:{}),...(cur?{cur}:{})}); render(); A.party(d); toast(`✓ تم تسجيل ${fx(a)} ${sy} · الباقي ${fx(r2(b-a))} ${sy}`); return }
   const ph=d.kind==='suppliers'&&$('#payPh')&&$('#payPh').files[0]; let pid; if(ph){ try{ const dat=await docImg(ph); pid='img'+Date.now(); await idb('readwrite',st=>st.put(dat,pid)) }catch(e){} }
   c.ledger.push({ts:Date.now(),amt:-a,note:WORD[d.kind].note,photo:pid,...(det?{det}:{}),...(cur?{cur}:{})}); save(); render(); A.party(d); toast(`✓ تم تسجيل ${fx(a)} ${sy} · الباقي ${fx(cur?balCur(c,cur):balance(c))} ${sy}`)},
+pPickIt(d){ const sel=$('#pItem'); if(!sel) return; sel.value=String(d.id); sel.dispatchEvent(new Event('change',{bubbles:true})); A._pPicked=1; const f=$('#pFind'), L=$('#pFindL'); if(f) f.value=''; if(L) L.innerHTML=''; pPickUI(); const q=$('#pQty'); if(q) q.focus() },
+buyLnClr(){ BUYLN=[]; render() },
+pPickClr(){ A._pPicked=0; pPickUI(); const f=$('#pFind'); if(f) f.focus() },
 addBuy(){
   const it=itemById($('#pItem').value), sup=S.suppliers.find(x=>x.id===+$('#pSup').value), f=pFactor(), unit=$('#pUnit').value, uq=parseFloat($('#pQty').value)||0, uc=parseFloat($('#pCost').value)||0, qty=r3(uq*f), cost=r2(uc/f), paid=$('#pPaid').value, wal=paid==='wallet'?$('#pWal').value:'';
   if(!sup&&paid==='credit'){toast('للشراء على الحساب، أضف المورد أول من قسم الموردين');return}
@@ -3533,7 +3560,8 @@ addBuy(){
   if(sup){ sup.items=sup.items||[]; const si=sup.items.find(x=>x.itemId===it.id); if(si) si.price=r2(uc); else sup.items.push({itemId:it.id,price:r2(uc)}) }
   BUYSUP=sup?sup.id:'';
   if(paid==='credit'&&sup) sup.ledger.push({ts,amt:total,note:`فاتورة شراء: ${it.name}`});
-  save(); render(); toast(`✓ أُضيف ${qty} حبة لـ ${it.name}${chg?' وتحدّثت أسعاره':''} · كمّل الصنف الثاني من نفس الفاتورة`);
+  BUYLN.push({n:it.name,q:qty,c:r2(total)}); A._pPicked=0;
+  save(); render(); toast(`✓ أُضيف ${qty} حبة لـ ${it.name}${chg?' وتحدّثت أسعاره':''} · كمّل الصنف الثاني من نفس الفاتورة`); setTimeout(()=>{ const f=$('#pFind'); if(f) f.focus() },80);
 },
 mode(){ A._ownNext=null; if(isOwner()){S.mode='cashier'; save(); if(tab==='more') sub='menu'; render(); toast('وضع الكاشير: الأرباح والتعديل مخفية')}
   else { openSheet(`${sheetHead('التحويل لوضع المالك')}<p style="margin:0">اكتب <b>الكود الخاص بالمالك</b> عشان تفتح الأرباح والمخزون والتعديل.</p><label for="pin">كود المالك<input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" placeholder="اكتب كود المالك"></label><button class="btn primary block" data-act="unlock">دخول كمالك</button>`); setTimeout(()=>{const i=$('#pin'); if(i) i.focus()},150) }},
@@ -4364,6 +4392,8 @@ function dressRecHTML(d){ const x=rDStats(d), [st,cl]=dressNow(d);
   <div class="grid2"><button class="btn primary big" data-act="rentBookOn" data-d="${d.id}">＋ احجز هالفستان</button><button class="btn big" data-act="dressEdit" data-id="${d.id}">✏️ تعديل الفستان</button></div>` }
 /* ===== البحث بالتاريخ: شو المتاح وشو المحجوز بيوم مناسبة معيّن ===== */
 /* مرحلة الفستان بيوم معيّن: استلام، عند الزبونة، المناسبة، إرجاع، غسيل، أو فاضي */
+/* اختيار التاريخ بضغطة: اليوم، بكرة، وأيام الأسبوع الجاي */
+function dQ(id,cur){ const t0=ymdT2(rToday()); return `<div class="dq" role="group" aria-label="اختيار سريع للتاريخ">${[...Array(10)].map((_,i)=>{ const v=ymd(t0+i*DAY), dd=new Date(t0+i*DAY); return `<button type="button" class="dqb" data-act="dqSet" data-id="${id}" data-v="${v}" aria-pressed="${cur===v}">${i===0?'اليوم':i===1?'بكرة':rWd(v)}<small>${dd.getDate()}/${dd.getMonth()+1}</small></button>` }).join('')}</div>` }
 function rStage(d,t){ const b=rCfg().buffer, T=ymdT2(t), td=rToday(); for(const r of (S.rentals||[])){ if(r.st==='cancel'||!rHas(r,d.id)) continue;
     if(t===r.pick) return ['استلام','pk',r]; if(t===r.event) return ['المناسبة','ev',r]; if(t>r.pick&&t<r.ret) return ['عند الزبونة','out',r]; if(t===r.ret) return ['إرجاع','rt',r];
     if(b&&T>ymdT2(r.ret)&&T<=ymdT2(r.ret)+b*DAY&&!(r.st==='back'&&!d.wash&&t>=td)) return ['غسيل وكوي','wa',r] } if(d.wash&&t>=ymd(d.wash)&&t<=td) return ['بالغسيل','wa',null]; return ['فاضي','free',null] }
@@ -4375,7 +4405,7 @@ function rStageGrid(k){ const ds=S.dresses||[]; if(!ds.length) return ''; const 
 function rentDateView(){ const k=RDATE||ymd(Date.now()+2*DAY), pk=ymd(ymdT2(k)-DAY), rt=ymd(ymdT2(k)+DAY), ds=S.dresses||[];
   const av=[], bk=[]; ds.forEach(d=>{ const c=rClash(d.id,pk,rt,0); (c?bk:av).push([d,c]) });
   const card=(d,c)=>`<div class="rdc ${c?'no':'ok'}" ${c?`data-act="rentView" data-id="${c.id}"`:`data-act="dressRec" data-id="${d.id}"`}>${d.img?`<img src="${d.img}" alt="">`:'<span class="rdi">👗</span>'}<b>${esc(d.name)}</b><small>${[d.size?'مقاس '+esc(d.size):'',fx(d.price||0)+' ₪'].filter(Boolean).join(' · ')}</small>${c?`<small class="who">محجوز لـ${esc(c.cname)}<br>${rDay(c.pick)} ← ${rDay(c.ret)}</small>`:`<button class="btn sm primary" data-act="rentBookOn" data-d="${d.id}" data-k="${k}">احجزه</button>`}</div>`;
-  return `<div class="card rdq"><label for="rdDate"><span>يوم المناسبة <b class="rdw" data-w="rdDate">${rWd(k)}</b></span><input id="rdDate" type="date" value="${k}"></label>
+  return `<div class="card rdq"><label for="rdDate"><span>يوم المناسبة <b class="rdw" data-w="rdDate">${rWd(k)}</b></span><input id="rdDate" type="date" value="${k}"></label>${dQ('rdDate',k)}
     <p class="fh" style="margin:0">بنفحص من يوم قبلها (الاستلام) ليوم بعدها (الإرجاع)، مع أيام التنظيف.</p>
     <div class="rdsum"><span class="ok">✓ متاح <b class="num">${av.length}</b></span><span class="no">⛔ محجوز <b class="num">${bk.length}</b></span></div></div>
   ${rStageGrid(k)}
@@ -4478,7 +4508,7 @@ function mgSheet(P,fname){ const B=P.B;
   ${P.same.length?`<details><summary class="muted">شوف الأصناف المكررة</summary><p class="fh">${P.same.slice(0,200).map(esc).join('، ')}</p></details>`:''}
   <p class="fh" style="margin:0">قبل الدمج بتنزل نسخة احتياطية من محلك تلقائيًا. الدمج ما بيمسح ولا فاتورة ولا صنف، والتغيير الوحيد على الموجود هو نقص مخزون الأصناف المشتركة اللي انباعت.</p>
   <button class="btn primary block big" data-act="mgGo" ${P.newItems.length+P.sales.length+P.newCust.length?'':'disabled'}>✓ تأكيد الدمج</button><button class="btn block" data-act="close">إلغاء</button>`) }
-let DNQ=false, RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
+let BUYLN=[], DNQ=false, RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
 const ymdT2=k=>{ const [y,m,d]=String(k||'').split('-').map(Number); return y?new Date(y,m-1,d).getTime():0 };
 const rWd=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar',{weekday:'long'}):'';
 const rWdUI=()=>document.querySelectorAll('.rdw').forEach(b=>{ const i=document.getElementById(b.dataset.w); if(i) b.textContent=rWd(i.value) });
@@ -4558,7 +4588,7 @@ function washCard(){ const W=(S.dresses||[]).filter(d=>d.wash); if(!W.length) re
 function dressList(){ const DK=RDATE2, dst=d=>{ if(!DK) return dressNow(d); const c=rClash(d.id,ymd(ymdT2(DK)-DAY),ymd(ymdT2(DK)+DAY),0); return c?['⛔ محجوز لـ'+String(c.cname).split(' ')[0],'bad']:['✓ متاح يوم '+rWd(DK),'ok'] };
   const L=[...(S.dresses||[])]; if(DK) L.sort((a,b)=>(dst(a)[1]==='ok'?0:1)-(dst(b)[1]==='ok'?0:1));
   return `<button class="addbig" data-act="dressEdit" data-id="0"><span>＋</span>إضافة فستان جديد</button>
-    <div class="rdin"><label for="rdDate2"><span>📅 شو الفاضي يوم المناسبة؟ ${DK?`<b class="rdw">${rWd(DK)}</b>`:''}</span><input id="rdDate2" type="date" value="${DK||''}"></label>${DK?`<button class="btn sm" data-act="rdClr">✕ كل الفساتين</button>`:''}</div>
+    <div class="rdin"><label for="rdDate2"><span>📅 شو الفاضي يوم المناسبة؟ ${DK?`<b class="rdw">${rWd(DK)}</b>`:''}</span><input id="rdDate2" type="date" value="${DK||''}"></label>${DK?`<button class="btn sm" data-act="rdClr">✕ كل الفساتين</button>`:''}</div>${dQ('rdDate2',DK)}
     ${washCard()}
     <div class="card"><div class="list">${L.map(d=>{ const [t,cl]=dst(d), n=(S.rentals||[]).filter(r=>rHas(r,d.id)&&r.st!=='cancel').length, inc=r2((S.rentals||[]).filter(r=>r.dressId===d.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0));
       return `<button class="li" data-act="dressRec" data-id="${d.id}">${d.img?`<img src="${d.img}" alt="" style="width:52px;height:64px;border-radius:10px;object-fit:cover;flex:none">`:'<span class="rdi">👗</span>'}<span style="flex:1;min-width:0"><span class="t">${esc(d.name)}${d.code?` <span class="muted num">#${esc(d.code)}</span>`:''}</span><br><span class="muted">${[d.size?'مقاس '+esc(d.size):'',d.color?esc(d.color):''].filter(Boolean).join(' · ')}${d.size||d.color?' · ':''}إيجار <span class="num">${fx(d.price||0)}</span> ₪</span><br><span class="muted">انحجز <span class="num">${n}</span> مرة · دخله <span class="num">${fx(inc)}</span> ₪</span></span><span class="pill ${cl}">${t}</span></button>` }).join('')||'<div class="empty">لسا ما ضفت فساتين. ضيف أول فستان بصورته وسعر إيجاره.</div>'}</div></div>` }
@@ -4585,7 +4615,7 @@ function rentForm(r,page){ const pre=!r&&RPRE?RPRE:null; if(!r) RPRE=null; const
   return `${page?'':sheetHead(r?'تعديل الحجز #'+r.no:'حجز فستان جديد')}
   <div class="card pcard pay"><h2>👗 الفستان والمواعيد</h2>
     ${lock?`<div class="ridin">👗 الفستان عند الزبونة: بتقدر تمدد يوم الإرجاع وتعدّل بياناتها والسعر. الفستان ويوم الاستلام ما بيتغيروا.</div>`:''}${ds.length&&!lock?`<div class="rfdq"><input id="rfDq" placeholder="🔎 دوّر على الفستان بالاسم أو الرقم أو المقاس" autocomplete="off"><div id="rfDl" class="rfdl"></div></div>`:''}${ds.length?`<label for="rfDress">الفستان<select id="rfDress" ${lock?'disabled':''}>${ds.map(d=>`<option value="${d.id}" ${selId===d.id?'selected':''}>${esc(d.name)}${d.code?' #'+esc(d.code):''}${d.size?' · '+esc(d.size):''} · ${fx(d.price||0)} ₪</option>`).join('')}</select></label>`:'<p class="fh" style="margin:0">ما في فساتين مسجّلة. اكتب اسم الفستان هون وبينضاف لحاله.</p><input id="rfDname" placeholder="اسم الفستان (مثال: فستان سهرة كحلي)">'}${ds.length&&!lock?`<div id="rfMainX" class="grid2" ${(g.ex||[]).length?'':'hidden'}><input id="rfWho" placeholder="لمين؟ (مثال: العروس)" value="${esc(g.who||'')}" aria-label="الفستان الأساسي لمين"><input id="rfDp" type="number" inputmode="decimal" placeholder="سعره ₪" value="${g.dp!=null?g.dp:''}" ${g.dp!=null?`data-t="1" data-d="${g.dressId}"`:''} aria-label="سعر الفستان الأساسي"></div><div id="rfxL">${(g.ex||[]).map(x=>rfxRow(x.id,x)).join('')}</div><button class="btn block" data-act="rfxAdd">＋ فستان تاني بنفس الوصل (عيلة أو أكتر من شخص)</button>`:lock&&(g.ex||[]).length?`<div class="ridin">ومعه: ${esc((g.ex||[]).map(x=>x.name).join(' + '))}</div>`:''}
-    <label for="rfEvent"><span>يوم المناسبة (العرس أو الحفلة) <b class="rdw" data-w="rfEvent">${rWd(ev)}</b></span><input id="rfEvent" type="date" value="${ev}"></label>
+    <label for="rfEvent"><span>يوم المناسبة (العرس أو الحفلة) <b class="rdw" data-w="rfEvent">${rWd(ev)}</b></span><input id="rfEvent" type="date" value="${ev}"></label>${dQ('rfEvent',ev)}
     <div class="grid2"><label for="rfPick"><span>يوم الاستلام <b class="rdw" data-w="rfPick">${rWd(g.pick||ymd(ymdT2(ev)-DAY))}</b></span><input id="rfPick" type="date" value="${g.pick||ymd(ymdT2(ev)-DAY)}" ${lock?'disabled':''}></label><label for="rfRet"><span>يوم الإرجاع <b class="rdw" data-w="rfRet">${rWd(g.ret||ymd(ymdT2(ev)+DAY))}</b></span><input id="rfRet" type="date" value="${g.ret||ymd(ymdT2(ev)+DAY)}"></label></div>
     <div id="rfAvail" class="fh"></div></div>
   <div class="card"><h2>👤 الزبونة</h2>
@@ -4702,6 +4732,7 @@ rCalNav(d){ const now=new Date(), c=RCAL[d.d]||[now.getFullYear(),now.getMonth()
 rentDateGo(){ RENTV='date'; A.openSub({s:'rent'}) },
 rentBookOn(d){ RPRE={dressId:+d.d,event:d.k||null}; closeSheet(); if(rentMode()){ A.go({tab:'sell'}) } else { openSheet(rentForm(null)); setTimeout(()=>rentAvailUI(0),50) } },
 rdClr(){ RDATE2=''; render() },
+dqSet(d){ const i=$('#'+d.id); if(!i) return; i.value=d.v; i.dispatchEvent(new Event('input',{bubbles:true})); i.dispatchEvent(new Event('change',{bubbles:true})); document.querySelectorAll(`.dqb[data-id="${d.id}"]`).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===d.v)) },
 debtV(d){ DEBTV=d.v; render(); window.scrollTo(0,0) },
 washSet(d){ const x=dressById(d.id); if(!x) return; x.wash=Date.now(); save(); closeSheet(); render(); toast(RT('🧺 الفستان صار بالغسيل والكوي')) },
 washDone(d){ const x=dressById(d.id); if(!x) return; if(!x.wash){ toast(RT('الفستان جاهز')); return } delete x.wash; audit(RT('فستان جاهز بعد الغسيل: '+x.name)); save(); closeSheet(); render(); toast(RT('✓ الفستان جاهز ومتاح')) },
@@ -4720,7 +4751,7 @@ rentOff(){ closeSheet(); S.rentOn=0; sub='menu'; if(tab==='sell'||tab==='items')
 rentTab(d){ RENTV=d.v; render() },
 rentF(d){ RENTF=d.f; render() },
 rentCfgSave(){ S.rentCfg={buffer:Math.max(0,Math.min(7,parseInt(($('#rsBuf')||{}).value)||0)),terms:String(($('#rsTerms')||{}).value||'').trim().slice(0,400)}; save(); toast('✓ انحفظت الإعدادات') },
-rentNew(){ if(rentMode()){ closeSheet(); A.go({tab:'sell'}); return } if(isSeller2()){ toast('سجّل الحجز من الجهاز الأساسي للمحل'); return } if(!S.rentOn){ S.rentOn=1; S.dresses=S.dresses||[]; S.rentals=S.rentals||[] }
+rentNew(){ if(rentMode()){ closeSheet(); A.go({tab:'sell'}); return } if(!S.rentOn){ S.rentOn=1; S.dresses=S.dresses||[]; S.rentals=S.rentals||[] }
   openSheet(rentForm(null)); setTimeout(()=>rentAvailUI(0),50) },
 rentEdit(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; if(tab==='sell'){ tab='more'; sub='rent'; RENTV='book'; render() } openSheet(rentForm(r)); setTimeout(()=>rentAvailUI(r.id),50) },
 async rentSave(d){ const id=+d.id, old=id?(S.rentals||[]).find(x=>x.id===id):null, v=k=>String(($('#'+k)||{}).value||'').trim();
@@ -4797,7 +4828,12 @@ dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName');
   if(x){ Object.assign(x,data); (S.rentals||[]).forEach(r=>{ if(rHas(r,x.id)&&r.st==='booked') r.dname=rDnames(r) }) } else S.dresses.push({id:S.nextId++,img:'',...data});
   S.rentOn=1; save(); closeSheet(); RENTV='dress'; render(); toast('✓ انحفظ الفستان') }
 });
-['rentOnGo','rentOff','rentOffAsk','rentModeSet','rentKindSet','rentRevAsk','rentRevGo','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave'].forEach(k=>{ const f=A[k]; A[k]=function(d){ if(isSeller2()){ toast('التأجير بيتسجّل من الجهاز الأساسي للمحل'); return } return f.call(this,d) } });
+/* كل الأجهزة متساوية بالتأجير: على أي جهاز غير الأساسي، التغيير بيتسجّل عملية وبيوصل للمحل زي البيع */
+['rentNew','rentOnGo','rentOff','rentOffAsk','rentModeSet','rentKindSet','rentRevAsk','rentRevGo','rentCfgSave','rentEdit','rentSave','rentPay','rentOut','rentPayGo','rentBack','rentBackGo','rentCancel','rentCancelGo','dressEdit','dressSave','washSet','washDone'].forEach(k=>{ const f=A[k]; if(!f) return; A[k]=function(d,el){ if(!isSeller2()) return f.call(this,d,el);
+  const FL=()=>JSON.stringify([S.rentOn,S.rentSide,S.rentKind,S.rentCfg]), b4r=new Map((S.rentals||[]).map(r=>[r.id,JSON.stringify(r)])), b4d=new Map((S.dresses||[]).map(x=>[x.id,JSON.stringify(x)])), fl0=FL();
+  const fin=()=>{ const R=(S.rentals||[]).filter(r=>b4r.get(r.id)!==JSON.stringify(r)), D=(S.dresses||[]).filter(x=>b4d.get(x.id)!==JSON.stringify(x)).map(x=>Object.assign(JSON.parse(JSON.stringify(x)),{_on:b4d.has(x.id)?1:null})), fl=FL();
+    if(!R.length&&!D.length&&fl===fl0) return; opQueue({id:opId(),k:'rent',ts:Date.now(),rentals:JSON.parse(JSON.stringify(R)),dresses:D,flags:fl!==fl0?{rentOn:S.rentOn,rentSide:S.rentSide,rentKind:S.rentKind,rentCfg:S.rentCfg}:null}) };
+  const res=f.call(this,d,el); if(res&&typeof res.then==='function') return res.then(v=>{ fin(); return v }); fin(); return res } });
 document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(()=>{ rWdUI(); rfDqUI() },0);
   if(t.id==='rdDate'&&t.value){ RDATE=t.value; render() }
