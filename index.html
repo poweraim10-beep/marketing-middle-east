@@ -121,8 +121,10 @@ html[dir=rtl] .kicker{font-family:var(--body);letter-spacing:0;font-size:13.5px}
 .ksr-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;position:relative}
 .ksr-k{font-size:13.5px;color:#CBD5E1;font-weight:500}.ksr-k b{color:var(--em2);font-size:17px;font-weight:900}
 .ksr-go{font-weight:800;font-size:16px;color:#04130D;text-decoration:none;background:linear-gradient(90deg,#34D399,#10B981);padding:12px 20px;border-radius:14px;box-shadow:0 10px 26px -8px rgba(16,185,129,.8);transition:transform .2s}
-.ksr-go:hover{transform:translateY(-2px)}
-@media (max-width:560px){.ksr-ban{padding:16px}.ksr-ic{width:64px;height:64px}.ksr-foot{flex-direction:column;align-items:stretch}.ksr-go{text-align:center}}
+.ksr-go:hover,.ksr-wa:hover{transform:translateY(-2px)}
+.ksr-btns{display:flex;flex-wrap:wrap;gap:8px}
+.ksr-wa{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:16px;color:#fff;text-decoration:none;background:#25D366;padding:12px 18px;border-radius:14px;box-shadow:0 10px 26px -8px rgba(37,211,102,.8);transition:transform .2s}
+@media (max-width:560px){.ksr-ban{padding:16px}.ksr-ic{width:64px;height:64px}.ksr-foot{flex-direction:column;align-items:stretch}.ksr-go,.ksr-wa{text-align:center;justify-content:center;flex:1 1 100%}.ksr-btns{width:100%}}
 .hero{position:relative;min-height:min(940px,92svh);display:grid;place-items:center;overflow:hidden;padding-block:130px 90px;isolation:isolate}
 .hero canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-2}
 .hero::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 55% at 50% 48%,transparent 0%,rgba(6,10,22,.55) 70%,var(--ink) 100%),linear-gradient(180deg,rgba(6,10,22,.5),transparent 25%,transparent 70%,var(--ink))}
@@ -809,7 +811,7 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
       <p class="ksr-d">أحدث تطبيق <b>محاسبي</b>، يعمل على <b>أحدث التقنيات التكنولوجية</b> حول العالم</p>
       <div class="ksr-cc"><i>🇦🇪 الإمارات</i><i>🇸🇦 السعودية</i><i>🇰🇼 الكويت</i><i>🇶🇦 قطر</i><i>🇴🇲 عُمان</i><i>🇯🇴 الأردن</i><i class="ps">🇵🇸 فلسطين</i></div>
       <div class="ksr-rep"><span class="ksr-rl">مندوبنا المعتمد في فلسطين</span><b>شركة أبو عمر الغزاوي للإعلانات والتسويق الرقمي</b></div>
-      <div class="ksr-foot"><span class="ksr-k">من شبكة MME اللي بتخدم <b>+100,000</b> عميل</span><a class="ksr-go" href="/kashirak/">📲 حمّل التطبيق وابدأ مجانًا</a></div>
+      <div class="ksr-foot"><span class="ksr-k">من شبكة MME اللي بتخدم <b>+100,000</b> عميل</span><span class="ksr-btns"><a class="ksr-go" href="/kashirak/">📲 حمّل التطبيق وابدأ مجانًا</a><a class="ksr-wa" href="https://wa.me/970567686774?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A8%D8%AF%D9%8A%20%D8%A3%D8%B3%D8%AA%D9%81%D8%B3%D8%B1%20%D8%B9%D9%86%20%D8%AA%D8%B7%D8%A8%D9%8A%D9%82%20%D9%83%D8%A7%D8%B4%D9%8A%D8%B1%D9%83%20%D8%A7%D9%84%D8%B0%D9%83%D9%8A" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.4 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.4-.7-2.9-1.1-4.7-4-4.9-4.2-.1-.2-1.2-1.6-1.2-3s.8-2.2 1-2.5c.3-.3.6-.3.8-.3h.6c.2 0 .4 0 .6.5l.9 2.1c.1.2.1.4 0 .6l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.7-.1l2 .9c.3.2.5.2.6.4.1.1.1.7-.2 1.3z"/></svg>واتساب مندوبنا بفلسطين</a></span></div>
     </div>
     <a class="hero-news rise" href="#palestine" style="animation-delay:.05s"><b>NEW</b><span data-en="Coming soon to Palestine with Abu Omar Al-Ghazawi">قريبًا في فلسطين بالتعاون مع شركة أبو عمر الغزاوي</span></a>
     <span class="kicker mono rise" style="animation-delay:.1s"><b></b><span data-en="Marketing infrastructure for the Arab market">بنية تسويقية متكاملة للسوق العربي</span></span>
