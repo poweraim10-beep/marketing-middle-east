@@ -101,6 +101,20 @@ html[dir=rtl] .kicker{font-family:var(--body);letter-spacing:0;font-size:13.5px}
 .nav .btn{padding:11px 18px;font-size:11px}
 
 /* ---------- HERO ---------- */
+.ksr-ban{display:flex;gap:16px;align-items:center;text-decoration:none;max-width:760px;width:100%;margin:0 auto 22px;padding:16px 18px;border-radius:22px;background:linear-gradient(135deg,rgba(16,185,129,.16),rgba(37,99,235,.14) 60%,rgba(34,211,238,.10));border:1px solid rgba(34,211,238,.38);box-shadow:0 18px 50px -20px rgba(16,185,129,.55),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(8px);text-align:right;direction:rtl;transition:transform .25s,box-shadow .25s}
+.ksr-ban:hover{transform:translateY(-3px);box-shadow:0 24px 60px -18px rgba(16,185,129,.7)}
+.ksr-ic{width:72px;height:72px;border-radius:18px;flex:none;box-shadow:0 8px 22px rgba(0,0,0,.45)}
+.ksr-tx{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.ksr-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ksr-new{font-size:11px;padding:2px 8px;border-radius:999px;background:#10B981;color:#04130D;letter-spacing:.08em}
+.ksr-nm{font-weight:800;font-size:clamp(20px,3.2vw,26px);color:#fff;line-height:1.2}
+.ksr-by{font-size:12.5px;color:var(--silver);opacity:.9}
+.ksr-d{font-size:clamp(14px,2vw,16px);color:#E2E8F0;line-height:1.5}
+.ksr-cc{display:flex;flex-wrap:wrap;gap:5px}.ksr-cc i{font-style:normal;font-size:12px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid var(--line-2);color:#E2E8F0;white-space:nowrap}
+.ksr-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.ksr-k{font-size:13px;color:var(--silver)}.ksr-k b{color:#34D399;font-size:15px}
+.ksr-go{font-weight:700;font-size:14px;color:#04130D;background:linear-gradient(90deg,#34D399,#22D3EE);padding:7px 14px;border-radius:12px}
+@media (max-width:560px){.ksr-ban{flex-direction:column;align-items:flex-start;padding:14px}.ksr-ic{width:60px;height:60px}.ksr-foot{width:100%}.ksr-go{width:100%;text-align:center}}
 .hero{position:relative;min-height:min(940px,92svh);display:grid;place-items:center;overflow:hidden;padding-block:130px 90px;isolation:isolate}
 .hero canvas{position:absolute;inset:0;width:100%;height:100%;z-index:-2}
 .hero::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(60% 55% at 50% 48%,transparent 0%,rgba(6,10,22,.55) 70%,var(--ink) 100%),linear-gradient(180deg,rgba(6,10,22,.5),transparent 25%,transparent 70%,var(--ink))}
@@ -776,6 +790,15 @@ footer{border-top:1px solid var(--line);padding-block:56px calc(40px + env(safe-
 <section class="hero" id="top">
   <canvas id="heroMap" aria-hidden="true"></canvas>
   <div class="wrap hero-in">
+    <a class="ksr-ban rise" href="/kashirak/" style="animation-delay:.02s" aria-label="تطبيق كاشيرك الذكي">
+      <img class="ksr-ic" src="/kashirak/icons/icon-192-3d.png" alt="" width="72" height="72">
+      <span class="ksr-tx">
+        <span class="ksr-top"><b class="ksr-new mono">NEW</b><span class="ksr-nm" data-en="Kashirak Smart">كاشيرك الذكي</span><span class="ksr-by" data-en="by Marketing Middle East · UAE">من ماركتنج الشرق الأوسط · الإمارات 🇦🇪</span></span>
+        <span class="ksr-d" data-en="The newest accounting app, built on the latest technology worldwide">أحدث تطبيق محاسبي، يعمل على أحدث التقنيات التكنولوجية حول العالم</span>
+        <span class="ksr-cc"><i>🇦🇪 الإمارات</i><i>🇸🇦 السعودية</i><i>🇰🇼 الكويت</i><i>🇶🇦 قطر</i><i>🇴🇲 عُمان</i><i>🇯🇴 الأردن</i><i>🇵🇸 فلسطين</i></span>
+        <span class="ksr-foot"><span class="ksr-k" data-en="From the MME network serving 100K+ clients">من شبكة MME اللي بتخدم <b>+100,000</b> عميل</span><span class="ksr-go" data-en="Open the app →">افتح التطبيق ←</span></span>
+      </span>
+    </a>
     <a class="hero-news rise" href="#palestine" style="animation-delay:.05s"><b>NEW</b><span data-en="Coming soon to Palestine with Abu Omar Al-Ghazawi">قريبًا في فلسطين بالتعاون مع شركة أبو عمر الغزاوي</span></a>
     <span class="kicker mono rise" style="animation-delay:.1s"><b></b><span data-en="Marketing infrastructure for the Arab market">بنية تسويقية متكاملة للسوق العربي</span></span>
     <h1 class="h-title en">
