@@ -614,6 +614,7 @@ body.rentm .salesOnly{display:none!important}
 .stgl{display:flex;flex-wrap:wrap;gap:6px}.stgw{overflow-x:auto;margin:0 -4px}.stgt{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:3px;font-size:13px}.stgt thead th:first-child{width:24%}.stgt th{font-weight:700;text-align:center;padding:4px;font-size:12.5px;white-space:nowrap}.stgt th small,.stg small{display:block;font-weight:400;font-size:11px;opacity:.85}.stgt thead th.now{background:#ECFDF5;border-radius:10px}.stgt tbody th{text-align:right;white-space:normal;font-size:12.5px;overflow-wrap:anywhere}.stgt tbody th small{color:var(--muted)}
 .stg{display:inline-block;width:100%;padding:6px 2px;overflow-wrap:anywhere;border-radius:10px;text-align:center;font-weight:700;font-size:12.5px;cursor:pointer;box-sizing:border-box}.stgl .stg{width:auto;padding:4px 10px}
 .stg.pk{background:#DBEAFE;color:#1E40AF}.stg.out{background:#EDE9FE;color:#5B21B6}.stg.ev{background:#FCE7F3;color:#9D174D}.stg.rt{background:#FFEDD5;color:#9A3412}.stg.wa{background:#E2E8F0;color:#334155}.stg.free{background:#DCFCE7;color:#166534}
+.dseg{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4px;margin:44px 0 12px}.dseg button{font-size:13px;padding:8px 4px;line-height:1.3;white-space:normal;min-width:0}.dseg b{display:inline-block;min-width:20px;padding:0 6px;margin-inline-start:4px;border-radius:999px;background:rgba(0,0,0,.1);font-size:12px}
 .rol{align-items:flex-start;gap:8px}.rol>span{cursor:pointer}.rotag{display:inline-block;margin:6px 0 0 4px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#F1F5F9;color:#334155}.rotag.ok{background:#DCFCE7;color:#166534}.rotag.bad{background:#FEE2E2;color:#B91C1C}.rotag.warn{background:#FEF3C7;color:#92400E}
 .rfxr{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:10px;border:1px dashed color-mix(in srgb,var(--gold) 50%,var(--line));border-radius:14px;background:#fff}.rfxh{display:flex;justify-content:space-between;align-items:center}
 .rfdq{margin-bottom:6px;position:relative}.rfdl{display:flex;flex-direction:column;gap:6px;margin-top:6px}.rfdi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1.5px solid #6EE7B7;background:#fff;font:inherit;color:inherit;text-align:start}.rfdi.no{border-color:#FCA5A5;opacity:.85}.rfdi img,.rfdi .rdi{width:42px;height:52px;border-radius:8px;object-fit:cover;flex:none;font-size:24px}.rfdi>span{flex:1;display:flex;flex-direction:column}.rfdi small{color:var(--muted);font-size:12px}.rfdi i{font-style:normal;font-weight:700;font-size:12px;white-space:nowrap}.rfdi.ok i{color:#047857}.rfdi.no i{color:#B91C1C}
@@ -2243,7 +2244,14 @@ staff(){const t0=sod(), wk=sod(Date.now()-6*DAY);
 },
 debts(){
   const total=r2(S.customers.reduce((a,c)=>a+balance(c),0));
-  return `${S.rentOn?rentOutCard()+rentDebtsCard():''}
+  if(S.rentOn){ const nO=(S.rentals||[]).filter(r=>r.st==='out').length, LB=(S.rentals||[]).filter(r=>r.st==='booked'&&rLeft(r)>0), nC=S.customers.filter(c=>balance(c)>0).length;
+    const v=DEBTV||(nO?'out':LB.length?'rent':'cust');
+    const T=`<div class="seg dseg"><button data-act="debtV" data-v="out" aria-pressed="${v==='out'}">${RT('👗 عند الزبونات')}${nO?` <b class="num">${nO}</b>`:''}</button><button data-act="debtV" data-v="rent" aria-pressed="${v==='rent'}">💰 باقي حجوزات${LB.length?` <b class="num">${LB.length}</b>`:''}</button><button data-act="debtV" data-v="cust" aria-pressed="${v==='cust'}">📒 ديون الزبائن${nC?` <b class="num">${nC}</b>`:''}</button></div>`;
+    if(v==='out') return T+rentOutCard(1); if(v==='rent') return T+rentDebtsCard(1);
+    return T+this.debtsMain(total) }
+  return this.debtsMain(total) },
+debtsMain(total){
+  return `
   <div class="tile hl debt"><div class="lbl">مجموع الديون على الزبائن</div><div class="val">${money(total)}</div></div>
   <div class="row"><h2>الزبائن</h2><div class="row" style="gap:6px"><button class="btn sm" data-act="debtList">كشف الديون</button><button class="btn sm accent" data-act="debtPdf">📄 PDF</button></div></div>
   <div class="dacts${isOwner()?'':' one'}">${isOwner()?`<button class="dact urg" data-act="debtNew"><span class="dic">⚡</span><span class="dtx"><b>دين مستعجل</b><small>المبلغ والسبب بسرعة</small></span></button>`:''}<button class="dact cus" data-act="addParty" data-kind="customers"><span class="dic">👤</span><span class="dtx"><b>إضافة زبون</b><small>فتح سجل جديد</small></span></button></div>
@@ -4279,16 +4287,16 @@ function rpOk(out){ const r=RP(); if(r.m!=='app') return true; if(!r.am){ toast(
 /* بوضع محل التأجير بنخفي من المزيد الأقسام الخاصة ببيع الأصناف (البيانات ما بتنمس، بترجع لما يرجع البيع) */
 const RHIDE=['rent','log','buy','lab','pexp','wh','offers','cat','tools','biz','loy'];
 /* عند الزبونات هلأ: فساتين طالعة (مدفوعة أو لأ) وهويات محفوظة عندنا. بزر «استلمنا» بترجع وبتطلع من هون، وبتضل بسجل الفستان والزبونة */
-function rentOutCard(){ const L=(S.rentals||[]).filter(r=>r.st==='out').sort((a,b)=>a.ret<b.ret?-1:1); if(!L.length) return '';
-  return `<div class="card pcard rout"><div class="row"><h2>👗 عند الزبونات هلأ</h2><span class="pill bad">${L.length}</span></div><p class="fh" style="margin:0">فساتين طالعة ولسا ما رجعت. لما ترجع اضغط «استلمنا»، فبترجع الهوية وبيختفي الحجز من هون، وبيضل محفوظ بسجل الفستان والزبونة.</p>
+function rentOutCard(tabbed){ const L=(S.rentals||[]).filter(r=>r.st==='out').sort((a,b)=>a.ret<b.ret?-1:1); if(!L.length) return tabbed?`<div class="empty">${RT('ما في فساتين عند الزبونات هلأ ✓')}</div>`:'';
+  return `<div class="card pcard rout"><div class="row"><h2>👗 عند الزبونات هلأ</h2><span class="pill bad">${L.length}</span></div><p class="fh" style="margin:0">طالعة ولسا ما رجعت. لما ترجع اضغط «استلمنا»، فبيختفي من هون وبيضل بسجل الفستان والزبونة.</p>
   <div class="list">${L.map(r=>{ const n=1+(r.ex||[]).length, left=rLeft(r), late=rLate(r); return `<div class="li rol"><span style="flex:1;min-width:0" data-act="rentView" data-id="${r.id}"><span class="t">${esc(r.cname)}</span>${r.cphone?` <span class="muted num">${esc(r.cphone)}</span>`:''}<br>
     <span class="muted">${n>1?`<b class="num">${n}</b> فساتين: `:''}${esc(r.dname)}</span><br>
     <span class="rotag ${left>0?'bad':'ok'}">${left>0?`💰 باقي ${fx(left)} ₪`:'💰 خالص ✓'}</span>${rIdIn(r)?`<span class="rotag warn">🪪 ${esc(rDoc(r))} عنا</span>`:''}${rInsHeld(r)>0?`<span class="rotag">🔒 تأمين ${fx(rInsHeld(r))} ₪</span>`:''}<span class="rotag ${late?'bad':''}">↩️ ${late?'متأخرة، كان لازم ترجع ':'ترجع '}${rDay(r.ret)}</span></span>
     <button class="btn sm primary" data-act="rentBack" data-id="${r.id}">✓ استلمنا</button></div>` }).join('')}</div></div>` }
-function rentDebtsCard(){ const L=(S.rentals||[]).filter(r=>r.st==='booked'&&rLeft(r)>0).sort((a,b)=>a.pick<b.pick?-1:1), tot=r2(L.reduce((a,r)=>a+rLeft(r),0));
+function rentDebtsCard(tabbed){ const L=(S.rentals||[]).filter(r=>r.st==='booked'&&rLeft(r)>0).sort((a,b)=>a.pick<b.pick?-1:1), tot=r2(L.reduce((a,r)=>a+rLeft(r),0));
   return `<div class="card pcard debt"><div class="row"><h2>👗 باقي على حجوزات لسا ما استلمت</h2><b class="num" style="color:#B91C1C">${fx(tot)} ₪</b></div>
-  <p class="fh" style="margin:0">هاي مبالغ باقية من حجوزات الفساتين. بتنقبض وقت التسليم أو من «دفعة على الإيجار» بالحجز.</p>
-  <div class="list">${L.slice(0,30).map(rentRow).join('')||'<div class="empty">كل الإيجارات مدفوعة ✓</div>'}</div></div>${rentMode()?'<h2 style="margin:14px 2px 6px;font-size:16px">ديون الزبائن الأخرى</h2>':''}` }
+  <p class="fh" style="margin:0">حجوزات لسا ما استلمتها الزبونة وعليها باقي. بينقبض وقت التسليم أو من «دفعة على الإيجار».</p>
+  <div class="list">${L.slice(0,60).map(rentRow).join('')||'<div class="empty">كل الحجوزات مدفوعة ✓</div>'}</div></div>` }
 function rentRepCard(from){ const L=(S.rentals||[]).filter(r=>r.created>=from&&r.st!=='cancel'), inc=rentIncome(from), held=r2((S.rentals||[]).reduce((a,r)=>a+rInsHeld(r),0));
   const out=(S.rentals||[]).filter(r=>r.outAt>=from).length, back=(S.rentals||[]).filter(r=>r.backAt>=from).length, can=(S.rentals||[]).filter(r=>r.cancelAt>=from).length;
   const fees=r2((S.rentals||[]).reduce((a,r)=>a+(r.pays||[]).filter(p=>p.k==='fee'&&p.ts>=from).reduce((b,p)=>b+p.amt,0),0));
@@ -4443,7 +4451,7 @@ function mgSheet(P,fname){ const B=P.B;
   ${P.same.length?`<details><summary class="muted">شوف الأصناف المكررة</summary><p class="fh">${P.same.slice(0,200).map(esc).join('، ')}</p></details>`:''}
   <p class="fh" style="margin:0">قبل الدمج بتنزل نسخة احتياطية من محلك تلقائيًا. الدمج ما بيمسح ولا فاتورة ولا صنف، والتغيير الوحيد على الموجود هو نقص مخزون الأصناف المشتركة اللي انباعت.</p>
   <button class="btn primary block big" data-act="mgGo" ${P.newItems.length+P.sales.length+P.newCust.length?'':'disabled'}>✓ تأكيد الدمج</button><button class="btn block" data-act="close">إلغاء</button>`) }
-let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null;
+let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
 const ymdT2=k=>{ const [y,m,d]=String(k||'').split('-').map(Number); return y?new Date(y,m-1,d).getTime():0 };
 const rWd=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar',{weekday:'long'}):'';
 const rWdUI=()=>document.querySelectorAll('.rdw').forEach(b=>{ const i=document.getElementById(b.dataset.w); if(i) b.textContent=rWd(i.value) });
@@ -4667,6 +4675,7 @@ rCalNav(d){ const now=new Date(), c=RCAL[d.d]||[now.getFullYear(),now.getMonth()
 rentDateGo(){ RENTV='date'; A.openSub({s:'rent'}) },
 rentBookOn(d){ RPRE={dressId:+d.d,event:d.k||null}; closeSheet(); if(rentMode()){ A.go({tab:'sell'}) } else { openSheet(rentForm(null)); setTimeout(()=>rentAvailUI(0),50) } },
 rdClr(){ RDATE2=''; render() },
+debtV(d){ DEBTV=d.v; render(); window.scrollTo(0,0) },
 washSet(d){ const x=dressById(d.id); if(!x) return; x.wash=Date.now(); save(); closeSheet(); render(); toast(RT('🧺 الفستان صار بالغسيل والكوي')) },
 washDone(d){ const x=dressById(d.id); if(!x) return; if(!x.wash){ toast(RT('الفستان جاهز')); return } delete x.wash; audit(RT('فستان جاهز بعد الغسيل: '+x.name)); save(); closeSheet(); render(); toast(RT('✓ الفستان جاهز ومتاح')) },
 rfxAdd(){ const L=$('#rfxL'); if(!L) return; const used=new Set([($('#rfDress')||{}).value,...[...document.querySelectorAll('.rfx')].map(e=>e.value)]); const pick=$('#rfPick'), rt=$('#rfRet'), free=(S.dresses||[]).find(d=>!used.has(String(d.id))&&!(pick&&rt&&rClash(d.id,pick.value,rt.value,0)))||(S.dresses||[]).find(d=>!used.has(String(d.id))); if(!free){ toast('ما في فساتين تانية مسجّلة'); return }
