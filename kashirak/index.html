@@ -615,6 +615,7 @@ body.rentm .salesOnly{display:none!important}
 .stg{display:inline-block;width:100%;padding:6px 2px;overflow-wrap:anywhere;border-radius:10px;text-align:center;font-weight:700;font-size:12.5px;cursor:pointer;box-sizing:border-box}.stgl .stg{width:auto;padding:4px 10px}
 .stg.pk{background:#DBEAFE;color:#1E40AF}.stg.out{background:#EDE9FE;color:#5B21B6}.stg.ev{background:#FCE7F3;color:#9D174D}.stg.rt{background:#FFEDD5;color:#9A3412}.stg.wa{background:#E2E8F0;color:#334155}.stg.free{background:#DCFCE7;color:#166534}
 .dseg{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4px;margin:44px 0 12px}.dseg button{font-size:13px;padding:8px 4px;line-height:1.3;white-space:normal;min-width:0}.dseg b{display:inline-block;min-width:20px;padding:0 6px;margin-inline-start:4px;border-radius:999px;background:rgba(0,0,0,.1);font-size:12px}
+.dnq{font-size:14.5px;background:#FFF7ED;border-color:#FDBA74;color:#9A3412}
 .rol{align-items:flex-start;gap:8px}.rol>span{cursor:pointer}.rotag{display:inline-block;margin:6px 0 0 4px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#F1F5F9;color:#334155}.rotag.ok{background:#DCFCE7;color:#166534}.rotag.bad{background:#FEE2E2;color:#B91C1C}.rotag.warn{background:#FEF3C7;color:#92400E}
 .rfxr{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:10px;border:1px dashed color-mix(in srgb,var(--gold) 50%,var(--line));border-radius:14px;background:#fff}.rfxh{display:flex;justify-content:space-between;align-items:center}
 .rfdq{margin-bottom:6px;position:relative}.rfdl{display:flex;flex-direction:column;gap:6px;margin-top:6px}.rfdi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1.5px solid #6EE7B7;background:#fff;font:inherit;color:inherit;text-align:start}.rfdi.no{border-color:#FCA5A5;opacity:.85}.rfdi img,.rfdi .rdi{width:42px;height:52px;border-radius:8px;object-fit:cover;flex:none;font-size:24px}.rfdi>span{flex:1;display:flex;flex-direction:column}.rfdi small{color:var(--muted);font-size:12px}.rfdi i{font-style:normal;font-weight:700;font-size:12px;white-space:nowrap}.rfdi.ok i{color:#047857}.rfdi.no i{color:#B91C1C}
@@ -2188,7 +2189,8 @@ sell(){
       <label for="dName">اسم الشخص<input id="dName" class="cf csug" data-f="custName" value="${esc(c.custName)}" placeholder="اكتب أول حروف الاسم.. وبيطلعلك الزبائن" autocomplete="off"></label>
       <div class="sugs" id="sug_dName"></div>
       <label for="dPhone">رقم جواله (اختياري)<input id="dPhone" class="cf" data-f="custPhone" inputmode="tel" value="${esc(c.custPhone)}" placeholder="059xxxxxxx"></label>
-      <p class="muted" style="margin:0">المبلغ بينضاف مباشرة على حسابه بدفتر الديون.</p></div>`:''}
+      <p class="muted" style="margin:0">المبلغ بينضاف مباشرة على حسابه بدفتر الديون.</p>
+      <button class="btn block dnq" data-act="debtNew" data-n="${esc(c.custName||'')}">⚡ دين مستعجل: مبلغ وسبب بدون أصناف</button></div>`:''}
     ${tt.promo?`<div class="row" style="color:var(--good)"><span>عرض: ${esc(tt.promoTxt.join('، '))}</span><span>${money(-tt.promo)}</span></div>`:''}
     ${fee?`<div class="row muted"><span>رسوم الدفع بالتطبيق ${S.appFee}%</span>${money(fee)}</div>`:''}
     ${xt(c)?`<div class="row"><span>➕ إضافة${c.extraNote?': '+esc(c.extraNote):''} <button class="lnk" data-act="extraAsk">تعديل</button></span>${money(xt(c))}</div>`:(c.lines.length&&!S.pharm?'<button class="btn block" data-act="extraAsk" style="font-size:14.5px">➕ إضافات مالية (توصيل، تغليف، أي مبلغ زيادة)</button>':'')}
@@ -3832,7 +3834,7 @@ redeem(d){const c=S.customers.find(x=>x.id===+d.id); const v=r2((c.points||0)*S.
   c.ledger.push({ts:Date.now(),amt:-v,note:`استبدال ${c.points} نقطة`,noCash:true}); audit(`استبدال ${c.points} نقطة لـ ${c.name} بـ ${fx(v)} ₪`); c.points=0; save(); render(); A.party({kind:'customers',id:c.id}); toast(`انضاف ${fx(v)} ₪ لرصيده`)},
 makePlan(d){const c=S.customers.find(x=>x.id===+d.id), b=balance(c), n=Math.max(2,Math.round(+$('#plN').value||0)), ev=Math.max(1,Math.round(+$('#plE').value||30)), st=new Date(($('#plS').value||new Date().toISOString().slice(0,10))+'T00:00').getTime();
   if(!(b>0)){toast('ما عليه دين للتقسيط');return} c.plan={ts:Date.now(),start:st,every:ev,n,total:b,amt:r2(b/n)}; audit(`جدول تقسيط لـ ${c.name}: ${n} دفعات`); save(); A.party({kind:'customers',id:c.id}); toast('تم عمل جدول التقسيط')},
-debtNew(){ openSheet(`${sheetHead('إضافة دين')}<p class="fh" style="margin:0">لزبون عليه دين من قبل أو أخد إشي برّا البيع. اكتب اسمه والمبلغ والسبب. ما بيأثر على المخزون ولا المبيعات.</p>
+debtNew(d){ d=d||{}; setTimeout(()=>{ const i=$('#dnName'); if(i&&d.n) i.value=d.n; const a=$('#dnAmt'); if(a&&d.n) a.focus() },60); openSheet(`${sheetHead('إضافة دين')}<p class="fh" style="margin:0">لزبون عليه دين من قبل أو أخد إشي برّا البيع. اكتب اسمه والمبلغ والسبب. ما بيأثر على المخزون ولا المبيعات.</p>
   <label for="dnName">اسم الزبون<input id="dnName" list="dnList" autocomplete="off" placeholder="اختار زبون أو اكتب اسم جديد"><datalist id="dnList">${S.customers.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></label>
   <div class="row"><input id="dnAmt" type="number" inputmode="decimal" min="0" placeholder="المبلغ" aria-label="المبلغ">${curSel('dnCur')}</div>
   <label for="dnNote">السبب<input id="dnNote" maxlength="120" placeholder="مثلًا: دين قديم من الدفتر، أو أخد مصاري"></label>
