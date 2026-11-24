@@ -321,6 +321,7 @@ function shopSheet(id,kind){
   const curWa=String(s.wa||waNum(s.phone)), curPre=curWa.startsWith('972')?'972':'970', otherPre=curPre==='972'?'970':'972';
   const msgInfo=`أهلًا وسهلًا ${s.owner||''} 🌹\n\nيسعدنا تسجيلك معنا في *«كاشيرك الذكي»*${s.name&&!s.visit?` لمحل *${s.name}*`:''} 🌟\nبرنامج محاسبي *كامل ومتكامل* لمحلك: البيع والفواتير، المخزون، الديون، المشتريات، المصروفات والتقارير، كله من جوالك أو اللابتوب.\n\n🤝 *احنا معك بأي وقت بتحتاجنا*\nبتقدر تتواصل معنا هون على الواتساب، أو على رقم الجوال: *0567686774*\n\n💼 *باقات الاشتراك*\nعنا عروض على باقات *6 شهور* و*سنة* و*مدى الحياة*، وبنختارلك الباقة اللي بتناسب محلك.\n🎁 واللي بيشترك سنة أو مدى الحياة، بيجيه مندوب لمحله يركّب التطبيق ويشرحه إله وللعمال *مجانًا*.\n\nرد على هالرسالة وبنكون بخدمتك 🤝\nفريق «كاشيرك الذكي» · ماركتنج الشرق الأوسط`;
   open(`${head(esc(s.name||'محل'))}
+  <button class="btn block gold" data-a="stockSheet" data-id="${esc(s.id)}" style="margin-bottom:8px">📦 قيمة المخزون</button>
   <div class="row">${pillOf(st)}${s.phone?`<a class="btn sm wa" href="https://wa.me/${(s.wa||waNum(s.phone))}?text=${encodeURIComponent(msgInfo)}" target="_blank" rel="noopener">واتساب</a>`:''}</div>
   <div class="card" style="gap:0">
     ${s.acct?`<div class="kv"><span>رقم الحساب</span><span class="num" style="font-weight:700">${s.acct}</span></div>`:''}
