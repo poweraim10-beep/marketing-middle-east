@@ -252,6 +252,20 @@ label.chk input[type=radio],label.chk input[type=checkbox]{width:22px;height:22p
 .qty{display:flex;align-items:center;gap:6px}
 .qty button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-size:18px;line-height:1}
 .cartline{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+/* السلة زي الفاتورة: كل صنف سطر واحد مضغوط */
+.clh{display:grid;grid-template-columns:minmax(0,1fr) 104px 70px 60px;gap:6px;padding:6px 4px;font-size:12px;font-weight:700;color:var(--muted);border-bottom:1.5px solid var(--line)}
+.cartline.cl2{padding:6px 4px;gap:4px}
+.cl-r{display:grid;grid-template-columns:minmax(0,1fr) 104px 70px 60px;gap:6px;align-items:center}
+.cl-n{display:flex;flex-direction:column;min-width:0}.cl-n b{font-size:14.5px;font-weight:700;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cl-n small{font-size:11.5px;color:var(--muted)}
+.qty.cl-q{display:flex;align-items:center;justify-content:space-between;gap:2px;padding:2px;border-radius:10px}
+.qty.cl-q button{width:30px;height:30px;min-height:30px;padding:0;font-size:17px;border-radius:8px}
+.qty.cl-q .num{min-width:22px;text-align:center;font-weight:700;font-size:14.5px}
+.cl-t{font-size:15px;font-weight:800;text-align:end}
+.cl-a{display:flex;gap:2px;justify-content:flex-end}
+.cl-ib{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:13px;cursor:pointer;display:grid;place-items:center;padding:0}
+.cl-ib.del{color:var(--bad);font-weight:800}
+.cl-un{font:inherit;font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--gold) 50%,var(--line));background:#ECFDF5;color:var(--gold-deep,#047857);cursor:pointer;margin-inline-start:4px}
+@media (max-width:420px){.clh,.cl-r{grid-template-columns:minmax(0,1fr) 88px 52px 58px;gap:4px}.qty.cl-q button{width:27px}}
 .cartline:last-child{border-bottom:0}
 .total{font-size:26px;font-weight:700}
 .bars{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:130px}
@@ -391,9 +405,6 @@ main{padding-bottom:44px}
   main#view[data-v=sell] .scol>.cartc{order:1;border:2px solid color-mix(in srgb,var(--gold) 55%,var(--line));box-shadow:0 10px 30px -14px rgba(16,185,129,.45)}
   main#view[data-v=sell] .scol>.qbc,main#view[data-v=sell] .scol>.qbadd{order:2}
   main#view[data-v=sell] .cartc h2{font-size:20px}
-  main#view[data-v=sell] .cartc .cartline{padding:12px 0}
-  main#view[data-v=sell] .cartc .cartline>.row:first-child .t{font-size:18px;font-weight:700!important}
-  main#view[data-v=sell] .cartc .cartline>.row:first-child .money,main#view[data-v=sell] .cartc .cartline>.row:first-child>:last-child{font-size:18px;font-weight:800}
   main#view[data-v=sell] .qbc{padding:10px 12px;gap:6px}main#view[data-v=sell] .qbc h2{font-size:14px}
   main#view[data-v=sell] .qbg{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
   main#view[data-v=sell] .qb{flex-direction:row;justify-content:flex-start;padding:5px 8px;gap:6px;border-radius:10px}
@@ -2159,20 +2170,28 @@ sell(){
   </div>
   ${S.held.length?`<div class="card" style="gap:6px"><h2>فواتير معلّقة (${S.held.length})</h2><div class="list">${S.held.map(hd=>`<div class="li"><span><span class="t">${esc(hd.name)}</span><br><span class="muted">${hd.cart.lines.length} صنف · ${fdate(hd.ts)}</span></span><span class="row" style="gap:6px"><button class="btn sm primary" data-act="resume" data-id="${hd.id}">استرجاع</button><button class="btn sm danger" data-act="dropHeld" data-id="${hd.id}">حذف</button></span></div>`).join('')}</div></div>`:''}
   <div class="card cartc"><div class="row"><h2>السلة</h2><span class="row" style="gap:6px">${S.items.some(i=>i.priceW>0)?`<button class="chip" data-act="wholesale" aria-pressed="${!!c.wholesale}">سعر جملة</button>`:''}${c.lines.length?'<button class="btn sm" data-act="hold">تعليق كمسودة</button>':''}</span></div>
-    ${c.lines.map((l,k)=>{const it=itemById(l.itemId), ln=lineOf(it,l.unit,l.count,l.p);return `
+    ${c.lines.length?'<div class="clh"><span>الصنف</span><span>الكمية</span><span>المجموع</span><span></span></div>':''}
+    ${c.lines.map((l,k)=>{const it=itemById(l.itemId), ln=lineOf(it,l.unit,l.count,l.p), units=it.cartonSize>1||(it.packs||[]).length;
+      if(it.byWeight) return `
       <div class="cartline">
         <div class="row"><span class="t" style="font-weight:600">${esc(it.name)}</span>${money(ln.price*ln.count)}</div>
-        <div class="row" style="flex-wrap:wrap">
-          ${it.byWeight?`<div class="wbox" style="display:flex;flex-direction:column;gap:8px;width:100%">
+        <div class="row" style="flex-wrap:wrap"><div class="wbox" style="display:flex;flex-direction:column;gap:8px;width:100%">
             <div class="grid2"><label for="wg${k}">الوزن بالغرام<input id="wg${k}" class="wtg" data-k="${k}" type="number" inputmode="numeric" step="1" min="1" value="${Math.round(l.count*1000)}"></label>
               <label for="wm${k}">أو بالمبلغ (₪)<input id="wm${k}" class="wtm" data-k="${k}" type="number" inputmode="decimal" step="0.5" min="0.1" placeholder="مثلًا 5"></label></div>
             <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap"><span class="muted" style="font-size:13px;align-self:center">بالمبلغ:</span>${[1,2,5,10,20].map(m=>`<button class="btn sm" data-act="wmon" data-k="${k}" data-m="${m}">${m} ₪</button>`).join('')}</div>
             <div class="chips" style="display:flex;gap:6px;flex-wrap:wrap">${[50,100,250,500,1000].map(g=>`<button class="btn sm" data-act="wset" data-k="${k}" data-g="${g}" aria-pressed="${Math.round(l.count*1000)===g}">${g<1000?g+' غ':'1 كغ'}</button>`).join('')}</div>
-            <span class="muted"><b class="num">${wtTxt(l.count)}</b> × ${fx(ln.price)} ₪ للكيلو = <b class="num">${fx(ln.price*l.count)} ₪</b>${isOwner()&&mOk()&&it.cost>0?` · ربحك <span class="num">${fx((ln.price-it.cost)*l.count)}</span> ₪`:''}</span></div>`
-          :`<div class="qty"><button data-act="dec" data-k="${k}" aria-label="نقّص">−</button><span class="num" style="min-width:24px;text-align:center">${l.count}</span><button data-act="inc" data-k="${k}" aria-label="زوّد">+</button></div>
-          ${it.cartonSize>1||(it.packs||[]).length?`<div class="seg" style="flex:0 0 auto;flex-wrap:wrap"><button data-act="unit" data-k="${k}" data-u="piece" aria-pressed="${l.unit==='piece'}">${esc(it.unitName||'حبة')}</button>${(it.packs||[]).map((pk,j)=>`<button data-act="unit" data-k="${k}" data-u="pk${j}" aria-pressed="${l.unit==='pk'+j}">${esc(pk.n)}</button>`).join('')}${it.cartonSize>1?`<button data-act="unit" data-k="${k}" data-u="carton" aria-pressed="${l.unit==='carton'}">كرتونة ${it.cartonSize}</button>`:''}</div>`:`<span class="muted">${fx(ln.price)} ₪ للحبة</span>`}`}
+            <span class="muted"><b class="num">${wtTxt(l.count)}</b> × ${fx(ln.price)} ₪ للكيلو = <b class="num">${fx(ln.price*l.count)} ₪</b>${isOwner()&&mOk()&&it.cost>0?` · ربحك <span class="num">${fx((ln.price-it.cost)*l.count)}</span> ₪`:''}</span></div>
           <button class="btn sm" data-act="lpAsk" data-k="${k}">✏️ السعر${l.p>0?' · <span class="num">'+fx(l.p)+'</span>':''}</button>
           <button class="btn sm danger" data-act="rm" data-k="${k}">حذف</button>
+        </div>
+      </div>`;
+      return `
+      <div class="cartline cl2">
+        <div class="cl-r">
+          <span class="cl-n"><b>${esc(it.name)}</b><small><span class="num">${fx(ln.price)}</span> ₪${units?(()=>{ const U=[['piece',it.unitName||'حبة'],...(it.packs||[]).map((pk,j)=>['pk'+j,pk.n]),...(it.cartonSize>1?[['carton','كرتونة '+it.cartonSize]]:[])], ix=Math.max(0,U.findIndex(u=>u[0]===l.unit)), nx=U[(ix+1)%U.length]; return ` <button class="cl-un" data-act="unit" data-k="${k}" data-u="${nx[0]}" title="بدّل الوحدة لـ ${esc(nx[1])}">${esc(U[ix][1])} ⇄</button>` })():' لل'+esc(it.unitName||'حبة')}${l.p>0?' · سعر معدّل':''}</small></span>
+          <span class="qty cl-q"><button data-act="dec" data-k="${k}" aria-label="نقّص">−</button><span class="num">${l.count}</span><button data-act="inc" data-k="${k}" aria-label="زوّد">+</button></span>
+          <b class="num cl-t">${fx(ln.price*ln.count)}</b>
+          <span class="cl-a"><button class="cl-ib" data-act="lpAsk" data-k="${k}" aria-label="تعديل السعر" title="تعديل السعر">✏️</button><button class="cl-ib del" data-act="rm" data-k="${k}" aria-label="حذف" title="حذف">✕</button></span>
         </div>
       </div>`}).join('')||'<div class="empty">السلة فاضية. امسح باركود أو ابحث عن صنف.</div>'}
   </div></div>
