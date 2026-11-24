@@ -863,7 +863,7 @@ async function admin(env, request, b) {
     for (const i of it) { const q = +i.qty || 0; if (q < 0) neg++; if (q <= 0) continue; inStock++; units += q; cost += q * (+i.cost || 0); price += q * (+i.price || 0); if (!(+i.cost > 0)) noCost++; }
     return json({ ok: true, name: sh.name, updated: sh.updated, items: it.length, inStock, units: r2(units), cost: r2(cost), price: r2(price), noCost, neg });
   }
- // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
+  if (b === 'tplfromshop' && m === 'POST') { // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
     const k = clean(q.k, 20) || 'market'; if (!TPL_KEYS[k]) return err('مجال غير معروف');
     const ph = phoneOf(q.phone); if (!ph) return err('اكتب رقم جوال المحل');
     const snap = async () => {
