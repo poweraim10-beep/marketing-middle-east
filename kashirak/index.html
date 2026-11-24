@@ -2190,7 +2190,7 @@ sell(){
       <div class="sugs" id="sug_dName"></div>
       <label for="dPhone">رقم جواله (اختياري)<input id="dPhone" class="cf" data-f="custPhone" inputmode="tel" value="${esc(c.custPhone)}" placeholder="059xxxxxxx"></label>
       <p class="muted" style="margin:0">المبلغ بينضاف مباشرة على حسابه بدفتر الديون.</p>
-      <button class="btn block dnq" data-act="debtNew" data-n="${esc(c.custName||'')}">⚡ دين مستعجل: مبلغ وسبب بدون أصناف</button></div>`:''}
+      <button class="btn block dnq" data-act="debtNew" data-q="1" data-n="${esc(c.custName||'')}">⚡ دين مستعجل: مبلغ وسبب بدون أصناف</button></div>`:''}
     ${tt.promo?`<div class="row" style="color:var(--good)"><span>عرض: ${esc(tt.promoTxt.join('، '))}</span><span>${money(-tt.promo)}</span></div>`:''}
     ${fee?`<div class="row muted"><span>رسوم الدفع بالتطبيق ${S.appFee}%</span>${money(fee)}</div>`:''}
     ${xt(c)?`<div class="row"><span>➕ إضافة${c.extraNote?': '+esc(c.extraNote):''} <button class="lnk" data-act="extraAsk">تعديل</button></span>${money(xt(c))}</div>`:(c.lines.length&&!S.pharm?'<button class="btn block" data-act="extraAsk" style="font-size:14.5px">➕ إضافات مالية (توصيل، تغليف، أي مبلغ زيادة)</button>':'')}
@@ -3834,7 +3834,7 @@ redeem(d){const c=S.customers.find(x=>x.id===+d.id); const v=r2((c.points||0)*S.
   c.ledger.push({ts:Date.now(),amt:-v,note:`استبدال ${c.points} نقطة`,noCash:true}); audit(`استبدال ${c.points} نقطة لـ ${c.name} بـ ${fx(v)} ₪`); c.points=0; save(); render(); A.party({kind:'customers',id:c.id}); toast(`انضاف ${fx(v)} ₪ لرصيده`)},
 makePlan(d){const c=S.customers.find(x=>x.id===+d.id), b=balance(c), n=Math.max(2,Math.round(+$('#plN').value||0)), ev=Math.max(1,Math.round(+$('#plE').value||30)), st=new Date(($('#plS').value||new Date().toISOString().slice(0,10))+'T00:00').getTime();
   if(!(b>0)){toast('ما عليه دين للتقسيط');return} c.plan={ts:Date.now(),start:st,every:ev,n,total:b,amt:r2(b/n)}; audit(`جدول تقسيط لـ ${c.name}: ${n} دفعات`); save(); A.party({kind:'customers',id:c.id}); toast('تم عمل جدول التقسيط')},
-debtNew(d){ d=d||{}; setTimeout(()=>{ const i=$('#dnName'); if(i&&d.n) i.value=d.n; const a=$('#dnAmt'); if(a&&d.n) a.focus() },60); openSheet(`${sheetHead('إضافة دين')}<p class="fh" style="margin:0">لزبون عليه دين من قبل أو أخد إشي برّا البيع. اكتب اسمه والمبلغ والسبب. ما بيأثر على المخزون ولا المبيعات.</p>
+debtNew(d){ d=d||{}; DNQ=!!d.q; setTimeout(()=>{ const i=$('#dnName'); if(i&&d.n) i.value=d.n; const a=$('#dnAmt'); if(a&&d.n) a.focus() },60); openSheet(`${sheetHead('إضافة دين')}<p class="fh" style="margin:0">لزبون عليه دين من قبل أو أخد إشي برّا البيع. اكتب اسمه والمبلغ والسبب. ما بيأثر على المخزون ولا المبيعات.</p>
   <label for="dnName">اسم الزبون<input id="dnName" list="dnList" autocomplete="off" placeholder="اختار زبون أو اكتب اسم جديد"><datalist id="dnList">${S.customers.map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist></label>
   <div class="row"><input id="dnAmt" type="number" inputmode="decimal" min="0" placeholder="المبلغ" aria-label="المبلغ">${curSel('dnCur')}</div>
   <label for="dnNote">السبب<input id="dnNote" maxlength="120" placeholder="مثلًا: دين قديم من الدفتر، أو أخد مصاري"></label>
@@ -3844,7 +3844,7 @@ debtNew(d){ d=d||{}; setTimeout(()=>{ const i=$('#dnName'); if(i&&d.n) i.value=d
 debtNewGo(){ const n=(($('#dnName')||{}).value||'').trim().replace(/\s+/g,' ').slice(0,60), a=r2(parseFloat(($('#dnAmt')||{}).value)||0), cur=curVal('dnCur'), note=(($('#dnNote')||{}).value||'').trim().slice(0,120);
   if(!n){toast('اكتب اسم الزبون');return} if(!(a>0)){toast('اكتب المبلغ');return} const ts=bdTs(($('#dnDay')||{}).value); if(ts==null) return;
   let c=S.customers.find(x=>x.name.trim()===n), isNew=false; if(!c){ c={id:S.nextId++,name:n,phone:'',ledger:[]}; S.customers.push(c); isNew=true }
-  c.ledger.push({ts,amt:a,note:'دين سابق'+(note?': '+note:''),...(cur?{cur}:{})}); audit(`إضافة دين ${fx(a)} ${CURS[cur||'ILS']} على ${c.name}${note?' · '+note:''}${isNew?' (زبون جديد)':''}`);
+  c.ledger.push({ts,amt:a,note:(DNQ?'دين مستعجل':'دين سابق')+(note?': '+note:''),...(cur?{cur}:{})}); audit(`إضافة دين ${fx(a)} ${CURS[cur||'ILS']} على ${c.name}${note?' · '+note:''}${isNew?' (زبون جديد)':''}`);
   save(); closeSheet(); render(); toast(`✓ انضاف الدين على ${c.name}`) },
 async addOldDebt(d){ const kind=d.kind==='suppliers'?'suppliers':'customers', c=S[kind].find(x=>x.id===+d.id), cur=curVal('oldCur'); const a=r2(parseFloat($('#oldAmt').value)||0); const pf=($('#oldPh')||{}).files&&$('#oldPh').files[0]; let pid='';
   if(pf&&a>0){ try{ const dat=await docImg(pf); pid='img'+Date.now(); await idb('readwrite',st=>st.put(dat,pid)) }catch(e){} }
@@ -4457,7 +4457,7 @@ function mgSheet(P,fname){ const B=P.B;
   ${P.same.length?`<details><summary class="muted">شوف الأصناف المكررة</summary><p class="fh">${P.same.slice(0,200).map(esc).join('، ')}</p></details>`:''}
   <p class="fh" style="margin:0">قبل الدمج بتنزل نسخة احتياطية من محلك تلقائيًا. الدمج ما بيمسح ولا فاتورة ولا صنف، والتغيير الوحيد على الموجود هو نقص مخزون الأصناف المشتركة اللي انباعت.</p>
   <button class="btn primary block big" data-act="mgGo" ${P.newItems.length+P.sales.length+P.newCust.length?'':'disabled'}>✓ تأكيد الدمج</button><button class="btn block" data-act="close">إلغاء</button>`) }
-let RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
+let DNQ=false, RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
 const ymdT2=k=>{ const [y,m,d]=String(k||'').split('-').map(Number); return y?new Date(y,m-1,d).getTime():0 };
 const rWd=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar',{weekday:'long'}):'';
 const rWdUI=()=>document.querySelectorAll('.rdw').forEach(b=>{ const i=document.getElementById(b.dataset.w); if(i) b.textContent=rWd(i.value) });
