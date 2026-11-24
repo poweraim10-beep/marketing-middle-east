@@ -4360,7 +4360,7 @@ const ldImg=src=>new Promise(res=>{ if(!src) return res(null); const i=new Image
 async function rRcptCanvas(r,ts){ try{ await document.fonts.load('700 30px Alexandria'); await document.fonts.load('400 30px Alexandria') }catch(e){}
   const c=invCfg(), g=rPayGroup(r,ts), d=new Date(+ts), W=1080, P=56, F='Alexandria, Tahoma, sans-serif', logo=await ldImg(c.logo), name=c.name||S.shop;
   const total=r2(g.reduce((a,p)=>a+p.amt,0)), note=rRcptNote(r);
-  const cv=document.createElement('canvas'), x=cv.getContext('2d'); cv.width=W; cv.height=2600+((r.ex||[]).length*100); x.direction='rtl'; x.textBaseline='middle';
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=2600+((r.ex||[]).length*100); const x=cv.getContext('2d',{willReadFrequently:true}); x.direction='rtl'; x.textBaseline='middle';
   const T=(t,X,Y,sz,w=400,col='#0F172A',al='right')=>{ x.font=`${w} ${sz}px ${F}`; x.fillStyle=col; x.textAlign=al; x.fillText(RT(String(t)),X,Y) };
   const wrap=(t,maxW,sz,w=400)=>{ x.font=`${w} ${sz}px ${F}`; const out=[]; String(t).split('\n').forEach(par=>{ let ln=''; par.split(' ').forEach(wd=>{ const tt=ln?ln+' '+wd:wd; if(x.measureText(tt).width>maxW&&ln){ out.push(ln); ln=wd } else ln=tt }); out.push(ln) }); return out };
   const rr=(X,Y,w,h,rad,fill,stroke)=>{ x.beginPath(); if(x.roundRect) x.roundRect(X,Y,w,h,rad); else x.rect(X,Y,w,h); if(fill){ x.fillStyle=fill; x.fill() } if(stroke){ x.strokeStyle=stroke; x.lineWidth=3; x.stroke() } };
@@ -4389,8 +4389,11 @@ async function rRcptCanvas(r,ts){ try{ await document.fonts.load('700 30px Alexa
   y+=40; x.strokeStyle='#94A3B8'; x.lineWidth=2; x.beginPath(); x.moveTo(P,y); x.lineTo(P+330,y); x.stroke(); T('توقيع وختم المحل',P+165,y+32,24,400,'#64748B','center');
   T('شكرًا لاختيارك '+name+' 🌸',W-P,y,28,600,'#0F172A'); y+=110;
   x.fillStyle='#0B1B3A'; x.fillRect(0,y-20,W,70); T('صادر عبر «كاشيرك الذكي»',W/2,y+15,22,400,'#CBD5E1','center'); y+=50;
-  const out=document.createElement('canvas'); out.width=W; out.height=y; out.getContext('2d').drawImage(cv,0,0); return out }
-async function rRcptBlob(r,ts){ const cv=await rRcptCanvas(r,ts); return new Promise(res=>cv.toBlob(b=>res(b),'image/png')) }
+  const out=document.createElement('canvas'); out.width=W; out.height=y; const ox=out.getContext('2d',{willReadFrequently:true}); ox.fillStyle='#fff'; ox.fillRect(0,0,W,y); ox.drawImage(cv,0,0); return out }
+/* بعض الجوالات (أندرويد) بتطلع الصورة نصها أسود: بنرسم على المعالج مش كرت الشاشة، وبنفحص الصورة، ولو خربانة بنعيد مرة، وبنصدّرها JPEG بخلفية بيضا */
+const rImgBad=cv=>{ try{ const g=cv.getContext('2d',{willReadFrequently:true}), H=cv.height; return [.4,.6,.85].some(f=>{ const p=g.getImageData(8,Math.floor(H*f),1,1).data; return p[3]<250||(p[0]<40&&p[1]<40&&p[2]<40) }) }catch(e){ return false } };
+async function rRcptBlob(r,ts){ let cv=await rRcptCanvas(r,ts); if(rImgBad(cv)){ await new Promise(z=>setTimeout(z,300)); cv=await rRcptCanvas(r,ts); if(rImgBad(cv)) return null }
+  return new Promise(res=>cv.toBlob(b=>res(b),'image/jpeg',.92)) }
 const rCanRev=(r,ts)=>{ if(!isOwner()||r.st==='back'||r.st==='cancel') return false; const g=rPayGroup(r,ts); return g.length&&g.every(p=>['dep','rent','ins'].includes(p.k)&&p.amt>0&&!p.rev)&&!(r.pays||[]).some(p=>p.revOf===+ts) };
 function rentRcpt(r,ts,title){ title=title||'سند القبض'; const m=rRcptTxt(r,ts);
   openSheet(`${sheetHead(title)}<div class="rimg" id="rImg"><div class="empty">⏳ بنجهّز سند القبض…</div></div>
@@ -4399,7 +4402,7 @@ function rentRcpt(r,ts,title){ title=title||'سند القبض'; const m=rRcptTx
   <div class="grid2"><button class="btn" data-act="rentSave2" data-id="${r.id}" data-ts="${ts}">⬇️ حفظ الصورة</button><button class="btn" data-act="rentView" data-id="${r.id}">رجوع للحجز</button></div>
   ${r.st==='booked'||r.st==='out'?`<button class="btn block redit" data-act="rentEdit" data-id="${r.id}">✏️ تعديل الحجز</button>`:''}
   ${rCanRev(r,ts)?`<button class="btn danger block" data-act="rentRevAsk" data-id="${r.id}" data-ts="${ts}">↩️ الدفعة انسجلت غلط؟ إلغاؤها</button>`:''}`);
-  rRcptCanvas(r,ts).then(cv=>{ const b=$('#rImg'); if(b) b.innerHTML=`<img src="${cv.toDataURL('image/png')}" alt="سند القبض">` }).catch(()=>{ const b=$('#rImg'); if(b) b.innerHTML=rRcptHTML(r,ts) }) }
+  rRcptCanvas(r,ts).then(cv=>{ const b=$('#rImg'); if(b) b.innerHTML=`<img src="${cv.toDataURL('image/jpeg',.92)}" alt="سند القبض">` }).catch(()=>{ const b=$('#rImg'); if(b) b.innerHTML=rRcptHTML(r,ts) }) }
 const RST={booked:['محجوز','warn'],out:['عند الزبونة','bad'],back:['رجع','ok'],cancel:['ملغي','mute']};
 const RPK={dep:'عربون',rent:'دفعة إيجار',ins:'تأمين مستلم',insback:'تأمين مرجّع',fee:'غرامة',refund:'إرجاع عربون'};
 
@@ -4618,12 +4621,12 @@ rentRevAsk(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; con
 rentRevGo(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r||!rCanRev(r,d.ts)) return; const now=Date.now();
   rPayGroup(r,d.ts).forEach(p=>r.pays.push({ts:now,amt:-p.amt,m:p.m,...(p.am?{am:p.am}:{}),k:p.k,rev:1,revOf:+d.ts}));
   audit(`إلغاء دفعة بحجز فستان #${r.no}`); save(); closeSheet(); render(); A.rentView({id:r.id}); toast('✓ انلغت الدفعة بحركة عكسية') },
-async rentWa(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b){ toast('تعذّر تجهيز الصورة'); return }
-  const f=new File([b],fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.png',{type:'image/png'});
+async rentWa(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b){ toast('الصورة ما زبطت على هالجوال، بعتنالك السند كنص'); try{ navigator.clipboard&&navigator.clipboard.writeText(rRcptTxt(r,d.ts)) }catch(_){} window.open(`https://wa.me/${waNum(r.cphone)}?text=${encodeURIComponent(rRcptTxt(r,d.ts))}`,'_blank','noopener'); return }
+  const f=new File([b],fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.jpg',{type:'image/jpeg'});
   try{ if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ navigator.clipboard&&navigator.clipboard.writeText(r.cphone||'') }catch(_){} await navigator.share({files:[f]}); return } }catch(e){ if(e&&e.name==='AbortError') return }
   try{ const a=document.createElement('a'); a.href=URL.createObjectURL(f); a.download=f.name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000) }catch(e){}
   toast('✓ نزلت صورة السند، ارفقها بمحادثة الزبونة'); window.open(`https://wa.me/${waNum(r.cphone)}`,'_blank','noopener') },
-async rentSave2(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b) return; const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.png'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000); toast('✓ انحفظت الصورة') },
+async rentSave2(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b) return; const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.jpg'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000); toast('✓ انحفظت الصورة') },
 async rentPrint(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const c=invCfg(), P=INV_PAPER[c.paper]||INV_PAPER['80'];
   let img=''; try{ img=(await rRcptCanvas(r,d.ts)).toDataURL('image/png') }catch(e){}
   if(img){ $('#printArea').innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important} #printArea img{width:100%!important}}</style><img src="${img}" alt="">`; setTimeout(()=>{try{window.print()}catch(e){toast('الطباعة غير متاحة هنا')}},250); return }
