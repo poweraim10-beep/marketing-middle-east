@@ -241,6 +241,9 @@ money(){
   <div class="card"><h2>أسعار الباقات الافتراضية</h2><p style="font-size:13px;color:var(--muted)">بتنكتب لحالها لما تعمل كود جديد، وبتقدر تغيّرها وقتها.</p>
     <div class="grid2">${PLAN_ORDER.map(p=>`<label>${PLAN_NAME[p]}<input class="pr num" data-p="${p}" inputmode="decimal" value="${P[p]}"></label>`).join('')}</div>
     <button class="btn primary" data-a="savePrices">حفظ الأسعار</button></div>
+  <div class="card"><h2>💾 نسخة احتياطية لكل المحلات</h2><p style="margin:0;font-size:13px;color:var(--muted)">بتنزّل ملف واحد فيه بيانات كل المحلات (أصناف، فواتير، ديون، اشتراكات). احفظه على Google Drive عندك: نسخة على السحابة، ونسخة على جهاز كل محل، ونسخة عندك. قراءة بس، ما بتغيّر إشي.</p>
+    <p style="margin:6px 0 0;font-size:13px">آخر نسخة: <b>${(()=>{ try{ const t=+localStorage.getItem('ksr-adm-bk')||0; return t?fday(t)+' · '+ago(t):'لسا ما أخدت نسخة' }catch(e){ return '—' } })()}</b></p>
+    <div id="bkProg" style="font-size:13px;color:var(--muted)"></div><button class="btn gold block" data-a="backupAll">💾 خذ نسخة كاملة واحفظها على Google Drive</button></div>
   <div class="card"><h2>الحساب</h2><a class="btn" href="/" target="_blank" rel="noopener">فتح الأكاديمية</a><button class="btn danger" data-a="logout">تسجيل خروج</button></div>`}
 };
 /* مين شغّال؟ نشاط المحلات حسب آخر ظهور (قراءة بس) */
@@ -506,6 +509,15 @@ const A={
       open(`${head('نسخ بيانات '+esc(s.name))}<p style="font-size:13.5px;color:var(--muted)">السيرفر بيحتفظ تلقائيًا بنسخة من بيانات المحل كل 6 ساعات، وقبل أي تغيير كبير، لآخر 20 نسخة. إذا صار خطأ عند الزبون، بترجّع بياناته لأي نسخة منهم.</p>
         <div class="card"><div class="list">${row(r.current,true)}${r.list.map(x=>row(x,false)).join('')||'<div class="empty">لسا ما في نسخ سابقة. أول نسخة بتنحفظ بعد 6 ساعات من الاستعمال.</div>'}</div></div>`)
     }catch(e){toast(e.message)}},
+  async backupAll(){ const P=$('#bkProg'), out=[]; let off=0, tot=0; try{
+      while(off!=null){ if(P) P.textContent=`⏳ بنجمع البيانات… ${out.length}${tot?' من '+tot:''} محل`; const r=await call('backupall?off='+off); tot=r.total; out.push(...r.shops); off=r.next }
+      const dt=new Date(), nm=`kashirak-backup-${dt.toISOString().slice(0,10)}-${String(dt.getHours()).padStart(2,'0')}${String(dt.getMinutes()).padStart(2,'0')}.json`;
+      const blob=new Blob([JSON.stringify({app:'kashirak',v:1,at:Date.now(),count:out.length,shops:out})],{type:'application/json'}), f=new File([blob],nm,{type:'application/json'});
+      try{ localStorage.setItem('ksr-adm-bk',String(Date.now())) }catch(e){}
+      if(P) P.textContent=`✓ جاهزة: ${out.length} محل · ${(blob.size/1048576).toFixed(1)} ميغا`;
+      if(navigator.canShare&&navigator.canShare({files:[f]})){ try{ await navigator.share({files:[f],title:nm,text:'نسخة كاشيرك الاحتياطية'}); toast('✓ اختار Google Drive من القائمة واحفظها'); return }catch(e){ if(e&&e.name==='AbortError') return } }
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=nm; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000); toast('✓ نزل الملف. ارفعه على Google Drive')
+    }catch(e){ if(P) P.textContent=''; toast(e.message||'ما زبطت، جرّب كمان مرة') } },
   async stockSheet(d){ const s=shopById(d.id); try{ const r=await call('stockval?id='+encodeURIComponent(d.id)); const f=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
       open(`${head('قيمة المخزون · '+esc(r.name||(s&&s.name)||''))}<p style="font-size:13.5px;color:var(--muted)">من آخر نسخة وصلت السيرفر من جهاز المحل (${r.updated?ago(r.updated):'—'}). قراءة بس، ما بيتغيّر إشي ببيانات المحل.</p>
       <div class="card" style="gap:0"><div class="kv"><span>قيمة المخزون بسعر التكلفة</span><b class="num">${f(r.cost)} ₪</b></div><div class="kv"><span>قيمة المخزون بسعر البيع</span><b class="num">${f(r.price)} ₪</b></div>

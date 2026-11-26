@@ -854,6 +854,14 @@ async function admin(env, request, b) {
     const left = items.filter((x) => !have.has(x.b)).length, ok = items.filter((x) => have.get(x.b) === 'd').length;
     return json({ ok: true, total: items.length, done: items.length - left, found: ok, now: found, left, miss: left ? [] : items.filter((x) => have.get(x.b) === '-').map((x) => x.n) });
   }
+  if (b === 'backupall' && m === 'GET') { // نسخة احتياطية لكل المحلات لصاحب البرنامج: قراءة فقط، دفعات صغيرة
+    const off = Math.max(0, parseInt(new URL(request.url).searchParams.get('off') || '0', 10) || 0), lim = 25;
+    const rs = await env.DB.prepare('SELECT id, phone, name, owner, acct, version, size, updated, created, devices, meta, trial_end, wa, sellers, multi, stopped FROM ksr_shops ORDER BY created LIMIT ? OFFSET ?').bind(lim, off).all();
+    const shops = [];
+    for (const sh of (rs.results || [])) { let data = ''; try { data = await readState(env, sh.id); } catch {} const lic = await env.DB.prepare('SELECT * FROM ksr_lic WHERE id = ?').bind(sh.id).first().catch(() => null); shops.push({ ...sh, lic: lic || null, data }); }
+    const tot = await env.DB.prepare('SELECT COUNT(*) n FROM ksr_shops').first();
+    return json({ ok: true, off, next: off + shops.length < (tot ? tot.n : 0) ? off + shops.length : null, total: tot ? tot.n : 0, shops });
+  }
   if (b === 'stockval' && m === 'GET') { // قيمة المخزون لمحل: قراءة فقط، ما بتكتب ولا بتعدّل إشي
     const id = clean(new URL(request.url).searchParams.get('id'), 40); if (!id) return err('محل غير معروف');
     const sh = await env.DB.prepare('SELECT id, name, updated FROM ksr_shops WHERE id = ?').bind(id).first(); if (!sh) return err('ما في محل', 404);
