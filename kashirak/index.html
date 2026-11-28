@@ -657,6 +657,8 @@ input[type=date]{direction:ltr;text-align:right}
 .rdin{flex-wrap:wrap}.rdin>.dq{flex-basis:100%;width:100%}
 .rcpt-prev img{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:8px}
 .rsf{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.rsf>span{flex-basis:100%}.rsf .chk{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;background:var(--surface)}.rsf .chk input{width:16px;height:16px;margin:0}
+.pdfb{padding:4px 12px!important;min-height:30px!important;font-size:12.5px!important;font-weight:800;color:#B91C1C!important;border:1.5px solid #FCA5A5!important;background:#FEF2F2!important;border-radius:999px!important}.pdfb::before{content:'📄 '}
+.ravt{margin:4px 0 8px}.ravt b{font-size:12px;margin-inline-start:4px;opacity:.8}
 .rol{align-items:flex-start;gap:8px}.rol>span{cursor:pointer}.rotag{display:inline-block;margin:6px 0 0 4px;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#F1F5F9;color:#334155}.rotag.ok{background:#DCFCE7;color:#166534}.rotag.bad{background:#FEE2E2;color:#B91C1C}.rotag.warn{background:#FEF3C7;color:#92400E}
 .rfxr{display:flex;flex-direction:column;gap:6px;margin-top:8px;padding:10px;border:1px dashed color-mix(in srgb,var(--gold) 50%,var(--line));border-radius:14px;background:#fff}.rfxh{display:flex;justify-content:space-between;align-items:center}
 .rfdq{margin-bottom:6px;position:relative}.rfdl{display:flex;flex-direction:column;gap:6px;margin-top:6px}.rfdi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;border:1.5px solid #6EE7B7;background:#fff;font:inherit;color:inherit;text-align:start}.rfdi.no{border-color:#FCA5A5;opacity:.85}.rfdi img,.rfdi .rdi{width:42px;height:52px;border-radius:8px;object-fit:cover;flex:none;font-size:24px}.rfdi>span{flex:1;display:flex;flex-direction:column}.rfdi small{color:var(--muted);font-size:12px}.rfdi i{font-style:normal;font-weight:700;font-size:12px;white-space:nowrap}.rfdi.ok i{color:#047857}.rfdi.no i{color:#B91C1C}
@@ -2273,7 +2275,7 @@ items(){
   <div class="tiles"><div class="tile hl"><div class="lbl">عدد الأصناف</div><div class="val">${S.items.length}</div></div><div class="tile"><div class="lbl">قليلة أو خالصة</div><div class="val" style="color:var(--${low?'warn':'good'})">${low}</div></div></div>
   <div class="grid2"><button class="btn plbtn wa2" data-act="priceWa"><span>💬</span>الأسعار واتساب</button><button class="btn plbtn pdf2" data-act="pdfGo" data-sel="prices"><span>📄</span>الأسعار PDF</button></div>
   <label for="iq" style="margin:0">بحث بالأصناف<input id="iq" inputmode="search" autocomplete="off" placeholder="اكتب اسم الصنف" value="${esc(iq)}"></label>
-  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()?'<button class="btn sm" data-act="importItems">استيراد</button>':''}</div>`:''}</div>
+  <div class="row"><h2>الأصناف (${S.items.length})</h2>${canItems()?`<div class="row" style="gap:6px">${isOwner()?'<button class="btn sm" data-act="importItems">📥 استيراد Excel</button>':''}<button class="btn sm pdfb" data-act="pdfGo" data-sel="stock">PDF</button></div>`:'<button class="btn sm pdfb" data-act="pdfGo" data-sel="stock">PDF</button>'}</div>
   ${canItems()?`<button class="addbig" data-act="editItem" data-id="0"><span>＋</span>إضافة صنف جديد</button>
   <div class="grid2"><button class="btn sm" data-act="scan" data-target="edit">📷 تعديل بالباركود</button><button class="btn sm" data-act="cardsTog">${itemCards()?'☰ عرض القائمة':'▦ عرض البطاقات'}</button></div><small class="fh" style="margin-top:-6px">«تعديل بالباركود»: صوّر الصنف وبينفتح على طول تعدّل كميته وسعره.</small>`:''}
   ${S.items.length?'':'<div class="card"><h2>أضف أصناف محلك</h2><p class="muted" style="margin:0">امسح باركود الصنف أو اكتبه، أو استورد قائمة أصناف دفعة وحدة من ملف إكسل محفوظ CSV.</p></div>'}
@@ -2389,7 +2391,7 @@ more(){
   }
   if(sub==='late') return back('سجل التواريخ القديمة')+lateView();
   if(sub==='rent') return back(S.rentOn?'تأجير الفساتين':'تأجير فساتين أو بدل')+rentView();
-  if(sub==='log') return back('سجل المبيعات')+(isOwner()&&!isSeller2()?`<div class="grid2"><button class="btn accent" data-act="lateNew">📅 مبيعات يوم فات</button><button class="btn" data-act="openSub" data-s="late">🕘 سجل التواريخ القديمة <span class="num">(${lateRows().length})</span></button></div>`:'')+(S.returns.length?`<div class="card"><h2>آخر المرتجعات</h2><div class="list">${[...S.returns].reverse().slice(0,10).map(x=>`<button class="li" data-act="sale" data-id="${x.saleId}"><span><span class="t">${x.lines.map(l=>esc(l.name)+'×'+l.count).join('، ')}</span><br><span class="muted">فاتورة ${x.saleId} · ${fdate(x.ts)} · ${x.method==='debt'?'من الدين':'نقدي'}</span></span>${money(-x.amount)}</button>`).join('')}</div></div>`:'')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+logBody();
+  if(sub==='log') return back('سجل المبيعات')+`<div style="text-align:end;margin:-4px 2px 8px"><button class="btn sm pdfb" data-act="pdfGo" data-sel="sales">PDF</button></div>`+(isOwner()&&!isSeller2()?`<div class="grid2"><button class="btn accent" data-act="lateNew">📅 مبيعات يوم فات</button><button class="btn" data-act="openSub" data-s="late">🕘 سجل التواريخ القديمة <span class="num">(${lateRows().length})</span></button></div>`:'')+(S.returns.length?`<div class="card"><h2>آخر المرتجعات</h2><div class="list">${[...S.returns].reverse().slice(0,10).map(x=>`<button class="li" data-act="sale" data-id="${x.saleId}"><span><span class="t">${x.lines.map(l=>esc(l.name)+'×'+l.count).join('، ')}</span><br><span class="muted">فاتورة ${x.saleId} · ${fdate(x.ts)} · ${x.method==='debt'?'من الدين':'نقدي'}</span></span>${money(-x.amount)}</button>`).join('')}</div></div>`:'')+(isOwner()?`<button class="btn accent block" data-act="pdfGo" data-sel="sales,summary">تحميل سجل المبيعات PDF</button>`:'')+logBody();
   if(sub==='buy') return back(S.pharm?'المشتريات من المستودعات':'المشتريات')+(S.pharm?'<button class="btn block" data-act="pRetSup">↩️ مرتجع للمستودع</button>':'')+`<button class="btn block" data-act="pdfGo" data-sel="buys">تحميل المشتريات PDF</button>`+`
     ${hint('لما توصلك بضاعة من المورد، سجّلها هون عشان تزيد المخزون وتعرف كم كلّفتك. إذا دفعت كاش بينخصم من الصندوق، وإذا دفعت بالدين بينضاف على حساب المورد (لازم تختار المورد). وإذا تغيّر السعر، فعّل «السعر تغيّر؟».')}
     <div class="card"><h2>استلام بضاعة</h2>
@@ -4176,8 +4178,9 @@ async btPrint(d){const s=S.sales.find(x=>x.id===+d.id), cv=s&&receiptCanvas(s); 
 bkFile(){S.lastBackup=Date.now(); save();const name=`كاشيرك-${S.shop}-${new Date().toISOString().slice(0,10)}.json`, blob=new Blob([JSON.stringify(S)],{type:'application/json'});
   try{const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000); toast('تم تنزيل النسخة')}catch(e){A.bkOut()}},
 importItems(){openSheet(`${sheetHead('استيراد أصناف')}
-  <p class="muted" style="margin:0">رتّب الأعمدة بهالترتيب: الاسم، الباركود، سعر التكلفة، سعر البيع، الكمية. احفظ الملف من إكسل بصيغة CSV، أو الصق الأسطر هون.</p>
-  <label class="btn" for="csvPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center">اختيار ملف CSV</label><input id="csvPick" type="file" accept=".csv,text/csv,text/plain" hidden>
+  <p class="muted" style="margin:0">ارفع ملف <b>Excel (.xlsx)</b> أو CSV. إذا أول سطر فيه عناوين (الاسم، الباركود، التكلفة، السعر، الكمية) بنرتّب الأعمدة لحالنا. أو الصق الأسطر هون بالترتيب: الاسم، الباركود، التكلفة، السعر، الكمية.</p>
+  <label class="btn" for="csvPick" style="color:var(--ink);font-size:15px;flex-direction:row;justify-content:center">📥 اختيار ملف Excel أو CSV</label><input id="csvPick" type="file" accept=".xlsx,.csv,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+  <p class="fh" style="margin:0">ملف PDF ما بنقدر نقراه صح (الأرقام والعربي بتتلخبط). افتحه بإكسل واحفظه xlsx، أو ابعته لمندوبنا وبنجهّزلك ياه.</p>
   <textarea id="csvTxt" rows="6" placeholder="اندومي,5285000391647,1.5,2,100"></textarea>
   <button class="btn primary block" data-act="doImport">استيراد</button>`)},
 doImport(){const rows=parseCSV($('#csvTxt').value); let add=0,upd=0,bad=0;
@@ -4431,7 +4434,7 @@ function dressRecHTML(d){ const x=rDStats(d), [st,cl]=dressNow(d);
 /* بالحجز: كل الفساتين بيوم المناسبة، الفاضي بتختاره بضغطة، والمحجوز مبيّن لمين */
 function rfALUI(skip){ const b=$('#rfAL'), p=$('#rfPick'), rt=$('#rfRet'), d=$('#rfDress'); if(!b||!p||!rt||!p.value||!rt.value) return; const ds=S.dresses||[]; if(!ds.length){ b.innerHTML=''; return }
   const L=ds.filter(rcPassD).map(x=>[x,rClash(x.id,p.value,rt.value,skip||0)]).sort((a,c)=>(!!a[1])-(!!c[1])), nA=L.filter(x=>!x[1]).length;
-  b.innerHTML=RT(`${catTabs('rfalCat')}<div class="rfalh">👗 الفساتين بهاليوم: <b class="ok">✓ ${nA} فاضي</b> · <b class="no">⛔ ${L.length-nA} محجوز</b></div><div class="rfalg">${L.map(([x,c])=>`<button type="button" class="rfai ${c?'no':'ok'} ${d&&d.value==String(x.id)?'sel':''}" ${c?'disabled':`data-act="rfDpick" data-id="${x.id}"`} title="${c?'محجوز لـ'+esc(c.cname):'اختاره'}">${x.img?`<img src="${x.img}" alt="">`:`<i>${rcIco(x)}</i>`}<b>${esc(x.name)}${x.code?' #'+esc(x.code):''}</b><small>${c?'محجوز · '+esc(c.cname):(x.size?'مقاس '+esc(x.size)+' · ':'')+fx(x.price||0)+' ₪'}</small></button>`).join('')}</div>`) }
+  b.innerHTML=RT(`${catTabs('rfalCat')}<div class="seg ravt"><button type="button" data-act="rfavSet" data-v="ok" aria-pressed="${RAV!=='no'}">✓ المتاح <b class="num">${nA}</b></button><button type="button" data-act="rfavSet" data-v="no" aria-pressed="${RAV==='no'}">⛔ المحجوز <b class="num">${L.length-nA}</b></button></div><div class="rfalg">${L.filter(([,c])=>RAV==='no'?c:!c).map(([x,c])=>`<button type="button" class="rfai ${c?'no':'ok'} ${d&&d.value==String(x.id)?'sel':''}" ${c?'disabled':`data-act="rfDpick" data-id="${x.id}"`} title="${c?'محجوز لـ'+esc(c.cname):'اختاره'}">${x.img?`<img src="${x.img}" alt="">`:`<i>${rcIco(x)}</i>`}<b>${esc(x.name)}${x.code?' #'+esc(x.code):''}</b><small>${c?'محجوز · '+esc(c.cname):(x.size?'مقاس '+esc(x.size)+' · ':'')+fx(x.price||0)+' ₪'}</small></button>`).join('')}</div>`) }
 function dQ(id,cur){ const t0=ymdT2(rToday()); return `<div class="dq" role="group" aria-label="اختيار سريع للتاريخ">${[...Array(10)].map((_,i)=>{ const v=ymd(t0+i*DAY), dd=new Date(t0+i*DAY); return `<button type="button" class="dqb" data-act="dqSet" data-id="${id}" data-v="${v}" aria-pressed="${cur===v}">${i===0?'اليوم':i===1?'بكرة':rWd(v)}<small>${dd.getDate()}/${dd.getMonth()+1}</small></button>` }).join('')}</div>` }
 /* حد الدين: لكل زبون سقف، ولو الدين الجديد بيعدّيه بنبّه قبل ما يتسجّل */
 function limitSheet(c,add,act){ const b=balance(c), nb=r2(b+add); openSheet(`${sheetHead('⚠️ تجاوز حد الدين')}<div class="limw"><b>${esc(c.name)}</b><div class="row"><span>حد الدين</span><b class="num">${fx(c.limit)} ₪</b></div><div class="row"><span>عليه هلأ</span><b class="num">${fx(b)} ₪</b></div><div class="row"><span>الدين الجديد</span><b class="num">${fx(add)} ₪</b></div><div class="row big"><span>بيصير عليه</span><b class="num">${fx(nb)} ₪</b></div><p>بيتجاوز الحد بـ <b class="num">${fx(r2(nb-c.limit))} ₪</b></p></div>
@@ -4444,24 +4447,40 @@ const rcOn=()=>S.rentKind!=='suit', rcOfD=x=>x&&x.cat==='suit'?'suit':'dress', r
 const rcPassD=x=>!rcOn()||!RCAT||rcOfD(x)===RCAT, rcPassR=r=>!rcOn()||!RCAT||rcOfR(r)===RCAT;
 function catTabs(act){ if(!rcOn()) return ''; const D=S.dresses||[], nB=D.filter(x=>x.cat==='suit').length; act=act||'rcatSet';
   return `<div class="seg rcat"><button data-act="${act}" data-v="" aria-pressed="${!RCAT}">الكل <b class="num">${D.length}</b></button><button data-act="${act}" data-v="dress" aria-pressed="${RCAT==='dress'}">💃 فساتين سهرة <b class="num">${D.length-nB}</b></button><button data-act="${act}" data-v="suit" aria-pressed="${RCAT==='suit'}">👰 بدل زفاف <b class="num">${nB}</b></button></div>` }
+/* قراءة ملف Excel (xlsx) جوا المتصفح: ملف zip فيه XML، بنفكه ونطلع أول ورقة كجدول */
+async function readXlsx(file){ const B=new Uint8Array(await file.arrayBuffer()), dv=new DataView(B.buffer), td=new TextDecoder();
+  let e=B.length-22; while(e>=0&&dv.getUint32(e,true)!==0x06054b50) e--; if(e<0) throw 0; const n=dv.getUint16(e+10,true); let p=dv.getUint32(e+16,true); const F={};
+  for(let i=0;i<n;i++){ const m=dv.getUint16(p+10,true), cs=dv.getUint32(p+20,true), nl=dv.getUint16(p+28,true), xl=dv.getUint16(p+30,true), cl=dv.getUint16(p+32,true), lo=dv.getUint32(p+42,true), nm=td.decode(B.subarray(p+46,p+46+nl)); F[nm]={m,cs,lo}; p+=46+nl+xl+cl }
+  const get=async nm=>{ const f=F[nm]; if(!f) return ''; const l=f.lo, ds=l+30+dv.getUint16(l+26,true)+dv.getUint16(l+28,true), raw=B.subarray(ds,ds+f.cs); if(f.m===0) return td.decode(raw);
+    const st=new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw')); return td.decode(await new Response(st).arrayBuffer()) };
+  const P=x=>new DOMParser().parseFromString(x,'application/xml'), ss=[...P(await get('xl/sharedStrings.xml')||'<a/>').getElementsByTagName('si')].map(si=>[...si.getElementsByTagName('t')].map(t=>t.textContent).join(''));
+  const sh=Object.keys(F).filter(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort((a,b)=>parseInt(a.replace(/\D/g,''))-parseInt(b.replace(/\D/g,'')))[0]; if(!sh) throw 0;
+  const col=r=>{ let c=0; for(const ch of r.replace(/\d/g,'')) c=c*26+ch.charCodeAt(0)-64; return c-1 };
+  return [...P(await get(sh)).getElementsByTagName('row')].map(row=>{ const out=[]; [...row.getElementsByTagName('c')].forEach(c=>{ const t=c.getAttribute('t'), v=c.getElementsByTagName('v')[0], is=c.getElementsByTagName('t')[0]; out[col(c.getAttribute('r')||'A')]=t==='s'?(ss[+(v&&v.textContent)]||''):t==='inlineStr'?(is?is.textContent:''):(v?v.textContent:'') }); return [...out].map(x=>x==null?'':String(x).trim()) }).filter(r=>r.some(Boolean)) }
+function xlsxToCsv(R){ if(!R.length) return ''; const H=R[0].map(h=>String(h).toLowerCase()), f=re=>H.findIndex(h=>re.test(h));
+  let m={n:f(/اسم|الصنف|صنف|منتج|item|name|product/),b:f(/باركود|barcode|كود|code|sku/),c:f(/تكلف|cost|شراء|جمل/),p:H.findIndex(h=>/سعر|price|بيع|selling/.test(h)&&!/تكلف|cost|شراء/.test(h)),q:f(/كمي|qty|quant|عدد|مخزون|stock/)};
+  let rows=R; if(m.n>=0){ rows=R.slice(1); if(m.p===m.c) m.p=-1 } else m={n:0,b:1,c:2,p:3,q:4};
+  const g=(r,i)=>i>=0&&r[i]!=null?String(r[i]).replace(/[",\n]/g,' ').trim():'';
+  return rows.map(r=>[g(r,m.n),g(r,m.b),g(r,m.c),g(r,m.p),g(r,m.q)]).filter(r=>r[0]).map(r=>r.join(',')).join('\n') }
 function rStageGrid(k){ const ds=(S.dresses||[]).filter(rcPassD); if(!ds.length) return ''; const D=[-1,0,1].map(i=>ymd(ymdT2(k)+i*DAY)), cnt={};
   const rows=ds.map(d=>{ const st=D.map(t=>rStage(d,t)); st.forEach(x=>cnt[x[1]]=(cnt[x[1]]||0)+1); return `<tr><th><button class="lnk" data-act="dressRec" data-id="${d.id}">${esc(d.name)}${d.code?' #'+esc(d.code):''}</button>${d.size?`<small>${esc(d.size)}</small>`:''}</th>${st.map(([l,c,r],i)=>`<td><span class="stg ${c}" ${r?`data-act="rentView" data-id="${r.id}"`:c==='wa'?`data-act="washDone" data-id="${d.id}"`:`data-act="rentBookOn" data-d="${d.id}" data-k="${D[i]}"`}>${l}${r?`<small>${esc(r.cname)}</small>`:''}</span></td>`).join('')}</tr>` }).join('');
   return `<div class="card stgc"><h2>🗓️ مراحل الفساتين خلال 3 أيام</h2><p class="fh" style="margin:0">اضغط على أي خانة: المحجوز بيفتح الحجز، والفاضي بيحجزه.</p>
     <div class="stgl">${[['pk','استلام'],['out','عند الزبونة'],['ev','المناسبة'],['rt','إرجاع'],['wa','غسيل وكوي'],['free','فاضي']].map(([c,l])=>`<span class="stg ${c}">${l}${cnt[c]?` <b class="num">${cnt[c]}</b>`:''}</span>`).join('')}</div>
     <div class="stgw"><table class="stgt"><thead><tr><th>${RT('الفستان')}</th>${D.map((t,i)=>`<th class="${i===1?'now':''}">${['قبل بيوم','اليوم','بعد بيوم'][i]}<small>${rWd(t)} ${+t.slice(8)}/${+t.slice(5,7)}</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>` }
-function rentDateView(){ const k=RDATE||ymd(Date.now()+2*DAY), pk=ymd(ymdT2(k)-DAY), rt=ymd(ymdT2(k)+DAY), ds=(S.dresses||[]).filter(rcPassD);
-  const dayB=(S.rentals||[]).filter(r=>r.st!=='cancel'&&rcPassR(r)&&r.pick<=k&&r.ret>=k).sort((a,b)=>a.pick<b.pick?-1:1);
+function rentDateView(){ const k=RDATE||ymd(Date.now()+2*DAY), rg=RDM==='range', k2=rg?(RDATE2B&&RDATE2B>=k?RDATE2B:ymd(ymdT2(k)+2*DAY)):k, pk=rg?k:ymd(ymdT2(k)-DAY), rt=rg?k2:ymd(ymdT2(k)+DAY), ds=(S.dresses||[]).filter(rcPassD);
+  const dayB=(S.rentals||[]).filter(r=>r.st!=='cancel'&&rcPassR(r)&&r.pick<=rt&&r.ret>=pk).sort((a,b)=>a.pick<b.pick?-1:1);
   const av=[], bk=[]; ds.forEach(d=>{ const c=rClash(d.id,pk,rt,0); (c?bk:av).push([d,c]) });
-  const card=(d,c)=>`<div class="rdc ${c?'no':'ok'}" ${c?`data-act="rentView" data-id="${c.id}"`:`data-act="dressRec" data-id="${d.id}"`}>${d.img?`<img src="${d.img}" alt="">`:'<span class="rdi">👗</span>'}<b>${esc(d.name)}</b><small>${[d.size?'مقاس '+esc(d.size):'',fx(d.price||0)+' ₪'].filter(Boolean).join(' · ')}</small>${c?`<small class="who">محجوز لـ${esc(c.cname)}<br>${rDay(c.pick)} ← ${rDay(c.ret)}</small>`:`<button class="btn sm primary" data-act="rentBookOn" data-d="${d.id}" data-k="${k}">احجزه</button>`}</div>`;
-  return `<div class="card rdq"><label for="rdDate"><span>يوم المناسبة <b class="rdw" data-w="rdDate">${rWd(k)}</b></span><input id="rdDate" type="date" value="${k}"></label>${dQ('rdDate',k)}
-    <p class="fh" style="margin:0">بنفحص من يوم قبلها (الاستلام) ليوم بعدها (الإرجاع)، مع أيام التنظيف.</p>
-    <div class="rdsum"><span class="ok">✓ متاح <b class="num">${av.length}</b></span><span class="no">⛔ محجوز <b class="num">${bk.length}</b></span></div></div>
+  const card=(d,c)=>`<div class="rdc ${c?'no':'ok'}" ${c?`data-act="rentView" data-id="${c.id}"`:`data-act="dressRec" data-id="${d.id}"`}>${d.img?`<img src="${d.img}" alt="">`:`<span class="rdi">${rcIco(d)}</span>`}<b>${esc(d.name)}${d.code?' #'+esc(d.code):''}</b><small>${[d.size?'مقاس '+esc(d.size):'',fx(d.price||0)+' ₪'].filter(Boolean).join(' · ')}</small>${c?`<small class="who">محجوز لـ${esc(c.cname)}<br>${rDay(c.pick)} ← ${rDay(c.ret)}</small>`:`<button class="btn sm primary" data-act="rentBookOn" data-d="${d.id}" data-k="${rg?ymd(ymdT2(k)+DAY):k}">احجزه</button>`}</div>`;
+  const lbl=rg?`من ${rDay(k)} لـ ${rDay(k2)}`:`يوم ${rWd(k)}`;
+  return `<div class="card rdq"><div class="seg"><button data-act="rdMode" data-v="day" aria-pressed="${!rg}">📅 يوم المناسبة</button><button data-act="rdMode" data-v="range" aria-pressed="${rg}">↔️ من تاريخ لتاريخ</button></div>
+    ${rg?`<div class="grid2"><label for="rdDate"><span>من <b class="rdw" data-w="rdDate">${rWd(k)}</b></span><input id="rdDate" type="date" value="${k}"></label><label for="rdDateB"><span>لـ <b class="rdw" data-w="rdDateB">${rWd(k2)}</b></span><input id="rdDateB" type="date" value="${k2}"></label></div>`:`<label for="rdDate"><span>يوم المناسبة <b class="rdw" data-w="rdDate">${rWd(k)}</b></span><input id="rdDate" type="date" value="${k}"></label>`}${dQ('rdDate',k)}
+    <p class="fh" style="margin:0">${rg?'بنفحص كل الأيام بين التاريخين، مع أيام التنظيف.':'بنفحص من يوم قبلها (الاستلام) ليوم بعدها (الإرجاع)، مع أيام التنظيف.'}</p></div>
   ${catTabs()}
-  <div class="card"><h2>📋 حجوزات يوم ${rWd(k)} <span class="pill">${dayB.length}</span></h2><div class="list">${dayB.map(rentRow).join('')||'<div class="empty">ما في حجوزات بهاليوم</div>'}</div></div>
-  ${rStageGrid(k)}
+  <div class="seg ravt"><button data-act="ravSet" data-v="ok" aria-pressed="${RAV!=='no'}">✓ المتاح <b class="num">${av.length}</b></button><button data-act="ravSet" data-v="no" aria-pressed="${RAV==='no'}">⛔ المحجوز <b class="num">${bk.length}</b></button></div>
   ${ds.length?'':'<div class="empty">ضيف فساتينك أول من تبويب «الفساتين».</div>'}
-  ${av.length?`<h2 class="rdh">✓ المتاح بهاليوم، اعرضه للزبونة</h2><div class="rdgrid">${av.map(([d])=>card(d)).join('')}</div>`:''}
-  ${bk.length?`<h2 class="rdh">⛔ المحجوز بهاليوم</h2><div class="rdgrid">${bk.map(([d,c])=>card(d,c)).join('')}</div>`:''}` }
+  ${RAV==='no'?`<div class="card"><div class="row"><h2>📋 الحجوزات ${lbl} <span class="pill">${dayB.length}</span></h2><button class="btn sm pdfb" data-act="rentPdf" data-f="${pk}" data-t="${rt}">PDF</button></div><div class="list">${dayB.map(rentRow).join('')||'<div class="empty">ما في حجوزات بهالفترة</div>'}</div></div>${bk.length?`<div class="rdgrid">${bk.map(([d,c])=>card(d,c)).join('')}</div>`:''}`
+    :(av.length?`<div class="row" style="margin:2px 2px 6px"><h2 class="rdh" style="margin:0">✓ المتاح ${lbl}، اعرضه للزبونة</h2><button class="btn sm pdfb" data-act="availPdf" data-f="${pk}" data-t="${rt}">PDF</button></div><div class="rdgrid">${av.map(([d])=>card(d)).join('')}</div>`:'<div class="empty">ما في فساتين متاحة بهالفترة</div>')}
+  ${rg?'':rStageGrid(k)}` }
 
 /* ===== وصل الدفع للزبونة: كل دفعة (أو كل عملية بنفس اللحظة) إلها وصل بيتبعت واتساب أو SMS أو بينطبع ===== */
 const rPM=p=>p.m==='app'?(p.am||'تحويل'):p.m==='none'?'من التأمين':'نقدي';
@@ -4609,7 +4628,7 @@ function mgSheet(P,fname){ const B=P.B;
   ${P.same.length?`<details><summary class="muted">شوف الأصناف المكررة</summary><p class="fh">${P.same.slice(0,200).map(esc).join('، ')}</p></details>`:''}
   <p class="fh" style="margin:0">قبل الدمج بتنزل نسخة احتياطية من محلك تلقائيًا. الدمج ما بيمسح ولا فاتورة ولا صنف، والتغيير الوحيد على الموجود هو نقص مخزون الأصناف المشتركة اللي انباعت.</p>
   <button class="btn primary block big" data-act="mgGo" ${P.newItems.length+P.sales.length+P.newCust.length?'':'disabled'}>✓ تأكيد الدمج</button><button class="btn block" data-act="close">إلغاء</button>`) }
-let RCAT='', BUYLN=[], DNQ=false, RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
+let RDM='day', RDATE2B='', RAV='ok', RCAT='', BUYLN=[], DNQ=false, RENTV='book', RENTF='today', RENTQ='', RIDIMG=null, RDIMG=null, DEBTV='';
 const ymdT2=k=>{ const [y,m,d]=String(k||'').split('-').map(Number); return y?new Date(y,m-1,d).getTime():0 };
 const rWd=k=>k?new Date(ymdT2(k)).toLocaleDateString('ar',{weekday:'long'}):'';
 const rWdUI=()=>document.querySelectorAll('.rdw').forEach(b=>{ const i=document.getElementById(b.dataset.w); if(i) b.textContent=rWd(i.value) });
@@ -4692,7 +4711,7 @@ function dressList(){ const DK=RDATE2, dst=d=>{ if(!DK) return dressNow(d); cons
   return `${rcOn()?`<div class="grid2 addtwo"><button class="addbig" data-act="dressEdit" data-id="0" data-cat=""><span>＋</span>إضافة فستان سهرة</button><button class="addbig bride" data-act="dressEdit" data-id="0" data-cat="suit"><span>＋</span>إضافة بدلة زفاف</button></div>`:`<button class="addbig" data-act="dressEdit" data-id="0"><span>＋</span>إضافة فستان جديد</button>`}
     <div class="rdin"><label for="rdDate2"><span>📅 شو الفاضي يوم المناسبة؟ ${DK?`<b class="rdw">${rWd(DK)}</b>`:''}</span><input id="rdDate2" type="date" value="${DK||''}"></label>${DK?`<button class="btn sm" data-act="rdClr">✕ كل الفساتين</button>`:''}${dQ('rdDate2',DK)}</div>
     ${washCard()}
-    ${catTabs()}
+    ${catTabs()}<div style="text-align:end;margin:-4px 2px 6px"><button class="btn sm pdfb" data-act="dressPdf">PDF</button></div>
     <div class="card"><div class="list">${L.map(d=>{ const [t,cl]=dst(d), n=(S.rentals||[]).filter(r=>rHas(r,d.id)&&r.st!=='cancel').length, inc=r2((S.rentals||[]).filter(r=>r.dressId===d.id).reduce((a,r)=>a+rPaid(r)+rFees(r),0));
       return `<button class="li" data-act="dressRec" data-id="${d.id}">${d.img?`<img src="${d.img}" alt="" style="width:52px;height:64px;border-radius:10px;object-fit:cover;flex:none">`:`<span class="rdi">${rcIco(d)}</span>`}<span style="flex:1;min-width:0"><span class="t">${esc(d.name)}${d.code?` <span class="muted num">#${esc(d.code)}</span>`:''}</span><br><span class="muted">${[d.size?'مقاس '+esc(d.size):'',d.color?esc(d.color):''].filter(Boolean).join(' · ')}${d.size||d.color?' · ':''}إيجار <span class="num">${fx(d.price||0)}</span> ₪</span><br><span class="muted">انحجز <span class="num">${n}</span> مرة · دخله <span class="num">${fx(inc)}</span> ₪</span></span><span class="pill ${cl}">${t}</span></button>` }).join('')||'<div class="empty">لسا ما ضفت فساتين. ضيف أول فستان بصورته وسعر إيجاره.</div>'}</div></div>` }
 function rentViewRest(tabs,c){
@@ -4713,7 +4732,7 @@ function rentViewRest(tabs,c){
   const F={today:r=>(r.st==='booked'&&r.pick===t)||(r.st==='out'&&r.ret===t),soon:r=>r.st==='booked'&&r.pick>=t,out:r=>r.st==='out',late:r=>rLate(r)||(r.st==='booked'&&r.pick<t),back:r=>r.st==='back',cancel:r=>r.st==='cancel',all:()=>true};
   const L=(S.rentals||[]).filter(F[RENTF]||F.all).filter(rcPassR).filter(r=>!q||[r.cname,r.cphone,r.cidNo,r.dname,String(r.no)].some(x=>String(x||'').includes(q))).sort((a,b)=>RENTF==='back'||RENTF==='cancel'||RENTF==='all'?b.id-a.id:(a.pick<b.pick?-1:a.pick>b.pick?1:0));
   const chips=[['today','اليوم',c.pick+c.ret],['soon','القادمة',c.soon],['out','عند الزبونات',c.out],['late','متأخرة',c.late+c.lateBook],['back','رجعت'],['cancel','ملغية'],['all','الكل']];
-  return tabs+`<button class="addbig" data-act="rentNew"><span>＋</span>حجز فستان جديد</button>${catTabs()}
+  return tabs+`<button class="addbig" data-act="rentNew"><span>＋</span>حجز فستان جديد</button>${catTabs()}<div style="text-align:end;margin:-4px 2px 6px"><button class="btn sm pdfb" data-act="rentPdf">PDF</button></div>
   <div class="card"><input id="rentQ" value="${esc(RENTQ)}" placeholder="🔎 دوّر بالاسم أو الجوال أو الهوية أو رقم الحجز" inputmode="search">
   <div class="chips rchips">${chips.map(([k,l,n])=>`<button class="chip" data-act="rentF" data-f="${k}" aria-pressed="${RENTF===k}">${l}${n?` <span class="num">${n}</span>`:''}</button>`).join('')}</div>
   <div class="list" id="rentL">${L.map(rentRow).join('')||'<div class="empty">ما في حجوزات هون</div>'}</div></div>` }
@@ -4845,6 +4864,16 @@ rentDateGo(){ RENTV='date'; A.openSub({s:'rent'}) },
 rentBookOn(d){ RPRE={dressId:+d.d,event:d.k||null}; closeSheet(); if(rentMode()){ A.go({tab:'sell'}) } else { openSheet(rentForm(null)); setTimeout(()=>rentAvailUI(0),50) } },
 rdClr(){ RDATE2=''; render() },
 rcatSet(d){ RCAT=d.v; render() },
+rdMode(d){ RDM=d.v; render() },
+ravSet(d){ RAV=d.v; render() },
+rfavSet(d){ RAV=d.v; const b=document.querySelector('[data-act=rentSave]'); rfALUI(b?+b.dataset.id:0) },
+rentPdf(d){ const f=d.f||'0000', t=d.t||'9999', L=(S.rentals||[]).filter(r=>r.st!=='cancel'&&rcPassR(r)&&(!d.f||(r.pick<=t&&r.ret>=f))).sort((a,b)=>a.pick<b.pick?-1:1);
+  if(!L.length){ toast('ما في حجوزات'); return } const ttl=RT(d.f?`حجوزات من ${rDay(f)} لـ ${rDay(t)}`:'الحجوزات');
+  sharePdf(makePdf(docPages(ttl,`${S.shop} · ${L.length} حجز`,[{table:{cols:[['الزبونة',2.4],[RT('الفستان'),2.6],['الاستلام',2,'n'],['الإرجاع',2,'n'],['الباقي ₪',1.4,'n'],['الحالة',1.4]],rows:L.map(r=>[r.cname+(r.cphone?' · '+r.cphone:''),r.dname,rDay(r.pick),rDay(r.ret),fx(rLeft(r)),(RST[r.st]||[''])[0]])}}])),fileSafe(ttl)+'.pdf',ttl) },
+availPdf(d){ const L=(S.dresses||[]).filter(rcPassD).filter(x=>!rClash(x.id,d.f,d.t,0)); if(!L.length){ toast(RT('ما في فساتين متاحة')); return } const ttl=RT(`الفساتين المتاحة من ${rDay(d.f)} لـ ${rDay(d.t)}`);
+  sharePdf(makePdf(docPages(ttl,`${S.shop} · ${L.length}`,[{table:{cols:[[RT('الفستان'),3],['الكود',1.2],['المقاس',1.2],['اللون',1.4],['الإيجار ₪',1.4,'n']],rows:L.map(x=>[x.name,x.code||'',x.size||'',x.color||'',fx(x.price||0)])}}])),fileSafe(ttl)+'.pdf',ttl) },
+dressPdf(){ const L=(S.dresses||[]).filter(rcPassD); if(!L.length){ toast(RT('ما في فساتين')); return } const ttl=RT('قائمة الفساتين');
+  sharePdf(makePdf(docPages(ttl,`${S.shop} · ${L.length}`,[{table:{cols:[[RT('الفستان'),3],['القسم',1.4],['الكود',1.1],['المقاس',1.1],['الإيجار ₪',1.3,'n'],['انحجز',1,'n']],rows:L.map(x=>[x.name,x.cat==='suit'?'بدلة زفاف':'سهرة',x.code||'',x.size||'',fx(x.price||0),String((S.rentals||[]).filter(r=>rHas(r,x.id)&&r.st!=='cancel').length)])}}])),fileSafe(ttl)+'.pdf',ttl) },
 rfDur(d){ const p=$('#rfPick'), rt=$('#rfRet'); if(!p||!rt||!p.value) return; rt.value=ymd(ymdT2(p.value)+(+d.n)*DAY); rt.dispatchEvent(new Event('input',{bubbles:true})); rt.dispatchEvent(new Event('change',{bubbles:true})) },
 rcptEdit(){ const g=rCfg(); openSheet(`${sheetHead('🧾 تعديل سند الحجز')}<p class="muted" style="margin:0">عدّل السند زي ما بدك، واضغط «معاينة» تشوف شكله قبل الحفظ. اسم المحل والشعار ورقمه بتتعدّل من «تعديل الفاتورة» بالمزيد.</p>
   <div class="seg"><button type="button" data-act="reStyle" data-v="paper" aria-pressed="${g.style==='paper'}">📄 وصل ورقي (زي الدفتر)</button><button type="button" data-act="reStyle" data-v="modern" aria-pressed="${g.style!=='paper'}">✨ سند حديث</button></div><input type="hidden" id="reSty" value="${g.style==='paper'?'paper':'modern'}">
@@ -4970,7 +4999,7 @@ dressSave(d){ const v=k=>String(($('#'+k)||{}).value||'').trim(), n=v('dfName');
   const res=f.call(this,d,el); if(res&&typeof res.then==='function') return res.then(v=>{ fin(); return v }); fin(); return res } });
 document.addEventListener('change',e=>{ const t=e.target; if(!t) return;
   if(['rfEvent','rfPick','rfRet'].includes(t.id)) setTimeout(()=>{ rWdUI(); rfDqUI() },0);
-  if(t.id==='rdDate'&&t.value){ RDATE=t.value; render() }
+  if(t.id==='rdDate'&&t.value){ RDATE=t.value; render() } else if(t.id==='rdDateB'&&t.value){ RDATE2B=t.value; render() }
   if(t.id==='rdDate2'){ RDATE2=t.value||''; render() }
   if(['rfDress','rfPick','rfRet'].includes(t.id)||t.classList.contains('rfx')){ if(t.id==='rfDress'||t.classList.contains('rfx')){ const pr=$('#rfPrice'); if(pr) delete pr.dataset.t; setTimeout(rfSum,0) } const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
   if(t.id==='rfEvent'&&t.value){ const p=$('#rfPick'), rt=$('#rfRet'); if(p) p.value=ymd(ymdT2(t.value)-DAY); if(rt) rt.value=ymd(ymdT2(t.value)+DAY); const b=document.querySelector('[data-act=rentSave]'); rentAvailUI(b?+b.dataset.id:0) }
@@ -5305,6 +5334,7 @@ document.addEventListener('change',e=>{
   if(t.id==='pPhoto'&&t.files&&t.files[0]){const im=new Image(), u=URL.createObjectURL(t.files[0]); im.onload=()=>{const k=Math.min(1,1400/Math.max(im.width,im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
       c.getContext('2d').drawImage(im,0,0,c.width,c.height); PHOTO.data=c.toDataURL('image/jpeg',.72); PHOTO.id=''; URL.revokeObjectURL(u); render(); toast('تم حفظ صورة الفاتورة')}; im.src=u; t.value=''; return}
   if(t.id==='stSound'){S.sound=t.checked; save(); if(t.checked) beep(true)}
+  if(t.id==='csvPick'&&t.files&&t.files[0]&&/\.xlsx$/i.test(t.files[0].name)){ const f=t.files[0]; t.value=''; readXlsx(f).then(R=>{ const tx=xlsxToCsv(R); if(!tx){ toast('ما لقينا أصناف بالملف'); return } $('#csvTxt').value=tx; toast(`✓ انقرأ الملف: ${tx.split('\n').length} صنف، راجعهم واضغط استيراد`) }).catch(()=>toast('ما قدرنا نقرأ ملف الإكسل. احفظه من جديد بصيغة xlsx أو CSV')); return }
   if((t.id==='bkPick'||t.id==='csvPick')&&t.files&&t.files[0]){const f=t.files[0], rd=new FileReader();
     rd.onload=()=>{ if(t.id==='csvPick'){$('#csvTxt').value=String(rd.result).replace(/^\uFEFF/,''); toast('تمت قراءة الملف، اضغط استيراد')}
       else {try{const o=JSON.parse(rd.result); if(!o||!Array.isArray(o.items)||!Array.isArray(o.sales)) throw 0; S=o; save(); render(); toast('تم استرجاع النسخة')}catch(e){toast('الملف ليس نسخة احتياطية صالحة')}}};
