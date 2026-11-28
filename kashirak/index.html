@@ -370,6 +370,8 @@ video{width:100%;border-radius:12px;background:#000;max-height:260px;object-fit:
 .trfim{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;flex-direction:column;gap:10px;padding:16px;justify-content:center}.trfim img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:12px;align-self:center}
 .rck{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rck button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:14px;border:2px solid var(--line);background:var(--surface);font:inherit;color:inherit;cursor:pointer;text-align:center}.rck button span{font-size:24px}.rck button small{color:var(--muted);font-size:11.5px}.rck button[aria-pressed=true]{border-color:#10B981;box-shadow:0 0 0 3px rgba(16,185,129,.18)}
 .rfcred{grid-column:1/-1;background:#FEF3C7;border:1.5px solid #F59E0B;color:#78350F;border-radius:12px;padding:8px 10px;font-size:13.5px}
+.prg{display:flex;flex-direction:column;gap:6px}.prl{font-weight:700;font-size:14px}.prseg button{display:flex;flex-direction:column;align-items:center;line-height:1.25}.prseg small{font-size:10.5px;opacity:.75}
+.prpv{display:flex;flex-direction:column;align-items:center;gap:6px;background:#E2E8F0;border-radius:14px;padding:14px;max-height:340px;overflow:auto}.prpg{background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px 0;display:flex;flex-direction:column;align-items:center;overflow:hidden;flex:none}.prpg img{display:block}.prpg.pg{padding-top:8px}
 .pthumb{width:84px;height:110px;border-radius:12px;overflow:hidden;border:2px solid var(--gold);padding:0;background:var(--surface);cursor:pointer;flex:none}.pthumb img{width:100%;height:100%;object-fit:cover}
 .pthumb.sm{width:46px;height:58px;border-width:1.5px;margin-inline-end:10px;display:grid;place-items:center;color:var(--muted)}.pthumb.none{border-style:dashed;border-color:var(--line);cursor:default}
 .pdup{color:var(--bad);font-weight:700;font-size:13px}
@@ -4197,7 +4199,24 @@ async activate(){const v=$('#licIn').value.trim(), btn=$('[data-act=activate]');
     if(!o) throw new Error('شهادة التفعيل مش صحيحة. تواصل مع الدعم');
     audit('تفعيل الاشتراك بكود '+v.toUpperCase()); save(); closeSheet(); render();
   }catch(e){toast(e.message); if(e.status===401) cloudSignedOut(); btn.disabled=false; btn.textContent='تفعيل'}},
-printSale(d){const s=S.sales.find(x=>x.id===+d.id); if(!s){toast('تعذّر تجهيز الفاتورة');return} invPrint(s)},
+printSale(d){const s=S.sales.find(x=>x.id===+d.id); if(!s){toast('تعذّر تجهيز الفاتورة');return} A.prOpen({k:'s',id:s.id})},
+/* شاشة الطباعة: حجم الورقة وحجم التصميم قبل ما نطبع، وبنتذكّر الاختيار */
+async prOpen(d){ const c=prCfg(); PRJ={k:d.k,id:+d.id,ts:d.ts,src:'',name:'',html:''};
+  if(d.k==='s'){ const sl=S.sales.find(x=>x.id===+d.id); if(!sl) return; PRJ.name=`فاتورة-${sl.id}`; PRJ.html=invHTML(sl,invCfg()); try{ const cv=receiptCanvas(sl); if(cv) PRJ.src=cv.toDataURL('image/png') }catch(e){} }
+  openSheet(`${sheetHead('🖨️ الطباعة')}
+    <div class="prg"><span class="prl">حجم الورقة</span><div class="seg prseg">${PRPAP.map(([k,t,sb])=>`<button type="button" data-act="prSet" data-f="paper" data-v="${k}" aria-pressed="${c.paper===k}">${t}<small>${sb}</small></button>`).join('')}</div></div>
+    <div class="prg"><span class="prl">حجم التصميم على الورقة</span><div class="seg prseg">${PRSC.map(([k,t])=>`<button type="button" data-act="prSet" data-f="sc" data-v="${k}" aria-pressed="${c.sc===k}">${t}</button>`).join('')}</div></div>
+    <div class="prpv" id="prPv"><div class="empty">⏳ بنجهّز المعاينة…</div></div>
+    <button class="btn primary block big" data-act="prGo">🖨️ اطبع</button>
+    <p class="fh" style="display:block;white-space:normal;margin:0">${IOS?'على الآيفون بتنفتح المشاركة: اختار «طباعة» وبتطلع طابعة الواي فاي.':'بتنفتح نافذة الطباعة: اختار طابعتك (واي فاي أو موصولة).'}</p>`);
+  if(d.k==='r'){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; PRJ.name=fileSafe(`سند ${rRcptNo(r,d.ts)} - ${r.cname}`); PRJ.src=RPIMG[r.id+'_'+d.ts]||''; if(!PRJ.src){ try{ PRJ.src=(await rRcptCanvas(r,d.ts)).toDataURL('image/jpeg',.92) }catch(e){} } if(!PRJ.src) PRJ.html=rRcptHTML(r,d.ts) }
+  prPrev() },
+prSet(d){ const c=prCfg(); c[d.f]=d.v; S.prCfg=c; save(); document.querySelectorAll(`[data-act=prSet][data-f=${d.f}]`).forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===d.v)); prPrev() },
+prGo(){ if(!PRJ) return; const c=prCfg(), P=PRP[c.paper]||PRP['80'], k=PRK[c.sc]||1;
+  if(IOS&&PRJ.src&&navigator.canShare){ try{ const f=new File([u2b(prPage(PRJ.src,P,k))],PRJ.name+'.jpg',{type:'image/jpeg'}); if(navigator.canShare({files:[f]})){ navigator.share({files:[f]}).catch(e=>{ if(!e||e.name!=='AbortError') toast('افتح المشاركة واختار «طباعة»') }); return } }catch(e){} }
+  const body=PRJ.k==='s'&&PRJ.html?`<div style="zoom:${k}">${PRJ.html}</div>`:PRJ.src?`<img src="${PRJ.src}" alt="" style="width:${Math.round(k*100)}%!important;display:block;margin:0 auto">`:`<div style="zoom:${k}">${PRJ.html}</div>`;
+  $('#printArea').innerHTML=`<style>@media print{@page{size:${P.page};margin:${P.m}} #printArea{width:${P.w}mm!important}}</style>${body}`;
+  try{ window.print() }catch(e){ toast('الطباعة غير متاحة هنا') } },
 async btPrint(d){const s=S.sales.find(x=>x.id===+d.id), cv=s&&receiptCanvas(s); if(!cv) return;
   try{await btSend(escposRaster(cv)); toast('تم إرسال الإيصال للطابعة')}catch(e){toast(e&&e.message?e.message:'تعذّر الاتصال بالطابعة')}},
 bkFile(){S.lastBackup=Date.now(); save();const name=`كاشيرك-${S.shop}-${new Date().toISOString().slice(0,10)}.json`, blob=new Blob([JSON.stringify(S)],{type:'application/json'});
@@ -4631,7 +4650,17 @@ function rentRcpt(r,ts,title){ title=title||'سند القبض'; const m=rRcptTx
   ${r.st==='booked'||r.st==='out'?`<button class="btn block redit" data-act="rentEdit" data-id="${r.id}">✏️ تعديل الحجز</button>`:''}
   ${rCanRev(r,ts)?`<button class="btn danger block" data-act="rentRevAsk" data-id="${r.id}" data-ts="${ts}">↩️ الدفعة انسجلت غلط؟ إلغاؤها</button>`:''}`);
   rRcptCanvas(r,ts).then(cv=>{ const u=cv.toDataURL('image/jpeg',.92); RPIMG[r.id+'_'+ts]=u; rPrep(u); const b=$('#rImg'); if(b) b.innerHTML=`<img src="${u}" alt="سند القبض">` }).catch(()=>{ const b=$('#rImg'); if(b) b.innerHTML=rRcptHTML(r,ts) }) }
-const RPIMG={};
+const RPIMG={}; let PRJ=null;
+const PRPAP=[['58','58 مم','إيصال صغير'],['80','80 مم','إيصال'],['A5','A5','نص صفحة'],['A4','A4','صفحة كاملة']];
+const PRSC=[['s','صغير'],['m','وسط'],['l','كبير'],['f','على قد الورقة']], PRK={s:.55,m:.75,l:.9,f:1};
+const PRP={'58':{w:58,page:'58mm auto',m:'0'},'80':{w:80,page:'80mm auto',m:'0'},'A5':{w:148,h:210,page:'A5',m:'6mm'},'A4':{w:210,h:297,page:'A4',m:'8mm'}};
+function prCfg(){ const c=S.prCfg||{}; return {paper:c.paper||(S.inv&&S.inv.paper)||'80',sc:c.sc||'f'} }
+/* صورة بحجم الورقة: التصميم بالحجم المختار بنص الورقة من فوق (للآيفون، لأنه بيطبع الصورة زي ما هي) */
+function prPage(src,P,k){ const im=$('#prPv img'); if(!im||!im.naturalWidth) return src; const W=1240, iw=Math.round(W*k), ih=Math.round(im.naturalHeight*iw/im.naturalWidth), H=P.h?Math.max(Math.round(W*P.h/P.w),ih+80):ih+40;
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const x=cv.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,W,H); x.drawImage(im,Math.round((W-iw)/2),20,iw,ih); return cv.toDataURL('image/jpeg',.92) }
+function prPrev(){ const b=$('#prPv'); if(!b||!PRJ) return; const c=prCfg(), P=PRP[c.paper]||PRP['80'], k=PRK[c.sc]||1, wpx=P.w>=148?200:Math.round(P.w*2.3);
+  const inner=PRJ.src?`<img src="${PRJ.src}" alt="" style="width:${Math.round(k*100)}%">`:`<div style="zoom:${k*0.5}">${PRJ.html}</div>`;
+  b.innerHTML=`<div class="prpg${P.h?' pg':''}" style="width:${wpx}px;${P.h?`height:${Math.round(wpx*P.h/P.w)}px`:''}">${inner}</div><small class="muted">${PRPAP.find(x=>x[0]===c.paper)[1]} · ${PRSC.find(x=>x[0]===c.sc)[1]}</small>` }
 function rPrep(u,P){ P=P||INV_PAPER[invCfg().paper]||INV_PAPER['80']; const a=$('#printArea'); if(a) a.innerHTML=`<style>@media print{@page{size:${P[1]};margin:${P[2]}} #printArea{width:${P[0]}!important} #printArea img{width:100%!important}}</style><img src="${u}" alt="">` }
 const RST={booked:['محجوز','warn'],out:['عند الزبونة','bad'],back:['رجع','ok'],cancel:['ملغي','mute']};
 const RPK={cred:'عربون سابق (غير مسترد)',dep:'عربون',rent:'دفعة إيجار',ins:'تأمين مستلم',insback:'تأمين مرجّع',fee:'غرامة',refund:'إرجاع عربون'};
@@ -4882,7 +4911,8 @@ async rentWa(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; c
   try{ const a=document.createElement('a'); a.href=URL.createObjectURL(f); a.download=f.name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000) }catch(e){}
   toast('✓ نزلت صورة السند، ارفقها بمحادثة الزبونة'); window.open(`https://wa.me/${waNum(r.cphone)}`,'_blank','noopener') },
 async rentSave2(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const b=await rRcptBlob(r,d.ts); if(!b) return; const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fileSafe(`سند قبض ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.jpg'; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000); toast('✓ انحفظت الصورة') },
-async rentPrint(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const c=invCfg(), P=INV_PAPER[c.paper]||INV_PAPER['80'];
+rentPrint(d){ A.prOpen({k:'r',id:d.id,ts:d.ts}) },
+async rentPrint0(d){ const r=(S.rentals||[]).find(x=>x.id===+d.id); if(!r) return; const c=invCfg(), P=INV_PAPER[c.paper]||INV_PAPER['80'];
   /* السند جاهز من لما انفتح: بنطبع بنفس الضغطة (الآيفون بيرفض الطباعة إذا تأخرت). على الآيفون بنفتح المشاركة وفيها «طباعة» على طابعة الواي فاي */
   const pre=RPIMG[r.id+'_'+d.ts];
   if(pre&&IOS){ try{ const f=new File([u2b(pre)],fileSafe(`سند ${rRcptNo(r,d.ts)} - ${r.cname}`)+'.jpg',{type:'image/jpeg'}); if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f]}); return } }catch(e){ if(e&&e.name==='AbortError') return } }
