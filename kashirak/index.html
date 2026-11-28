@@ -4516,8 +4516,17 @@ async function rRcptPaper(r,ts){ try{ await document.fonts.load('700 30px Alexan
   y+=30; line(P,y,P+300); T('توقيع وختم المحل',P+150,y+28,21,400,'#6B7280','center'); line(W-P-300,y,W-P); T('توقيع الزبونة',W-P-150,y+28,21,400,'#6B7280','center'); y+=80;
   /* التواصل */
   line(P,y,W-P); y+=34; if(rc.addr){ wrap(rc.addr,W-2*P,22,500).forEach(l=>{ T(l,W/2,y,22,500,INK,'center'); y+=34 }) }
-  const LR=t=>'\u2066'+t+'\u2069', ct=[rc.phone||c.phone?'📞 '+LR(rc.phone||c.phone):'',rc.wa?'💬 واتساب '+LR(rc.wa):'',rc.fb?'ⓕ '+rc.fb:'',rc.ig?'◎ '+LR(rc.ig):''].filter(Boolean);
-  if(ct.length){ wrap(ct.join('   ·   '),W-2*P,22,700).forEach(l=>{ T(l,W/2,y,22,700,INK,'center'); y+=34 }) }
+  /* أيقونات التواصل مرسومة: فيسبوك وإنستغرام وواتساب وهاتف، وجنب كل وحدة النص */
+  const ico=(k,X,Y,z)=>{ const h=z/2; x.save(); x.translate(X,Y); const rq=(f)=>{ x.beginPath(); if(x.roundRect) x.roundRect(-h,-h,z,z,z*.24); else x.rect(-h,-h,z,z); x.fillStyle=f; x.fill() };
+    if(k==='fb'){ rq('#1877F2'); x.fillStyle='#fff'; x.font=`900 ${z*.82}px Arial, sans-serif`; x.textAlign='center'; x.textBaseline='alphabetic'; x.fillText('f',z*.06,h*.98) }
+    else if(k==='ig'){ const gd=x.createLinearGradient(-h,h,h,-h); gd.addColorStop(0,'#FEDA75'); gd.addColorStop(.3,'#FA7E1E'); gd.addColorStop(.6,'#D62976'); gd.addColorStop(1,'#4F5BD5'); rq(gd); x.strokeStyle='#fff'; x.lineWidth=z*.085; x.beginPath(); if(x.roundRect) x.roundRect(-h*.6,-h*.6,z*.6,z*.6,z*.17); else x.rect(-h*.6,-h*.6,z*.6,z*.6); x.stroke(); x.beginPath(); x.arc(0,0,z*.14,0,7); x.stroke(); x.beginPath(); x.arc(z*.19,-z*.19,z*.04,0,7); x.fillStyle='#fff'; x.fill() }
+    else if(k==='wa'){ x.beginPath(); x.arc(0,0,h,0,7); x.fillStyle='#25D366'; x.fill(); x.beginPath(); x.moveTo(-h*.75,h*.85); x.lineTo(-h*.5,h*.3); x.lineTo(-h*.15,h*.55); x.fill(); x.strokeStyle='#fff'; x.lineWidth=z*.07; x.beginPath(); x.arc(0,0,h*.62,0,7); x.stroke(); x.fillStyle='#fff'; x.font=`900 ${z*.48}px Arial, sans-serif`; x.textAlign='center'; x.textBaseline='middle'; x.fillText('✆',0,z*.02) }
+    else { x.beginPath(); x.arc(0,0,h,0,7); x.fillStyle=AC; x.fill(); x.fillStyle='#fff'; x.font=`900 ${z*.52}px Arial, sans-serif`; x.textAlign='center'; x.textBaseline='middle'; x.fillText('✆',0,z*.02) }
+    x.restore(); x.textBaseline='middle' };
+  const CT=[[rc.phone||c.phone?'ph':'',rc.phone||c.phone,1],[rc.wa?'wa':'',rc.wa,1],[rc.fb?'fb':'',rc.fb,0],[rc.ig?'ig':'',rc.ig,1]].filter(z=>z[0]);
+  if(CT.length){ const z=36, gap=34, fs=22; x.font=`700 ${fs}px ${F}`; const it=CT.map(([k,t,ltr])=>({k,t:ltr?'\u2066'+t+'\u2069':RT(t),w:z+10+x.measureText(ltr?'\u2066'+t+'\u2069':RT(t)).width}));
+    const rowsC=[]; let cur=[], cw=0; it.forEach(o=>{ if(cur.length&&cw+gap+o.w>W-2*P){ rowsC.push([cur,cw]); cur=[]; cw=0 } cw+=(cur.length?gap:0)+o.w; cur.push(o) }); if(cur.length) rowsC.push([cur,cw]);
+    rowsC.forEach(([L,tw])=>{ let xr=W/2+tw/2; L.forEach(o=>{ ico(o.k,xr-z/2,y,z); T(o.t,xr-z-10,y+1,fs,700,INK); xr-=o.w+gap }); y+=46 }) }
   if(rc.close){ y+=14; wrap(rc.close,W-2*P,32,800).forEach(l=>{ T(l,W/2,y,32,800,AC,'center'); y+=46 }) }
   y+=24; T('صادر عبر «كاشيرك الذكي»',W/2,y,18,400,'#9CA3AF','center'); y+=34;
   const out=document.createElement('canvas'); out.width=W; out.height=y; const ox=out.getContext('2d',{willReadFrequently:true}); ox.fillStyle='#fff'; ox.fillRect(0,0,W,y); ox.drawImage(cv,0,0); return out }
