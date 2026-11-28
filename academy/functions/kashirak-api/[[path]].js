@@ -887,6 +887,16 @@ async function admin(env, request, b) {
     for (const i of it) { const q = +i.qty || 0; if (q < 0) neg++; if (q <= 0) continue; inStock++; units += q; cost += q * (+i.cost || 0); price += q * (+i.price || 0); if (!(+i.cost > 0)) noCost++; }
     return json({ ok: true, name: sh.name, updated: sh.updated, items: it.length, inStock, units: r2(units), cost: r2(cost), price: r2(price), noCost, neg });
   }
+  if (b === 'costdiag' && m === 'GET') { // فحص تكلفة المبيعات لمحل: قراءة فقط. بيطلّع الفواتير والأصناف اللي تكلفتها مش منطقية
+    const id = clean(new URL(request.url).searchParams.get('id'), 40); if (!id) return err('محل غير معروف');
+    const sh = await env.DB.prepare('SELECT id, name, updated FROM ksr_shops WHERE id = ?').bind(id).first(); if (!sh) return err('ما في محل', 404);
+    let st = {}; try { st = JSON.parse(await stateText(await readState(env, sh.id))); } catch { return err('ما قدرنا نقرأ بيانات المحل'); }
+    const r2 = (n) => Math.round(n * 100) / 100, sales = Array.isArray(st.sales) ? st.sales : [], items = Array.isArray(st.items) ? st.items : [];
+    const top = sales.map((x) => ({ id: x.id, ts: x.ts, total: +x.total || 0, cost: +x.cost || 0, lines: (x.lines || []).map((l) => ({ name: l.name, itemId: l.itemId, count: l.count, baseQty: l.baseQty, unit: l.unit, price: l.price, cost: l.cost, lc: r2((+l.cost || 0) * (+l.baseQty || 0)) })) }))
+      .filter((x) => x.cost > Math.max(200, x.total * 3)).sort((a, b) => b.cost - a.cost).slice(0, 15);
+    const badItems = items.filter((i) => (+i.cost || 0) > Math.max(1000, (+i.price || 0) * 10)).map((i) => ({ id: i.id, name: i.name, barcode: i.barcode, cost: i.cost, price: i.price, qty: i.qty })).slice(0, 30);
+    return json({ ok: true, name: sh.name, updated: sh.updated, sales: sales.length, cogs: r2(sales.reduce((a, x) => a + (+x.cost || 0), 0)), rev: r2(sales.reduce((a, x) => a + (+x.total || 0), 0)), top, badItems });
+  }
   if (b === 'tplfromshop' && m === 'POST') { // نسخ أصناف محل (الاسم، الباركود، السعر) لقالب عام. قراءة فقط من المحل
     const k = clean(q.k, 20) || 'market'; if (!TPL_KEYS[k]) return err('مجال غير معروف');
     const ph = phoneOf(q.phone); if (!ph) return err('اكتب رقم جوال المحل');
