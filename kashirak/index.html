@@ -4480,7 +4480,48 @@ function rRcptHTML(r,ts){ const g=rPayGroup(r,ts), c=invCfg(), d=new Date(+ts), 
 
 /* سند القبض كصورة رسمية (PNG) بنرسمها على canvas: بتنبعت كصورة على واتساب وبتنطبع */
 const ldImg=src=>new Promise(res=>{ if(!src) return res(null); const i=new Image(); i.onload=()=>res(i); i.onerror=()=>res(null); i.src=src });
-async function rRcptCanvas(r,ts){ try{ await document.fonts.load('700 30px Alexandria'); await document.fonts.load('400 30px Alexandria') }catch(e){}
+/* وصل ورقي زي وصولات محلات الفساتين: شعار واسم وسطر، شروط الاستئجار، خانات بخط منقّط، وتحت التواصل وجملة الختام */
+async function rRcptPaper(r,ts){ try{ await document.fonts.load('700 30px Alexandria'); await document.fonts.load('400 30px Alexandria') }catch(e){}
+  const c=invCfg(), rc=rCfg(), hd=new Set(rc.hide||[]), g=rPayGroup(r,ts), d=new Date(+ts), W=1080, P=44, F='Alexandria, Tahoma, sans-serif', logo=await ldImg(c.logo), name=c.name||S.shop, AC='#9D174D', INK='#1F2937';
+  const total=r2(g.reduce((a,p)=>a+p.amt,0)), DL=rDlist(r), md=dressById(r.dressId)||{};
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=2600+DL.length*60; const x=cv.getContext('2d',{willReadFrequently:true}); x.direction='rtl'; x.textBaseline='middle';
+  const T=(t,X,Y,sz,w=400,col=INK,al='right')=>{ x.font=`${w} ${sz}px ${F}`; x.fillStyle=col; x.textAlign=al; x.fillText(RT(String(t)),X,Y) };
+  const wrap=(t,maxW,sz,w=400)=>{ x.font=`${w} ${sz}px ${F}`; const out=[]; String(t).split('\n').forEach(par=>{ let ln=''; par.split(' ').forEach(wd=>{ const tt=ln?ln+' '+wd:wd; if(x.measureText(tt).width>maxW&&ln){ out.push(ln); ln=wd } else ln=tt }); if(ln) out.push(ln) }); return out };
+  const line=(x1,y1,x2,dash)=>{ x.strokeStyle='#9CA3AF'; x.lineWidth=2; x.setLineDash(dash?[4,6]:[]); x.beginPath(); x.moveTo(x1,y1); x.lineTo(x2,y1); x.stroke(); x.setLineDash([]) };
+  x.fillStyle='#fff'; x.fillRect(0,0,W,cv.height);
+  let y=40;
+  /* الترويسة */
+  if(logo){ const k=Math.min(130/logo.width,130/logo.height); x.drawImage(logo,W-P-logo.width*k,y,logo.width*k,logo.height*k) }
+  const nx=logo?W-P-150:W-P; T(name,nx,y+40,46,800,AC); if(rc.sub) T(rc.sub,nx,y+92,24,600,INK);
+  if(rc.en){ T(rc.en.toUpperCase(),P,y+40,30,800,INK,'left') } y+=150;
+  line(P,y,W-P); y+=26;
+  /* الشروط */
+  const TL=String(rc.terms||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  if(TL.length){ T(RT('شروط الاستئجار'),W-P,y,26,800,AC); y+=36; TL.forEach(l=>wrap(l,W-2*P-30,21,500).forEach((w,i)=>{ T((i?'   ':'• ')+w,W-P,y,21,500,INK); y+=32 })); y+=10; line(P,y,W-P); y+=30 }
+  /* رقم الوصل والتاريخ والمبلغ المقبوض */
+  T('رقم الوصل: '+rRcptNo(r,ts),W-P,y,24,700); T(d.toLocaleDateString('ar-u-nu-latn',{day:'numeric',month:'numeric',year:'numeric'})+' · '+d.toLocaleTimeString('ar-u-nu-latn',{hour:'numeric',minute:'2-digit'}),P,y,24,500,'#4B5563','left'); y+=44;
+  x.strokeStyle=AC; x.lineWidth=2; x.beginPath(); if(x.roundRect) x.roundRect(P,y-6,W-2*P,58+g.length*34,12); else x.rect(P,y-6,W-2*P,58+g.length*34); x.stroke();
+  T(`${total<0?'رجّعنا':'استلمنا'} مبلغ وقدره: ${total<0?'−':''}${fx(Math.abs(total))} ₪`,W-P-18,y+22,28,800,AC); y+=52; g.forEach(p=>{ T(`${p.k==='insback'&&p.m==='none'?'انخصم من التأمين':RPK[p.k]||p.k}: ${fx(Math.abs(p.amt))} ₪ · ${rPM(p)}`,W-P-18,y,21,500,'#4B5563'); y+=34 }); y+=26;
+  /* الخانات */
+  const F2=(a,b,ka,kb)=>{ const half=(W-2*P)/2, items=[[a,ka],[b,kb]].filter(([v,k])=>v&&!hd.has(k)); if(!items.length) return; items.forEach(([[l,v]],i)=>{ const xr=W-P-i*half, lw=(x.font=`600 24px ${F}`,x.measureText(RT(l+':')).width); T(l+':',xr,y,24,600,'#4B5563'); T(v,xr-lw-12,y,25,800,INK); line(xr-half+30,y+20,xr-lw-6,true) }); y+=54 };
+  const F1=(l,v,k)=>{ if(!v||hd.has(k)) return; const lw=(x.font=`600 24px ${F}`,x.measureText(RT(l+':')).width); T(l+':',W-P,y,24,600,'#4B5563'); T(v,W-P-lw-12,y,25,800,INK); line(P,y+20,W-P-lw-6,true); y+=54 };
+  F1(rc.clab||(S.rentKind==='suit'?'اسم الزبون':'اسم الأميرة'),r.cname,'name');
+  if(DL.length>1){ DL.forEach((o,i)=>F1(`الصنف ${i+1}`,o.name+(o.who?' · '+o.who:'')+' · '+fx(o.price)+' ₪'+(o.alt?' · ✂️ '+o.alt:''),'dress')) }
+  else { F1('اسم الصنف',r.dname,'dress'); F2(['اللون',md.color||''],['الكود',md.code||''],'color','code'); F2(['المقاس',md.size||''],['إضافات',r.alt||''],'size','alt') }
+  F2(['تاريخ الاستلام',rDay(r.pick)],['تاريخ الإرجاع',rDay(r.ret)],'pick','ret'); F2(['المناسبة',rDay(r.event)],['رقم الحجز',String(r.no)],'event','no');
+  F2(['جوال',r.cphone?'\u2066'+r.cphone+'\u2069':''],['الرهن',r.insDoc||''],'phone','doc');
+  F1('المبلغ المتفق عليه',fx(r.price)+' ₪','x'); F2(['المبلغ المدفوع',fx(rPaid(r))+' ₪'],['المبلغ المتبقي',fx(rLeft(r))+' ₪'],'x','x'); if(r.ins) F1('التأمين النقدي',fx(r.ins)+' ₪','x');
+  String(rc.extra||'').split('\n').map(l=>l.trim()).filter(Boolean).forEach(l=>{ const i=l.indexOf(':'); if(i>0&&i<30) F1(l.slice(0,i).trim(),l.slice(i+1).trim(),'x'); else { T(l,W-P,y,23,600); y+=44 } });
+  /* التوقيع */
+  y+=30; line(P,y,P+300); T('توقيع وختم المحل',P+150,y+28,21,400,'#6B7280','center'); line(W-P-300,y,W-P); T('توقيع الزبونة',W-P-150,y+28,21,400,'#6B7280','center'); y+=80;
+  /* التواصل */
+  line(P,y,W-P); y+=34; if(rc.addr){ wrap(rc.addr,W-2*P,22,500).forEach(l=>{ T(l,W/2,y,22,500,INK,'center'); y+=34 }) }
+  const LR=t=>'\u2066'+t+'\u2069', ct=[rc.phone||c.phone?'📞 '+LR(rc.phone||c.phone):'',rc.wa?'💬 واتساب '+LR(rc.wa):'',rc.fb?'ⓕ '+rc.fb:'',rc.ig?'◎ '+LR(rc.ig):''].filter(Boolean);
+  if(ct.length){ wrap(ct.join('   ·   '),W-2*P,22,700).forEach(l=>{ T(l,W/2,y,22,700,INK,'center'); y+=34 }) }
+  if(rc.close){ y+=14; wrap(rc.close,W-2*P,32,800).forEach(l=>{ T(l,W/2,y,32,800,AC,'center'); y+=46 }) }
+  y+=24; T('صادر عبر «كاشيرك الذكي»',W/2,y,18,400,'#9CA3AF','center'); y+=34;
+  const out=document.createElement('canvas'); out.width=W; out.height=y; const ox=out.getContext('2d',{willReadFrequently:true}); ox.fillStyle='#fff'; ox.fillRect(0,0,W,y); ox.drawImage(cv,0,0); return out }
+async function rRcptCanvas(r,ts){ if(rCfg().style==='paper') return rRcptPaper(r,ts); try{ await document.fonts.load('700 30px Alexandria'); await document.fonts.load('400 30px Alexandria') }catch(e){}
   const c=invCfg(), g=rPayGroup(r,ts), d=new Date(+ts), W=1080, P=56, F='Alexandria, Tahoma, sans-serif', logo=await ldImg(c.logo), name=c.name||S.shop;
   const total=r2(g.reduce((a,p)=>a+p.amt,0)), note=rRcptNote(r);
   const cv=document.createElement('canvas'); cv.width=W; cv.height=3400+((r.ex||[]).length*100); const x=cv.getContext('2d',{willReadFrequently:true}); x.direction='rtl'; x.textBaseline='middle';
@@ -4571,8 +4612,8 @@ const rFees=r=>rSum(r,['fee']);
 const rLeft=r=>r.st==='cancel'?0:Math.max(0,r2((+r.price||0)-rPaid(r)));
 const rInsHeld=r=>r2(rSum(r,['ins'])+rSum(r,['insback']));    /* insback سالبة */
 const rLate=r=>r.st==='out'&&r.ret&&r.ret<rToday();
-const RRF=[['dress','الفستان'],['code','الكود'],['size','المقاس'],['color','اللون'],['no','رقم الحجز'],['event','المناسبة'],['pick','الاستلام'],['ret','الإرجاع'],['phone','جوال الزبونة'],['doc','الرهن'],['alt','التعديلات']];
-const rCfg=()=>Object.assign({sub:'',hide:[],extra:'',buffer:1,terms:'الفستان بيرجع بنفس حالته بالموعد المتفق عليه. أي تلف أو تأخير بينخصم من التأمين.'},S.rentCfg||{});
+const RRF=[['name','اسم الزبونة'],['dress','الفستان'],['code','الكود'],['size','المقاس'],['color','اللون'],['no','رقم الحجز'],['event','المناسبة'],['pick','الاستلام'],['ret','الإرجاع'],['phone','جوال الزبونة'],['doc','الرهن'],['alt','التعديلات']];
+const rCfg=()=>Object.assign({style:'modern',en:'',phone:'',wa:'',fb:'',ig:'',addr:'',close:'',clab:'',sub:'',hide:[],extra:'',buffer:1,terms:'الفستان بيرجع بنفس حالته بالموعد المتفق عليه. أي تلف أو تأخير بينخصم من التأمين.'},S.rentCfg||{});
 const dressById=id=>(S.dresses||[]).find(x=>x.id===+id);
 /* هل الفستان فاضي بين تاريخين؟ (مع أيام التنظيف بين حجز وحجز) */
 /* الحجز ممكن يكون فيه أكتر من فستان بنفس الوصل: الأساسي dressId والباقي بـ ex */
@@ -4797,14 +4838,21 @@ rdClr(){ RDATE2=''; render() },
 rcatSet(d){ RCAT=d.v; render() },
 rfDur(d){ const p=$('#rfPick'), rt=$('#rfRet'); if(!p||!rt||!p.value) return; rt.value=ymd(ymdT2(p.value)+(+d.n)*DAY); rt.dispatchEvent(new Event('input',{bubbles:true})); rt.dispatchEvent(new Event('change',{bubbles:true})) },
 rcptEdit(){ const g=rCfg(); openSheet(`${sheetHead('🧾 تعديل سند الحجز')}<p class="muted" style="margin:0">عدّل السند زي ما بدك، واضغط «معاينة» تشوف شكله قبل الحفظ. اسم المحل والشعار ورقمه بتتعدّل من «تعديل الفاتورة» بالمزيد.</p>
+  <div class="seg"><button type="button" data-act="reStyle" data-v="paper" aria-pressed="${g.style==='paper'}">📄 وصل ورقي (زي الدفتر)</button><button type="button" data-act="reStyle" data-v="modern" aria-pressed="${g.style!=='paper'}">✨ سند حديث</button></div><input type="hidden" id="reSty" value="${g.style==='paper'?'paper':'modern'}">
   <label for="reSub">سطر تحت اسم المحل<input id="reSub" maxlength="80" value="${esc(g.sub||'')}" placeholder="مثال: لبيع وتأجير فساتين الزفاف والسهرة"></label>
   <div class="rsf"><span class="muted" style="font-size:13px">شو يطلع بالسند؟</span>${RRF.map(([k,l])=>`<label class="chk"><input type="checkbox" class="reF" data-k="${k}" ${(g.hide||[]).includes(k)?'':'checked'}>${RT(l)}</label>`).join('')}</div>
+  <div class="grid2"><label for="reEn">الاسم بالإنجليزي<input id="reEn" dir="ltr" maxlength="40" value="${esc(g.en||'')}" placeholder="MAMBO CENTER"></label><label for="reClab">اسم خانة الزبونة<input id="reClab" maxlength="20" value="${esc(g.clab||'')}" placeholder="${S.rentKind==='suit'?'اسم الزبون':'اسم الأميرة'}"></label></div>
+  <div class="grid2"><label for="rePh">رقم الجوال<input id="rePh" dir="ltr" inputmode="tel" maxlength="20" value="${esc(g.phone||'')}" placeholder="059xxxxxxx"></label><label for="reWa">رقم الواتساب<input id="reWa" dir="ltr" inputmode="tel" maxlength="20" value="${esc(g.wa||'')}" placeholder="+970 59..."></label></div>
+  <div class="grid2"><label for="reFb">فيسبوك<input id="reFb" maxlength="40" value="${esc(g.fb||'')}" placeholder="اسم الصفحة"></label><label for="reIg">إنستغرام<input id="reIg" dir="ltr" maxlength="40" value="${esc(g.ig||'')}" placeholder="@shop"></label></div>
+  <label for="reAddr">العنوان<input id="reAddr" maxlength="120" value="${esc(g.addr||'')}" placeholder="مثال: النصيرات، بالقرب من مسجد الشهداء"></label>
+  <label for="reClose">جملة الختام<input id="reClose" maxlength="80" value="${esc(g.close||'')}" placeholder="دامت دياركم عامرة بالأفراح والمسرات"></label>
   <label for="reExtra">سطور إضافية<textarea id="reExtra" rows="3" placeholder="الدوام: 9:30 صباحًا&#10;العنوان: بجانب مسجد الشهداء">${esc(g.extra||'')}</textarea><small class="fh">كل سطر لحاله. «العنوان: القيمة» بيطلع عنوان وقيمة.</small></label>
   <label for="reTerms">الشروط<textarea id="reTerms" rows="5">${esc(g.terms)}</textarea><small class="fh">كل شرط بسطر لحاله.</small></label>
   <div class="grid2"><button class="btn" data-act="rcptPrev">👁️ معاينة</button><button class="btn primary" data-act="rcptSave">✓ حفظ السند</button></div><div id="rePrev" class="rcpt-prev"></div>`) },
-rcptVals(){ return {sub:String(($('#reSub')||{}).value||'').trim().slice(0,80),hide:[...document.querySelectorAll('.reF')].filter(e=>!e.checked).map(e=>e.dataset.k),extra:String(($('#reExtra')||{}).value||'').trim().slice(0,400),terms:String(($('#reTerms')||{}).value||'').trim().slice(0,800)} },
+rcptVals(){ const v=k=>String(($('#'+k)||{}).value||'').trim(); return {style:v('reSty')==='paper'?'paper':'modern',en:v('reEn').slice(0,40),clab:v('reClab').slice(0,20),phone:v('rePh').slice(0,20),wa:v('reWa').slice(0,20),fb:v('reFb').slice(0,40),ig:v('reIg').slice(0,40),addr:v('reAddr').slice(0,120),close:v('reClose').slice(0,80),sub:String(($('#reSub')||{}).value||'').trim().slice(0,80),hide:[...document.querySelectorAll('.reF')].filter(e=>!e.checked).map(e=>e.dataset.k),extra:String(($('#reExtra')||{}).value||'').trim().slice(0,400),terms:String(($('#reTerms')||{}).value||'').trim().slice(0,800)} },
 async rcptPrev(){ const old=S.rentCfg; S.rentCfg=Object.assign(rCfg(),A.rcptVals()); const r=(S.rentals||[]).slice().reverse().find(x=>(x.pays||[]).length)||{id:0,no:1,dressId:(S.dresses||[])[0]?S.dresses[0].id:0,dname:(S.dresses||[])[0]?S.dresses[0].name:RT('فستان سهرة'),cname:'اسم الزبونة',cphone:'0599000000',event:ymd(Date.now()+3*DAY),pick:ymd(Date.now()+2*DAY),ret:ymd(Date.now()+4*DAY),price:400,ins:0,insDoc:'الهوية الأصلية',pays:[{ts:Date.now(),amt:200,m:'cash',k:'dep'}]};
   try{ const c=await rRcptCanvas(r,r.pays[r.pays.length-1].ts), b=$('#rePrev'); if(b){ b.innerHTML=`<img src="${c.toDataURL('image/jpeg',.85)}" alt="معاينة السند">`; b.scrollIntoView({block:'start',behavior:'smooth'}) } }finally{ S.rentCfg=old } },
+reStyle(d){ const i=$('#reSty'); if(i) i.value=d.v; document.querySelectorAll('[data-act=reStyle]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===d.v)); A.rcptPrev() },
 rcptSave(){ S.rentCfg=Object.assign(rCfg(),A.rcptVals()); save(); toast('✓ انحفظ شكل السند'); A.rcptPrev() },
 rfalCat(d){ RCAT=d.v; const b=document.querySelector('[data-act=rentSave]'); rfALUI(b?+b.dataset.id:0) },
 limGo(d){ closeSheet(); A._limOk=1; A.checkout() },
