@@ -4400,12 +4400,12 @@ function pBizView(){ const on=!!S.pharm;
 const rentMode=()=>!!(S&&S.rentOn&&!S.rentSide);
 const RPITCH=[['🪪','حجز بالاسم والهوية'],['💰','العربون والباقي'],['🧾','سند قبض على واتساب'],['🚫','ما في حجز مكرر'],['📅','الاستلام والإرجاع'],['📊','الدخل والأرباح']];
 let RKIND='dress', RPRE=null;
-const rentPitchBody=()=>`<div class="rpt0"><span>👗🤵</span><div><b>محل تأجير</b><small>اختار شو بتأجّر، والتطبيق كله بيتشكّل عليه بضغطة</small></div></div>
+const rentPitchBody=()=>{ if(S.rentKind) RKIND=S.rentKind; const nd=(S.dresses||[]).length, nr=(S.rentals||[]).length; return `${nd||nr?`<div class="rfcred" style="margin-bottom:8px">🔒 بياناتك محفوظة: <b class="num">${nd}</b> ${RT('فستان')} و<b class="num">${nr}</b> حجز. لما تفعّل بيرجعوا كلهم زي ما هم.</div>`:''}<div class="rpt0"><span>👗🤵</span><div><b>محل تأجير</b><small>اختار شو بتأجّر، والتطبيق كله بيتشكّل عليه بضغطة</small></div></div>
   <div class="rkind" role="radiogroup"><button type="button" data-act="rKind" data-k="dress" aria-pressed="${RKIND==='dress'}"><span>👗</span><b>فساتين نسائية</b><small>أعراس · سهرة · خطوبة</small></button><button type="button" data-act="rKind" data-k="suit" aria-pressed="${RKIND==='suit'}"><span>🤵</span><b>بدل رجالية</b><small>شبابية · أعراس · تخرّج</small></button></div>
   <div class="rpgrid">${RPITCH.map(([i,t])=>`<div><span>${i}</span>${t}</div>`).join('')}</div>
   <button class="addbig rpgo" data-act="rentOnGo" data-m="full"><span>✓</span>تفعيل</button>
   <button class="btn block sm" data-act="rentOnGo" data-m="side">محلي ببيع وبأجّر مع بعض</button>
-  <small class="fh" style="text-align:center">ما بيمسح ولا بيغيّر أي إشي، وبتلغيه وقت ما بدك.</small>`;
+  <small class="fh" style="text-align:center">ما بيمسح ولا بيغيّر أي إشي، وبتلغيه وقت ما بدك.</small>` };
 /* طريقة الدفع بالتأجير: نقدي، أو تحويل (بنك فلسطين، جوال باي، بال باي...) مع صورة الإشعار */
 let RPS={}, RPN=0;
 const RP=()=>{ const e=document.querySelector('#sheet.open .rpay')||document.querySelector('#view .rpay'); return (e&&RPS[e.dataset.k])||{m:'cash',am:'',proof:null} };
