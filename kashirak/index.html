@@ -3804,7 +3804,7 @@ cloudLogin(){openSheet(`${sheetHead('دخول لحساب المحل')}
   <p class="muted" style="margin:0">نفس رقم الجوال وكلمة السر اللي سجّلت فيهم المحل.</p>
   <label for="clPhone">رقم الجوال<input id="clPhone" inputmode="tel" autocomplete="tel" placeholder="059xxxxxxx"></label>
   <label for="clPass">كلمة السر<input id="clPass" type="password" autocomplete="current-password"></label>
-  <p class="muted" style="margin:0">الحساب بيفتح على 3 أجهزة بنفس الرقم وكلمة السر، وكلهم بيبيعوا.</p>
+  <p class="muted" style="margin:0">كلمة السر بتنفع لـ3 أجهزة بنفس رقم الجوال، وكلهم بيبيعوا. بعد الـ3 بتاخد كلمة سر جديدة من أبو عمر.</p>
   ${S?'<p class="muted" style="margin:0;color:var(--bad)">بيانات هذا الجهاز رح تنستبدل ببيانات الحساب.</p>':''}
   <button class="btn primary block" data-act="cloudLoginGo">دخول</button>`)},
 async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value, role=(document.querySelector('[name=clRole]:checked')||{}).value||'seller';
@@ -3820,13 +3820,17 @@ async cloudLoginGo(){const ph=$('#clPhone').value.trim(), pw=$('#clPass').value,
     else {toast('الحساب فاضي. اعمل المحل من الجهاز الأساسي أول'); CL=null; clSave(); btn.disabled=false; btn.textContent='دخول'; return}
     CLS.state='ok'; closeSheet(); tab='home'; await licRefresh(); render(); toast('✓ دخلت على المحل · هذا الجهاز بيبيع'); cloudPullBlobs(); cloudPull();
   }catch(e){ btn.disabled=false; btn.textContent='دخول';
+    if(e.code==='limit'&&e.data&&e.data.pwlimit){ openSheet(`${sheetHead('🔒 وصلت للحد النهائي')}<p style="margin:0">كلمة السر هاي انفتحت على <b>3 أجهزة</b>، وهاد الحد لكل كلمة سر.</p>
+      <div class="rfcred">تواصل مع <b>أبو عمر</b> عشان يعطيك <b>كلمة سر جديدة</b>، وبعدها بتدخل عادي من هالجوال. بياناتك كلها محفوظة.</div>
+      <a class="btn wa block big" href="https://wa.me/970567686774?text=${encodeURIComponent('مرحبًا أبو عمر، وصلت للحد النهائي بكاشيرك الذكي وبدي كلمة سر جديدة.\nرقم جوال الحساب: '+ph)}" target="_blank" rel="noopener">${WAIC}تواصل مع أبو عمر على واتساب</a>
+      <a class="btn block" href="tel:0567686774">📞 اتصل: 0567686774</a>`); return }
     if(e.code==='limit'&&e.data&&e.data.devices){ A.loginReplace.p={ph,pw,role};
       openSheet(`${sheetHead('الحساب مفتوح على 3 أجهزة')}<p style="margin:0">هذا الحد لكل محل: 3 أجهزة. اختار جهاز تطلّعه من الحساب، وهذا الجهاز بيدخل مكانه:</p>
         <div class="list">${e.data.devices.map(x=>`<div class="li"><span>${esc(x.label||'جهاز')} ${x.main?'<span class="pill ok">الأساسي</span>':x.seller?'<span class="pill ok">بائع ثاني</span>':''}<br><span class="muted" style="font-size:12.5px">آخر دخول ${x.last?fday(x.last)+' · '+hm(x.last):'—'}</span></span><button class="btn sm danger" data-act="loginReplace" data-dev="${x.id}">طلّعه</button></div>`).join('')}</div>`); return }
     if(e.code==='nopass'){ openSheet(`${sheetHead('الحساب لسا ما إله كلمة سر')}<p style="margin:0">افتح التطبيق على <b>جوال صاحب المحل الأول</b> وهو متصل بالنت دقيقة. كلمة سر الحساب بتتجهّز لحالها من الجوال.</p>
       <div class="list"><div class="li"><span>بعدها ارجع لهذا الجهاز وادخل بنفس رقم الجوال وكلمة سر الحساب.</span></div></div>
       <a class="btn wa block" href="https://wa.me/${SUPPORT_WA}?text=${encodeURIComponent('مرحبًا، بدي أدخل على حساب محلي من جوال ثاني.\nرقم الجوال: '+ph)}" target="_blank" rel="noopener">${WAIC}ساعدوني على واتساب</a>`); return }
-    toast(e.status===401&&!e.code?'رقم الجوال أو كلمة السر غلط. تأكد من كلمة السر وحاول مرة ثانية':e.message)}},
+    toast(e.message||'رقم الجوال أو كلمة السر غلط. تأكد وحاول مرة ثانية')}},
 async takeHub(d){const btn=$('[data-act=takeHub]'); if(btn){btn.disabled=true; btn.textContent='جاري التحويل…'} const myHeld=S&&Array.isArray(S.held)?S.held.slice():[];
   if(!navigator.onLine){toast('بدها نت. شغّل النت وجرّب'); if(btn){btn.disabled=false;btn.textContent='كمّل'} return}
   if(OPQ.some(o=>!o.sent)){ await opSend(); if(OPQ.some(o=>!o.sent)){toast('في مبيعات على هذا الجهاز لسا ما انرفعت. جرّب كمان شوي'); if(btn){btn.disabled=false;btn.textContent='كمّل'} return} }

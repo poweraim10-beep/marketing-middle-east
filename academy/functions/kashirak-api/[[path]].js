@@ -26,7 +26,9 @@ const b64u = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').re
 const unb64u = (s) => decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/'))));
 async function body(req) { try { return await req.json(); } catch { return {}; } }
 const clean = (s, max = 200) => String(s ?? '').trim().slice(0, max);
-const phoneOf = (p) => String(p ?? '').replace(/[^\d]/g, '').replace(/^00/, '').slice(-12);
+// الأرقام العربية (٠١٢) والفارسية (۰۱۲) بتنقلب لأرقام عادية، عشان الجوال اللي كيبورده عربي يدخل عادي
+const dig = (s) => String(s ?? '').replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x6F0));
+const phoneOf = (p) => dig(p).replace(/[^\d]/g, '').replace(/^00/, '').slice(-12);
 
 async function hashSecret(secret, saltHex) {
   const salt = new Uint8Array(saltHex.match(/../g).map((h) => parseInt(h, 16)));
@@ -111,6 +113,22 @@ async function tooManyFails(env, ip) {
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM ksr_fail WHERE ip = ?').bind(ip).first();
   return (r && r.n) >= 10;
 }
+// كلمة السر: بنقبلها زي ما انكتبت، أو بعد تحويل الأرقام العربية وشيل المسافات من الأطراف
+async function pwOk(shop, raw) {
+  if (!shop || !shop.hash) return false;
+  const r = String(raw || ''), vs = [...new Set([r, r.trim(), dig(r), dig(r).trim()])].filter(Boolean);
+  for (const v of vs) if (same(shop.hash, await hashSecret(v, shop.salt))) return true;
+  return false;
+}
+// الحساب بالجوال: نفس الرقم زي ما انحفظ، أو آخر 9 أرقام (059… = 970 59… = 59…)
+async function shopsByPhone(env, phone) {
+  const ex = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
+  if (ex) return [ex];
+  if (phone.length < 9) return [];
+  const r = await env.DB.prepare('SELECT * FROM ksr_shops WHERE substr(phone, -9) = ? LIMIT 5').bind(phone.slice(-9)).all();
+  return (r && r.results) || [];
+}
+const LIMIT_MSG = `وصلت للحد النهائي: كلمة السر هاي انفتحت على ${3} أجهزة. تواصل مع أبو عمر على 0567686774 عشان يعطيك كلمة سر جديدة، وبعدها بتدخل عادي.`;
 async function noteFail(env, ip) { await env.DB.prepare('INSERT INTO ksr_fail (ip, t) VALUES (?, ?)').bind(ip, nowMs()).run(); }
 
 // token = shop id + password salt (a password change logs every device out)
@@ -135,7 +153,7 @@ const waOf = (w) => { const d = String(w || '').replace(/\D/g, '').replace(/^00/
 const MAX_DEV = 3, DEV_ACTIVE = 30 * 864e5;
 const sellersOf = (s) => activeDevs(s).map((x) => x.id).filter((x) => x && x !== s.main).slice(0, MAX_DEV - 1);
 const devsOf = (s) => { try { return JSON.parse(s.devices || '{}') || {}; } catch { return {}; } };
-const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: k !== s.main }));
+const activeDevs = (s) => Object.entries(devsOf(s)).filter(([k, v]) => k === s.main || (v && !v.out && v.last > nowMs() - DEV_ACTIVE && !/طلب دخول/.test(v.label || ''))).map(([k, v]) => ({ id: k, label: (v.label || 'جهاز').replace(/ \(طلب دخول\)$/, ''), last: v.last, main: k === s.main, seller: k !== s.main }));
 // كل الأجهزة المفعّلة للحساب (الأساسي + الباقي) صلاحيتها واحدة: تبيع وتعدّل وتزامن
 const isBoss = (s, dev) => !!dev && (dev === s.main || activeDevs(s).some((x) => x.id === dev));
 const pubShop = (s) => ({ multi: true, sellers: sellersOf(s), restored: s.restored || 0, wa: s.wa || '', id: s.id, acct: s.acct, owner: s.owner, phone: s.phone, name: s.name, main: s.main, version: s.version, updated: s.updated, size: s.size, haspass: !!s.hash });
@@ -448,16 +466,14 @@ export async function onRequest({ request, env, params }) {
     if (a === 'login' && m === 'POST') {
       const q = await body(request);
       if (await tooManyFails(env, ip)) return err('محاولات كثيرة. جرّب بعد ربع ساعة', 429);
-      const phone = phoneOf(q.phone);
-      const shop = await env.DB.prepare('SELECT * FROM ksr_shops WHERE phone = ?').bind(phone).first();
-      if (shop && !shop.hash) { return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
-      if (!shop || !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('رقم الجوال أو كلمة السر غلط', 401); }
+      const phone = phoneOf(q.phone), cands = await shopsByPhone(env, phone);
+      let shop = null; for (const c of cands) { if (await pwOk(c, q.password)) { shop = c; break; } }
+      if (!shop && cands.length && cands.every((c) => !c.hash)) { return err('هذا الحساب لسا ما إله كلمة سر. حدّدها من الجهاز الأساسي: الإعدادات ← حساب المحل', 401, { code: 'nopass' }); }
+      if (!shop) { await noteFail(env, ip); return err(cands.length ? 'كلمة السر غلط' : 'رقم الجوال مش مسجّل. تأكد من الرقم', 401); }
       if (shop.stopped) return err('هذا الحساب موقوف حاليًا. تواصل مع الدعم، وبياناتك كلها محفوظة', 403, { code: 'stopped' });
       const ldev = clean(q.device, 40), act = activeDevs(shop);
       if (ldev && !act.some((x) => x.id === ldev) && act.length >= MAX_DEV) {
-        const rp = clean(q.replace, 40);
-        if (!rp || !act.some((x) => x.id === rp)) return err(`الحساب مفتوح على ${MAX_DEV} أجهزة، وهذا الحد. اختار جهاز تطلّعه من الحساب`, 409, { code: 'limit', devices: act });
-        await dropDev(env, shop, rp); shop.devices = (await env.DB.prepare('SELECT devices FROM ksr_shops WHERE id = ?').bind(shop.id).first()).devices;
+        return err(LIMIT_MSG, 409, { code: 'limit', pwlimit: 1 });
       }
       const oldLbl = (devsOf(shop)[ldev] || {}).label || '';
       await seen(env, shop, ldev, (q.label ? clean(q.label, 60) : oldLbl).replace(/ \(طلب دخول\)$/, ''));
@@ -652,7 +668,7 @@ export async function onRequest({ request, env, params }) {
     if (a === 'main' && m === 'POST') {
       const q = await body(request);
       const dev = clean(q.device, 40);
-      if (!(dev && dev === device && isBoss(shop, dev)) && !same(shop.hash, await hashSecret(String(q.password || ''), shop.salt))) { await noteFail(env, ip); return err('كلمة السر غلط', 401); }
+      if (!(dev && dev === device && isBoss(shop, dev)) && !(await pwOk(shop, q.password))) { await noteFail(env, ip); return err('كلمة السر غلط', 401); }
       if (!dev) return err('رقم الجهاز ناقص');
       if (shop.main && shop.main !== dev && !q.force && !q.password) {
         const dg = await env.DB.prepare("SELECT v, t FROM ksr_sig WHERE shop = ? AND k = 'dirty'").bind(shop.id).first().catch(() => null);
@@ -1010,7 +1026,8 @@ async function admin(env, request, b) {
       const pw = String(q.password || '');
       if (pw.length < 6) return err('كلمة السر لازم تكون 6 أحرف أو أرقام على الأقل');
       const salt = randomHex(16);
-      await env.DB.prepare('UPDATE ksr_shops SET salt = ?, hash = ? WHERE id = ?').bind(salt, await hashSecret(pw, salt), sh.id).run();
+      const dv = devsOf(sh); for (const k of Object.keys(dv)) if (k !== sh.main && dv[k]) dv[k].out = 1; // كلمة سر جديدة = 3 أجهزة من جديد (الأجهزة القديمة بتدخل بالكلمة الجديدة)
+      await env.DB.prepare('UPDATE ksr_shops SET salt = ?, hash = ?, devices = ? WHERE id = ?').bind(salt, await hashSecret(pw, salt), JSON.stringify(dv), sh.id).run();
       return json({ ok: true });
     }
     if (b === 'edit') {
